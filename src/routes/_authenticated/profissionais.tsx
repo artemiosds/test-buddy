@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, History } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, History, Users, Building2, Briefcase, UserCheck } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
+import {
+  PageHeader,
+  KpiCard,
+  FilterBar,
+  DataTable,
+  type DataTableColumn,
+} from "@/components/shared";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
