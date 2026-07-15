@@ -1,6 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm ci",
-  "outputDirectory": ".output",
-  "framework": null
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
