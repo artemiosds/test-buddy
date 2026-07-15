@@ -887,198 +887,139 @@ function ProfissionaisPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          </div>
-        )}
+            </>
+          ) : undefined
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Total (após filtros)"
+          value={kpis.total}
+          hint="Registros exibidos"
+          loading={isLoading}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Ativos"
+          value={kpis.ativos}
+          hint="Status = ativo"
+          loading={isLoading}
+          icon={<UserCheck className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Efetivos"
+          value={kpis.efetivos}
+          hint="Vínculo de natureza efetiva"
+          loading={isLoading}
+          icon={<Briefcase className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Unidades"
+          value={kpis.unidadesDistintas}
+          hint="Unidades distintas na lista"
+          loading={isLoading}
+          icon={<Building2 className="h-4 w-4" />}
+        />
       </div>
 
-      <div className="space-y-3 rounded-md border bg-card p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por nome, CPF ou matrícula..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <div>
-            <Label className="text-xs text-muted-foreground">Unidade</Label>
-            <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                {unidadesFiltro?.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Vínculo</Label>
-            <Select value={fVinculo} onValueChange={setFVinculo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {vinculosFiltro?.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Status</Label>
-            <Select value={fStatus} onValueChange={setFStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                  <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Cargo</Label>
-            <Select value={fCargo} onValueChange={setFCargo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {cargosFiltro?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Função</Label>
-            <Select value={fFuncao} onValueChange={setFFuncao}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                {funcoesFiltro?.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Setor</Label>
-            <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
-              <SelectTrigger>
-                <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {setoresFiltro?.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Buscar por nome, CPF ou matrícula..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      <div className="rounded-md border bg-card">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left">
-            <tr>
-              <th className="p-3 font-medium">Nome</th>
-              <th className="p-3 font-medium">CPF</th>
-              <th className="p-3 font-medium">Matrícula</th>
-              <th className="p-3 font-medium">Cargo</th>
-              <th className="p-3 font-medium">Vínculo</th>
-              <th className="p-3 font-medium">Unidade</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                  Carregando...
-                </td>
-              </tr>
-            ) : !profissionais?.length ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                  Nenhum profissional encontrado.
-                </td>
-              </tr>
-            ) : (
-              profissionais.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="p-3">
-                    <div className="font-medium">{p.nome_completo}</div>
-                    {p.nome_social && (
-                      <div className="text-xs text-muted-foreground">
-                        {p.nome_social}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3 font-mono text-xs">{formatCPF(p.cpf)}</td>
-                  <td className="p-3">{p.matricula ?? "-"}</td>
-                  <td className="p-3">{p.cargo?.nome ?? "-"}</td>
-                  <td className="p-3">{getVinculoLabel(p.vinculo)}</td>
-                  <td className="p-3">
-                    {p.unidade
-                      ? p.unidade.sigla ?? p.unidade.nome
-                      : "-"}
-                  </td>
-                  <td className="p-3">
-                    <Badge variant={STATUS_VARIANT[p.status]}>
-                      {STATUS_LABEL[p.status]}
-                    </Badge>
-                  </td>
-                  <td className="p-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        asChild
-                        title="Histórico funcional"
-                      >
-                        <Link
-                          to="/profissionais/$id"
-                          params={{ id: p.id }}
-                        >
-                          <History className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      {canEdit && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(p)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm(`Arquivar ${p.nome_completo}?`))
-                              archive.mutate(p.id);
-                          }}
-                          title="Arquivar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <FilterBar>
+        <div>
+          <Label className="text-xs text-muted-foreground">Unidade</Label>
+          <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas</SelectItem>
+              {unidadesFiltro?.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Vínculo</Label>
+          <Select value={fVinculo} onValueChange={setFVinculo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {vinculosFiltro?.map((v) => (
+                <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Status</Label>
+          <Select value={fStatus} onValueChange={setFStatus}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
+                <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Cargo</Label>
+          <Select value={fCargo} onValueChange={setFCargo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {cargosFiltro?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Função</Label>
+          <Select value={fFuncao} onValueChange={setFFuncao}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas</SelectItem>
+              {funcoesFiltro?.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Setor</Label>
+          <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
+            <SelectTrigger>
+              <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {setoresFiltro?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterBar>
+
+      <DataTable<Profissional>
+        columns={columns}
+        rows={profissionais ?? []}
+        getRowKey={(p) => p.id}
+        loading={isLoading}
+        emptyTitle="Nenhum profissional encontrado"
+        emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
+      />
     </div>
   );
 }
