@@ -3011,7 +3011,7 @@ export type Database = {
         | "sistema"
         | "pendencia"
       natureza_vinculo:
-        | "estatutario"
+        | "efetivo"
         | "celetista"
         | "comissionado"
         | "temporario"
@@ -3285,7 +3285,7 @@ export const Constants = {
         "pendencia",
       ],
       natureza_vinculo: [
-        "estatutario",
+        "efetivo",
         "celetista",
         "comissionado",
         "temporario",

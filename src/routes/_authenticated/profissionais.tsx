@@ -719,7 +719,7 @@ function ProfissionaisPage() {
                 </div>
                 {(() => {
                   const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
-                  const isEfetivo = nat === "estatutario" || nat === "comissionado";
+                  const isEfetivo = nat === "efetivo" || nat === "comissionado";
                   if (!isEfetivo) return null;
                   return (
                     <>
