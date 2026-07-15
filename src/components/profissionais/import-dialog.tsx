@@ -296,10 +296,38 @@ export function ImportProfissionaisDialog() {
 
       const { error } = await supabase
         .from("profissionais")
-        .upsert(payload, { onConflict: "cpf" });
+        .select("id")
+        .eq("cpf", r.cpf)
+        .is("deleted_at", null)
+        .maybeSingle();
+      let opErr: { message: string } | null = null;
+      {
+        const existing = error ? null : (await supabase
+          .from("profissionais")
+          .select("id")
+          .eq("cpf", r.cpf)
+          .is("deleted_at", null)
+          .maybeSingle()).data;
+        if (existing?.id) {
+          const { error: upErr } = await supabase
+            .from("profissionais")
+            .update(payload)
+            .eq("id", existing.id);
+          opErr = upErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from("profissionais")
+            .insert(payload);
+          opErr = insErr;
+        }
+      }
+      const error2 = opErr;
       if (error) {
         fail++;
         erros.push(`Linha ${r.linha} (${r.nome_completo}): ${error.message}`);
+      } else if (error2) {
+        fail++;
+        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${error2.message}`);
       } else {
         ok++;
       }
