@@ -454,25 +454,96 @@ function ProfissionaisPage() {
       .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
+  const kpis = useMemo(() => {
+    const list = profissionais ?? [];
+    const total = list.length;
+    const ativos = list.filter((p) => p.status === "ativo").length;
+    const efetivos = list.filter((p) => p.vinculo?.natureza === "efetivo").length;
+    const unidadesDistintas = new Set(
+      list.map((p) => p.unidade_id).filter((v): v is string => !!v),
+    ).size;
+    return { total, ativos, efetivos, unidadesDistintas };
+  }, [profissionais]);
+
+  const columns: DataTableColumn<Profissional>[] = [
+    {
+      key: "nome",
+      header: "Nome",
+      cell: (p) => (
+        <div>
+          <div className="font-medium">{p.nome_completo}</div>
+          {p.nome_social && (
+            <div className="text-xs text-muted-foreground">{p.nome_social}</div>
+          )}
+        </div>
+      ),
+    },
+    { key: "cpf", header: "CPF", cell: (p) => <span className="font-mono text-xs">{formatCPF(p.cpf)}</span> },
+    { key: "matricula", header: "Matrícula", cell: (p) => p.matricula ?? "-" },
+    { key: "cargo", header: "Cargo", cell: (p) => p.cargo?.nome ?? "-" },
+    { key: "vinculo", header: "Vínculo", cell: (p) => getVinculoLabel(p.vinculo) },
+    {
+      key: "unidade",
+      header: "Unidade",
+      cell: (p) => (p.unidade ? p.unidade.sigla ?? p.unidade.nome : "-"),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => (
+        <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
+      ),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (p) => (
+        <div className="inline-flex gap-1">
+          <Button size="icon" variant="ghost" asChild title="Histórico funcional">
+            <Link to="/profissionais/$id" params={{ id: p.id }}>
+              <History className="h-4 w-4" />
+            </Link>
+          </Button>
+          {canEdit && (
+            <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Editar">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                if (confirm(`Arquivar ${p.nome_completo}?`)) archive.mutate(p.id);
+              }}
+              title="Arquivar"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Profissionais</h1>
-          <p className="text-sm text-muted-foreground">
-            Cadastro dos profissionais da rede municipal de saúde.
-          </p>
-        </div>
-        {canCreate && (
-          <div className="flex items-center gap-2">
-            <ImportProfissionaisDialog />
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-              <Button onClick={openNew}>
-                <Plus className="mr-2 h-4 w-4" /> Novo profissional
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <PageHeader
+        title="Profissionais"
+        description="Cadastro dos profissionais da rede municipal de saúde."
+        actions={
+          canCreate ? (
+            <>
+              <ImportProfissionaisDialog />
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={openNew}>
+                    <Plus className="mr-2 h-4 w-4" /> Novo profissional
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {form.id ? "Editar profissional" : "Novo profissional"}
