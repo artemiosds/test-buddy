@@ -93,6 +93,38 @@ export function FrequenciasEfetivosPage() {
   const [competenciaId, setCompetenciaId] = useState<string>("");
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [busca, setBusca] = useState("");
+  const [cargoFilter, setCargoFilter] = useState<string>("todos");
+  const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
+  const [setorFilter, setSetorFilter] = useState<string>("todos");
+
+  const { data: cargosOpts } = useQuery({
+    queryKey: ["cargos-filter"],
+    queryFn: async () => {
+      const { data } = await supabase.from("cargos").select("id, nome")
+        .is("deleted_at", null).eq("status", "ativa").order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: funcoesOpts } = useQuery({
+    queryKey: ["funcoes-filter"],
+    queryFn: async () => {
+      const { data } = await supabase.from("funcoes").select("id, nome")
+        .is("deleted_at", null).eq("status", "ativa").order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: setoresOpts } = useQuery({
+    queryKey: ["setores-filter", unidadeId],
+    enabled: !!unidadeId,
+    queryFn: async () => {
+      const { data } = await supabase.from("setores").select("id, nome")
+        .eq("unidade_id", unidadeId).is("deleted_at", null).order("nome");
+      return data ?? [];
+    },
+  });
+
+  // reset setor filter when unidade changes
+  useEffect(() => { setSetorFilter("todos"); }, [unidadeId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
