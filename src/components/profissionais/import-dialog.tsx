@@ -448,6 +448,7 @@ export function ImportProfissionaisDialog() {
                 <tbody>
                   {preview.map((r) => (
                     <tr key={r.linha} className={r.erro ? "bg-destructive/10" : ""}>
+                      <td className="p-2">{r.linha}</td>
                       <td className="p-2">{r.nome_completo || "—"}</td>
                       <td className="p-2">{r.cpf || "—"}</td>
                       <td className="p-2">{r.unidade_key || "—"}</td>
