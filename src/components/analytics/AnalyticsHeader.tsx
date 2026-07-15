@@ -1,5 +1,4 @@
 import React from "react";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
@@ -11,7 +10,11 @@ export function AnalyticsHeader({ lastUpdated, onRefresh, onExport }: { lastUpda
     <header className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
         <div className="flex items-center gap-2">
-          <Breadcrumb items={[{ label: "Gestão de Pessoas", href: "/gestao-rh" }, { label: "Dashboard Executivo RH" }]} />
+          <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
+            <a href="/gestao-rh" className="hover:underline">Gestão de Pessoas</a>
+            <span className="mx-2">/</span>
+            <span className="text-foreground">Dashboard Executivo RH</span>
+          </nav>
         </div>
         <p className="text-sm text-muted-foreground">Última atualização: {lastUpdated ? new Date(lastUpdated).toLocaleString() : "—"}</p>
       </div>

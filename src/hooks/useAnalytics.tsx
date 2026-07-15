@@ -32,7 +32,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (filters.cargoId) q.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) q.eq("funcao_id", filters.funcaoId);
       if (filters.vinculoId) q.eq("vinculo_id", filters.vinculoId);
-      if (filters.status) q.eq("status", filters.status);
+      if (filters.status) q.eq("status", filters.status as never);
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
@@ -87,7 +87,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryFn: async () => {
       // Reusing existing table frequencia_pendencias as used elsewhere in the project
       const q = supabase.from("frequencia_pendencias").select("id", { count: "exact", head: true }).is("deleted_at", null);
-      if (filters.unidadeId) q.eq("unidade_id", filters.unidadeId);
+      // Nota: frequencia_pendencias não possui coluna unidade_id; filtro removido.
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
