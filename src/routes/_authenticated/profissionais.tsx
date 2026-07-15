@@ -992,30 +992,30 @@ function ProfissionaisPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Total (após filtros)"
-          value={kpis.total}
-          hint="Registros exibidos"
-          loading={isLoading}
+          value={kpiTotal.data ?? 0}
+          hint="Contagem real no servidor"
+          loading={kpiTotal.isLoading}
           icon={<Users className="h-4 w-4" />}
         />
         <KpiCard
           label="Ativos"
-          value={kpis.ativos}
-          hint="Status = ativo"
-          loading={isLoading}
+          value={kpiAtivos.data ?? 0}
+          hint="Status = ativo (ignora filtro de status)"
+          loading={kpiAtivos.isLoading}
           icon={<UserCheck className="h-4 w-4" />}
         />
         <KpiCard
           label="Efetivos"
-          value={kpis.efetivos}
+          value={kpiEfetivos.data ?? 0}
           hint="Vínculo de natureza efetiva"
-          loading={isLoading}
+          loading={kpiEfetivos.isLoading}
           icon={<Briefcase className="h-4 w-4" />}
         />
         <KpiCard
-          label="Unidades"
-          value={kpis.unidadesDistintas}
-          hint="Unidades distintas na lista"
-          loading={isLoading}
+          label="Unidades ativas"
+          value={kpiUnidadesAtivas.data ?? 0}
+          hint="Total no sistema"
+          loading={kpiUnidadesAtivas.isLoading}
           icon={<Building2 className="h-4 w-4" />}
         />
       </div>
