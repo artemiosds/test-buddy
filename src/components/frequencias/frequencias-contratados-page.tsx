@@ -279,13 +279,17 @@ export function FrequenciasContratadosPage() {
   const filtradas = useMemo(() => {
     if (!folha) return [];
     const q = busca.trim().toLowerCase();
-    if (!q) return folha;
-    return folha.filter((it: any) =>
-      it.profissional.nome.toLowerCase().includes(q)
-      || (it.profissional.matricula ?? "").toLowerCase().includes(q)
-      || (it.profissional.cargo ?? "").toLowerCase().includes(q),
-    );
-  }, [folha, busca]);
+    return folha.filter((it: any) => {
+      const p = it.profissional;
+      if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
+      if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
+      if (setorFilter !== "todos" && p.setor_id !== setorFilter) return false;
+      if (!q) return true;
+      return p.nome.toLowerCase().includes(q)
+        || (p.matricula ?? "").toLowerCase().includes(q)
+        || (p.cargo ?? "").toLowerCase().includes(q);
+    });
+  }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
 
   if (!has("frequencia.visualizar")) {
     return (
