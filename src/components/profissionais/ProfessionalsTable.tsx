@@ -31,7 +31,7 @@ export default function ProfessionalsTable({ page, setPage, pageSize = 25 }:
               <td className="p-2">{r.nome_completo}</td>
               <td className="p-2">{r.cpf}</td>
               <td className="p-2">{r.matricula}</td>
-              <td className="p-2">{r.unidade_id ?? '-'}</td>
+              <td className="p-2">{r.unidade_nome ?? '-'}</td>
               <td className="p-2">
                 <Link to={`/profissionais/${r.id}`}>Abrir</Link>
               </td>
