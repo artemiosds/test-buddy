@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/profissionais")({
 });
 
 type StatusProf = Database["public"]["Enums"]["status_profissional"];
+type NaturezaVinculo = Database["public"]["Enums"]["natureza_vinculo"];
 
 type Profissional = {
   id: string;
@@ -56,7 +57,13 @@ type Profissional = {
   vinculo_id: string | null;
   unidade: { nome: string; sigla: string | null } | null;
   cargo: { nome: string } | null;
-  vinculo: { nome: string } | null;
+  vinculo: { nome: string; natureza: NaturezaVinculo | null } | null;
+};
+
+type VinculoOption = {
+  id: string;
+  nome: string;
+  natureza: NaturezaVinculo | null;
 };
 
 type FormState = {
@@ -133,6 +140,11 @@ const STATUS_VARIANT: Record<StatusProf, "default" | "secondary" | "outline" | "
   licenca: "outline",
   desligado: "destructive",
 };
+
+function getVinculoLabel(vinculo?: { nome: string | null; natureza: NaturezaVinculo | null } | null) {
+  if (!vinculo) return "-";
+  return vinculo.natureza === "efetivo" ? "Efetivo" : vinculo.nome || "-";
+}
 
 function ProfissionaisPage() {
   const qc = useQueryClient();
@@ -240,8 +252,8 @@ function ProfissionaisPage() {
     queryKey: ["vinculos-filtro"],
     queryFn: async () => {
       const { data } = await supabase.from("vinculos")
-        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
-      return data ?? [];
+        .select("id,nome,natureza").is("deleted_at", null).eq("status", "ativa").order("nome");
+      return (data ?? []) as VinculoOption[];
     },
   });
   const { data: setoresFiltro } = useQuery({
@@ -251,7 +263,7 @@ function ProfissionaisPage() {
       const { data } = await supabase.from("setores")
         .select("id,nome").eq("unidade_id", fUnidade)
         .is("deleted_at", null).order("nome");
-      return data ?? [];
+      return (data ?? []) as VinculoOption[];
     },
   });
 
@@ -644,7 +656,7 @@ function ProfissionaisPage() {
                     <SelectContent>
                       {vinculos?.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
-                          {v.nome}
+                          {getVinculoLabel(v)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -833,7 +845,7 @@ function ProfissionaisPage() {
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {vinculosFiltro?.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+                  <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -932,7 +944,7 @@ function ProfissionaisPage() {
                   <td className="p-3 font-mono text-xs">{formatCPF(p.cpf)}</td>
                   <td className="p-3">{p.matricula ?? "-"}</td>
                   <td className="p-3">{p.cargo?.nome ?? "-"}</td>
-                  <td className="p-3">{p.vinculo?.nome ?? "-"}</td>
+                  <td className="p-3">{getVinculoLabel(p.vinculo)}</td>
                   <td className="p-3">
                     {p.unidade
                       ? p.unidade.sigla ?? p.unidade.nome
