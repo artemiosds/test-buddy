@@ -66,3 +66,22 @@ Após implementar, gero um PDF de exemplo com dados reais aprovados, converto co
 3. Adicionar `gerarFolhaEfetivosAprovadaPDF` bloqueando não-aprovadas.
 4. Ligar o botão na página de Efetivos (habilitado só quando aprovada).
 5. Validação visual final e checklist de placeholders.
+
+---
+
+## PR 2 — Fundação técnica (checklist)
+
+- [x] **Item 1 — mover `/gestao-rh` para `_authenticated`** (mesclado no PR 1).
+- [x] **Item 2 — `use-profissionais.ts` em RQ v5** (`useQuery({ queryKey, queryFn, placeholderData: keepPreviousData })`).
+- [x] **Item 3 — grupo "Gestão de Pessoas" na sidebar** (`src/routes/_authenticated.tsx`, grupo `gestao_pessoas`).
+- [x] **Item 4 — componentes compartilhados** em `src/components/shared/`:
+  `PageHeader`, `KpiCard`, `FilterBar`, `EmptyState`, `DataTable` (+ `index.ts` de reexport).
+
+### Aceito com validação parcial
+- **Filtro de unidade em `frequencia_pendencias` (useAnalytics)**: sintaxe do join
+  `frequencias!inner(competencia_unidades!inner(unidade_id))` validada sem erro de
+  coluna; RLS de `frequencia_pendencias` confirmado como camada de proteção real
+  (restringe SELECT por unidade do usuário via `user_has_unit`). Validação
+  end-to-end com dado real (A=1, B=1, total=2) fica **pendente** para quando a
+  tabela tiver volume natural — ambiente de homologação ou primeiro uso real em
+  produção. **Não bloqueia os módulos seguintes.**
