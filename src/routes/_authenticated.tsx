@@ -56,10 +56,6 @@ const GROUPS: NavGroup[] = [
     icon: FileBarChart,
     items: [
       { to: "/relatorios", label: "Visão geral", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/relatorios-executivo", label: "Executivo", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/relatorios-consolidado", label: "Consolidado", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/relatorios-status", label: "Status por Unidade", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/relatorios-profissional", label: "Por Profissional", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
     ],
   },
   {
