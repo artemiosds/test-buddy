@@ -85,9 +85,15 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "pendencias", filters],
     staleTime,
     queryFn: async () => {
-      // Reusing existing table frequencia_pendencias as used elsewhere in the project
-      const q = supabase.from("frequencia_pendencias").select("id", { count: "exact", head: true }).is("deleted_at", null);
-      // Nota: frequencia_pendencias não possui coluna unidade_id; filtro removido.
+      const q = supabase
+        .from("frequencia_pendencias")
+        .select("id, frequencias!inner(competencia_unidades!inner(unidade_id))", { count: "exact", head: true })
+        .is("deleted_at", null);
+
+      if (filters.unidadeId) {
+        q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
+      }
+
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
