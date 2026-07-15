@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Briefcase, Network, KeyRound, BarChart3, ChevronDown, ChevronRight, Search, PanelLeftClose, PanelLeftOpen, Activity, FolderCog, Wrench, Menu } from "lucide-react";
+import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,13 +41,29 @@ const GROUPS: NavGroup[] = [
       { to: "/analitico", label: "Dashboard Analítico", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
       { to: "/competencias", label: "Competências", icon: CalendarRange, perm: "competencia.visualizar" },
       { to: "/frequencias", label: "Frequências (mensal)", icon: ClipboardList, perm: "frequencia.visualizar" },
-      
       { to: "/frequencia/contratados", label: "Folha — Contratados", icon: ClipboardList, perm: "frequencia.visualizar" },
       { to: "/frequencia/efetivos", label: "Folha — Efetivos", icon: ClipboardList, perm: "frequencia.visualizar" },
       { to: "/pendencias", label: "Pendências", icon: AlertCircle, perm: "pendencia.gerenciar" },
       { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2, perm: "frequencia.aprovar" },
       { to: "/assinaturas", label: "Assinaturas", icon: Signature, perm: ["assinatura.gerenciar", "assinatura.aplicar"] },
       { to: "/notificacoes", label: "Notificações", icon: Bell },
+    ],
+  },
+  {
+    id: "gestao_pessoas",
+    label: "Gestão de Pessoas",
+    icon: Users,
+    items: [
+      // Dashboard RH - placeholder route (non-destructive)
+      { to: "/gestao-rh", label: "Dashboard RH", icon: LayoutDashboard },
+      // Reuse existing routes where present (do not duplicate)
+      { to: "/profissionais", label: "Profissionais", icon: Users, perm: "profissional.visualizar" },
+      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar" },
+      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar" },
+      { to: "/cargos-funcoes", label: "Cargos e Funções", icon: Briefcase, perm: "configuracao.editar" },
+      // Operational / executive placeholders
+      { to: "/centro-controle", label: "Centro de Controle da Força de Trabalho", icon: ClipboardList },
+      { to: "/sala-situacao", label: "Sala de Situação", icon: FileBarChart },
     ],
   },
   {
@@ -61,13 +77,10 @@ const GROUPS: NavGroup[] = [
   {
     id: "cadastros",
     label: "Cadastros",
-    icon: FolderCog,
+    icon: Tag,
     items: [
-      { to: "/profissionais", label: "Profissionais", icon: Users, perm: "profissional.visualizar" },
-      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar" },
+      // Profissionais/Unidades/Setores/Cargos e Funções were moved to the new 'Gestão de Pessoas' group above.
       { to: "/tipos-unidade", label: "Tipos de Unidade", icon: Tag, perm: "configuracao.editar" },
-      { to: "/cargos-funcoes", label: "Cargos e Funções", icon: Briefcase, perm: "configuracao.editar" },
-      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar" },
       { to: "/feriados", label: "Feriados", icon: CalendarDays, perm: "configuracao.editar" },
     ],
   },
