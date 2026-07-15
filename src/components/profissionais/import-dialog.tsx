@@ -294,20 +294,17 @@ export function ImportProfissionaisDialog() {
         conta_corrente: r.conta,
       };
 
-      const { error } = await supabase
+      // upsert por CPF via lookup manual (o índice único de cpf é parcial:
+      // WHERE deleted_at IS NULL — PostgREST não aceita como conflict target).
+      const { data: existing, error: findErr } = await supabase
         .from("profissionais")
         .select("id")
         .eq("cpf", r.cpf)
         .is("deleted_at", null)
         .maybeSingle();
-      let opErr: { message: string } | null = null;
-      {
-        const existing = error ? null : (await supabase
-          .from("profissionais")
-          .select("id")
-          .eq("cpf", r.cpf)
-          .is("deleted_at", null)
-          .maybeSingle()).data;
+
+      let opErr: { message: string } | null = findErr;
+      if (!opErr) {
         if (existing?.id) {
           const { error: upErr } = await supabase
             .from("profissionais")
@@ -321,13 +318,9 @@ export function ImportProfissionaisDialog() {
           opErr = insErr;
         }
       }
-      const error2 = opErr;
-      if (error) {
+      if (opErr) {
         fail++;
-        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${error.message}`);
-      } else if (error2) {
-        fail++;
-        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${error2.message}`);
+        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${opErr.message}`);
       } else {
         ok++;
       }
