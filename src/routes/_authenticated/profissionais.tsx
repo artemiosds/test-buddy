@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -482,15 +482,92 @@ function ProfissionaisPage() {
       .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
-  const kpis = useMemo(() => {
-    const list = profissionais ?? [];
-    const total = list.length;
-    const ativos = list.filter((p) => p.status === "ativo").length;
-    const efetivos = list.filter((p) => p.vinculo?.natureza === "efetivo").length;
-    const unidadesDistintas = new Set(list.map((p) => p.unidade_id).filter((v): v is string => !!v))
-      .size;
-    return { total, ativos, efetivos, unidadesDistintas };
-  }, [profissionais]);
+  // KPIs agregados no servidor (count exact) — independentes do limit(500) da
+  // listagem. Segue o padrão do useAnalytics (HEAD + count=exact), aplicando os
+  // filtros ativos da página. Cada KPI é uma query separada para revalidação
+  // independente.
+  const applyProfFilters = <
+    T extends {
+      eq: (col: string, val: string) => T;
+      or: (expr: string) => T;
+    },
+  >(
+    q: T,
+  ): T => {
+    let out = q;
+    if (search.trim()) {
+      const s = `%${search.trim()}%`;
+      out = out.or(`nome_completo.ilike.${s},cpf.ilike.${s},matricula.ilike.${s}`);
+    }
+    if (fUnidade !== "todos") out = out.eq("unidade_id", fUnidade);
+    if (fVinculo !== "todos") out = out.eq("vinculo_id", fVinculo);
+    if (fCargo !== "todos") out = out.eq("cargo_id", fCargo);
+    if (fFuncao !== "todos") out = out.eq("funcao_id", fFuncao);
+    if (fSetor !== "todos") out = out.eq("setor_id", fSetor);
+    return out;
+  };
+
+  const kpiFiltersKey = [search, fUnidade, fVinculo, fCargo, fFuncao, fSetor];
+
+  const kpiTotal = useQuery({
+    queryKey: ["profissionais-kpi", "total", ...kpiFiltersKey, fStatus],
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null);
+      q = applyProfFilters(q);
+      if (fStatus !== "todos") q = q.eq("status", fStatus as StatusProf);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const kpiAtivos = useQuery({
+    queryKey: ["profissionais-kpi", "ativos", ...kpiFiltersKey],
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .eq("status", "ativo");
+      q = applyProfFilters(q);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const kpiEfetivos = useQuery({
+    queryKey: ["profissionais-kpi", "efetivos", ...kpiFiltersKey, fStatus],
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("id, vinculos!inner(natureza)", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .eq("vinculos.natureza", "efetivo");
+      q = applyProfFilters(q);
+      if (fStatus !== "todos") q = q.eq("status", fStatus as StatusProf);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const kpiUnidadesAtivas = useQuery({
+    queryKey: ["profissionais-kpi", "unidades-ativas"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("unidades")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .eq("status", "ativa");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const columns: DataTableColumn<Profissional>[] = [
     {
@@ -915,30 +992,30 @@ function ProfissionaisPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Total (após filtros)"
-          value={kpis.total}
-          hint="Registros exibidos"
-          loading={isLoading}
+          value={kpiTotal.data ?? 0}
+          hint="Contagem real no servidor"
+          loading={kpiTotal.isLoading}
           icon={<Users className="h-4 w-4" />}
         />
         <KpiCard
           label="Ativos"
-          value={kpis.ativos}
-          hint="Status = ativo"
-          loading={isLoading}
+          value={kpiAtivos.data ?? 0}
+          hint="Status = ativo (ignora filtro de status)"
+          loading={kpiAtivos.isLoading}
           icon={<UserCheck className="h-4 w-4" />}
         />
         <KpiCard
           label="Efetivos"
-          value={kpis.efetivos}
+          value={kpiEfetivos.data ?? 0}
           hint="Vínculo de natureza efetiva"
-          loading={isLoading}
+          loading={kpiEfetivos.isLoading}
           icon={<Briefcase className="h-4 w-4" />}
         />
         <KpiCard
-          label="Unidades"
-          value={kpis.unidadesDistintas}
-          hint="Unidades distintas na lista"
-          loading={isLoading}
+          label="Unidades ativas"
+          value={kpiUnidadesAtivas.data ?? 0}
+          hint="Total no sistema"
+          loading={kpiUnidadesAtivas.isLoading}
           icon={<Building2 className="h-4 w-4" />}
         />
       </div>
