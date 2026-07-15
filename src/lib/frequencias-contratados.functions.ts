@@ -62,7 +62,10 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
       .select(`
         id, matricula, nome_completo, nome_social,
         banco, agencia, conta_corrente,
+        cargo_id, funcao_id, setor_id,
         cargos ( nome ),
+        funcoes ( nome ),
+        setores ( nome ),
         vinculos!inner ( natureza )
       `)
       .eq("unidade_id", data.unidade_id)
@@ -93,6 +96,11 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         matricula: p.matricula,
         nome: p.nome_social || p.nome_completo,
         cargo: p.cargos?.nome ?? null,
+        funcao: p.funcoes?.nome ?? null,
+        setor: p.setores?.nome ?? null,
+        cargo_id: p.cargo_id ?? null,
+        funcao_id: p.funcao_id ?? null,
+        setor_id: p.setor_id ?? null,
         banco: p.banco,
         agencia: p.agencia,
         conta_corrente: p.conta_corrente,
