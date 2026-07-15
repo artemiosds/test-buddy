@@ -801,14 +801,94 @@ function ProfissionaisPage() {
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Buscar por nome, CPF ou matrícula..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="space-y-3 rounded-md border bg-card p-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nome, CPF ou matrícula..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <div>
+            <Label className="text-xs text-muted-foreground">Unidade</Label>
+            <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                {unidadesFiltro?.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Vínculo</Label>
+            <Select value={fVinculo} onValueChange={setFVinculo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {vinculosFiltro?.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Status</Label>
+            <Select value={fStatus} onValueChange={setFStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
+                  <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Cargo</Label>
+            <Select value={fCargo} onValueChange={setFCargo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {cargosFiltro?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Função</Label>
+            <Select value={fFuncao} onValueChange={setFFuncao}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                {funcoesFiltro?.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Setor</Label>
+            <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
+              <SelectTrigger>
+                <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {setoresFiltro?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-md border bg-card">
