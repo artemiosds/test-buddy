@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/profissionais/$id")({
 });
 
 type TipoEvento = Database["public"]["Enums"]["tipo_evento_funcional"];
-type StatusPend = Database["public"]["Enums"]["status_pendencia_freq"];
+type StatusPend = Database["public"]["Enums"]["status_pendencia"];
 
 const EVENTO_LABEL: Record<TipoEvento, string> = {
   admissao: "Admissão",
