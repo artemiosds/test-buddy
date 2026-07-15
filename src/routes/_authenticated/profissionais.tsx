@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, History } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, History, Users, Building2, Briefcase, UserCheck } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
+import {
+  PageHeader,
+  KpiCard,
+  FilterBar,
+  DataTable,
+  type DataTableColumn,
+} from "@/components/shared";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
@@ -447,25 +454,96 @@ function ProfissionaisPage() {
       .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
+  const kpis = useMemo(() => {
+    const list = profissionais ?? [];
+    const total = list.length;
+    const ativos = list.filter((p) => p.status === "ativo").length;
+    const efetivos = list.filter((p) => p.vinculo?.natureza === "efetivo").length;
+    const unidadesDistintas = new Set(
+      list.map((p) => p.unidade_id).filter((v): v is string => !!v),
+    ).size;
+    return { total, ativos, efetivos, unidadesDistintas };
+  }, [profissionais]);
+
+  const columns: DataTableColumn<Profissional>[] = [
+    {
+      key: "nome",
+      header: "Nome",
+      cell: (p) => (
+        <div>
+          <div className="font-medium">{p.nome_completo}</div>
+          {p.nome_social && (
+            <div className="text-xs text-muted-foreground">{p.nome_social}</div>
+          )}
+        </div>
+      ),
+    },
+    { key: "cpf", header: "CPF", cell: (p) => <span className="font-mono text-xs">{formatCPF(p.cpf)}</span> },
+    { key: "matricula", header: "Matrícula", cell: (p) => p.matricula ?? "-" },
+    { key: "cargo", header: "Cargo", cell: (p) => p.cargo?.nome ?? "-" },
+    { key: "vinculo", header: "Vínculo", cell: (p) => getVinculoLabel(p.vinculo) },
+    {
+      key: "unidade",
+      header: "Unidade",
+      cell: (p) => (p.unidade ? p.unidade.sigla ?? p.unidade.nome : "-"),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => (
+        <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
+      ),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (p) => (
+        <div className="inline-flex gap-1">
+          <Button size="icon" variant="ghost" asChild title="Histórico funcional">
+            <Link to="/profissionais/$id" params={{ id: p.id }}>
+              <History className="h-4 w-4" />
+            </Link>
+          </Button>
+          {canEdit && (
+            <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Editar">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                if (confirm(`Arquivar ${p.nome_completo}?`)) archive.mutate(p.id);
+              }}
+              title="Arquivar"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Profissionais</h1>
-          <p className="text-sm text-muted-foreground">
-            Cadastro dos profissionais da rede municipal de saúde.
-          </p>
-        </div>
-        {canCreate && (
-          <div className="flex items-center gap-2">
-            <ImportProfissionaisDialog />
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-              <Button onClick={openNew}>
-                <Plus className="mr-2 h-4 w-4" /> Novo profissional
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <PageHeader
+        title="Profissionais"
+        description="Cadastro dos profissionais da rede municipal de saúde."
+        actions={
+          canCreate ? (
+            <>
+              <ImportProfissionaisDialog />
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={openNew}>
+                    <Plus className="mr-2 h-4 w-4" /> Novo profissional
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {form.id ? "Editar profissional" : "Novo profissional"}
@@ -809,198 +887,139 @@ function ProfissionaisPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          </div>
-        )}
+            </>
+          ) : undefined
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Total (após filtros)"
+          value={kpis.total}
+          hint="Registros exibidos"
+          loading={isLoading}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Ativos"
+          value={kpis.ativos}
+          hint="Status = ativo"
+          loading={isLoading}
+          icon={<UserCheck className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Efetivos"
+          value={kpis.efetivos}
+          hint="Vínculo de natureza efetiva"
+          loading={isLoading}
+          icon={<Briefcase className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Unidades"
+          value={kpis.unidadesDistintas}
+          hint="Unidades distintas na lista"
+          loading={isLoading}
+          icon={<Building2 className="h-4 w-4" />}
+        />
       </div>
 
-      <div className="space-y-3 rounded-md border bg-card p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por nome, CPF ou matrícula..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <div>
-            <Label className="text-xs text-muted-foreground">Unidade</Label>
-            <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                {unidadesFiltro?.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Vínculo</Label>
-            <Select value={fVinculo} onValueChange={setFVinculo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {vinculosFiltro?.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Status</Label>
-            <Select value={fStatus} onValueChange={setFStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                  <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Cargo</Label>
-            <Select value={fCargo} onValueChange={setFCargo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {cargosFiltro?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Função</Label>
-            <Select value={fFuncao} onValueChange={setFFuncao}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                {funcoesFiltro?.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Setor</Label>
-            <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
-              <SelectTrigger>
-                <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {setoresFiltro?.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Buscar por nome, CPF ou matrícula..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      <div className="rounded-md border bg-card">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left">
-            <tr>
-              <th className="p-3 font-medium">Nome</th>
-              <th className="p-3 font-medium">CPF</th>
-              <th className="p-3 font-medium">Matrícula</th>
-              <th className="p-3 font-medium">Cargo</th>
-              <th className="p-3 font-medium">Vínculo</th>
-              <th className="p-3 font-medium">Unidade</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                  Carregando...
-                </td>
-              </tr>
-            ) : !profissionais?.length ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                  Nenhum profissional encontrado.
-                </td>
-              </tr>
-            ) : (
-              profissionais.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="p-3">
-                    <div className="font-medium">{p.nome_completo}</div>
-                    {p.nome_social && (
-                      <div className="text-xs text-muted-foreground">
-                        {p.nome_social}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3 font-mono text-xs">{formatCPF(p.cpf)}</td>
-                  <td className="p-3">{p.matricula ?? "-"}</td>
-                  <td className="p-3">{p.cargo?.nome ?? "-"}</td>
-                  <td className="p-3">{getVinculoLabel(p.vinculo)}</td>
-                  <td className="p-3">
-                    {p.unidade
-                      ? p.unidade.sigla ?? p.unidade.nome
-                      : "-"}
-                  </td>
-                  <td className="p-3">
-                    <Badge variant={STATUS_VARIANT[p.status]}>
-                      {STATUS_LABEL[p.status]}
-                    </Badge>
-                  </td>
-                  <td className="p-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        asChild
-                        title="Histórico funcional"
-                      >
-                        <Link
-                          to="/profissionais/$id"
-                          params={{ id: p.id }}
-                        >
-                          <History className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      {canEdit && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(p)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm(`Arquivar ${p.nome_completo}?`))
-                              archive.mutate(p.id);
-                          }}
-                          title="Arquivar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <FilterBar>
+        <div>
+          <Label className="text-xs text-muted-foreground">Unidade</Label>
+          <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas</SelectItem>
+              {unidadesFiltro?.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Vínculo</Label>
+          <Select value={fVinculo} onValueChange={setFVinculo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {vinculosFiltro?.map((v) => (
+                <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Status</Label>
+          <Select value={fStatus} onValueChange={setFStatus}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
+                <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Cargo</Label>
+          <Select value={fCargo} onValueChange={setFCargo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {cargosFiltro?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Função</Label>
+          <Select value={fFuncao} onValueChange={setFFuncao}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas</SelectItem>
+              {funcoesFiltro?.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Setor</Label>
+          <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
+            <SelectTrigger>
+              <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {setoresFiltro?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterBar>
+
+      <DataTable<Profissional>
+        columns={columns}
+        rows={profissionais ?? []}
+        getRowKey={(p) => p.id}
+        loading={isLoading}
+        emptyTitle="Nenhum profissional encontrado"
+        emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
+      />
     </div>
   );
 }
