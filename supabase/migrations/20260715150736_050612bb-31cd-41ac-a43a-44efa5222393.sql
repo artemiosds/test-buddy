@@ -1,0 +1,1 @@
+ALTER TYPE public.natureza_vinculo RENAME VALUE 'estatutario' TO 'efetivo';
