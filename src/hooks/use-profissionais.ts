@@ -1,24 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfessionalFilters } from '@/context/professional-filter-context';
 
 export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSize = 25) {
   const offset = (page - 1) * pageSize;
-  return useQuery([
-    'profissionais',
-    filters.q ?? null,
-    filters.cpf ?? null,
-    filters.matricula ?? null,
-    filters.unidadeId ?? null,
-    filters.setorId ?? null,
-    filters.cargoId ?? null,
-    filters.funcaoId ?? null,
-    filters.vinculoId ?? null,
-    filters.status ?? null,
-    page,
-    pageSize,
-  ],
-  async () => {
+  return useQuery({
+    queryKey: [
+      'profissionais',
+      filters.q ?? null,
+      filters.cpf ?? null,
+      filters.matricula ?? null,
+      filters.unidadeId ?? null,
+      filters.setorId ?? null,
+      filters.cargoId ?? null,
+      filters.funcaoId ?? null,
+      filters.vinculoId ?? null,
+      filters.status ?? null,
+      page,
+      pageSize,
+    ],
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
     // build base query
     let query = supabase
       .from('profissionais')
@@ -36,7 +38,7 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
     if (filters.cargoId) query = query.eq('cargo_id', filters.cargoId);
     if (filters.funcaoId) query = query.eq('funcao_id', filters.funcaoId);
     if (filters.vinculoId) query = query.eq('vinculo_id', filters.vinculoId);
-    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.status) query = query.eq('status', filters.status as never);
 
     const { data, count, error } = await query.range(offset, offset + pageSize - 1);
     if (error) throw error;
@@ -61,5 +63,6 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
     const mapped = rows.map((r: any) => ({ ...r, unidade_nome: r.unidade_id ? (unidadesMap[r.unidade_id] ?? r.unidade_id) : null }));
 
     return { rows: mapped, count: count ?? 0 };
-  }, { keepPreviousData: true });
+    },
+  });
 }
