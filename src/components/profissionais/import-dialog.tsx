@@ -294,12 +294,33 @@ export function ImportProfissionaisDialog() {
         conta_corrente: r.conta,
       };
 
-      const { error } = await supabase
+      // upsert por CPF via lookup manual (o índice único de cpf é parcial:
+      // WHERE deleted_at IS NULL — PostgREST não aceita como conflict target).
+      const { data: existing, error: findErr } = await supabase
         .from("profissionais")
-        .upsert(payload, { onConflict: "cpf" });
-      if (error) {
+        .select("id")
+        .eq("cpf", r.cpf)
+        .is("deleted_at", null)
+        .maybeSingle();
+
+      let opErr: { message: string } | null = findErr;
+      if (!opErr) {
+        if (existing?.id) {
+          const { error: upErr } = await supabase
+            .from("profissionais")
+            .update(payload)
+            .eq("id", existing.id);
+          opErr = upErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from("profissionais")
+            .insert(payload);
+          opErr = insErr;
+        }
+      }
+      if (opErr) {
         fail++;
-        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${error.message}`);
+        erros.push(`Linha ${r.linha} (${r.nome_completo}): ${opErr.message}`);
       } else {
         ok++;
       }
@@ -427,6 +448,7 @@ export function ImportProfissionaisDialog() {
                 <tbody>
                   {preview.map((r) => (
                     <tr key={r.linha} className={r.erro ? "bg-destructive/10" : ""}>
+                      <td className="p-2">{r.linha}</td>
                       <td className="p-2">{r.nome_completo || "—"}</td>
                       <td className="p-2">{r.cpf || "—"}</td>
                       <td className="p-2">{r.unidade_key || "—"}</td>
