@@ -127,7 +127,7 @@ const STATUS_LABEL: Record<StatusFreq, string> = {
 };
 
 type Natureza = Database["public"]["Enums"]["natureza_vinculo"];
-const NATUREZAS_EFETIVOS: Natureza[] = ["estatutario", "comissionado"];
+const NATUREZAS_EFETIVOS: Natureza[] = ["efetivo", "comissionado"];
 const NATUREZAS_CONTRATADOS: Natureza[] = ["celetista", "temporario", "terceirizado", "estagiario", "residente", "voluntario"];
 
 type ColunaDef = { field: NumField; label: string; extra?: boolean };
