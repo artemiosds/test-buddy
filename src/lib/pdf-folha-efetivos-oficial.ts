@@ -14,7 +14,6 @@
  *   - Nome do "Emitido por" usa nome_completo do usuario logado
  */
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 
 export type ProfissionalFolha = {
@@ -407,9 +406,6 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
       }
     }
   }
-
-  // Silence unused-import warning until we split into a data-fetch step.
-  void autoTable;
 
   drawFooter(doc, input.emitidoPor, emissaoStr);
 
