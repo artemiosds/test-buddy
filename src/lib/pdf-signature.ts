@@ -1,5 +1,4 @@
 import type jsPDF from "jspdf";
-import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 
 async function sha256Hex(input: string): Promise<string> {
@@ -25,6 +24,13 @@ export type SignResult = {
   assinadoEm: string;
   assinadoPorNome: string | null;
 };
+
+async function createQrDataUrl(text: string): Promise<string> {
+  const QRCode = await import("qrcode");
+  const toDataURL = QRCode.toDataURL ?? QRCode.default?.toDataURL;
+  if (!toDataURL) throw new Error("Gerador de QR Code indisponível");
+  return toDataURL(text, { margin: 1, width: 180 });
+}
 
 /**
  * Registra um documento assinado no banco e devolve o QR Code em data URL.
@@ -70,7 +76,7 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
   if (error || !data) throw error ?? new Error("Falha ao registrar documento");
 
   const validationUrl = `${window.location.origin}/validar/${data.id}`;
-  const qrDataUrl = await QRCode.toDataURL(validationUrl, { margin: 1, width: 180 });
+  const qrDataUrl = await createQrDataUrl(validationUrl);
 
   return {
     id: data.id,
