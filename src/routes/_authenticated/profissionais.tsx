@@ -142,12 +142,20 @@ function ProfissionaisPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
+  // Filtros de listagem
+  const [fUnidade, setFUnidade] = useState<string>("todos");
+  const [fVinculo, setFVinculo] = useState<string>("todos");
+  const [fStatus, setFStatus] = useState<string>("todos");
+  const [fCargo, setFCargo] = useState<string>("todos");
+  const [fFuncao, setFFuncao] = useState<string>("todos");
+  const [fSetor, setFSetor] = useState<string>("todos");
+
   const canCreate = hasPermission("profissional.criar");
   const canEdit = hasPermission("profissional.editar");
   const canDelete = hasPermission("profissional.excluir");
 
   const { data: profissionais, isLoading } = useQuery({
-    queryKey: ["profissionais", search],
+    queryKey: ["profissionais", search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor],
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -160,6 +168,12 @@ function ProfissionaisPage() {
         const s = `%${search.trim()}%`;
         q = q.or(`nome_completo.ilike.${s},cpf.ilike.${s},matricula.ilike.${s}`);
       }
+      if (fUnidade !== "todos") q = q.eq("unidade_id", fUnidade);
+      if (fVinculo !== "todos") q = q.eq("vinculo_id", fVinculo);
+      if (fStatus !== "todos") q = q.eq("status", fStatus as StatusProf);
+      if (fCargo !== "todos") q = q.eq("cargo_id", fCargo);
+      if (fFuncao !== "todos") q = q.eq("funcao_id", fFuncao);
+      if (fSetor !== "todos") q = q.eq("setor_id", fSetor);
       const { data, error } = await q.limit(500);
       if (error) throw error;
       return (data ?? []) as unknown as Profissional[];
@@ -196,6 +210,53 @@ function ProfissionaisPage() {
     },
     enabled: open,
   });
+
+  // Opções para os filtros de listagem (sempre carregadas)
+  const { data: unidadesFiltro } = useQuery({
+    queryKey: ["unidades-filtro"],
+    queryFn: async () => {
+      const { data } = await supabase.from("unidades")
+        .select("id,nome,sigla").is("deleted_at", null).order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: cargosFiltro } = useQuery({
+    queryKey: ["cargos-filtro"],
+    queryFn: async () => {
+      const { data } = await supabase.from("cargos")
+        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: funcoesFiltro } = useQuery({
+    queryKey: ["funcoes-filtro"],
+    queryFn: async () => {
+      const { data } = await supabase.from("funcoes")
+        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: vinculosFiltro } = useQuery({
+    queryKey: ["vinculos-filtro"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vinculos")
+        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
+      return data ?? [];
+    },
+  });
+  const { data: setoresFiltro } = useQuery({
+    queryKey: ["setores-filtro", fUnidade],
+    enabled: fUnidade !== "todos",
+    queryFn: async () => {
+      const { data } = await supabase.from("setores")
+        .select("id,nome").eq("unidade_id", fUnidade)
+        .is("deleted_at", null).order("nome");
+      return data ?? [];
+    },
+  });
+
+  // Reseta filtro de setor quando unidade muda
+  const changeUnidadeFiltro = (v: string) => { setFUnidade(v); setFSetor("todos"); };
 
   const { data: cargos } = useQuery({
     queryKey: ["cargos-select"],
