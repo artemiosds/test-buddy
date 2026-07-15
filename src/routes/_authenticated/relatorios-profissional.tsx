@@ -6,14 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
-  BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from "recharts";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
@@ -29,13 +40,25 @@ export const Route = createFileRoute("/_authenticated/relatorios-profissional")(
   // Aceita ?profissionalId=... para pré-seleção vinda de outros módulos
   // (ex.: aba Relatórios da tela de detalhe do profissional).
   validateSearch: (raw: Record<string, unknown>) => ({
-    profissionalId:
-      typeof raw.profissionalId === "string" ? raw.profissionalId : undefined,
+    profissionalId: typeof raw.profissionalId === "string" ? raw.profissionalId : undefined,
   }),
   component: RelatorioProfissionalPage,
 });
 
-const MES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MES_LABEL = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 type LinhaProf = {
   faltas_injustificadas: number | null;
@@ -80,7 +103,9 @@ const CAMPOS_EFETIVOS = [
 ] as const;
 
 const STATUS_LINHA_LABEL: Record<StatusLinha, string> = {
-  pendente: "Pendente", aprovada: "Aprovada", rejeitada: "Rejeitada",
+  pendente: "Pendente",
+  aprovada: "Aprovada",
+  rejeitada: "Rejeitada",
 };
 
 function toKey(ano: number, mes: number): number {
@@ -128,9 +153,11 @@ function RelatorioProfissionalPage() {
     enabled: canView,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("competencias").select("id, ano, mes")
+        .from("competencias")
+        .select("id, ano, mes")
         .is("deleted_at", null)
-        .order("ano", { ascending: true }).order("mes", { ascending: true });
+        .order("ano", { ascending: true })
+        .order("mes", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -144,8 +171,10 @@ function RelatorioProfissionalPage() {
         .from("profissionais")
         .select("id, nome_completo, matricula, cpf, vinculos(natureza)")
         .ilike("nome_completo", `%${search}%`)
-        .is("deleted_at", null).eq("status", "ativo")
-        .order("nome_completo").limit(30);
+        .is("deleted_at", null)
+        .eq("status", "ativo")
+        .order("nome_completo")
+        .limit(30);
       if (error) throw error;
       return data ?? [];
     },
@@ -165,7 +194,8 @@ function RelatorioProfissionalPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("frequencia_profissional")
-        .select(`
+        .select(
+          `
           faltas_injustificadas, atestado, he_50, he_100, adicional_noturno,
           plantoes_extras, sobreaviso, incentivo, ferias, licenca_premio, status_linha,
           frequencias!inner(
@@ -174,7 +204,8 @@ function RelatorioProfissionalPage() {
               competencias!inner(id, ano, mes)
             )
           )
-        `)
+        `,
+        )
         .is("deleted_at", null)
         .eq("profissional_id", profissionalId)
         .limit(500);
@@ -205,19 +236,23 @@ function RelatorioProfissionalPage() {
   const campos = tipo === "efetivos" ? CAMPOS_EFETIVOS : CAMPOS_CONTRATADOS;
 
   const chartData = useMemo(
-    () => linhasFiltradas.map((l) => {
-      const c = l.frequencias!.competencia_unidades!.competencias!;
-      return {
-        label: `${MES_LABEL[c.mes - 1]}/${String(c.ano).slice(2)}`,
-        "HE 50%": Number(l.he_50 ?? 0),
-        "HE 100%": Number(l.he_100 ?? 0),
-      };
-    }),
+    () =>
+      linhasFiltradas.map((l) => {
+        const c = l.frequencias!.competencia_unidades!.competencias!;
+        return {
+          label: `${MES_LABEL[c.mes - 1]}/${String(c.ano).slice(2)}`,
+          "HE 50%": Number(l.he_50 ?? 0),
+          "HE 100%": Number(l.he_100 ?? 0),
+        };
+      }),
     [linhasFiltradas],
   );
 
   function exportarXLSX() {
-    if (!linhasFiltradas.length) { toast.error("Nada para exportar."); return; }
+    if (!linhasFiltradas.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
     const rows = linhasFiltradas.map((l) => {
       const c = l.frequencias!.competencia_unidades!.competencias!;
       const base: Record<string, string | number> = {
@@ -237,16 +272,22 @@ function RelatorioProfissionalPage() {
   }
 
   async function exportarPDF() {
-    if (!linhasFiltradas.length) { toast.error("Nada para exportar."); return; }
+    if (!linhasFiltradas.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const info = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(
-      doc, info, `Histórico do Profissional — ${profSelecionado?.nome_completo ?? ""}`,
+      doc,
+      info,
+      `Histórico do Profissional — ${profSelecionado?.nome_completo ?? ""}`,
     );
     doc.setFontSize(10);
     doc.text(
       `Matrícula: ${profSelecionado?.matricula ?? "—"}  |  Tipo: ${tipo ?? "—"}`,
-      14, startY + 4,
+      14,
+      startY + 4,
     );
 
     autoTable(doc, {
@@ -281,13 +322,20 @@ function RelatorioProfissionalPage() {
         },
       });
       drawSignatureStamp(doc, sig);
-    } catch (err) { console.error("assinatura:", err); }
+    } catch (err) {
+      console.error("assinatura:", err);
+    }
     doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
   }
 
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!canView) {
-    return <div className="p-6"><h1 className="text-2xl font-bold">Relatórios</h1><p className="mt-2 text-muted-foreground">Sem permissão.</p></div>;
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold">Relatórios</h1>
+        <p className="mt-2 text-muted-foreground">Sem permissão.</p>
+      </div>
+    );
   }
 
   return (
@@ -302,7 +350,11 @@ function RelatorioProfissionalPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportarPDF} disabled={!canExport || !linhasFiltradas.length}>
+          <Button
+            variant="outline"
+            onClick={exportarPDF}
+            disabled={!canExport || !linhasFiltradas.length}
+          >
             <Download className="mr-2 h-4 w-4" /> PDF
           </Button>
           <Button onClick={exportarXLSX} disabled={!canExport || !linhasFiltradas.length}>
@@ -315,7 +367,9 @@ function RelatorioProfissionalPage() {
 
       <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-3">
         <div className="md:col-span-3">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Buscar profissional</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Buscar profissional
+          </label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -327,11 +381,14 @@ function RelatorioProfissionalPage() {
           </div>
           {profissionais && profissionais.length > 0 && (
             <Select value={profissionalId} onValueChange={setProfissionalId}>
-              <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione o profissional..." /></SelectTrigger>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Selecione o profissional..." />
+              </SelectTrigger>
               <SelectContent>
                 {profissionais.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.nome_completo}{p.matricula ? ` — ${p.matricula}` : ""}
+                    {p.nome_completo}
+                    {p.matricula ? ` — ${p.matricula}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -339,9 +396,13 @@ function RelatorioProfissionalPage() {
           )}
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">De (competência)</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            De (competência)
+          </label>
           <Select value={deId} onValueChange={setDeId}>
-            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
             <SelectContent>
               {competencias?.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
@@ -352,9 +413,13 @@ function RelatorioProfissionalPage() {
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Até (competência)</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Até (competência)
+          </label>
           <Select value={ateId} onValueChange={setAteId}>
-            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
             <SelectContent>
               {competencias?.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
@@ -397,19 +462,41 @@ function RelatorioProfissionalPage() {
                 <tr>
                   <th className="px-3 py-2">Competência</th>
                   {campos.map((c) => (
-                    <th key={c.key} className="px-3 py-2 text-right whitespace-nowrap">{c.label}</th>
+                    <th key={c.key} className="px-3 py-2 text-right whitespace-nowrap">
+                      {c.label}
+                    </th>
                   ))}
                   <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {isLoading && <tr><td colSpan={campos.length + 2} className="px-3 py-8 text-center text-muted-foreground">Carregando...</td></tr>}
-                {!isLoading && !linhasFiltradas.length && <tr><td colSpan={campos.length + 2} className="px-3 py-8 text-center text-muted-foreground">Sem registros no intervalo.</td></tr>}
+                {isLoading && (
+                  <tr>
+                    <td
+                      colSpan={campos.length + 2}
+                      className="px-3 py-8 text-center text-muted-foreground"
+                    >
+                      Carregando...
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && !linhasFiltradas.length && (
+                  <tr>
+                    <td
+                      colSpan={campos.length + 2}
+                      className="px-3 py-8 text-center text-muted-foreground"
+                    >
+                      Sem registros no intervalo.
+                    </td>
+                  </tr>
+                )}
                 {linhasFiltradas.map((l, i) => {
                   const c = l.frequencias!.competencia_unidades!.competencias!;
                   return (
                     <tr key={i} className="border-t">
-                      <td className="px-3 py-2">{String(c.mes).padStart(2, "0")}/{c.ano}</td>
+                      <td className="px-3 py-2">
+                        {String(c.mes).padStart(2, "0")}/{c.ano}
+                      </td>
                       {campos.map((f) => (
                         <td key={f.key} className="px-3 py-2 text-right tabular-nums">
                           {Number((l as unknown as Record<string, number | null>)[f.key] ?? 0)}

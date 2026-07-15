@@ -27,12 +27,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, FileBarChart } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
-import {
-  PageHeader,
-  DataTable,
-  EmptyState,
-  type DataTableColumn,
-} from "@/components/shared";
+import { PageHeader, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/profissionais/$id")({
@@ -57,7 +52,20 @@ const EVENTO_LABEL: Record<TipoEvento, string> = {
   outro: "Outro",
 };
 
-const MES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MES_LABEL = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 type FormState = {
   tipo_evento: TipoEvento;
@@ -129,14 +137,16 @@ function ProfissionalDetailPage() {
 
       <PageHeader
         title={profissional?.nome_completo ?? (loadingProf ? "Carregando…" : "Profissional")}
-        description={[
-          profissional?.matricula && `Mat.: ${profissional.matricula}`,
-          profissional?.cpf && `CPF: ${fmtCPF(profissional.cpf)}`,
-          profissional?.cargo?.nome && `Cargo: ${profissional.cargo.nome}`,
-          profissional?.vinculo?.nome && `Vínculo: ${profissional.vinculo.nome}`,
-        ]
-          .filter(Boolean)
-          .join(" · ") || undefined}
+        description={
+          [
+            profissional?.matricula && `Mat.: ${profissional.matricula}`,
+            profissional?.cpf && `CPF: ${fmtCPF(profissional.cpf)}`,
+            profissional?.cargo?.nome && `Cargo: ${profissional.cargo.nome}`,
+            profissional?.vinculo?.nome && `Vínculo: ${profissional.vinculo.nome}`,
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        }
       />
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -179,7 +189,7 @@ function ProfissionalDetailPage() {
 /* ============================= Dados Gerais ============================= */
 
 type ProfDetail = NonNullable<Awaited<ReturnType<typeof loadNever>>>;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 async function loadNever() {
   return null as unknown as {
     id: string;
@@ -356,7 +366,7 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
             label="Unidade"
             value={
               profissional?.unidade
-                ? profissional.unidade.sigla ?? profissional.unidade.nome
+                ? (profissional.unidade.sigla ?? profissional.unidade.nome)
                 : "-"
             }
           />
@@ -463,7 +473,9 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{EVENTO_LABEL[ev.tipo_evento as TipoEvento]}</Badge>
+                      <Badge variant="secondary">
+                        {EVENTO_LABEL[ev.tipo_evento as TipoEvento]}
+                      </Badge>
                       <span className="text-sm font-medium">
                         {fmtDate(ev.data_inicio)}
                         {ev.data_fim ? ` → ${fmtDate(ev.data_fim)}` : ""}
@@ -637,16 +649,20 @@ function CompetenciasTab({ profissionalId }: { profissionalId: string }) {
       const c = r.frequencias?.competencia_unidades?.competencias;
       if (!c) continue;
       const key = `${c.ano}-${c.mes}`;
-      const cur =
-        map.get(key) ?? { key, ano: c.ano, mes: c.mes, folhas: 0, aprovadas: 0, pendentes: 0 };
+      const cur = map.get(key) ?? {
+        key,
+        ano: c.ano,
+        mes: c.mes,
+        folhas: 0,
+        aprovadas: 0,
+        pendentes: 0,
+      };
       cur.folhas += 1;
       if (r.status_linha === "aprovada") cur.aprovadas += 1;
       if (r.status_linha === "pendente") cur.pendentes += 1;
       map.set(key, cur);
     }
-    return Array.from(map.values()).sort(
-      (a, b) => b.ano * 12 + b.mes - (a.ano * 12 + a.mes),
-    );
+    return Array.from(map.values()).sort((a, b) => b.ano * 12 + b.mes - (a.ano * 12 + a.mes));
   }, [rows]);
 
   const columns: DataTableColumn<CompAgg>[] = [
@@ -689,12 +705,17 @@ function HorasExtrasTab({ profissionalId }: { profissionalId: string }) {
       const c = r.frequencias?.competencia_unidades?.competencias;
       if (!c) continue;
       const key = `${c.ano}-${c.mes}`;
-      const cur =
-        map.get(key) ??
-        {
-          key, ano: c.ano, mes: c.mes,
-          he_50: 0, he_100: 0, adn: 0, plantoes: 0, sobreaviso: 0, total: 0,
-        };
+      const cur = map.get(key) ?? {
+        key,
+        ano: c.ano,
+        mes: c.mes,
+        he_50: 0,
+        he_100: 0,
+        adn: 0,
+        plantoes: 0,
+        sobreaviso: 0,
+        total: 0,
+      };
       const he50 = Number(r.he_50 ?? 0);
       const he100 = Number(r.he_100 ?? 0);
       cur.he_50 += he50;
@@ -705,9 +726,7 @@ function HorasExtrasTab({ profissionalId }: { profissionalId: string }) {
       cur.total += he50 + he100;
       map.set(key, cur);
     }
-    return Array.from(map.values()).sort(
-      (a, b) => b.ano * 12 + b.mes - (a.ano * 12 + a.mes),
-    );
+    return Array.from(map.values()).sort((a, b) => b.ano * 12 + b.mes - (a.ano * 12 + a.mes));
   }, [rows]);
 
   const columns: DataTableColumn<HeAgg>[] = [
@@ -783,7 +802,11 @@ function PendenciasTab({ profissionalId }: { profissionalId: string }) {
       cell: (r) =>
         labelComp(r.frequencia_profissional?.frequencias?.competencia_unidades?.competencias),
     },
-    { key: "titulo", header: "Título", cell: (r) => <span className="font-medium">{r.titulo}</span> },
+    {
+      key: "titulo",
+      header: "Título",
+      cell: (r) => <span className="font-medium">{r.titulo}</span>,
+    },
     {
       key: "descricao",
       header: "Descrição",
@@ -821,16 +844,12 @@ function RelatoriosTab({ profissionalId }: { profissionalId: string }) {
         <div className="flex-1">
           <h3 className="text-sm font-semibold">Relatórios do profissional</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Abre a tela de <strong>Relatórios por Profissional</strong> já com este
-            profissional pré-selecionado. Escolha ali as competências (de/até) e
-            exporte em PDF ou Excel.
+            Abre a tela de <strong>Relatórios por Profissional</strong> já com este profissional
+            pré-selecionado. Escolha ali as competências (de/até) e exporte em PDF ou Excel.
           </p>
           <div className="mt-3">
             <Button asChild size="sm">
-              <Link
-                to="/relatorios-profissional"
-                search={{ profissionalId }}
-              >
+              <Link to="/relatorios-profissional" search={{ profissionalId }}>
                 Abrir relatórios
               </Link>
             </Button>
