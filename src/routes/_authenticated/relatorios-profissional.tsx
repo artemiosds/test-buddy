@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,12 @@ type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
 
 export const Route = createFileRoute("/_authenticated/relatorios-profissional")({
+  // Aceita ?profissionalId=... para pré-seleção vinda de outros módulos
+  // (ex.: aba Relatórios da tela de detalhe do profissional).
+  validateSearch: (raw: Record<string, unknown>) => ({
+    profissionalId:
+      typeof raw.profissionalId === "string" ? raw.profissionalId : undefined,
+  }),
   component: RelatorioProfissionalPage,
 });
 
@@ -88,10 +94,34 @@ function RelatorioProfissionalPage() {
   const canView = isMaster || has("relatorio.visualizar");
   const canExport = isMaster || has("relatorio.exportar");
 
+  const { profissionalId: preselectId } = Route.useSearch();
+
   const [search, setSearch] = useState("");
   const [profissionalId, setProfissionalId] = useState<string>("");
   const [deId, setDeId] = useState<string>("");
   const [ateId, setAteId] = useState<string>("");
+
+  // Se veio ?profissionalId=..., busca o profissional e pré-seleciona no filtro.
+  const { data: preselectProf } = useQuery({
+    queryKey: ["rel-prof-preselect", preselectId],
+    enabled: canView && !!preselectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id, nome_completo, matricula, cpf, vinculos(natureza)")
+        .eq("id", preselectId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (preselectProf && !profissionalId) {
+      setProfissionalId(preselectProf.id);
+      setSearch(preselectProf.nome_completo);
+    }
+  }, [preselectProf, profissionalId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["rel-competencias-prof"],
