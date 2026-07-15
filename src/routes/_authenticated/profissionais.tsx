@@ -23,7 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, History, Users, Building2, Briefcase, UserCheck } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  History,
+  Users,
+  Building2,
+  Briefcase,
+  UserCheck,
+} from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
 import {
@@ -148,7 +158,9 @@ const STATUS_VARIANT: Record<StatusProf, "default" | "secondary" | "outline" | "
   desligado: "destructive",
 };
 
-function getVinculoLabel(vinculo?: { nome: string | null; natureza: NaturezaVinculo | null } | null) {
+function getVinculoLabel(
+  vinculo?: { nome: string | null; natureza: NaturezaVinculo | null } | null,
+) {
   if (!vinculo) return "-";
   return vinculo.natureza === "efetivo" ? "Efetivo" : vinculo.nome || "-";
 }
@@ -179,7 +191,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)"
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
         )
         .is("deleted_at", null)
         .order("nome_completo");
@@ -234,32 +246,47 @@ function ProfissionaisPage() {
   const { data: unidadesFiltro } = useQuery({
     queryKey: ["unidades-filtro"],
     queryFn: async () => {
-      const { data } = await supabase.from("unidades")
-        .select("id,nome,sigla").is("deleted_at", null).order("nome");
+      const { data } = await supabase
+        .from("unidades")
+        .select("id,nome,sigla")
+        .is("deleted_at", null)
+        .order("nome");
       return data ?? [];
     },
   });
   const { data: cargosFiltro } = useQuery({
     queryKey: ["cargos-filtro"],
     queryFn: async () => {
-      const { data } = await supabase.from("cargos")
-        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("cargos")
+        .select("id,nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
       return data ?? [];
     },
   });
   const { data: funcoesFiltro } = useQuery({
     queryKey: ["funcoes-filtro"],
     queryFn: async () => {
-      const { data } = await supabase.from("funcoes")
-        .select("id,nome").is("deleted_at", null).eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("funcoes")
+        .select("id,nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
       return data ?? [];
     },
   });
   const { data: vinculosFiltro } = useQuery({
     queryKey: ["vinculos-filtro"],
     queryFn: async () => {
-      const { data } = await supabase.from("vinculos")
-        .select("id,nome,natureza").is("deleted_at", null).eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("vinculos")
+        .select("id,nome,natureza")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
       return (data ?? []) as VinculoOption[];
     },
   });
@@ -267,15 +294,21 @@ function ProfissionaisPage() {
     queryKey: ["setores-filtro", fUnidade],
     enabled: fUnidade !== "todos",
     queryFn: async () => {
-      const { data } = await supabase.from("setores")
-        .select("id,nome").eq("unidade_id", fUnidade)
-        .is("deleted_at", null).order("nome");
+      const { data } = await supabase
+        .from("setores")
+        .select("id,nome")
+        .eq("unidade_id", fUnidade)
+        .is("deleted_at", null)
+        .order("nome");
       return (data ?? []) as VinculoOption[];
     },
   });
 
   // Reseta filtro de setor quando unidade muda
-  const changeUnidadeFiltro = (v: string) => { setFUnidade(v); setFSetor("todos"); };
+  const changeUnidadeFiltro = (v: string) => {
+    setFUnidade(v);
+    setFSetor("todos");
+  };
 
   const { data: cargos } = useQuery({
     queryKey: ["cargos-select"],
@@ -355,9 +388,7 @@ function ProfissionaisPage() {
         data_nascimento: f.data_nascimento || null,
         sexo: f.sexo || null,
         data_admissao: f.data_admissao || null,
-        carga_horaria_semanal: f.carga_horaria_semanal
-          ? Number(f.carga_horaria_semanal)
-          : null,
+        carga_horaria_semanal: f.carga_horaria_semanal ? Number(f.carga_horaria_semanal) : null,
         status: f.status,
         observacoes: f.observacoes.trim() || null,
         secretaria_id: f.secretaria_id,
@@ -375,10 +406,7 @@ function ProfissionaisPage() {
         jorn: f.jorn ? Number(f.jorn) : null,
       };
       if (f.id) {
-        const { error } = await supabase
-          .from("profissionais")
-          .update(payload)
-          .eq("id", f.id);
+        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("profissionais").insert(payload);
@@ -459,9 +487,8 @@ function ProfissionaisPage() {
     const total = list.length;
     const ativos = list.filter((p) => p.status === "ativo").length;
     const efetivos = list.filter((p) => p.vinculo?.natureza === "efetivo").length;
-    const unidadesDistintas = new Set(
-      list.map((p) => p.unidade_id).filter((v): v is string => !!v),
-    ).size;
+    const unidadesDistintas = new Set(list.map((p) => p.unidade_id).filter((v): v is string => !!v))
+      .size;
     return { total, ativos, efetivos, unidadesDistintas };
   }, [profissionais]);
 
@@ -472,27 +499,27 @@ function ProfissionaisPage() {
       cell: (p) => (
         <div>
           <div className="font-medium">{p.nome_completo}</div>
-          {p.nome_social && (
-            <div className="text-xs text-muted-foreground">{p.nome_social}</div>
-          )}
+          {p.nome_social && <div className="text-xs text-muted-foreground">{p.nome_social}</div>}
         </div>
       ),
     },
-    { key: "cpf", header: "CPF", cell: (p) => <span className="font-mono text-xs">{formatCPF(p.cpf)}</span> },
+    {
+      key: "cpf",
+      header: "CPF",
+      cell: (p) => <span className="font-mono text-xs">{formatCPF(p.cpf)}</span>,
+    },
     { key: "matricula", header: "Matrícula", cell: (p) => p.matricula ?? "-" },
     { key: "cargo", header: "Cargo", cell: (p) => p.cargo?.nome ?? "-" },
     { key: "vinculo", header: "Vínculo", cell: (p) => getVinculoLabel(p.vinculo) },
     {
       key: "unidade",
       header: "Unidade",
-      cell: (p) => (p.unidade ? p.unidade.sigla ?? p.unidade.nome : "-"),
+      cell: (p) => (p.unidade ? (p.unidade.sigla ?? p.unidade.nome) : "-"),
     },
     {
       key: "status",
       header: "Status",
-      cell: (p) => (
-        <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
-      ),
+      cell: (p) => <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>,
     },
     {
       key: "acoes",
@@ -544,349 +571,342 @@ function ProfissionaisPage() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {form.id ? "Editar profissional" : "Novo profissional"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="md:col-span-2">
-                  <Label>Nome completo *</Label>
-                  <Input
-                    value={form.nome_completo}
-                    onChange={(e) =>
-                      setForm({ ...form, nome_completo: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Nome social</Label>
-                  <Input
-                    value={form.nome_social}
-                    onChange={(e) =>
-                      setForm({ ...form, nome_social: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>CPF *</Label>
-                  <Input
-                    value={formatCPF(form.cpf)}
-                    onChange={(e) =>
-                      setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })
-                    }
-                    placeholder="000.000.000-00"
-                  />
-                </div>
-                <div>
-                  <Label>Matrícula</Label>
-                  <Input
-                    value={form.matricula}
-                    onChange={(e) => setForm({ ...form, matricula: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Data de nascimento</Label>
-                  <Input
-                    type="date"
-                    value={form.data_nascimento}
-                    onChange={(e) =>
-                      setForm({ ...form, data_nascimento: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Sexo</Label>
-                  <Select
-                    value={form.sexo || undefined}
-                    onValueChange={(v) => setForm({ ...form, sexo: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">Masculino</SelectItem>
-                      <SelectItem value="F">Feminino</SelectItem>
-                      <SelectItem value="O">Outro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>E-mail</Label>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Telefone</Label>
-                  <Input
-                    value={form.telefone}
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Secretaria *</Label>
-                  <Select
-                    value={form.secretaria_id || undefined}
-                    onValueChange={(v) =>
-                      setForm({ ...form, secretaria_id: v, unidade_id: "", setor_id: "" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {secretarias?.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.sigla ? `${s.sigla} - ` : ""}
-                          {s.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Unidade</Label>
-                  <Select
-                    value={form.unidade_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
-                    disabled={!form.secretaria_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {unidades?.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.sigla ? `${u.sigla} - ` : ""}
-                          {u.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Setor</Label>
-                  <Select
-                    value={form.setor_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, setor_id: v })}
-                    disabled={!form.unidade_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {setores?.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Cargo</Label>
-                  <Select
-                    value={form.cargo_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, cargo_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cargos?.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Função</Label>
-                  <Select
-                    value={form.funcao_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, funcao_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {funcoes?.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Vínculo</Label>
-                  <Select
-                    value={form.vinculo_id || undefined}
-                    onValueChange={(v) => setForm({ ...form, vinculo_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vinculos?.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {getVinculoLabel(v)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Data de admissão</Label>
-                  <Input
-                    type="date"
-                    value={form.data_admissao}
-                    onChange={(e) =>
-                      setForm({ ...form, data_admissao: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Carga horária semanal</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={44}
-                    value={form.carga_horaria_semanal}
-                    onChange={(e) =>
-                      setForm({ ...form, carga_horaria_semanal: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select
-                    value={form.status}
-                    onValueChange={(v: StatusProf) => setForm({ ...form, status: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {STATUS_LABEL[s]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="md:col-span-2 border-t pt-3 mt-1">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Dados bancários (folha de pagamento)</h3>
-                </div>
-                <div>
-                  <Label>Banco</Label>
-                  <Input
-                    value={form.banco}
-                    onChange={(e) => setForm({ ...form, banco: e.target.value })}
-                    placeholder="Ex.: BANPARÁ"
-                  />
-                </div>
-                <div>
-                  <Label>Agência</Label>
-                  <Input
-                    value={form.agencia}
-                    onChange={(e) => setForm({ ...form, agencia: e.target.value })}
-                    placeholder="Ex.: 0077"
-                  />
-                </div>
-                <div>
-                  <Label>Conta corrente</Label>
-                  <Input
-                    value={form.conta_corrente}
-                    onChange={(e) => setForm({ ...form, conta_corrente: e.target.value })}
-                    placeholder="Ex.: 640272-0"
-                  />
-                </div>
-                {(() => {
-                  const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
-                  const isEfetivo = nat === "efetivo" || nat === "comissionado";
-                  if (!isEfetivo) return null;
-                  return (
-                    <>
-                      <div className="md:col-span-2 border-t pt-3 mt-1">
-                        <h3 className="text-sm font-semibold text-muted-foreground">Configuração de vínculo (Efetivos — modelo AGILIBlue)</h3>
-                        <p className="text-xs text-muted-foreground">Exibidos como somente leitura na folha de Efetivos.</p>
-                      </div>
-                      <div>
-                        <Label>Projeto (Proj)</Label>
-                        <Input
-                          type="number"
-                          step="1"
-                          value={form.proj}
-                          onChange={(e) => setForm({ ...form, proj: e.target.value })}
-                          placeholder="Ex.: 1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Horas previstas (H.P)</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.5"
-                          value={form.h_p}
-                          onChange={(e) => setForm({ ...form, h_p: e.target.value })}
-                          placeholder="Ex.: 160"
-                        />
-                      </div>
-                      <div>
-                        <Label>Carga horária mensal (C.H)</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.5"
-                          value={form.c_h}
-                          onChange={(e) => setForm({ ...form, c_h: e.target.value })}
-                          placeholder="Ex.: 160"
-                        />
-                      </div>
-                      <div>
-                        <Label>Jornada (Jorn)</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="1"
-                          value={form.jorn}
-                          onChange={(e) => setForm({ ...form, jorn: e.target.value })}
-                          placeholder="Ex.: 30"
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
-                <div className="md:col-span-2">
-                  <Label>Observações</Label>
-                  <Textarea
-                    value={form.observacoes}
-                    onChange={(e) =>
-                      setForm({ ...form, observacoes: e.target.value })
-                    }
-                    rows={2}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => upsert.mutate(form)}
-                  disabled={upsert.isPending}
-                >
-                  {upsert.isPending ? "Salvando..." : "Salvar"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {form.id ? "Editar profissional" : "Novo profissional"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="md:col-span-2">
+                      <Label>Nome completo *</Label>
+                      <Input
+                        value={form.nome_completo}
+                        onChange={(e) => setForm({ ...form, nome_completo: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Nome social</Label>
+                      <Input
+                        value={form.nome_social}
+                        onChange={(e) => setForm({ ...form, nome_social: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>CPF *</Label>
+                      <Input
+                        value={formatCPF(form.cpf)}
+                        onChange={(e) =>
+                          setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })
+                        }
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+                    <div>
+                      <Label>Matrícula</Label>
+                      <Input
+                        value={form.matricula}
+                        onChange={(e) => setForm({ ...form, matricula: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Data de nascimento</Label>
+                      <Input
+                        type="date"
+                        value={form.data_nascimento}
+                        onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Sexo</Label>
+                      <Select
+                        value={form.sexo || undefined}
+                        onValueChange={(v) => setForm({ ...form, sexo: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Masculino</SelectItem>
+                          <SelectItem value="F">Feminino</SelectItem>
+                          <SelectItem value="O">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>E-mail</Label>
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Telefone</Label>
+                      <Input
+                        value={form.telefone}
+                        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Secretaria *</Label>
+                      <Select
+                        value={form.secretaria_id || undefined}
+                        onValueChange={(v) =>
+                          setForm({ ...form, secretaria_id: v, unidade_id: "", setor_id: "" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {secretarias?.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.sigla ? `${s.sigla} - ` : ""}
+                              {s.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Unidade</Label>
+                      <Select
+                        value={form.unidade_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
+                        disabled={!form.secretaria_id}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unidades?.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.sigla ? `${u.sigla} - ` : ""}
+                              {u.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Setor</Label>
+                      <Select
+                        value={form.setor_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, setor_id: v })}
+                        disabled={!form.unidade_id}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {setores?.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Cargo</Label>
+                      <Select
+                        value={form.cargo_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, cargo_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cargos?.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Função</Label>
+                      <Select
+                        value={form.funcao_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, funcao_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {funcoes?.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Vínculo</Label>
+                      <Select
+                        value={form.vinculo_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, vinculo_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vinculos?.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {getVinculoLabel(v)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Data de admissão</Label>
+                      <Input
+                        type="date"
+                        value={form.data_admissao}
+                        onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Carga horária semanal</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={44}
+                        value={form.carga_horaria_semanal}
+                        onChange={(e) =>
+                          setForm({ ...form, carga_horaria_semanal: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Status</Label>
+                      <Select
+                        value={form.status}
+                        onValueChange={(v: StatusProf) => setForm({ ...form, status: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {STATUS_LABEL[s]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2 border-t pt-3 mt-1">
+                      <h3 className="text-sm font-semibold text-muted-foreground">
+                        Dados bancários (folha de pagamento)
+                      </h3>
+                    </div>
+                    <div>
+                      <Label>Banco</Label>
+                      <Input
+                        value={form.banco}
+                        onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                        placeholder="Ex.: BANPARÁ"
+                      />
+                    </div>
+                    <div>
+                      <Label>Agência</Label>
+                      <Input
+                        value={form.agencia}
+                        onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                        placeholder="Ex.: 0077"
+                      />
+                    </div>
+                    <div>
+                      <Label>Conta corrente</Label>
+                      <Input
+                        value={form.conta_corrente}
+                        onChange={(e) => setForm({ ...form, conta_corrente: e.target.value })}
+                        placeholder="Ex.: 640272-0"
+                      />
+                    </div>
+                    {(() => {
+                      const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
+                      const isEfetivo = nat === "efetivo" || nat === "comissionado";
+                      if (!isEfetivo) return null;
+                      return (
+                        <>
+                          <div className="md:col-span-2 border-t pt-3 mt-1">
+                            <h3 className="text-sm font-semibold text-muted-foreground">
+                              Configuração de vínculo (Efetivos — modelo AGILIBlue)
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Exibidos como somente leitura na folha de Efetivos.
+                            </p>
+                          </div>
+                          <div>
+                            <Label>Projeto (Proj)</Label>
+                            <Input
+                              type="number"
+                              step="1"
+                              value={form.proj}
+                              onChange={(e) => setForm({ ...form, proj: e.target.value })}
+                              placeholder="Ex.: 1"
+                            />
+                          </div>
+                          <div>
+                            <Label>Horas previstas (H.P)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.5"
+                              value={form.h_p}
+                              onChange={(e) => setForm({ ...form, h_p: e.target.value })}
+                              placeholder="Ex.: 160"
+                            />
+                          </div>
+                          <div>
+                            <Label>Carga horária mensal (C.H)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.5"
+                              value={form.c_h}
+                              onChange={(e) => setForm({ ...form, c_h: e.target.value })}
+                              placeholder="Ex.: 160"
+                            />
+                          </div>
+                          <div>
+                            <Label>Jornada (Jorn)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="1"
+                              value={form.jorn}
+                              onChange={(e) => setForm({ ...form, jorn: e.target.value })}
+                              placeholder="Ex.: 30"
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
+                    <div className="md:col-span-2">
+                      <Label>Observações</Label>
+                      <Textarea
+                        value={form.observacoes}
+                        onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={() => upsert.mutate(form)} disabled={upsert.isPending}>
+                      {upsert.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </>
           ) : undefined
         }
@@ -937,12 +957,15 @@ function ProfissionaisPage() {
         <div>
           <Label className="text-xs text-muted-foreground">Unidade</Label>
           <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas</SelectItem>
               {unidadesFiltro?.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
-                  {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                  {u.sigla ? `${u.sigla} — ` : ""}
+                  {u.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -951,11 +974,15 @@ function ProfissionaisPage() {
         <div>
           <Label className="text-xs text-muted-foreground">Vínculo</Label>
           <Select value={fVinculo} onValueChange={setFVinculo}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {vinculosFiltro?.map((v) => (
-                <SelectItem key={v.id} value={v.id}>{getVinculoLabel(v)}</SelectItem>
+                <SelectItem key={v.id} value={v.id}>
+                  {getVinculoLabel(v)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -963,11 +990,15 @@ function ProfissionaisPage() {
         <div>
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select value={fStatus} onValueChange={setFStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -975,11 +1006,15 @@ function ProfissionaisPage() {
         <div>
           <Label className="text-xs text-muted-foreground">Cargo</Label>
           <Select value={fCargo} onValueChange={setFCargo}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {cargosFiltro?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -987,11 +1022,15 @@ function ProfissionaisPage() {
         <div>
           <Label className="text-xs text-muted-foreground">Função</Label>
           <Select value={fFuncao} onValueChange={setFFuncao}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas</SelectItem>
               {funcoesFiltro?.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                <SelectItem key={f.id} value={f.id}>
+                  {f.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1005,7 +1044,9 @@ function ProfissionaisPage() {
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {setoresFiltro?.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
