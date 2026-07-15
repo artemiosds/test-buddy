@@ -7,6 +7,11 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Nitro preset: usa NITRO_PRESET se definido (Vercel → "vercel", Docker/VPS → "node-server"),
+  // senão mantém o default do Lovable ("cloudflare-module").
+  nitro: {
+    ...(process.env.NITRO_PRESET ? { preset: process.env.NITRO_PRESET } : {}),
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

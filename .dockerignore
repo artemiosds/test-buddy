@@ -1,0 +1,14 @@
+node_modules
+.output
+.git
+.gitignore
+*.md
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.log
+.wrangler
+.tanstack
+.nitro
