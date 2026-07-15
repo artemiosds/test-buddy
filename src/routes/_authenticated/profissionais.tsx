@@ -1012,9 +1012,9 @@ function ProfissionaisPage() {
           icon={<Briefcase className="h-4 w-4" />}
         />
         <KpiCard
-          label="Unidades ativas"
+          label="Unidades no sistema"
           value={kpiUnidadesAtivas.data ?? 0}
-          hint="Total no sistema"
+          hint="Não muda com os filtros da página"
           loading={kpiUnidadesAtivas.isLoading}
           icon={<Building2 className="h-4 w-4" />}
         />
