@@ -1,0 +1,1 @@
+ALTER TYPE public.modulo_sistema ADD VALUE IF NOT EXISTS 'pendencia';

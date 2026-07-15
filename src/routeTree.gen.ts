@@ -9,50 +9,829 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ValidarIdRouteImport } from './routes/validar.$id'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
+import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
+import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
+import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
+import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
+import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
+import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
+import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
+import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
+import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
+import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
+import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
+import { Route as AuthenticatedConfiguracaoRouteImport } from './routes/_authenticated/configuracao'
+import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authenticated/competencias'
+import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
+import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
+import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
+import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
+import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
+import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
+import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
+import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
+import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ValidarIdRoute = ValidarIdRouteImport.update({
+  id: '/validar/$id',
+  path: '/validar/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUnidadesRoute = AuthenticatedUnidadesRouteImport.update({
+  id: '/unidades',
+  path: '/unidades',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTiposUnidadeRoute =
+  AuthenticatedTiposUnidadeRouteImport.update({
+    id: '/tipos-unidade',
+    path: '/tipos-unidade',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSetoresRoute = AuthenticatedSetoresRouteImport.update({
+  id: '/setores',
+  path: '/setores',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSegurancaRoute = AuthenticatedSegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRelatoriosStatusRoute =
+  AuthenticatedRelatoriosStatusRouteImport.update({
+    id: '/relatorios-status',
+    path: '/relatorios-status',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRelatoriosProfissionalRoute =
+  AuthenticatedRelatoriosProfissionalRouteImport.update({
+    id: '/relatorios-profissional',
+    path: '/relatorios-profissional',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRelatoriosExecutivoRoute =
+  AuthenticatedRelatoriosExecutivoRouteImport.update({
+    id: '/relatorios-executivo',
+    path: '/relatorios-executivo',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRelatoriosConsolidadoRoute =
+  AuthenticatedRelatoriosConsolidadoRouteImport.update({
+    id: '/relatorios-consolidado',
+    path: '/relatorios-consolidado',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedProfissionaisRoute =
+  AuthenticatedProfissionaisRouteImport.update({
+    id: '/profissionais',
+    path: '/profissionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPendenciasRoute = AuthenticatedPendenciasRouteImport.update({
+  id: '/pendencias',
+  path: '/pendencias',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotificacoesRoute =
+  AuthenticatedNotificacoesRouteImport.update({
+    id: '/notificacoes',
+    path: '/notificacoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFrequenciasRoute =
+  AuthenticatedFrequenciasRouteImport.update({
+    id: '/frequencias',
+    path: '/frequencias',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFeriadosRoute = AuthenticatedFeriadosRouteImport.update({
+  id: '/feriados',
+  path: '/feriados',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedConfiguracaoRoute =
+  AuthenticatedConfiguracaoRouteImport.update({
+    id: '/configuracao',
+    path: '/configuracao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompetenciasRoute =
+  AuthenticatedCompetenciasRouteImport.update({
+    id: '/competencias',
+    path: '/competencias',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCargosFuncoesRoute =
+  AuthenticatedCargosFuncoesRouteImport.update({
+    id: '/cargos-funcoes',
+    path: '/cargos-funcoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAssinaturasRoute =
+  AuthenticatedAssinaturasRouteImport.update({
+    id: '/assinaturas',
+    path: '/assinaturas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAnaliticoRoute = AuthenticatedAnaliticoRouteImport.update({
+  id: '/analitico',
+  path: '/analitico',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedUsuariosRoute,
+} as any)
+const AuthenticatedProfissionaisIdRoute =
+  AuthenticatedProfissionaisIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedProfissionaisRoute,
+  } as any)
+const AuthenticatedFrequenciasIdRoute =
+  AuthenticatedFrequenciasIdRouteImport.update({
+    id: '/frequencias_/$id',
+    path: '/frequencias/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFrequenciaContratadosRoute =
+  AuthenticatedFrequenciaContratadosRouteImport.update({
+    id: '/frequencia/contratados',
+    path: '/frequencia/contratados',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompetenciasIdRoute =
+  AuthenticatedCompetenciasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCompetenciasRoute,
+  } as any)
+const ApiPublicHooksEventosWorkerRoute =
+  ApiPublicHooksEventosWorkerRouteImport.update({
+    id: '/api/public/hooks/eventos-worker',
+    path: '/api/public/hooks/eventos-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksDeadlineCheckRoute =
+  ApiPublicHooksDeadlineCheckRouteImport.update({
+    id: '/api/public/hooks/deadline-check',
+    path: '/api/public/hooks/deadline-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/analitico': typeof AuthenticatedAnaliticoRoute
+  '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
+  '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
+  '/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/feriados': typeof AuthenticatedFeriadosRoute
+  '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/notificacoes': typeof AuthenticatedNotificacoesRoute
+  '/pendencias': typeof AuthenticatedPendenciasRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
+  '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
+  '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/seguranca': typeof AuthenticatedSegurancaRoute
+  '/setores': typeof AuthenticatedSetoresRoute
+  '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
+  '/unidades': typeof AuthenticatedUnidadesRoute
+  '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
+  '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
+  '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
+  '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/analitico': typeof AuthenticatedAnaliticoRoute
+  '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
+  '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
+  '/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/feriados': typeof AuthenticatedFeriadosRoute
+  '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/notificacoes': typeof AuthenticatedNotificacoesRoute
+  '/pendencias': typeof AuthenticatedPendenciasRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
+  '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
+  '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/seguranca': typeof AuthenticatedSegurancaRoute
+  '/setores': typeof AuthenticatedSetoresRoute
+  '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
+  '/unidades': typeof AuthenticatedUnidadesRoute
+  '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
+  '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
+  '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/analitico': typeof AuthenticatedAnaliticoRoute
+  '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
+  '/_authenticated/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
+  '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
+  '/_authenticated/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/_authenticated/notificacoes': typeof AuthenticatedNotificacoesRoute
+  '/_authenticated/pendencias': typeof AuthenticatedPendenciasRoute
+  '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
+  '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/_authenticated/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
+  '/_authenticated/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
+  '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
+  '/_authenticated/setores': typeof AuthenticatedSetoresRoute
+  '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
+  '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
+  '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
+  '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
+  '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/login'
+    | '/reset-password'
+    | '/analitico'
+    | '/aprovacoes'
+    | '/assinaturas'
+    | '/auditoria'
+    | '/cargos-funcoes'
+    | '/competencias'
+    | '/configuracao'
+    | '/feriados'
+    | '/frequencias'
+    | '/notificacoes'
+    | '/pendencias'
+    | '/profissionais'
+    | '/relatorios'
+    | '/relatorios-consolidado'
+    | '/relatorios-executivo'
+    | '/relatorios-profissional'
+    | '/relatorios-status'
+    | '/seguranca'
+    | '/setores'
+    | '/tipos-unidade'
+    | '/unidades'
+    | '/usuarios'
+    | '/validar/$id'
+    | '/competencias/$id'
+    | '/frequencia/contratados'
+    | '/frequencias/$id'
+    | '/profissionais/$id'
+    | '/usuarios/$id'
+    | '/api/public/hooks/deadline-check'
+    | '/api/public/hooks/eventos-worker'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/auth'
+    | '/login'
+    | '/reset-password'
+    | '/analitico'
+    | '/aprovacoes'
+    | '/assinaturas'
+    | '/auditoria'
+    | '/cargos-funcoes'
+    | '/competencias'
+    | '/configuracao'
+    | '/feriados'
+    | '/frequencias'
+    | '/notificacoes'
+    | '/pendencias'
+    | '/profissionais'
+    | '/relatorios'
+    | '/relatorios-consolidado'
+    | '/relatorios-executivo'
+    | '/relatorios-profissional'
+    | '/relatorios-status'
+    | '/seguranca'
+    | '/setores'
+    | '/tipos-unidade'
+    | '/unidades'
+    | '/usuarios'
+    | '/validar/$id'
+    | '/'
+    | '/competencias/$id'
+    | '/frequencia/contratados'
+    | '/frequencias/$id'
+    | '/profissionais/$id'
+    | '/usuarios/$id'
+    | '/api/public/hooks/deadline-check'
+    | '/api/public/hooks/eventos-worker'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/auth'
+    | '/login'
+    | '/reset-password'
+    | '/_authenticated/analitico'
+    | '/_authenticated/aprovacoes'
+    | '/_authenticated/assinaturas'
+    | '/_authenticated/auditoria'
+    | '/_authenticated/cargos-funcoes'
+    | '/_authenticated/competencias'
+    | '/_authenticated/configuracao'
+    | '/_authenticated/feriados'
+    | '/_authenticated/frequencias'
+    | '/_authenticated/notificacoes'
+    | '/_authenticated/pendencias'
+    | '/_authenticated/profissionais'
+    | '/_authenticated/relatorios'
+    | '/_authenticated/relatorios-consolidado'
+    | '/_authenticated/relatorios-executivo'
+    | '/_authenticated/relatorios-profissional'
+    | '/_authenticated/relatorios-status'
+    | '/_authenticated/seguranca'
+    | '/_authenticated/setores'
+    | '/_authenticated/tipos-unidade'
+    | '/_authenticated/unidades'
+    | '/_authenticated/usuarios'
+    | '/validar/$id'
+    | '/_authenticated/'
+    | '/_authenticated/competencias/$id'
+    | '/_authenticated/frequencia/contratados'
+    | '/_authenticated/frequencias_/$id'
+    | '/_authenticated/profissionais/$id'
+    | '/_authenticated/usuarios/$id'
+    | '/api/public/hooks/deadline-check'
+    | '/api/public/hooks/eventos-worker'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  ValidarIdRoute: typeof ValidarIdRoute
+  ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
+  ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/validar/$id': {
+      id: '/validar/$id'
+      path: '/validar/$id'
+      fullPath: '/validar/$id'
+      preLoaderRoute: typeof ValidarIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/unidades': {
+      id: '/_authenticated/unidades'
+      path: '/unidades'
+      fullPath: '/unidades'
+      preLoaderRoute: typeof AuthenticatedUnidadesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tipos-unidade': {
+      id: '/_authenticated/tipos-unidade'
+      path: '/tipos-unidade'
+      fullPath: '/tipos-unidade'
+      preLoaderRoute: typeof AuthenticatedTiposUnidadeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/setores': {
+      id: '/_authenticated/setores'
+      path: '/setores'
+      fullPath: '/setores'
+      preLoaderRoute: typeof AuthenticatedSetoresRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/seguranca': {
+      id: '/_authenticated/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof AuthenticatedSegurancaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-status': {
+      id: '/_authenticated/relatorios-status'
+      path: '/relatorios-status'
+      fullPath: '/relatorios-status'
+      preLoaderRoute: typeof AuthenticatedRelatoriosStatusRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-profissional': {
+      id: '/_authenticated/relatorios-profissional'
+      path: '/relatorios-profissional'
+      fullPath: '/relatorios-profissional'
+      preLoaderRoute: typeof AuthenticatedRelatoriosProfissionalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-executivo': {
+      id: '/_authenticated/relatorios-executivo'
+      path: '/relatorios-executivo'
+      fullPath: '/relatorios-executivo'
+      preLoaderRoute: typeof AuthenticatedRelatoriosExecutivoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-consolidado': {
+      id: '/_authenticated/relatorios-consolidado'
+      path: '/relatorios-consolidado'
+      fullPath: '/relatorios-consolidado'
+      preLoaderRoute: typeof AuthenticatedRelatoriosConsolidadoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios': {
+      id: '/_authenticated/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/profissionais': {
+      id: '/_authenticated/profissionais'
+      path: '/profissionais'
+      fullPath: '/profissionais'
+      preLoaderRoute: typeof AuthenticatedProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pendencias': {
+      id: '/_authenticated/pendencias'
+      path: '/pendencias'
+      fullPath: '/pendencias'
+      preLoaderRoute: typeof AuthenticatedPendenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notificacoes': {
+      id: '/_authenticated/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencias': {
+      id: '/_authenticated/frequencias'
+      path: '/frequencias'
+      fullPath: '/frequencias'
+      preLoaderRoute: typeof AuthenticatedFrequenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/feriados': {
+      id: '/_authenticated/feriados'
+      path: '/feriados'
+      fullPath: '/feriados'
+      preLoaderRoute: typeof AuthenticatedFeriadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/configuracao': {
+      id: '/_authenticated/configuracao'
+      path: '/configuracao'
+      fullPath: '/configuracao'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/competencias': {
+      id: '/_authenticated/competencias'
+      path: '/competencias'
+      fullPath: '/competencias'
+      preLoaderRoute: typeof AuthenticatedCompetenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cargos-funcoes': {
+      id: '/_authenticated/cargos-funcoes'
+      path: '/cargos-funcoes'
+      fullPath: '/cargos-funcoes'
+      preLoaderRoute: typeof AuthenticatedCargosFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assinaturas': {
+      id: '/_authenticated/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/assinaturas'
+      preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/aprovacoes': {
+      id: '/_authenticated/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analitico': {
+      id: '/_authenticated/analitico'
+      path: '/analitico'
+      fullPath: '/analitico'
+      preLoaderRoute: typeof AuthenticatedAnaliticoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/usuarios/$id': {
+      id: '/_authenticated/usuarios/$id'
+      path: '/$id'
+      fullPath: '/usuarios/$id'
+      preLoaderRoute: typeof AuthenticatedUsuariosIdRouteImport
+      parentRoute: typeof AuthenticatedUsuariosRoute
+    }
+    '/_authenticated/profissionais/$id': {
+      id: '/_authenticated/profissionais/$id'
+      path: '/$id'
+      fullPath: '/profissionais/$id'
+      preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
+      parentRoute: typeof AuthenticatedProfissionaisRoute
+    }
+    '/_authenticated/frequencias_/$id': {
+      id: '/_authenticated/frequencias_/$id'
+      path: '/frequencias/$id'
+      fullPath: '/frequencias/$id'
+      preLoaderRoute: typeof AuthenticatedFrequenciasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencia/contratados': {
+      id: '/_authenticated/frequencia/contratados'
+      path: '/frequencia/contratados'
+      fullPath: '/frequencia/contratados'
+      preLoaderRoute: typeof AuthenticatedFrequenciaContratadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/competencias/$id': {
+      id: '/_authenticated/competencias/$id'
+      path: '/$id'
+      fullPath: '/competencias/$id'
+      preLoaderRoute: typeof AuthenticatedCompetenciasIdRouteImport
+      parentRoute: typeof AuthenticatedCompetenciasRoute
+    }
+    '/api/public/hooks/eventos-worker': {
+      id: '/api/public/hooks/eventos-worker'
+      path: '/api/public/hooks/eventos-worker'
+      fullPath: '/api/public/hooks/eventos-worker'
+      preLoaderRoute: typeof ApiPublicHooksEventosWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/deadline-check': {
+      id: '/api/public/hooks/deadline-check'
+      path: '/api/public/hooks/deadline-check'
+      fullPath: '/api/public/hooks/deadline-check'
+      preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface AuthenticatedCompetenciasRouteChildren {
+  AuthenticatedCompetenciasIdRoute: typeof AuthenticatedCompetenciasIdRoute
+}
+
+const AuthenticatedCompetenciasRouteChildren: AuthenticatedCompetenciasRouteChildren =
+  {
+    AuthenticatedCompetenciasIdRoute: AuthenticatedCompetenciasIdRoute,
+  }
+
+const AuthenticatedCompetenciasRouteWithChildren =
+  AuthenticatedCompetenciasRoute._addFileChildren(
+    AuthenticatedCompetenciasRouteChildren,
+  )
+
+interface AuthenticatedProfissionaisRouteChildren {
+  AuthenticatedProfissionaisIdRoute: typeof AuthenticatedProfissionaisIdRoute
+}
+
+const AuthenticatedProfissionaisRouteChildren: AuthenticatedProfissionaisRouteChildren =
+  {
+    AuthenticatedProfissionaisIdRoute: AuthenticatedProfissionaisIdRoute,
+  }
+
+const AuthenticatedProfissionaisRouteWithChildren =
+  AuthenticatedProfissionaisRoute._addFileChildren(
+    AuthenticatedProfissionaisRouteChildren,
+  )
+
+interface AuthenticatedUsuariosRouteChildren {
+  AuthenticatedUsuariosIdRoute: typeof AuthenticatedUsuariosIdRoute
+}
+
+const AuthenticatedUsuariosRouteChildren: AuthenticatedUsuariosRouteChildren = {
+  AuthenticatedUsuariosIdRoute: AuthenticatedUsuariosIdRoute,
+}
+
+const AuthenticatedUsuariosRouteWithChildren =
+  AuthenticatedUsuariosRoute._addFileChildren(
+    AuthenticatedUsuariosRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedAnaliticoRoute: typeof AuthenticatedAnaliticoRoute
+  AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
+  AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedCargosFuncoesRoute: typeof AuthenticatedCargosFuncoesRoute
+  AuthenticatedCompetenciasRoute: typeof AuthenticatedCompetenciasRouteWithChildren
+  AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRoute
+  AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
+  AuthenticatedFrequenciasRoute: typeof AuthenticatedFrequenciasRoute
+  AuthenticatedNotificacoesRoute: typeof AuthenticatedNotificacoesRoute
+  AuthenticatedPendenciasRoute: typeof AuthenticatedPendenciasRoute
+  AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRouteWithChildren
+  AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
+  AuthenticatedRelatoriosConsolidadoRoute: typeof AuthenticatedRelatoriosConsolidadoRoute
+  AuthenticatedRelatoriosExecutivoRoute: typeof AuthenticatedRelatoriosExecutivoRoute
+  AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
+  AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
+  AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
+  AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRoute
+  AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
+  AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
+  AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
+  AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnaliticoRoute: AuthenticatedAnaliticoRoute,
+  AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
+  AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedCargosFuncoesRoute: AuthenticatedCargosFuncoesRoute,
+  AuthenticatedCompetenciasRoute: AuthenticatedCompetenciasRouteWithChildren,
+  AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRoute,
+  AuthenticatedFeriadosRoute: AuthenticatedFeriadosRoute,
+  AuthenticatedFrequenciasRoute: AuthenticatedFrequenciasRoute,
+  AuthenticatedNotificacoesRoute: AuthenticatedNotificacoesRoute,
+  AuthenticatedPendenciasRoute: AuthenticatedPendenciasRoute,
+  AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRouteWithChildren,
+  AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
+  AuthenticatedRelatoriosConsolidadoRoute:
+    AuthenticatedRelatoriosConsolidadoRoute,
+  AuthenticatedRelatoriosExecutivoRoute: AuthenticatedRelatoriosExecutivoRoute,
+  AuthenticatedRelatoriosProfissionalRoute:
+    AuthenticatedRelatoriosProfissionalRoute,
+  AuthenticatedRelatoriosStatusRoute: AuthenticatedRelatoriosStatusRoute,
+  AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
+  AuthenticatedSetoresRoute: AuthenticatedSetoresRoute,
+  AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
+  AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,
+  AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedFrequenciaContratadosRoute:
+    AuthenticatedFrequenciaContratadosRoute,
+  AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthRoute: AuthRoute,
+  LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  ValidarIdRoute: ValidarIdRoute,
+  ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
+  ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
