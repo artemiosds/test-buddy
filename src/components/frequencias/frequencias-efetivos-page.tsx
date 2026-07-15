@@ -15,7 +15,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Send, Search, FileSpreadsheet } from "lucide-react";
+import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
+import { gerarFolhaEfetivosOficial, type UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
@@ -345,6 +346,59 @@ export function FrequenciasEfetivosPage() {
             disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.itens?.length}
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={folhaStatus !== "aprovada" || !folha?.itens?.length}
+            title={folhaStatus !== "aprovada" ? "Disponível somente após aprovação" : "Gerar PDF no padrão oficial"}
+            onClick={async () => {
+              try {
+                const unidadeNome = unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
+                const grupos: Record<string, { codigo_setor: string; nome_setor: string; itens: any[] }> = {};
+                let seq = 1;
+                for (const it of folha!.itens as any[]) {
+                  const setor = it.profissional.setor ?? "SEM SETOR";
+                  if (!grupos[setor]) {
+                    grupos[setor] = { codigo_setor: String(seq++), nome_setor: setor, itens: [] };
+                  }
+                  const l = it.linha ?? {};
+                  grupos[setor].itens.push({
+                    profissional: it.profissional,
+                    totais: {
+                      dias_falta: Number(l.faltas_injustificadas ?? 0),
+                      atestado: Number(l.atestado ?? 0),
+                      maternidade: 0,
+                      he_50: Number(l.he_50 ?? 0),
+                      he_100: Number(l.he_100 ?? 0),
+                      ferias_terco: Number(l.ferias_terco ?? 0),
+                      ferias_integral: Number(l.ferias_integral ?? 0),
+                      sal_sub_h: Number(l.sal_sub_h ?? 0),
+                      adicional_noturno: Number(l.adicional_noturno ?? 0),
+                      aulas_suplementares: Number(l.aulas_suplementares ?? 0),
+                      plantao: Number(l.plantoes_extras ?? 0),
+                      sobreaviso: Number(l.sobreaviso ?? 0),
+                      incentivo: Number(l.incentivo ?? 0),
+                    },
+                  });
+                }
+                const unidadesInput: UnidadeFolha[] = [
+                  {
+                    codigo_unidade: "1.18.XXX",
+                    nome_unidade: unidadeNome,
+                    grupos: Object.values(grupos),
+                  },
+                ];
+                await gerarFolhaEfetivosOficial({
+                  competencia: { mes: compSel?.mes ?? 1, ano: compSel?.ano ?? new Date().getFullYear() },
+                  unidades: unidadesInput,
+                  emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
+                });
+              } catch (e: any) {
+                toast.error(e?.message ?? "Falha ao gerar PDF.");
+              }
+            }}
+          >
+            <FileDown className="mr-1.5 h-4 w-4" /> PDF Oficial
           </Button>
         </div>
       </header>

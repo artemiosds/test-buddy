@@ -1,142 +1,68 @@
-# Frequência de Efetivos — Padrão AGILIBlue
 
-Espelho fiel do PDF oficial da SEMSA para servidores estatutários, isolado da tela de Contratados. Compartilha apenas componentes atômicos de UI, sem misturar dados.
+# Folha de Efetivos Aprovada — Réplica visual do padrão Ágili
 
-## 1. Banco de dados (migração)
+Objetivo: gerar um PDF **visualmente equivalente** ao SAUDE.pdf. Somente para folhas com `status = aprovada`. Marca do rodapé mantida idêntica ao Ágili nesta primeira versão; hierarquia de agrupamento com placeholders visuais marcados.
 
-Criar tabela dedicada `public.frequencias_efetivos`, uma linha por profissional/competência/unidade:
+## 1. Especificação visual confirmada no PDF de referência
 
-**Identificação e vínculo**
-- `id`, `competencia_id`, `unidade_id`, `profissional_id` (único por competência+profissional)
-- `secretaria_id` (denormalizado para RLS)
-- `created_by`, `updated_by`, timestamps, `deleted_at`
+- **Formato**: A4 **paisagem**, margens ~10mm.
+- **Cabeçalho institucional**: retângulo com borda fina em volta, brasão à esquerda, texto à direita em 2 linhas — linha 1 pequena ("ESTADO DO PARÁ"), linha 2 em negrito ("PREFEITURA MUNICIPAL DE ORIXIMINÁ"). Fonte Helvetica.
+- **Barras hierárquicas** (4 níveis), largura total, altura ~5mm cada, texto branco em **Courier** (monoespaçado):
+  - Nível 1 `1 - Raiz` — marrom escuro `#8B6A2A`
+  - Nível 2 `1.18 - SECRETARIA…` — marrom médio `#B8934A`
+  - Nível 3 `1.18.00X - UNIDADE` — mostarda `#D4A853`
+  - Nível 4 `X - SETOR` — mostarda clara `#E8C578`
+- **Linha "Qtd funcionários: N"** logo abaixo das barras, sem borda, alinhada à esquerda.
+- **Tabela com grade completa** (bordas verticais e horizontais em todas as células), duas linhas de cabeçalho:
+  - Banda superior (mesclada): `Totalizadores` | `Hora extra` | `Férias` | `Variáveis`
+  - Colunas: `Matricula | Nome | Proj | H.P | C.H | Jorn | DIAS | FALTA | ATT | MAT | 50% | 100% | 1/3 | Integ. | SAL.SUB/H. | ADIC NOT | AULAS SUPLE. | PLANTÃO | SOBRE AVISO | INCENTIVO`
+  - Sub-rótulos em 2 linhas quando o texto quebra (`SAL./SUB/H.`, `ADIC/NOT`, `AULAS/SUPLE.`, `SOBRE/AVISO`).
+- **Linha do profissional**: célula alta (~14mm) contendo dois blocos empilhados:
+  - Bloco superior: `Matricula` centralizada em negrito | `Nome` em negrito
+  - Bloco inferior separado por linha fina: `Cargo` em rótulo à esquerda | valor do cargo centralizado
+  - Colunas numéricas (Proj, H.P, C.H, Jorn, …) mesclam verticalmente a linha dupla e ficam centralizadas.
+- **Rodapé em 2 linhas** com régua superior:
+  - Linha 1 (negrito 9pt): esquerda `Data: dd/MM/aaaa HH:mm:ss` · direita `Página: X de Y`
+  - Linha 2 (regular 7pt cinza): esquerda `Data da emissão: …` · centro `ÁGILIBlue Recursos Humanos - Ágili Software Brasil` · direita `Emitido por: NOME`
 
-**Metadados do vínculo (snapshot editável)**
-- `proj` (int) — código do projeto
-- `hp` (int) — horas projeto
-- `ch` (int) — carga horária mensal
-- `jorn` (int) — jornada
+## 2. Arquitetura
 
-**Totalizadores**
-- `dias_falta` (int)
-- `att` (int) — atestado
-- `mat` (int) — licença maternidade / afastamento
+- Novo gerador puro em `src/lib/pdf-folha-efetivos-oficial.ts`
+  - Usa **jsPDF + jspdf-autotable** já instalados.
+  - Coordenadas em mm calibradas contra o PDF de referência.
+  - Renderiza cabeçalho institucional, barras hierárquicas, cabeçalho de tabela em 2 níveis (via `head` do autoTable), linhas duplas (via `didParseCell`/`didDrawCell` desenhando o `Cargo`), rodapé fixo (via `didDrawPage`).
+  - Segunda passada preenche `Página: X de Y` usando `doc.getNumberOfPages()`.
+- Nova server function `gerarFolhaEfetivosAprovadaPDF` em `src/lib/frequencias-efetivos.functions.ts`
+  - `.middleware([requireSupabaseAuth])`.
+  - Recebe `{ competenciaId, unidadeId }`.
+  - Verifica que **todas** as linhas estão `status = 'aprovada'` — senão retorna `{ ok: false, motivo }`.
+  - Retorna DTO ordenado: `{ header, grupos: [{ unidade, setor, funcionarios: [...] }] }`.
+- Botão "Baixar PDF Oficial" em `frequencias-efetivos-page.tsx`, habilitado somente quando a folha está aprovada; chama a server function, alimenta o gerador no cliente.
+- Rota pública `/validar/:id` já existente é reaproveitada; o QR de assinatura é desenhado em uma faixa acima do rodapé oficial **apenas na última página**, sem invadir o layout.
 
-**Hora extra**
-- `he_50` (numeric)
-- `he_100` (numeric)
+## 3. Placeholders explicitamente marcados
 
-**Férias**
-- `ferias_1_3` (bool) — gozo de 1/3
-- `ferias_integ` (int) — integralização
+Onde o banco ainda não fornece o dado exato do modelo Ágili, o campo é preenchido com valor visualmente coerente e destacado com `⚠` em nota discreta na 1ª página listando pendências:
 
-**Variáveis**
-- `sal_sub_h` (numeric) — salário substituição / hora
-- `adic_not` (numeric) — adicional noturno
-- `aulas_suple` (numeric) — aulas suplementares
-- `plantao` (numeric)
-- `sobreaviso` (numeric)
-- `incentivo` (numeric)
+- Códigos hierárquicos das 4 barras (`1`, `1.18`, `1.18.00X`, `X` do setor) — hoje `unidades`/`setores` não têm `codigo_hierarquico`.
+- Rótulo "Raiz" e "SEMSA" fixos até termos `secretarias.codigo` + `municipio_config.raiz`.
+- "Emitido por" usa `nome_completo` de `usuarios`; se ausente, cai para o e-mail.
+- Ordem de colunas do banco → colunas do modelo já mapeada (DIAS/FALTA são separadas visualmente mas usam o mesmo `dias_falta` até desdobrarmos).
 
-**Controles**
-- `licenca_premio` (int) — dias
-- `observacoes` (text)
-- `status` (`status_frequencia`: rascunho / enviada / aprovada / rejeitada / devolvida)
+## 4. Validação visual obrigatória
 
-**Restrições e regras**
-- `UNIQUE (competencia_id, profissional_id)`
-- CHECKs de não-negativo em todos os numéricos
-- Trigger `tg_set_updated_at` + `tg_set_updated_by`
-- Trigger de auditoria `tg_audit_row`
-- Índices por `(competencia_id, unidade_id)` e `(profissional_id)`
+Após implementar, gero um PDF de exemplo com dados reais aprovados, converto com `pdftoppm -r 200` e comparo lado a lado com `SAUDE.pdf` página 1 e 2. Ajusto larguras de coluna, cores e espaçamentos até bater. Só considero pronto após esse passe.
 
-**RLS**
-- GRANT para `authenticated` e `service_role`
-- SELECT: usuário com `user_has_unit(unidade_id)` e permissão `frequencia.visualizar`
-- INSERT/UPDATE: mesmas regras + `has_permission('frequencia.lancar')` e `status ∈ (rascunho, devolvida)`
-- Análise (`aprovada`/`rejeitada`) apenas via server function com `has_permission('frequencia.aprovar')`
+## 5. Fora do escopo desta entrega
 
-**Campos no cadastro do profissional (para snapshot)**
-Adicionar em `public.profissionais`: `proj_codigo` (int), `hp` (int), `ch_mensal` (int), `jorn_mensal` (int). Ficam read-only na folha, servindo de fonte para pré-preenchimento.
+- Migração para criar `codigo_hierarquico` em `unidades`/`setores` (fica para uma 2ª iteração quando você validar o visual).
+- Substituição da marca central do rodapé pela identidade da Prefeitura (fica para quando você definir o texto).
+- Alterações no fluxo de aprovação (permanece em `/aprovacoes`).
 
-## 2. Server functions (`src/lib/frequencias-efetivos.functions.ts`)
+## 6. Ordem de execução
 
-Padrão idêntico ao arquivo de contratados, com `requireSupabaseAuth` + `ensurePermission`:
-
-- `listarFolhaEfetivos({ competenciaId, unidadeId })` — filtra profissionais da unidade com `natureza_vinculo = 'estatutario'`, faz LEFT JOIN com `frequencias_efetivos` para trazer linhas existentes e retorna "rascunhos virtuais" (zerados, com metadados do cadastro) para os que ainda não têm registro.
-- `salvarFolhaEfetivos({ competenciaId, unidadeId, linhas[] })` — upsert em lote, valida não-negatividade, respeita competência ativa e status editável, emite evento `frequencia.salva`.
-- `enviarFolhaEfetivos({ competenciaId, unidadeId })` — muda status `rascunho → enviada` de todas as linhas da unidade, emite `frequencia.enviada`.
-- Reaproveita a UI de anexos existente (tabela `documentos`) para anexar atestados por profissional/competência.
-
-## 3. Rotas e componentes
-
-**Estrutura de rotas**
-```text
-/frequencias                          (mantida — index navega para efetivos/contratados)
-/frequencias/efetivos                 (nova — folha AGILIBlue)
-/frequencias/contratados              (renomeada — hoje é /frequencias-contratados)
-```
-
-- `src/routes/_authenticated/frequencias.index.tsx` — cards navegando para os dois módulos
-- `src/routes/_authenticated/frequencias.efetivos.tsx` — nova tela
-- `src/routes/_authenticated/frequencias.contratados.tsx` — mover conteúdo atual de `frequencias-contratados.tsx`
-- Menu lateral atualizado: "Frequência de Efetivos" e "Frequência de Contratados" como itens separados
-
-**Componentes atômicos compartilhados** (`src/components/frequencia/`)
-- `CompetenciaSelect.tsx` — seletor padrão (default: competência ativa)
-- `UnidadeSelect.tsx` — trava única para Diretor/Administrativo, dropdown para Gestor/Master
-- `StatusBadge.tsx` — badge colorido por status
-- `NumberCell.tsx` — célula numérica editável não-negativa com navegação por teclado
-- `SwitchCell.tsx` — célula booleana (para `ferias_1_3`)
-- `FolhaToolbar.tsx` — barra com "Salvar rascunho", "Enviar para aprovação", contador de status
-
-## 4. Layout da tabela (padrão AGILIBlue)
-
-Cabeçalho agrupado em blocos, uma linha por servidor:
-
-```text
-┌─ Identificação ─┬─ Vínculo (read-only) ─┬─── Totalizadores ───┬─ Hora extra ─┬── Férias ──┬────────────── Variáveis ──────────────┬─ Controles ─┐
-│ Matr. │ Nome   │ Proj │ H.P │ C.H │ Jorn│ DIAS │ ATT │ MAT   │ 50% │ 100%  │ 1/3 │ Integ.│ Sal.Sub/H │ Adic.Not │ Aulas Suple│Plantão│S.Aviso│Incent.│ L.Prêmio │ Obs │ Status │
-│ Cargo (linha 2 abaixo do nome, cinza claro)                                                                                                            │
-```
-
-- Coluna Identificação: nome em negrito, matrícula acima e cargo em fonte menor abaixo (bloco vertical)
-- Vínculo: fundo cinza claro, `read-only`, alimentado do cadastro (`proj_codigo`, `hp`, `ch_mensal`, `jorn_mensal`)
-- Blocos separados por bordas verticais mais escuras
-- Rodapé fixo: total de servidores + status agregado (X rascunhos / Y enviadas / Z aprovadas)
-- Densidade compacta (linha alta ~44px para caber os dois níveis da identificação)
-
-## 5. Comportamento
-
-- Ao abrir: carrega competência ativa + unidade do usuário (ou dropdown para Gestor/Master); server function retorna todos os servidores estatutários já como linhas (com rascunho virtual quando não existe registro).
-- Edição inline sem modais, com navegação Tab/Enter/setas na planilha.
-- Autosave desativado — usuário aciona "Salvar rascunho" (persiste sem trocar status) ou "Enviar para aprovação" (lote).
-- Após envio ou fechamento da competência, linhas ficam somente-leitura visualmente e no servidor.
-- Permissões:
-  - `frequencia.lancar` — habilita edição
-  - `frequencia.visualizar` — modo leitura
-  - `frequencia.aprovar` — não aplicável nesta tela (fluxo continua em `/aprovacoes`)
-- Anexos: botão de clipe por linha abre o dialog existente de documentos, tag automática `frequencia_efetivos:{profissional_id}:{competencia_id}`.
-
-## 6. Segurança e isolamento
-
-- Tela de Efetivos consome **exclusivamente** `frequencias_efetivos` + profissionais com `natureza_vinculo = 'estatutario'`.
-- Tela de Contratados consome **exclusivamente** `frequencias_contratados` + profissionais com natureza ≠ `'estatutario'`.
-- Nenhum SELECT cruzado entre as duas tabelas.
-- Server functions validam a natureza do vínculo antes de aceitar upsert (defesa em profundidade).
-
-## 7. Ordem de execução
-
-1. Migração SQL (tabela + colunas em `profissionais` + índices + RLS + triggers).
-2. Server functions de efetivos.
-3. Componentes atômicos compartilhados.
-4. Rota `frequencias.efetivos.tsx`.
-5. Mover conteúdo atual para `frequencias.contratados.tsx` e ajustar rota.
-6. Atualizar menu lateral.
-7. Type-check e verificação de acessos.
-
-## 8. Fora do escopo
-
-- Fluxo de aprovação institucional (permanece em `/aprovacoes`, já funcional).
-- Migração de dados históricos de `frequencia_profissional` (tabela antiga continua acessível por rotas legadas até ser desativada em fase futura).
-- Push notifications e integrações externas (e-Social/SIOPS).
+1. Criar `src/lib/pdf-folha-efetivos-oficial.ts` com o layout completo + dados mock e um botão de teste.
+2. Calibrar larguras/cores contra o PDF de referência (Playwright + pdftoppm, iterativo).
+3. Adicionar `gerarFolhaEfetivosAprovadaPDF` bloqueando não-aprovadas.
+4. Ligar o botão na página de Efetivos (habilitado só quando aprovada).
+5. Validação visual final e checklist de placeholders.
