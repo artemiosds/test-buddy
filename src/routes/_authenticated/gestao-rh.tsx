@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { AnalyticsHeader } from "@/components/analytics/AnalyticsHeader";
@@ -10,7 +10,11 @@ import { RankingTable } from "@/components/analytics/RankingTable";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
 
-export default function GestaoRhPage() {
+export const Route = createFileRoute("/_authenticated/gestao-rh")({
+  component: GestaoRhPage,
+});
+
+function GestaoRhPage() {
   return (
     <AnalyticsFilterProvider>
       <GestaoRhContent />
