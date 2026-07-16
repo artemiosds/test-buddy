@@ -9,6 +9,7 @@ import {
 } from "@/lib/frequencias-efetivos.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,18 +28,6 @@ const MESES = [
   "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
 ];
-
-const STATUS_LABEL: Record<StatusFreq, string> = {
-  rascunho: "Rascunho", enviada: "Enviada", em_analise: "Em análise",
-  com_pendencias: "Devolvida", aprovada: "Aprovada",
-  rejeitada: "Rejeitada", arquivada: "Arquivada",
-};
-
-const STATUS_VARIANT: Record<StatusFreq, "default"|"secondary"|"outline"|"destructive"> = {
-  rascunho: "outline", enviada: "default", em_analise: "secondary",
-  com_pendencias: "destructive", aprovada: "default",
-  rejeitada: "destructive", arquivada: "outline",
-};
 
 type LinhaState = {
   profissional_id: string;
@@ -333,7 +322,7 @@ export function FrequenciasEfetivosPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={STATUS_VARIANT[folhaStatus]}>{STATUS_LABEL[folhaStatus]}</Badge>
+          <StatusBadge domain="frequencia" value={folhaStatus} />
           <Button
             variant="outline"
             onClick={() => mSalvar.mutate()}
