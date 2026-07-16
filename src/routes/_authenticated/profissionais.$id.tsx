@@ -230,6 +230,25 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function FinanceiroAgiliCard({ p }: { p: ProfDetail }) {
+  const { has } = usePermissions();
+  if (!has("profissional.editar_dados_agili")) return null;
+  return (
+    <Card className="p-4">
+      <h3 className="mb-3 text-sm font-semibold">Financeiro (Ágili)</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Banco" value={p.banco} />
+        <Field label="Agência" value={p.agencia} />
+        <Field label="Conta" value={p.conta_corrente} />
+        <Field label="Proj" value={p.proj} />
+        <Field label="H.P" value={p.h_p} />
+        <Field label="C.H" value={p.c_h} />
+        <Field label="Jorn" value={p.jorn} />
+      </div>
+    </Card>
+  );
+}
+
 function DadosGeraisTab({
   profissional,
   loading,
