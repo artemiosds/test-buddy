@@ -275,6 +275,41 @@ function AuthenticatedLayout() {
 
   const isItemActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"));
 
+  // ---- Breadcrumbs ----
+  // Constrói mapa plano rota -> label a partir dos GROUPS declarados acima.
+  const routeLabelMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of GROUPS) for (const it of g.items) m.set(it.to, it.label);
+    // aliases úteis para URLs sem match direto
+    m.set("/relatorios-consolidado", "Relatório consolidado");
+    m.set("/relatorios-executivo", "Relatório executivo");
+    m.set("/relatorios-profissional", "Por profissional");
+    m.set("/relatorios-status", "Status");
+    return m;
+  }, []);
+
+  const currentPageLabel = useMemo(() => {
+    // procura match mais específico dentro do path
+    let best: { to: string; label: string } | null = null;
+    for (const [to, label] of routeLabelMap.entries()) {
+      if (to === "/") continue;
+      if (pathname === to || pathname.startsWith(to + "/")) {
+        if (!best || to.length > best.to.length) best = { to, label };
+      }
+    }
+    if (pathname === "/") return "Dashboard";
+    return best?.label ?? "Página";
+  }, [pathname, routeLabelMap]);
+
+  const currentGroupLabel = useMemo(() => {
+    for (const g of GROUPS) {
+      if (g.items.some((it) => (it.to === "/" ? pathname === "/" : pathname === it.to || pathname.startsWith(it.to + "/")))) {
+        return g.label;
+      }
+    }
+    return null;
+  }, [pathname]);
+
   const renderNav = (compact: boolean) => (
     <nav className="flex-1 overflow-y-auto p-2">
       {!compact && (
