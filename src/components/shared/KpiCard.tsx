@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type KpiTone = "default" | "success" | "danger" | "warning";
 export type KpiTrendDirection = "up" | "down" | "flat";
@@ -76,9 +77,13 @@ export function KpiCard({
           {icon}
         </span>
       </div>
-      <div className={cn("mt-2 text-2xl font-semibold", TONE_VALUE[tone])}>
-        {loading ? "—" : value}
-      </div>
+      {loading ? (
+        <Skeleton className="mt-3 h-7 w-20" />
+      ) : (
+        <div className={cn("mt-2 text-2xl font-semibold", TONE_VALUE[tone])}>
+          {value}
+        </div>
+      )}
       {(foot || trend) && (
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           {trend && TrendIcon && (
