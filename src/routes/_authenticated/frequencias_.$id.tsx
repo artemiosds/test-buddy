@@ -796,7 +796,7 @@ function FrequenciaDetalhe() {
               </span>
             )}
             {foraDoPrazo && permitirForaPrazo && (
-              <span className="mt-1 text-xs text-amber-600">
+              <span className="mt-1 text-xs text-warning-soft-foreground">
                 Envio fora do prazo — será registrado em auditoria.
               </span>
             )}
