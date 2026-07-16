@@ -157,3 +157,107 @@ export function useTiposUnidadeLookup() {
     },
   });
 }
+
+// ---------- Profissionais (lookup enxuto) ----------
+
+export type ProfissionalLookup = {
+  id: string;
+  nome_completo: string;
+  cpf: string | null;
+  matricula: string | null;
+};
+
+export function useProfissionaisLookup(opts?: { unidadeId?: string | null; limit?: number }) {
+  return useQuery({
+    queryKey: ["lookup", "profissionais", opts?.unidadeId ?? null, opts?.limit ?? 500],
+    staleTime: FIVE_MIN,
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("id, nome_completo, cpf, matricula")
+        .order("nome_completo")
+        .limit(opts?.limit ?? 500);
+      if (opts?.unidadeId) q = q.eq("unidade_id", opts.unidadeId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as ProfissionalLookup[];
+    },
+  });
+}
+
+// ---------- Usuários (lookup enxuto) ----------
+
+export type UsuarioLookup = { id: string; nome_completo: string; email: string };
+
+export function useUsuariosLookup() {
+  return useQuery({
+    queryKey: ["lookup", "usuarios"],
+    staleTime: FIVE_MIN,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("id, nome_completo, email")
+        .is("deleted_at", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as UsuarioLookup[];
+    },
+  });
+}
+
+// ---------- Feriados / Calendário institucional ----------
+
+export type FeriadoLookup = {
+  id: string;
+  data: string;
+  descricao: string | null;
+  tipo: string | null;
+};
+
+export function useFeriadosLookup(opts?: { ano?: number }) {
+  return useQuery({
+    queryKey: ["lookup", "feriados", opts?.ano ?? null],
+    staleTime: FIVE_MIN,
+    queryFn: async () => {
+      let q = supabase
+        .from("calendario_institucional")
+        .select("id, data, descricao, tipo")
+        .order("data");
+      if (opts?.ano) {
+        q = q.gte("data", `${opts.ano}-01-01`).lte("data", `${opts.ano}-12-31`);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as FeriadoLookup[];
+    },
+  });
+}
+
+// ---------- Assinaturas institucionais ----------
+
+export type AssinaturaLookup = {
+  id: string;
+  titular_cargo: string | null;
+  titular_nome: string;
+  unidade_id: string | null;
+  ativa: boolean;
+};
+
+export function useAssinaturasLookup(opts?: { unidadeId?: string | null; ativasOnly?: boolean }) {
+  return useQuery({
+    queryKey: ["lookup", "assinaturas", opts?.unidadeId ?? null, !!opts?.ativasOnly],
+    staleTime: FIVE_MIN,
+    queryFn: async () => {
+      let q = supabase
+        .from("assinaturas_institucionais")
+        .select("id, titular_cargo, titular_nome, unidade_id, ativa")
+        .is("deleted_at", null)
+        .order("titular_nome");
+      if (opts?.unidadeId) q = q.eq("unidade_id", opts.unidadeId);
+      if (opts?.ativasOnly) q = q.eq("ativa", true);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as AssinaturaLookup[];
+    },
+  });
+}
