@@ -352,12 +352,14 @@ function AuthenticatedLayout() {
                       onClick={() => setMobileOpen(false)}
                       title={compact ? item.label : undefined}
                       className={
-                        "group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition " +
-                        (active ? "bg-accent font-medium text-foreground" : "text-foreground/75 hover:bg-accent hover:text-foreground") +
+                        "group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150 " +
+                        (active
+                          ? "bg-primary/10 font-medium text-primary shadow-[inset_2px_0_0_0_var(--primary)]"
+                          : "text-foreground/75 hover:bg-accent hover:text-foreground") +
                         (compact ? " justify-center" : "")
                       }
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                       {!compact && <span className="flex-1 truncate">{item.label}</span>}
                       {showBadge && (
                         <span className={
