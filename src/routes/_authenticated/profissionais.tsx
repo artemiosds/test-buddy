@@ -397,6 +397,22 @@ function ProfissionaisPage() {
     enabled: open && !!form.unidade_id,
   });
 
+  const { data: gestoresOpt } = useQuery({
+    queryKey: ["profissionais-gestor-opt"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id,nome_completo,matricula")
+        .is("deleted_at", null)
+        .eq("status", "ativo")
+        .order("nome_completo")
+        .limit(1000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const upsert = useMutation({
     mutationFn: async (f: FormState) => {
       const cpfDigits = f.cpf.replace(/\D/g, "");
