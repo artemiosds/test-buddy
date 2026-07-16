@@ -13,7 +13,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as ProfissionaisIndexRouteImport } from './routes/profissionais/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -65,11 +64,6 @@ const AuthRoute = AuthRouteImport.update({
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfissionaisIndexRoute = ProfissionaisIndexRouteImport.update({
-  id: '/profissionais/',
-  path: '/profissionais/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -286,7 +280,6 @@ export interface FileRoutesByFullPath {
   '/unidades': typeof AuthenticatedUnidadesRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
-  '/profissionais/': typeof ProfissionaisIndexRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -312,7 +305,7 @@ export interface FileRoutesByTo {
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
-  '/profissionais': typeof ProfissionaisIndexRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
@@ -365,7 +358,6 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/profissionais/': typeof ProfissionaisIndexRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -406,7 +398,6 @@ export interface FileRouteTypes {
     | '/unidades'
     | '/usuarios'
     | '/validar/$id'
-    | '/profissionais/'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
@@ -484,7 +475,6 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/validar/$id'
     | '/_authenticated/'
-    | '/profissionais/'
     | '/_authenticated/competencias/$id'
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
@@ -501,7 +491,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ValidarIdRoute: typeof ValidarIdRoute
-  ProfissionaisIndexRoute: typeof ProfissionaisIndexRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -534,13 +523,6 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profissionais/': {
-      id: '/profissionais/'
-      path: '/profissionais'
-      fullPath: '/profissionais/'
-      preLoaderRoute: typeof ProfissionaisIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -891,20 +873,9 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ValidarIdRoute: ValidarIdRoute,
-  ProfissionaisIndexRoute: ProfissionaisIndexRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
