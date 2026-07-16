@@ -7,7 +7,7 @@ import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { StatusBadge } from "@/components/shared";
+import { EmptyState, StatusBadge } from "@/components/shared";
 import { statusLabel } from "@/lib/status";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -320,7 +320,7 @@ function TrilhaDialog({ freqId, onClose }: { freqId: string | null; onClose: () 
         {isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
         ) : !data?.length ? (
-          <div className="p-4 text-sm text-muted-foreground">Nenhum registro ainda.</div>
+          <div className="p-2"><EmptyState title="Nenhum registro ainda." /></div>
         ) : (
           <ol className="space-y-3">
             {data.map((r) => (
