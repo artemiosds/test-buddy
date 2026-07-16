@@ -496,6 +496,17 @@ function ProfissionaisPage() {
       h_p: (p as unknown as { h_p?: number | null }).h_p?.toString() ?? "",
       c_h: (p as unknown as { c_h?: number | null }).c_h?.toString() ?? "",
       jorn: (p as unknown as { jorn?: number | null }).jorn?.toString() ?? "",
+      conselho_classe:
+        (p as unknown as { conselho_classe?: string | null }).conselho_classe ?? "",
+      conselho_numero:
+        (p as unknown as { conselho_numero?: string | null }).conselho_numero ?? "",
+      conselho_uf: (p as unknown as { conselho_uf?: string | null }).conselho_uf ?? "",
+      conselho_validade:
+        (p as unknown as { conselho_validade?: string | null }).conselho_validade ?? "",
+      gestor_imediato_id:
+        (p as unknown as { gestor_imediato_id?: string | null }).gestor_imediato_id ?? "",
+      situacao_funcional:
+        (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
     });
     setOpen(true);
   };
