@@ -496,17 +496,13 @@ function UsuariosList() {
                         <SelectContent>
                           {STATUS_OPTS.map((s) => (
                             <SelectItem key={s} value={s}>
-                              <Badge variant="secondary" className={statusColor(s)}>
-                                {s}
-                              </Badge>
+                              <StatusBadge domain="usuario" value={s} />
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant="secondary" className={statusColor(u.status)}>
-                        {u.status}
-                      </Badge>
+                      <StatusBadge domain="usuario" value={u.status} />
                     )}
                   </td>
                   <td className="px-4 py-2 text-right">
