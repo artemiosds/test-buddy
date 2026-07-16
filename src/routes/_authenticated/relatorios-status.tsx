@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
+import { useCompetenciasLookup } from "@/hooks/use-lookups";
 
 type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
 
@@ -65,18 +66,7 @@ function RelatorioStatusPage() {
 
   const [competenciaId, setCompetenciaId] = useState<string>("");
 
-  const { data: competencias } = useQuery({
-    queryKey: ["rel-competencias-all-status"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("competencias").select("id, ano, mes, status")
-        .is("deleted_at", null)
-        .order("ano", { ascending: false }).order("mes", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: canView,
-  });
+  const { data: competencias } = useCompetenciasLookup();
 
   const { data: unidadesAtivas } = useQuery({
     queryKey: ["unidades-ativas-count"],
