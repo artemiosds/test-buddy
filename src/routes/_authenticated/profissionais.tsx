@@ -51,6 +51,7 @@ export const Route = createFileRoute("/_authenticated/profissionais")({
 
 type StatusProf = Database["public"]["Enums"]["status_profissional"];
 type NaturezaVinculo = Database["public"]["Enums"]["natureza_vinculo"];
+type SituacaoFuncional = Database["public"]["Enums"]["situacao_funcional"];
 
 type Profissional = {
   id: string;
