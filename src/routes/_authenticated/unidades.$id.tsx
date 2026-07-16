@@ -224,7 +224,7 @@ function UnidadePainelPage() {
                 <EmptyState title="Nenhum profissional" description="Nenhum profissional vinculado a esta unidade." />
               ) : (
                 <>
-                  <DataTable data={profRows} columns={profCols} rowKey={(r) => r.id} />
+                  <DataTable rows={profRows} columns={profCols} getRowKey={(r) => r.id} />
                   {profRows.length === 50 && (
                     <p className="mt-2 text-xs text-muted-foreground">Exibindo os 50 primeiros. Use o link "Ver todos" para lista completa.</p>
                   )}
