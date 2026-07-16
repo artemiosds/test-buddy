@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, PowerOff, Power, Briefcase } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/cargos-funcoes")({
   component: CargosFuncoesPage,
@@ -36,6 +37,8 @@ type Cargo = {
   codigo: string | null;
   cbo: string | null;
   nivel: "fundamental" | "medio" | "tecnico" | "superior" | "pos_graduacao" | null;
+  area_profissional: string | null;
+  exige_conselho: boolean;
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
 };
 
@@ -44,6 +47,8 @@ type Funcao = {
   nome: string;
   codigo: string | null;
   gratificacao_percentual: number | null;
+  cargo_id: string | null;
+  cargo?: { nome: string } | null;
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
 };
 
@@ -105,11 +110,20 @@ function CargosTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cargo | null>(null);
-  const [form, setForm] = useState<{ nome: string; codigo: string; cbo: string; nivel: Cargo["nivel"] }>({
+  const [form, setForm] = useState<{
+    nome: string;
+    codigo: string;
+    cbo: string;
+    nivel: Cargo["nivel"];
+    area_profissional: string;
+    exige_conselho: boolean;
+  }>({
     nome: "",
     codigo: "",
     cbo: "",
     nivel: null,
+    area_profissional: "",
+    exige_conselho: false,
   });
 
   const { data: cargos = [], isLoading } = useQuery({
@@ -117,7 +131,7 @@ function CargosTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cargos")
-        .select("id, nome, codigo, cbo, nivel, status")
+        .select("id, nome, codigo, cbo, nivel, area_profissional, exige_conselho, status")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
@@ -152,6 +166,8 @@ function CargosTab() {
         codigo: form.codigo.trim() || null,
         cbo: form.cbo.trim() || null,
         nivel: form.nivel,
+        area_profissional: form.area_profissional.trim() || null,
+        exige_conselho: form.exige_conselho,
       };
       if (editing) {
         const { error } = await supabase.from("cargos").update(payload).eq("id", editing.id);
@@ -165,7 +181,7 @@ function CargosTab() {
       toast.success(editing ? "Cargo atualizado" : "Cargo criado");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", codigo: "", cbo: "", nivel: null });
+      setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
       qc.invalidateQueries({ queryKey: ["cargos-admin"] });
       qc.invalidateQueries({ queryKey: ["cargos-select"] });
     },
@@ -188,13 +204,20 @@ function CargosTab() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", codigo: "", cbo: "", nivel: null });
+    setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
     setOpen(true);
   };
 
   const abrirEdit = (c: Cargo) => {
     setEditing(c);
-    setForm({ nome: c.nome, codigo: c.codigo ?? "", cbo: c.cbo ?? "", nivel: c.nivel });
+    setForm({
+      nome: c.nome,
+      codigo: c.codigo ?? "",
+      cbo: c.cbo ?? "",
+      nivel: c.nivel,
+      area_profissional: c.area_profissional ?? "",
+      exige_conselho: !!c.exige_conselho,
+    });
     setOpen(true);
   };
 
@@ -242,6 +265,24 @@ function CargosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Área profissional</Label>
+                <Input
+                  value={form.area_profissional}
+                  onChange={(e) => setForm({ ...form, area_profissional: e.target.value })}
+                  placeholder="Ex.: Saúde, Administração, Educação..."
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.exige_conselho}
+                  onCheckedChange={(v) => setForm({ ...form, exige_conselho: v === true })}
+                />
+                Exige registro em conselho profissional
+                <span className="text-xs text-muted-foreground">
+                  (o tipo/número do conselho é preenchido no cadastro do profissional)
+                </span>
+              </label>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -264,6 +305,8 @@ function CargosTab() {
                 <th className="p-3">Código</th>
                 <th className="p-3">CBO</th>
                 <th className="p-3">Nível</th>
+                <th className="p-3">Área</th>
+                <th className="p-3">Conselho</th>
                 <th className="p-3">Em uso</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Ações</th>
@@ -278,6 +321,10 @@ function CargosTab() {
                     <td className="p-3 text-muted-foreground">{c.codigo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.cbo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.nivel ?? "—"}</td>
+                    <td className="p-3 text-muted-foreground">{c.area_profissional ?? "—"}</td>
+                    <td className="p-3">
+                      {c.exige_conselho ? <Badge variant="secondary">Sim</Badge> : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="p-3">
                       {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
                     </td>
@@ -318,10 +365,25 @@ function FuncoesTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Funcao | null>(null);
-  const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string }>({
+  const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string; cargo_id: string | null }>({
     nome: "",
     codigo: "",
     gratificacao: "",
+    cargo_id: null,
+  });
+
+  const { data: cargosAtivos = [] } = useQuery({
+    queryKey: ["cargos-select"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cargos")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
   });
 
   const { data: funcoes = [], isLoading } = useQuery({
@@ -329,7 +391,7 @@ function FuncoesTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("funcoes")
-        .select("id, nome, codigo, gratificacao_percentual, status")
+        .select("id, nome, codigo, gratificacao_percentual, cargo_id, status, cargo:cargos(nome)")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
@@ -366,6 +428,7 @@ function FuncoesTab() {
         nome: nomeT,
         codigo: form.codigo.trim() || null,
         gratificacao_percentual: grat,
+        cargo_id: form.cargo_id,
       };
       if (editing) {
         const { error } = await supabase.from("funcoes").update(payload).eq("id", editing.id);
@@ -379,7 +442,7 @@ function FuncoesTab() {
       toast.success(editing ? "Função atualizada" : "Função criada");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", codigo: "", gratificacao: "" });
+      setForm({ nome: "", codigo: "", gratificacao: "", cargo_id: null });
       qc.invalidateQueries({ queryKey: ["funcoes-admin"] });
       qc.invalidateQueries({ queryKey: ["funcoes-select"] });
     },
@@ -402,7 +465,7 @@ function FuncoesTab() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", codigo: "", gratificacao: "" });
+    setForm({ nome: "", codigo: "", gratificacao: "", cargo_id: null });
     setOpen(true);
   };
 
@@ -412,6 +475,7 @@ function FuncoesTab() {
       nome: f.nome,
       codigo: f.codigo ?? "",
       gratificacao: f.gratificacao_percentual !== null ? String(f.gratificacao_percentual) : "",
+      cargo_id: f.cargo_id ?? null,
     });
     setOpen(true);
   };
@@ -449,6 +513,23 @@ function FuncoesTab() {
                   />
                 </div>
               </div>
+              <div>
+                <Label>Cargo relacionado</Label>
+                <Select
+                  value={form.cargo_id ?? "__none__"}
+                  onValueChange={(v) => setForm({ ...form, cargo_id: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem vínculo</SelectItem>
+                    {cargosAtivos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -469,6 +550,7 @@ function FuncoesTab() {
               <tr>
                 <th className="p-3">Nome</th>
                 <th className="p-3">Código</th>
+                <th className="p-3">Cargo</th>
                 <th className="p-3">% Gratificação</th>
                 <th className="p-3">Em uso</th>
                 <th className="p-3">Status</th>
@@ -482,6 +564,7 @@ function FuncoesTab() {
                   <tr key={f.id} className="border-t">
                     <td className="p-3 font-medium">{f.nome}</td>
                     <td className="p-3 text-muted-foreground">{f.codigo ?? "—"}</td>
+                    <td className="p-3 text-muted-foreground">{f.cargo?.nome ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">
                       {f.gratificacao_percentual !== null ? `${f.gratificacao_percentual}%` : "—"}
                     </td>
