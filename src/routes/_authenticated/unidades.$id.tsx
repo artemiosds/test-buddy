@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ArrowLeft, Users, Building2, ClipboardList, AlertCircle, Clock, CheckCircle2, CalendarRange, RefreshCw, Download, Pencil } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
 import { PageHeader, KpiCard, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
 import { Button } from "@/components/ui/button";
