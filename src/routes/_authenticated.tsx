@@ -74,7 +74,7 @@ const GROUPS: NavGroup[] = [
       { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar" },
       { to: "/cargos-funcoes", label: "Cargos e Funções", icon: Briefcase, perm: "configuracao.editar" },
       { to: "/controle-forca-trabalho", label: "Centro de Controle da Força de Trabalho", icon: Activity },
-      // Placeholder "Sala de Situação" oculto até o módulo existir.
+      { to: "/sala-situacao", label: "Sala de Situação", icon: LayoutDashboard },
     ],
   },
   {
