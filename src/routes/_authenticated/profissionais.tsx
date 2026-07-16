@@ -452,7 +452,7 @@ function ProfissionaisPage() {
         conselho_uf: f.conselho_uf || null,
         conselho_validade: f.conselho_validade || null,
         gestor_imediato_id: f.gestor_imediato_id || null,
-        situacao_funcional: f.situacao_funcional || null,
+        situacao_funcional: (f.situacao_funcional || null) as SituacaoFuncional | null,
       };
       if (f.id) {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
