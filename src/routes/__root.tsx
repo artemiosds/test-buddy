@@ -110,6 +110,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const env = typeof process !== "undefined" ? process.env : undefined;
+  const supabaseConfig = {
+    url: env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? "",
+    publishableKey: env?.SUPABASE_PUBLISHABLE_KEY ?? env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+  };
+
   return (
     <html lang="en">
       <head>
@@ -117,6 +123,11 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__SUPABASE_CONFIG__=${JSON.stringify(supabaseConfig)};`,
+          }}
+        />
         <Scripts />
       </body>
     </html>
