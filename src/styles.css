@@ -291,6 +291,22 @@
     border-color: var(--color-border);
   }
 
+  /* Focus visível unificado: anel em --ring + offset em --background.
+   * Aplicado por padrão em qualquer elemento focável interativo. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  /* Elementos que já implementam ring via classes shadcn desativam o outline nativo. */
+  [data-slot],
+  [role="menuitem"],
+  [role="option"],
+  [role="tab"],
+  [role="dialog"] {
+    outline: none;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -313,6 +329,40 @@
   /* Numerais tabulares em tabelas, KPIs e badges — alinhamento vertical */
   table, .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---------- Motion sutil ---------- */
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@utility route-enter {
+  animation: route-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility hover-lift {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px -6px color-mix(in oklab, var(--color-foreground) 12%, transparent);
+  }
+}
+
+@utility press-scale {
+  transition: transform 120ms ease-out;
+  &:active { transform: scale(0.97); }
+}
+
+/* Respeita usuários que preferem menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .route-enter,
+  .hover-lift,
+  .press-scale {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
