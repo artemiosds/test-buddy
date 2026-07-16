@@ -113,12 +113,15 @@ function ProfissionalDetailPage() {
           `id, nome_completo, nome_social, cpf, matricula, email, telefone,
            data_nascimento, sexo, data_admissao, carga_horaria_semanal, status,
            observacoes, banco, agencia, conta_corrente, proj, h_p, c_h, jorn,
+           conselho_classe, conselho_numero, conselho_uf, conselho_validade,
+           situacao_funcional,
            secretaria:secretarias(nome, sigla),
            unidade:unidades(id, nome, sigla),
            setor:setores(id, nome),
            cargo:cargos(nome),
            funcao:funcoes(nome),
-           vinculo:vinculos(nome, natureza)`,
+           vinculo:vinculos(nome, natureza),
+           gestor:profissionais!profissionais_gestor_imediato_id_fkey(id, nome_completo, matricula)`,
         )
         .eq("id", id)
         .maybeSingle();
@@ -212,12 +215,18 @@ async function loadNever() {
     h_p: number | null;
     c_h: number | null;
     jorn: number | null;
+    conselho_classe: string | null;
+    conselho_numero: string | null;
+    conselho_uf: string | null;
+    conselho_validade: string | null;
+    situacao_funcional: string | null;
     secretaria: { nome: string; sigla: string | null } | null;
     unidade: { id: string; nome: string; sigla: string | null } | null;
     setor: { id: string; nome: string } | null;
     cargo: { nome: string } | null;
     funcao: { nome: string } | null;
     vinculo: { nome: string; natureza: string | null } | null;
+    gestor: { id: string; nome_completo: string; matricula: string | null } | null;
   };
 }
 
