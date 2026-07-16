@@ -18,8 +18,9 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/shared";
+import { statusLabel, statusOptions } from "@/lib/status";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -56,26 +57,6 @@ export const Route = createFileRoute("/_authenticated/pendencias")({
 type Status = Database["public"]["Enums"]["pendencia_status"];
 type Prioridade = Database["public"]["Enums"]["pendencia_prioridade"];
 type Categoria = Database["public"]["Enums"]["pendencia_categoria"];
-
-const STATUS_LABEL: Record<Status, string> = {
-  aberta: "Aberta",
-  em_analise: "Em análise",
-  aguardando_resposta: "Aguardando resposta",
-  respondida: "Respondida",
-  resolvida: "Resolvida",
-  reaberta: "Reaberta",
-  cancelada: "Cancelada",
-};
-
-const STATUS_VARIANT: Record<Status, "default" | "secondary" | "outline" | "destructive"> = {
-  aberta: "default",
-  em_analise: "secondary",
-  aguardando_resposta: "secondary",
-  respondida: "outline",
-  resolvida: "outline",
-  reaberta: "default",
-  cancelada: "destructive",
-};
 
 const PRIORIDADE_LABEL: Record<Prioridade, string> = {
   baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica",
@@ -199,7 +180,7 @@ function PendenciasPage() {
             placeholder="Status"
             options={[
               { v: "todos", l: "Todos os status" },
-              ...(Object.keys(STATUS_LABEL) as Status[]).map((s) => ({ v: s, l: STATUS_LABEL[s] })),
+              ...statusOptions("pendencia").map((s) => ({ v: s.value, l: s.label })),
             ]}
           />
           <FilterSelect
@@ -261,9 +242,7 @@ function PendenciasPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[p.status as Status]}>
-                          {STATUS_LABEL[p.status as Status]}
-                        </Badge>
+                        <StatusBadge domain="pendencia" value={p.status} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -415,7 +394,7 @@ function PendenciaDetail({
           <span>{p.titulo}</span>
         </SheetTitle>
         <SheetDescription className="flex flex-wrap gap-2 items-center">
-          <Badge variant={STATUS_VARIANT[p.status as Status]}>{STATUS_LABEL[p.status as Status]}</Badge>
+          <StatusBadge domain="pendencia" value={p.status} />
           <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${PRIORIDADE_CLASSES[p.prioridade as Prioridade]}`}>
             <Flag className="h-3 w-3" />{PRIORIDADE_LABEL[p.prioridade as Prioridade]}
           </span>
@@ -593,9 +572,9 @@ function PendenciaDetail({
                   <div className="text-sm font-medium capitalize">{String(h.acao).replaceAll("_", " ")}</div>
                   {h.status_anterior && h.status_novo && (
                     <div className="text-xs text-muted-foreground">
-                      {STATUS_LABEL[h.status_anterior as Status] ?? h.status_anterior}
+                      {statusLabel("pendencia", h.status_anterior)}
                       {" → "}
-                      {STATUS_LABEL[h.status_novo as Status] ?? h.status_novo}
+                      {statusLabel("pendencia", h.status_novo)}
                     </div>
                   )}
                   {h.comentario && <p className="text-sm mt-1 whitespace-pre-wrap">{h.comentario}</p>}
