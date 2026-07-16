@@ -303,6 +303,7 @@ function DadosGeraisTab({
           <Field label="CH semanal" value={p.carga_horaria_semanal} />
         </div>
       </Card>
+      <DadosFuncionaisCard p={p} />
       <FinanceiroAgiliCard p={p} />
       {p.observacoes && (
         <Card className="p-4 md:col-span-2">
