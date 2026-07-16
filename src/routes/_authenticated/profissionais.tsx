@@ -457,13 +457,10 @@ function ProfissionaisPage() {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
           throw new Error("Profissional não pode ser gestor imediato de si mesmo.");
         }
-        const { error } = await supabase
-          .from("profissionais")
-          .update(payload as never)
-          .eq("id", f.id);
+        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("profissionais").insert(payload as never);
+        const { error } = await supabase.from("profissionais").insert(payload);
         if (error) throw error;
       }
     },
