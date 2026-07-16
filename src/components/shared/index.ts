@@ -8,3 +8,5 @@ export { StatusBadge } from "./StatusBadge";
 export { TableSkeleton, KpiCardSkeleton, KpiGridSkeleton, DetailSkeleton } from "./Skeletons";
 export { ConfirmDialog, ConfirmProvider, useConfirm } from "./ConfirmDialog";
 export type { ConfirmOptions, ConfirmTone } from "./ConfirmDialog";
+export { FormDialog } from "./FormDialog";
+export type { FormDialogSize } from "./FormDialog";
