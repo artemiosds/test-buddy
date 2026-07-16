@@ -19,6 +19,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { statusLabel, statusOptions } from "@/lib/status";
 import { Textarea } from "@/components/ui/textarea";
