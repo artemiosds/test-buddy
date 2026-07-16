@@ -1056,6 +1056,92 @@ function ProfissionaisPage() {
                         </>
                       );
                     })()}
+                    <div className="md:col-span-2 border-t pt-3 mt-1">
+                      <h3 className="text-sm font-semibold text-muted-foreground">
+                        Dados Funcionais
+                      </h3>
+                    </div>
+                    <div>
+                      <Label>Situação funcional</Label>
+                      <Select
+                        value={form.situacao_funcional || undefined}
+                        onValueChange={(v) => setForm({ ...form, situacao_funcional: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(SITUACAO_FUNCIONAL_LABEL).map(([v, l]) => (
+                            <SelectItem key={v} value={v}>
+                              {l}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Gestor imediato</Label>
+                      <Select
+                        value={form.gestor_imediato_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, gestor_imediato_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {gestoresOpt
+                            ?.filter((g) => g.id !== form.id)
+                            .map((g) => (
+                              <SelectItem key={g.id} value={g.id}>
+                                {g.matricula ? `${g.matricula} - ` : ""}
+                                {g.nome_completo}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Conselho de classe</Label>
+                      <Input
+                        value={form.conselho_classe}
+                        onChange={(e) => setForm({ ...form, conselho_classe: e.target.value })}
+                        placeholder="Ex.: COREN, CRM, CRO"
+                      />
+                    </div>
+                    <div>
+                      <Label>Número do conselho</Label>
+                      <Input
+                        value={form.conselho_numero}
+                        onChange={(e) => setForm({ ...form, conselho_numero: e.target.value })}
+                        placeholder="Ex.: 123456"
+                      />
+                    </div>
+                    <div>
+                      <Label>UF do conselho</Label>
+                      <Select
+                        value={form.conselho_uf || undefined}
+                        onValueChange={(v) => setForm({ ...form, conselho_uf: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="UF" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UF_LIST.map((uf) => (
+                            <SelectItem key={uf} value={uf}>
+                              {uf}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Validade do conselho</Label>
+                      <Input
+                        type="date"
+                        value={form.conselho_validade}
+                        onChange={(e) => setForm({ ...form, conselho_validade: e.target.value })}
+                      />
+                    </div>
                     <div className="md:col-span-2">
                       <Label>Observações</Label>
                       <Textarea
