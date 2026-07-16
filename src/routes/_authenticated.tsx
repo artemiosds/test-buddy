@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (typeof window === "undefined") {
       return { user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] };
     }
+    await supabase.auth.getSession();
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };
@@ -107,12 +108,12 @@ const GROUPS: NavGroup[] = [
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: userCtx } = useCurrentUser();
   const { has, isLoading: permLoading } = usePermissions();
   const { data: competencia } = useCompetenciaAtiva();
   const { data: parametros } = useMunicipioParametros();
 
-  const qc = (typeof window !== "undefined") ? undefined : undefined;
   const { data: unreadCount = 0, refetch: refetchUnread } = useQuery({
     queryKey: ["notificacoes-unread", userCtx?.id],
     queryFn: async () => {
@@ -181,9 +182,6 @@ function AuthenticatedLayout() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [userCtx?.id, refetchUnread]);
-  void qc;
-
-
   const { data: mfaMissing } = useQuery({
     queryKey: ["mfa-status", userCtx?.id],
     queryFn: async () => {
@@ -195,7 +193,17 @@ function AuthenticatedLayout() {
   });
   const mfaRequired = !!userCtx && (userCtx.is_master || userCtx.perfil_codigo === "ADMIN_SMS");
 
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/20 px-4">
+        <div className="text-sm text-muted-foreground">Validando sessão...</div>
+      </div>
+    );
+  }
+
   async function handleSignOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
