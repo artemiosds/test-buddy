@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
@@ -63,6 +64,7 @@ function UsuariosList() {
   const [q, setQ] = useState("");
   const { data: userCtx } = useCurrentUser();
   const isMaster = userCtx?.is_master === true;
+  const askConfirm = useConfirm();
 
   const { data: perfis = [] } = useQuery({
     queryKey: ["perfis"],
@@ -455,12 +457,31 @@ function UsuariosList() {
                           onValueChange={(v) => {
                             const oldCod = u.perfil?.codigo;
                             const newCod = perfis.find((p) => p.id === v)?.codigo;
-                            if (newCod === "MASTER" && oldCod !== "MASTER") {
-                              if (!confirm(`Isso vai conceder a ${u.nome_completo} acesso irrestrito a TODAS as unidades e secretarias (nível Master). Confirma?`)) return;
-                            } else if (oldCod === "MASTER" && newCod !== "MASTER") {
-                              if (!confirm(`Isso vai REMOVER o acesso Master (total) de ${u.nome_completo}. Confirma?`)) return;
+                            const needConfirm =
+                              (newCod === "MASTER" && oldCod !== "MASTER")
+                                ? {
+                                    title: `Conceder acesso Master a ${u.nome_completo}?`,
+                                    description: "Isso concede acesso irrestrito a TODAS as unidades e secretarias.",
+                                    tone: "destructive" as const,
+                                    confirmLabel: "Conceder Master",
+                                  }
+                                : (oldCod === "MASTER" && newCod !== "MASTER")
+                                ? {
+                                    title: `Remover acesso Master de ${u.nome_completo}?`,
+                                    description: "O usuário perderá o acesso total ao sistema.",
+                                    tone: "destructive" as const,
+                                    confirmLabel: "Remover Master",
+                                  }
+                                : null;
+                            if (!needConfirm) {
+                              updateUser.mutate({ id: u.id, perfil_id: v });
+                              return;
                             }
-                            updateUser.mutate({ id: u.id, perfil_id: v });
+                            void (async () => {
+                              if (await askConfirm(needConfirm)) {
+                                updateUser.mutate({ id: u.id, perfil_id: v });
+                              }
+                            })();
                           }}
                         >
                           <SelectTrigger className="h-8 w-[180px]">
@@ -535,9 +556,15 @@ function UsuariosList() {
                           className="text-rose-600 hover:text-rose-700"
                           disabled={deleteMut.isPending}
                           onClick={() => {
-                            if (confirm(`Excluir definitivamente o usuário ${u.nome_completo}? Esta ação remove o acesso ao sistema.`)) {
-                              deleteMut.mutate(u.id);
-                            }
+                            void (async () => {
+                              const ok = await askConfirm({
+                                title: `Excluir usuário ${u.nome_completo}?`,
+                                description: "Esta ação remove definitivamente o acesso ao sistema.",
+                                tone: "destructive",
+                                confirmLabel: "Excluir",
+                              });
+                              if (ok) deleteMut.mutate(u.id);
+                            })();
                           }}
                         >
                           <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
