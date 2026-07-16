@@ -110,6 +110,12 @@ type FormState = {
   h_p: string;
   c_h: string;
   jorn: string;
+  conselho_classe: string;
+  conselho_numero: string;
+  conselho_uf: string;
+  conselho_validade: string;
+  gestor_imediato_id: string;
+  situacao_funcional: string;
 };
 
 const EMPTY: FormState = {
@@ -138,6 +144,12 @@ const EMPTY: FormState = {
   h_p: "",
   c_h: "",
   jorn: "",
+  conselho_classe: "",
+  conselho_numero: "",
+  conselho_uf: "",
+  conselho_validade: "",
+  gestor_imediato_id: "",
+  situacao_funcional: "",
 };
 
 const STATUS_LABEL: Record<StatusProf, string> = {
@@ -148,6 +160,20 @@ const STATUS_LABEL: Record<StatusProf, string> = {
   licenca: "Licença",
   desligado: "Desligado",
 };
+
+const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
+  ativo: "Ativo",
+  licenca: "Licença",
+  ferias: "Férias",
+  cedido: "Cedido",
+  afastado: "Afastado",
+  desligado: "Desligado",
+};
+
+const UF_LIST = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
 
 const STATUS_VARIANT: Record<StatusProf, "default" | "secondary" | "outline" | "destructive"> = {
   ativo: "default",
