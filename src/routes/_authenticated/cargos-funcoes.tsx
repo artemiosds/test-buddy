@@ -550,6 +550,7 @@ function FuncoesTab() {
               <tr>
                 <th className="p-3">Nome</th>
                 <th className="p-3">Código</th>
+                <th className="p-3">Cargo</th>
                 <th className="p-3">% Gratificação</th>
                 <th className="p-3">Em uso</th>
                 <th className="p-3">Status</th>
@@ -563,6 +564,7 @@ function FuncoesTab() {
                   <tr key={f.id} className="border-t">
                     <td className="p-3 font-medium">{f.nome}</td>
                     <td className="p-3 text-muted-foreground">{f.codigo ?? "—"}</td>
+                    <td className="p-3 text-muted-foreground">{f.cargo?.nome ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">
                       {f.gratificacao_percentual !== null ? `${f.gratificacao_percentual}%` : "—"}
                     </td>
