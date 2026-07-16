@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, Network } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Network, LayoutDashboard } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -42,6 +42,9 @@ type Unidade = {
   cnpj: string | null;
   tipo_unidade: string | null;
   nivel_complexidade: string | null;
+  tipo_atendimento: string | null;
+  municipio: string | null;
+  distrito: string | null;
   telefone: string | null;
   email_institucional: string | null;
   responsavel_nome: string | null;
@@ -59,6 +62,9 @@ type FormState = {
   cnpj: string;
   tipo_unidade: string;
   nivel_complexidade: string;
+  tipo_atendimento: string;
+  municipio: string;
+  distrito: string;
   telefone: string;
   email_institucional: string;
   responsavel_nome: string;
@@ -74,6 +80,9 @@ const EMPTY: FormState = {
   cnpj: "",
   tipo_unidade: "",
   nivel_complexidade: "",
+  tipo_atendimento: "",
+  municipio: "",
+  distrito: "",
   telefone: "",
   email_institucional: "",
   responsavel_nome: "",
@@ -178,7 +187,7 @@ function UnidadesPage() {
       const { data, error } = await supabase
         .from("unidades")
         .select(
-          "id, nome, sigla, cnes, cnpj, tipo_unidade, nivel_complexidade, telefone, email_institucional, responsavel_nome, observacoes, status, secretaria_id, secretaria:secretarias(nome, sigla)",
+          "id, nome, sigla, cnes, cnpj, tipo_unidade, nivel_complexidade, tipo_atendimento, municipio, distrito, telefone, email_institucional, responsavel_nome, observacoes, status, secretaria_id, secretaria:secretarias(nome, sigla)",
         )
         .is("deleted_at", null)
         .order("nome");
@@ -196,6 +205,9 @@ function UnidadesPage() {
         cnpj: f.cnpj.trim() || null,
         tipo_unidade: f.tipo_unidade.trim() || null,
         nivel_complexidade: f.nivel_complexidade.trim() || null,
+        tipo_atendimento: f.tipo_atendimento.trim() || null,
+        municipio: f.municipio.trim() || null,
+        distrito: f.distrito.trim() || null,
         telefone: f.telefone.trim() || null,
         email_institucional: f.email_institucional.trim() || null,
         responsavel_nome: f.responsavel_nome.trim() || null,
@@ -265,6 +277,9 @@ function UnidadesPage() {
       cnpj: u.cnpj ?? "",
       tipo_unidade: u.tipo_unidade ?? "",
       nivel_complexidade: u.nivel_complexidade ?? "",
+      tipo_atendimento: u.tipo_atendimento ?? "",
+      municipio: u.municipio ?? "",
+      distrito: u.distrito ?? "",
       telefone: u.telefone ?? "",
       email_institucional: u.email_institucional ?? "",
       responsavel_nome: u.responsavel_nome ?? "",
@@ -375,6 +390,30 @@ function UnidadesPage() {
                     onChange={(e) =>
                       setForm({ ...form, nivel_complexidade: e.target.value })
                     }
+                  />
+                </div>
+                <div>
+                  <Label>Tipo de atendimento</Label>
+                  <Input
+                    placeholder="Ambulatorial, Hospitalar, Urgência, Domiciliar"
+                    value={form.tipo_atendimento}
+                    onChange={(e) => setForm({ ...form, tipo_atendimento: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Município</Label>
+                  <Input
+                    placeholder="Ex.: Oriximiná"
+                    value={form.municipio}
+                    onChange={(e) => setForm({ ...form, municipio: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Distrito / região</Label>
+                  <Input
+                    placeholder="Ex.: Sede, Ribeirinha, Rural"
+                    value={form.distrito}
+                    onChange={(e) => setForm({ ...form, distrito: e.target.value })}
                   />
                 </div>
                 <div>
@@ -526,6 +565,11 @@ function UnidadesPage() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="outline" asChild title="Painel da unidade">
+                        <Link to="/unidades/$id" params={{ id: u.id }}>
+                          <LayoutDashboard className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
                       {canEdit && (
                         <Button
                           size="sm"

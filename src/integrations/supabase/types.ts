@@ -2438,12 +2438,14 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           deleted_by: string | null
+          distrito: string | null
           email_institucional: string | null
           endereco: Json | null
           horario_funcionamento: Json | null
           id: string
           latitude: number | null
           longitude: number | null
+          municipio: string | null
           nivel_complexidade: string | null
           nome: string
           observacoes: string | null
@@ -2453,6 +2455,7 @@ export type Database = {
           sigla: string | null
           status: Database["public"]["Enums"]["status_entidade"]
           telefone: string | null
+          tipo_atendimento: string | null
           tipo_unidade: string | null
           updated_at: string
           updated_by: string | null
@@ -2465,12 +2468,14 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          distrito?: string | null
           email_institucional?: string | null
           endereco?: Json | null
           horario_funcionamento?: Json | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          municipio?: string | null
           nivel_complexidade?: string | null
           nome: string
           observacoes?: string | null
@@ -2480,6 +2485,7 @@ export type Database = {
           sigla?: string | null
           status?: Database["public"]["Enums"]["status_entidade"]
           telefone?: string | null
+          tipo_atendimento?: string | null
           tipo_unidade?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2492,12 +2498,14 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          distrito?: string | null
           email_institucional?: string | null
           endereco?: Json | null
           horario_funcionamento?: Json | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          municipio?: string | null
           nivel_complexidade?: string | null
           nome?: string
           observacoes?: string | null
@@ -2507,6 +2515,7 @@ export type Database = {
           sigla?: string | null
           status?: Database["public"]["Enums"]["status_entidade"]
           telefone?: string | null
+          tipo_atendimento?: string | null
           tipo_unidade?: string | null
           updated_at?: string
           updated_by?: string | null
