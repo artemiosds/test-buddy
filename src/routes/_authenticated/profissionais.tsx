@@ -876,38 +876,48 @@ function ProfissionaisPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="md:col-span-2 border-t pt-3 mt-1">
-                      <h3 className="text-sm font-semibold text-muted-foreground">
-                        Dados bancários (folha de pagamento)
-                      </h3>
-                    </div>
-                    <div>
-                      <Label>Banco</Label>
-                      <Input
-                        value={form.banco}
-                        onChange={(e) => setForm({ ...form, banco: e.target.value })}
-                        placeholder="Ex.: BANPARÁ"
-                      />
-                    </div>
-                    <div>
-                      <Label>Agência</Label>
-                      <Input
-                        value={form.agencia}
-                        onChange={(e) => setForm({ ...form, agencia: e.target.value })}
-                        placeholder="Ex.: 0077"
-                      />
-                    </div>
-                    <div>
-                      <Label>Conta corrente</Label>
-                      <Input
-                        value={form.conta_corrente}
-                        onChange={(e) => setForm({ ...form, conta_corrente: e.target.value })}
-                        placeholder="Ex.: 640272-0"
-                      />
-                    </div>
                     {(() => {
                       const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
                       const isEfetivo = nat === "efetivo" || nat === "comissionado";
+                      const isContratado = nat === "contratado";
+                      const canEditAgili = hasPermission("profissional.editar_dados_agili");
+                      if (isContratado) {
+                        return (
+                          <>
+                            <div className="md:col-span-2 border-t pt-3 mt-1">
+                              <h3 className="text-sm font-semibold text-muted-foreground">
+                                Dados bancários (folha de pagamento — Contratados)
+                              </h3>
+                            </div>
+                            <div>
+                              <Label>Banco</Label>
+                              <Input
+                                value={form.banco}
+                                onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                                placeholder="Ex.: BANPARÁ"
+                              />
+                            </div>
+                            <div>
+                              <Label>Agência</Label>
+                              <Input
+                                value={form.agencia}
+                                onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                                placeholder="Ex.: 0077"
+                              />
+                            </div>
+                            <div>
+                              <Label>Conta corrente</Label>
+                              <Input
+                                value={form.conta_corrente}
+                                onChange={(e) =>
+                                  setForm({ ...form, conta_corrente: e.target.value })
+                                }
+                                placeholder="Ex.: 640272-0"
+                              />
+                            </div>
+                          </>
+                        );
+                      }
                       if (!isEfetivo) return null;
                       return (
                         <>
@@ -917,6 +927,8 @@ function ProfissionaisPage() {
                             </h3>
                             <p className="text-xs text-muted-foreground">
                               Exibidos como somente leitura na folha de Efetivos.
+                              {!canEditAgili &&
+                                " Somente Master/Gestor podem preencher estes campos."}
                             </p>
                           </div>
                           <div>
@@ -927,6 +939,8 @@ function ProfissionaisPage() {
                               value={form.proj}
                               onChange={(e) => setForm({ ...form, proj: e.target.value })}
                               placeholder="Ex.: 1"
+                              readOnly={!canEditAgili}
+                              disabled={!canEditAgili}
                             />
                           </div>
                           <div>
@@ -938,6 +952,8 @@ function ProfissionaisPage() {
                               value={form.h_p}
                               onChange={(e) => setForm({ ...form, h_p: e.target.value })}
                               placeholder="Ex.: 160"
+                              readOnly={!canEditAgili}
+                              disabled={!canEditAgili}
                             />
                           </div>
                           <div>
@@ -949,6 +965,8 @@ function ProfissionaisPage() {
                               value={form.c_h}
                               onChange={(e) => setForm({ ...form, c_h: e.target.value })}
                               placeholder="Ex.: 160"
+                              readOnly={!canEditAgili}
+                              disabled={!canEditAgili}
                             />
                           </div>
                           <div>
@@ -960,6 +978,8 @@ function ProfissionaisPage() {
                               value={form.jorn}
                               onChange={(e) => setForm({ ...form, jorn: e.target.value })}
                               placeholder="Ex.: 30"
+                              readOnly={!canEditAgili}
+                              disabled={!canEditAgili}
                             />
                           </div>
                         </>
