@@ -29,6 +29,7 @@ import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authen
 import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
 import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
 import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticated/gestao-rh'
+import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
 import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
 import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
 import { Route as AuthenticatedConfiguracaoRouteImport } from './routes/_authenticated/configuracao'
@@ -153,6 +154,12 @@ const AuthenticatedGestaoRhRoute = AuthenticatedGestaoRhRouteImport.update({
   path: '/gestao-rh',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedGestaoProfissionaisRoute =
+  AuthenticatedGestaoProfissionaisRouteImport.update({
+    id: '/gestao-profissionais',
+    path: '/gestao-profissionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedFrequenciasRoute =
   AuthenticatedFrequenciasRouteImport.update({
     id: '/frequencias',
@@ -265,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
@@ -302,6 +310,7 @@ export interface FileRoutesByTo {
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
@@ -342,6 +351,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
   '/_authenticated/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/_authenticated/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/_authenticated/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/_authenticated/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/_authenticated/pendencias': typeof AuthenticatedPendenciasRoute
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/configuracao'
     | '/feriados'
     | '/frequencias'
+    | '/gestao-profissionais'
     | '/gestao-rh'
     | '/notificacoes'
     | '/pendencias'
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/configuracao'
     | '/feriados'
     | '/frequencias'
+    | '/gestao-profissionais'
     | '/gestao-rh'
     | '/notificacoes'
     | '/pendencias'
@@ -459,6 +471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracao'
     | '/_authenticated/feriados'
     | '/_authenticated/frequencias'
+    | '/_authenticated/gestao-profissionais'
     | '/_authenticated/gestao-rh'
     | '/_authenticated/notificacoes'
     | '/_authenticated/pendencias'
@@ -637,6 +650,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoRhRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/gestao-profissionais': {
+      id: '/_authenticated/gestao-profissionais'
+      path: '/gestao-profissionais'
+      fullPath: '/gestao-profissionais'
+      preLoaderRoute: typeof AuthenticatedGestaoProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/frequencias': {
       id: '/_authenticated/frequencias'
       path: '/frequencias'
@@ -810,6 +830,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRoute
   AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
   AuthenticatedFrequenciasRoute: typeof AuthenticatedFrequenciasRoute
+  AuthenticatedGestaoProfissionaisRoute: typeof AuthenticatedGestaoProfissionaisRoute
   AuthenticatedGestaoRhRoute: typeof AuthenticatedGestaoRhRoute
   AuthenticatedNotificacoesRoute: typeof AuthenticatedNotificacoesRoute
   AuthenticatedPendenciasRoute: typeof AuthenticatedPendenciasRoute
@@ -840,6 +861,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRoute,
   AuthenticatedFeriadosRoute: AuthenticatedFeriadosRoute,
   AuthenticatedFrequenciasRoute: AuthenticatedFrequenciasRoute,
+  AuthenticatedGestaoProfissionaisRoute: AuthenticatedGestaoProfissionaisRoute,
   AuthenticatedGestaoRhRoute: AuthenticatedGestaoRhRoute,
   AuthenticatedNotificacoesRoute: AuthenticatedNotificacoesRoute,
   AuthenticatedPendenciasRoute: AuthenticatedPendenciasRoute,
