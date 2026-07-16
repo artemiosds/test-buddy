@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Download, RefreshCw, Users, Building2, ClipboardList, CheckCircle2, AlertCircle, Clock, CalendarRange } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics, type AnalyticsFilters as AF } from "@/hooks/use-analytics";
+import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";
+import { formatCompetencia } from "@/lib/formatters";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
 import { PageHeader, KpiCard, FilterBar, DataTable, type DataTableColumn } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -38,41 +38,14 @@ function GestaoRhContent() {
 
   const a = useAnalytics(filters);
 
-  const { data: competencias } = useQuery({
-    queryKey: ["gestao-rh", "competencias"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("competencias")
-        .select("id, mes, ano, status")
-        .is("deleted_at", null)
-        .order("ano", { ascending: false })
-        .order("mes", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: unidades } = useQuery({
-    queryKey: ["gestao-rh", "unidades"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("unidades")
-        .select("id, nome, sigla")
-        .is("deleted_at", null)
-        .eq("status", "ativa")
-        .order("nome");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data: competencias } = useCompetenciasLookup();
+  const { data: unidades } = useUnidadesLookup({ ativasOnly: true });
 
   const competenciaLabel = useMemo(() => {
     const id = filters.competenciaId ?? a.competenciaId;
     const c = competencias?.find((x) => x.id === id);
     if (!c) return a.competenciaAtiva?.label ?? "—";
-    return `${String(c.mes).padStart(2, "0")}/${c.ano}`;
+    return formatCompetencia(c.mes, c.ano, "num");
   }, [filters.competenciaId, a.competenciaId, a.competenciaAtiva, competencias]);
 
   const kpis = [
@@ -148,7 +121,7 @@ function GestaoRhContent() {
             <SelectContent>
               <SelectItem value={NONE}>Ativa</SelectItem>
               {competencias?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{`${String(c.mes).padStart(2, "0")}/${c.ano}`}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>{formatCompetencia(c.mes, c.ano, "num")}</SelectItem>
               ))}
             </SelectContent>
           </Select>
