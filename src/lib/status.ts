@@ -149,19 +149,19 @@ const REGISTRY: Registry = {
     order: ["ativa", "inativa", "suspensa", "arquivada"],
     map: {
       ativa: {
-        label: "Ativa", variant: "secondary", className: "bg-emerald-100 text-emerald-700",
+        label: "Ativa", variant: "secondary", className: "bg-success-soft text-success-soft-foreground",
         icon: CheckCircle2, colorToken: "success", description: "Unidade em operação.",
       },
       inativa: {
-        label: "Inativa", variant: "secondary", className: "bg-rose-100 text-rose-700",
+        label: "Inativa", variant: "secondary", className: "bg-danger-soft text-danger-soft-foreground",
         icon: XCircle, colorToken: "danger", description: "Unidade sem operação.",
       },
       suspensa: {
-        label: "Suspensa", variant: "secondary", className: "bg-amber-100 text-amber-700",
+        label: "Suspensa", variant: "secondary", className: "bg-warning-soft text-warning-soft-foreground",
         icon: Pause, colorToken: "warning", description: "Operação suspensa temporariamente.",
       },
       arquivada: {
-        label: "Arquivada", variant: "secondary", className: "bg-slate-100 text-slate-700",
+        label: "Arquivada", variant: "secondary", className: "bg-muted text-muted-foreground",
         icon: Archive, colorToken: "muted", description: "Arquivada — histórica.", visible: false,
       },
     },
@@ -170,23 +170,23 @@ const REGISTRY: Registry = {
     order: ["ativo", "pendente", "suspenso", "bloqueado", "inativo"],
     map: {
       ativo: {
-        label: "Ativo", variant: "secondary", className: "bg-emerald-100 text-emerald-700",
+        label: "Ativo", variant: "secondary", className: "bg-success-soft text-success-soft-foreground",
         icon: UserCheck, colorToken: "success", description: "Usuário ativo — acesso liberado.",
       },
       pendente: {
-        label: "Pendente", variant: "secondary", className: "bg-amber-100 text-amber-700",
+        label: "Pendente", variant: "secondary", className: "bg-warning-soft text-warning-soft-foreground",
         icon: Clock, colorToken: "warning", description: "Cadastro pendente de confirmação.",
       },
       suspenso: {
-        label: "Suspenso", variant: "secondary", className: "bg-amber-100 text-amber-700",
+        label: "Suspenso", variant: "secondary", className: "bg-warning-soft text-warning-soft-foreground",
         icon: Pause, colorToken: "warning", description: "Suspenso temporariamente.",
       },
       bloqueado: {
-        label: "Bloqueado", variant: "secondary", className: "bg-rose-100 text-rose-700",
+        label: "Bloqueado", variant: "secondary", className: "bg-danger-soft text-danger-soft-foreground",
         icon: ShieldOff, colorToken: "danger", description: "Acesso bloqueado por segurança.",
       },
       inativo: {
-        label: "Inativo", variant: "secondary", className: "bg-slate-100 text-slate-700",
+        label: "Inativo", variant: "secondary", className: "bg-muted text-muted-foreground",
         icon: UserMinus, colorToken: "muted", description: "Inativo — sem acesso.", visible: false,
       },
     },

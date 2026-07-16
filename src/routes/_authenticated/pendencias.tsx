@@ -67,7 +67,7 @@ const PRIORIDADE_LABEL: Record<Prioridade, string> = {
 const PRIORIDADE_CLASSES: Record<Prioridade, string> = {
   baixa: "bg-muted text-muted-foreground",
   media: "bg-primary/10 text-primary",
-  alta: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  alta: "bg-warning/15 text-warning-soft-foreground",
   critica: "bg-destructive/15 text-destructive",
 };
 
@@ -84,7 +84,7 @@ function slaBadge(prazo?: string | null, status?: Status) {
   const dias = Math.ceil((new Date(prazo).getTime() - Date.now()) / 86400000);
   if (isNaN(dias)) return null;
   if (dias < 0) return <Badge variant="destructive">Atrasada {Math.abs(dias)}d</Badge>;
-  if (dias <= 2) return <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20">Vence em {dias}d</Badge>;
+  if (dias <= 2) return <Badge className="bg-warning/15 text-warning-soft-foreground hover:bg-warning/25">Vence em {dias}d</Badge>;
   return <Badge variant="outline">{dias}d</Badge>;
 }
 
@@ -296,9 +296,9 @@ function KpiCard({
   tone?: "warning" | "info" | "success";
 }) {
   const toneCls =
-    tone === "warning" ? "text-amber-600 dark:text-amber-400"
+    tone === "warning" ? "text-warning-soft-foreground"
     : tone === "info" ? "text-primary"
-    : tone === "success" ? "text-emerald-600 dark:text-emerald-400"
+    : tone === "success" ? "text-success"
     : "text-foreground";
   return (
     <Card>

@@ -147,10 +147,10 @@ function UsuarioDetail() {
           <span className="flex items-center gap-1">
             <Minus className="h-3.5 w-3.5" /> Herdar do perfil
           </span>
-          <span className="flex items-center gap-1 text-emerald-700">
+          <span className="flex items-center gap-1 text-success">
             <Check className="h-3.5 w-3.5" /> Conceder individual
           </span>
-          <span className="flex items-center gap-1 text-rose-700">
+          <span className="flex items-center gap-1 text-destructive">
             <X className="h-3.5 w-3.5" /> Revogar individual
           </span>
         </div>
@@ -186,14 +186,14 @@ function UsuarioDetail() {
                           Herdado:{" "}
                           <span
                             className={
-                              inheritGranted ? "text-emerald-700" : "text-muted-foreground"
+                              inheritGranted ? "text-success" : "text-muted-foreground"
                             }
                           >
                             {inheritGranted ? "concedido" : "não concedido"}
                           </span>
                           {" · Efetivo: "}
                           <span
-                            className={effective ? "text-emerald-700" : "text-rose-700"}
+                            className={effective ? "text-success" : "text-destructive"}
                           >
                             {effective ? "permitido" : "negado"}
                           </span>
@@ -206,9 +206,9 @@ function UsuarioDetail() {
                             opt === "concedida" ? Check : opt === "revogada" ? X : Minus;
                           const color =
                             opt === "concedida"
-                              ? "text-emerald-700"
+                              ? "text-success"
                               : opt === "revogada"
-                                ? "text-rose-700"
+                                ? "text-destructive"
                                 : "text-muted-foreground";
                           return (
                             <Button

@@ -29,9 +29,9 @@ type Props = {
 
 const TONE_VALUE: Record<KpiTone, string> = {
   default: "",
-  success: "text-emerald-600",
+  success: "text-success",
   danger: "text-destructive",
-  warning: "text-amber-600",
+  warning: "text-warning-soft-foreground",
 };
 
 const TREND_ICON: Record<KpiTrendDirection, typeof ArrowUp> = {
@@ -41,7 +41,7 @@ const TREND_ICON: Record<KpiTrendDirection, typeof ArrowUp> = {
 };
 
 const TREND_TONE: Record<KpiTrendDirection, string> = {
-  up: "text-emerald-600",
+  up: "text-success",
   down: "text-destructive",
   flat: "text-muted-foreground",
 };

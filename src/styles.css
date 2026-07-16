@@ -59,6 +59,43 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* --- Superfícies --- */
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-muted: var(--surface-muted);
+  /* --- Bordas --- */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  /* --- Texto --- */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverted: var(--text-inverted);
+  /* --- Estado: success --- */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  /* --- Estado: warning --- */
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  /* --- Estado: danger (alias de destructive + variantes suaves) --- */
+  --color-danger: var(--destructive);
+  --color-danger-foreground: var(--destructive-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+  /* --- Estado: info --- */
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  /* --- Marca --- */
+  --color-brand: var(--primary);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-foreground: var(--primary-foreground);
 }
 
 :root {
@@ -95,6 +132,47 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Superfícies */
+  --surface: var(--background);
+  --surface-elevated: var(--card);
+  --surface-overlay: var(--popover);
+  --surface-muted: var(--muted);
+
+  /* Bordas graduais */
+  --border-subtle: oklch(0.955 0.008 255.508);
+  --border-strong: oklch(0.86 0.02 255.508);
+
+  /* Texto */
+  --text-primary: var(--foreground);
+  --text-secondary: oklch(0.35 0.03 260);
+  --text-muted: var(--muted-foreground);
+  --text-inverted: oklch(0.984 0.003 247.858);
+
+  /* Estado — success (emerald) */
+  --success: oklch(0.58 0.15 155);
+  --success-foreground: oklch(0.984 0.02 155);
+  --success-soft: oklch(0.96 0.05 155);
+  --success-soft-foreground: oklch(0.38 0.12 155);
+
+  /* Estado — warning (amber) */
+  --warning: oklch(0.78 0.16 75);
+  --warning-foreground: oklch(0.22 0.05 75);
+  --warning-soft: oklch(0.965 0.05 75);
+  --warning-soft-foreground: oklch(0.42 0.13 75);
+
+  /* Estado — danger (soft complementa `--destructive` já existente) */
+  --danger-soft: oklch(0.96 0.05 25);
+  --danger-soft-foreground: oklch(0.42 0.18 25);
+
+  /* Estado — info (blue/sky) */
+  --info: oklch(0.62 0.16 240);
+  --info-foreground: oklch(0.984 0.02 240);
+  --info-soft: oklch(0.965 0.04 240);
+  --info-soft-foreground: oklch(0.4 0.15 240);
+
+  /* Marca */
+  --brand-hover: oklch(0.28 0.06 265.755);
 }
 
 .dark {
@@ -130,6 +208,47 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  /* Superfícies */
+  --surface: var(--background);
+  --surface-elevated: var(--card);
+  --surface-overlay: var(--popover);
+  --surface-muted: var(--muted);
+
+  /* Bordas */
+  --border-subtle: oklch(1 0 0 / 6%);
+  --border-strong: oklch(1 0 0 / 20%);
+
+  /* Texto */
+  --text-primary: var(--foreground);
+  --text-secondary: oklch(0.85 0.02 260);
+  --text-muted: var(--muted-foreground);
+  --text-inverted: oklch(0.129 0.042 264.695);
+
+  /* Estado — success */
+  --success: oklch(0.7 0.16 155);
+  --success-foreground: oklch(0.15 0.05 155);
+  --success-soft: oklch(0.28 0.08 155 / 35%);
+  --success-soft-foreground: oklch(0.85 0.14 155);
+
+  /* Estado — warning */
+  --warning: oklch(0.82 0.16 75);
+  --warning-foreground: oklch(0.2 0.05 75);
+  --warning-soft: oklch(0.32 0.08 75 / 35%);
+  --warning-soft-foreground: oklch(0.88 0.14 75);
+
+  /* Estado — danger */
+  --danger-soft: oklch(0.32 0.1 25 / 35%);
+  --danger-soft-foreground: oklch(0.88 0.15 25);
+
+  /* Estado — info */
+  --info: oklch(0.7 0.15 240);
+  --info-foreground: oklch(0.15 0.05 240);
+  --info-soft: oklch(0.3 0.09 240 / 35%);
+  --info-soft-foreground: oklch(0.85 0.14 240);
+
+  /* Marca */
+  --brand-hover: oklch(0.86 0.02 255.508);
 }
 
 @layer base {
