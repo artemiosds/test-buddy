@@ -20,7 +20,6 @@ export const Route = createFileRoute("/_authenticated/frequencias")({
   component: FrequenciasPage,
 });
 
-type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 type TipoFreq = Database["public"]["Enums"]["tipo_frequencia"];
 
 const MESES = [
