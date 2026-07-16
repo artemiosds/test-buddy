@@ -354,7 +354,7 @@ function SalaSituacaoPage() {
               <DataTable
                 rows={movQ.data ?? []}
                 columns={movCols}
-                getRowKey={(m) => m.id}
+                getRowKey={(m) => String(m.id)}
               />
             )}
             <div className="mt-2 text-xs text-muted-foreground">
