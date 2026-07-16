@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +98,7 @@ function UnidadesPage() {
   const qc = useQueryClient();
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
+  const askConfirm = useConfirm();
   const canCreate = me?.is_master || has("unidade.criar");
   const canEdit = me?.is_master || has("unidade.editar");
   const canDelete = me?.is_master || has("unidade.excluir");
@@ -572,8 +574,15 @@ function UnidadesPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            if (confirm(`Arquivar unidade "${u.nome}"?`))
-                              softDelete.mutate(u.id);
+                            void (async () => {
+                              const ok = await askConfirm({
+                                title: `Arquivar unidade "${u.nome}"?`,
+                                description: "A unidade deixará de aparecer nas listagens ativas.",
+                                tone: "destructive",
+                                confirmLabel: "Arquivar",
+                              });
+                              if (ok) softDelete.mutate(u.id);
+                            })();
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
