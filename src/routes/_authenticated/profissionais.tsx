@@ -879,7 +879,7 @@ function ProfissionaisPage() {
                     {(() => {
                       const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
                       const isEfetivo = nat === "efetivo" || nat === "comissionado";
-                      const isContratado = nat === "contratado";
+                      const isContratado = !!nat && !isEfetivo;
                       const canEditAgili = hasPermission("profissional.editar_dados_agili");
                       if (isContratado) {
                         return (
