@@ -1,11 +1,29 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound } from "lucide-react";
+import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
+import { useTheme } from "@/hooks/use-theme";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -117,6 +135,7 @@ function AuthenticatedLayout() {
   const { has, isLoading: permLoading } = usePermissions();
   const { data: competencia } = useCompetenciaAtiva();
   const { data: parametros } = useMunicipioParametros();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const { data: unreadCount = 0, refetch: refetchUnread } = useQuery({
     queryKey: ["notificacoes-unread", userCtx?.id],
@@ -256,6 +275,41 @@ function AuthenticatedLayout() {
 
   const isItemActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"));
 
+  // ---- Breadcrumbs ----
+  // Constrói mapa plano rota -> label a partir dos GROUPS declarados acima.
+  const routeLabelMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of GROUPS) for (const it of g.items) m.set(it.to, it.label);
+    // aliases úteis para URLs sem match direto
+    m.set("/relatorios-consolidado", "Relatório consolidado");
+    m.set("/relatorios-executivo", "Relatório executivo");
+    m.set("/relatorios-profissional", "Por profissional");
+    m.set("/relatorios-status", "Status");
+    return m;
+  }, []);
+
+  const currentPageLabel = useMemo(() => {
+    // procura match mais específico dentro do path
+    let best: { to: string; label: string } | null = null;
+    for (const [to, label] of routeLabelMap.entries()) {
+      if (to === "/") continue;
+      if (pathname === to || pathname.startsWith(to + "/")) {
+        if (!best || to.length > best.to.length) best = { to, label };
+      }
+    }
+    if (pathname === "/") return "Dashboard";
+    return best?.label ?? "Página";
+  }, [pathname, routeLabelMap]);
+
+  const currentGroupLabel = useMemo(() => {
+    for (const g of GROUPS) {
+      if (g.items.some((it) => (it.to === "/" ? pathname === "/" : pathname === it.to || pathname.startsWith(it.to + "/")))) {
+        return g.label;
+      }
+    }
+    return null;
+  }, [pathname]);
+
   const renderNav = (compact: boolean) => (
     <nav className="flex-1 overflow-y-auto p-2">
       {!compact && (
@@ -298,12 +352,14 @@ function AuthenticatedLayout() {
                       onClick={() => setMobileOpen(false)}
                       title={compact ? item.label : undefined}
                       className={
-                        "group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition " +
-                        (active ? "bg-accent font-medium text-foreground" : "text-foreground/75 hover:bg-accent hover:text-foreground") +
+                        "group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150 " +
+                        (active
+                          ? "bg-primary/10 font-medium text-primary shadow-[inset_2px_0_0_0_var(--primary)]"
+                          : "text-foreground/75 hover:bg-accent hover:text-foreground") +
                         (compact ? " justify-center" : "")
                       }
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                       {!compact && <span className="flex-1 truncate">{item.label}</span>}
                       {showBadge && (
                         <span className={
@@ -379,46 +435,18 @@ function AuthenticatedLayout() {
 
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between gap-3 border-b bg-card px-4 md:px-6">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent md:hidden"
-            aria-label="Abrir menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          {competencia ? (
-            <div className="rounded-md bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              Competência: {competencia.label} — {competencia.status === "aberta" ? "Aberta" : competencia.status === "em_processamento" ? "Em processamento" : competencia.status}
-            </div>
-          ) : (
-            <div className="rounded-md bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive">
-              Nenhuma competência aberta no momento
-            </div>
-          )}
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              to="/notificacoes"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-accent"
-              aria-label="Notificações"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-            <div className="text-right leading-tight">
-              <div className="font-medium">{nome}</div>
-              <div className="text-xs text-muted-foreground">{perfil}</div>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {(nome[0] ?? "U").toUpperCase()}
-            </div>
-          </div>
-        </header>
+        <TopBar
+          onOpenMobile={() => setMobileOpen(true)}
+          nome={nome}
+          perfil={perfil}
+          competencia={competencia}
+          unreadCount={unreadCount}
+          currentPageLabel={currentPageLabel}
+          currentGroupLabel={currentGroupLabel}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onSignOut={handleSignOut}
+        />
         {parametros?.mensagem_topo && parametros.mensagem_topo.trim() && (
           <div className="flex items-start gap-2 border-b bg-warning-soft px-6 py-2 text-sm text-warning-soft-foreground">
             <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
@@ -439,5 +467,185 @@ function AuthenticatedLayout() {
         </main>
       </div>
     </div>
+  );
+}
+
+type TopBarProps = {
+  onOpenMobile: () => void;
+  nome: string;
+  perfil: string;
+  competencia: { label: string; status: string } | null | undefined;
+  unreadCount: number;
+  currentPageLabel: string;
+  currentGroupLabel: string | null;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
+  onSignOut: () => void | Promise<void>;
+};
+
+function TopBar({
+  onOpenMobile,
+  nome,
+  perfil,
+  competencia,
+  unreadCount,
+  currentPageLabel,
+  currentGroupLabel,
+  theme,
+  onToggleTheme,
+  onSignOut,
+}: TopBarProps) {
+  const initial = (nome[0] ?? "U").toUpperCase();
+  const compStatusLabel =
+    competencia?.status === "aberta"
+      ? "Aberta"
+      : competencia?.status === "em_processamento"
+      ? "Em processamento"
+      : competencia?.status ?? "";
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:px-6">
+        <button
+          type="button"
+          onClick={onOpenMobile}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md transition hover:bg-accent md:hidden"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
+        </button>
+
+        {/* Breadcrumbs (desktop) + título compacto (mobile) */}
+        <div className="min-w-0 flex-1">
+          <Breadcrumb className="hidden md:block">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/" className="text-muted-foreground transition hover:text-foreground">
+                    Início
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {currentGroupLabel && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <span className="text-muted-foreground">{currentGroupLabel}</span>
+                  </BreadcrumbItem>
+                </>
+              )}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-semibold text-foreground">
+                  {currentPageLabel}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="truncate text-base font-semibold md:hidden">{currentPageLabel}</h1>
+        </div>
+
+        {/* Competência (chip) — recolhida em mobile */}
+        {competencia ? (
+          <div className="hidden rounded-md bg-primary/10 px-3 py-1 text-xs font-medium text-primary lg:block">
+            <span className="text-muted-foreground">Competência:</span>{" "}
+            <span className="font-semibold">{competencia.label}</span>
+            <span className="mx-1 text-muted-foreground">·</span>
+            <span>{compStatusLabel}</span>
+          </div>
+        ) : (
+          <div className="hidden rounded-md bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive lg:block">
+            Nenhuma competência aberta
+          </div>
+        )}
+
+        <div className="flex items-center gap-1">
+          {/* Toggle de tema */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                aria-label={theme === "dark" ? "Tema claro" : "Tema escuro"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" strokeWidth={1.75} />
+                ) : (
+                  <Moon className="h-4 w-4" strokeWidth={1.75} />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Notificações */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                to="/notificacoes"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                aria-label="Notificações"
+              >
+                <Bell className="h-4 w-4" strokeWidth={1.75} />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-sm">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Notificações</TooltipContent>
+          </Tooltip>
+
+          {/* Avatar + menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="ml-1 flex items-center gap-2 rounded-full pl-1 pr-2 py-1 transition hover:bg-accent"
+                aria-label="Menu do usuário"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  {initial}
+                </span>
+                <span className="hidden text-left leading-tight sm:block">
+                  <span className="block max-w-[160px] truncate text-sm font-medium">{nome}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{perfil}</span>
+                </span>
+                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" strokeWidth={2} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="flex flex-col gap-0.5">
+                <span className="truncate text-sm font-semibold">{nome}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">{perfil}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/seguranca" className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" strokeWidth={1.75} />
+                  Segurança (MFA)
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onToggleTheme}>
+                {theme === "dark" ? (
+                  <><Sun className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema claro</>
+                ) : (
+                  <><Moon className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema escuro</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void onSignOut()} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+    </TooltipProvider>
   );
 }
