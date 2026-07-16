@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -357,6 +358,7 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
   const qc = useQueryClient();
   const { has } = usePermissions();
   const canManage = has("historico.gerenciar");
+  const askConfirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -552,7 +554,14 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        if (confirm("Remover este evento?")) remove.mutate(ev.id);
+                        void (async () => {
+                          const ok = await askConfirm({
+                            title: "Remover este evento?",
+                            tone: "destructive",
+                            confirmLabel: "Remover",
+                          });
+                          if (ok) remove.mutate(ev.id);
+                        })();
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
