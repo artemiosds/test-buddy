@@ -131,7 +131,16 @@ function UnidadePainelPage() {
     return c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "—";
   }, [a.competenciaAtiva]);
 
-  const profCols: DataTableColumn<(NonNullable<typeof profissionaisQ.data>)[number]>[] = [
+  type ProfRow = {
+    id: string;
+    nome_completo: string;
+    matricula: string | null;
+    status: string;
+    cargo: { nome: string } | null;
+    funcao: { nome: string } | null;
+  };
+  const profRows = (profissionaisQ.data ?? []) as unknown as ProfRow[];
+  const profCols: DataTableColumn<ProfRow>[] = [
     { key: "nome", header: "Nome", cell: (r) => r.nome_completo },
     { key: "mat", header: "Matrícula", cell: (r) => r.matricula ?? "—" },
     { key: "cargo", header: "Cargo", cell: (r) => r.cargo?.nome ?? "—" },
@@ -140,7 +149,7 @@ function UnidadePainelPage() {
   ];
 
   function exportProfCsv() {
-    downloadCsv(`unidade-${u?.sigla ?? id}-profissionais`, profissionaisQ.data ?? [], [
+    downloadCsv(`unidade-${u?.sigla ?? id}-profissionais`, profRows, [
       { header: "Nome", value: (r) => r.nome_completo },
       { header: "Matrícula", value: (r) => r.matricula ?? "" },
       { header: "Cargo", value: (r) => r.cargo?.nome ?? "" },
@@ -211,12 +220,12 @@ function UnidadePainelPage() {
             <CardContent>
               {profissionaisQ.isLoading ? (
                 <div className="text-sm text-muted-foreground">Carregando...</div>
-              ) : (profissionaisQ.data?.length ?? 0) === 0 ? (
+              ) : profRows.length === 0 ? (
                 <EmptyState title="Nenhum profissional" description="Nenhum profissional vinculado a esta unidade." />
               ) : (
                 <>
-                  <DataTable data={profissionaisQ.data ?? []} columns={profCols} rowKey={(r) => r.id} />
-                  {(profissionaisQ.data?.length ?? 0) === 50 && (
+                  <DataTable data={profRows} columns={profCols} rowKey={(r) => r.id} />
+                  {profRows.length === 50 && (
                     <p className="mt-2 text-xs text-muted-foreground">Exibindo os 50 primeiros. Use o link "Ver todos" para lista completa.</p>
                   )}
                 </>
