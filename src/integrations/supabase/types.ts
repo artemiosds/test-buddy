@@ -203,6 +203,7 @@ export type Database = {
       }
       cargos: {
         Row: {
+          area_profissional: string | null
           base_legal: string | null
           carga_horaria_semanal: number | null
           cbo: string | null
@@ -212,6 +213,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           descricao: string | null
+          exige_conselho: boolean
           grupo_ocupacional: string | null
           id: string
           nivel: Database["public"]["Enums"]["nivel_cargo"] | null
@@ -222,6 +224,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          area_profissional?: string | null
           base_legal?: string | null
           carga_horaria_semanal?: number | null
           cbo?: string | null
@@ -231,6 +234,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          exige_conselho?: boolean
           grupo_ocupacional?: string | null
           id?: string
           nivel?: Database["public"]["Enums"]["nivel_cargo"] | null
@@ -241,6 +245,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          area_profissional?: string | null
           base_legal?: string | null
           carga_horaria_semanal?: number | null
           cbo?: string | null
@@ -250,6 +255,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          exige_conselho?: boolean
           grupo_ocupacional?: string | null
           id?: string
           nivel?: Database["public"]["Enums"]["nivel_cargo"] | null
@@ -1192,6 +1198,7 @@ export type Database = {
       }
       funcoes: {
         Row: {
+          cargo_id: string | null
           codigo: string | null
           created_at: string
           created_by: string | null
@@ -1206,6 +1213,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          cargo_id?: string | null
           codigo?: string | null
           created_at?: string
           created_by?: string | null
@@ -1220,6 +1228,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          cargo_id?: string | null
           codigo?: string | null
           created_at?: string
           created_by?: string | null
@@ -1233,7 +1242,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "funcoes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fundos: {
         Row: {
