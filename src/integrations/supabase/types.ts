@@ -2338,8 +2338,10 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           descricao: string | null
+          gestor_id: string | null
           id: string
           nome: string
+          observacoes: string | null
           responsavel_cpf: string | null
           responsavel_nome: string | null
           sigla: string | null
@@ -2354,8 +2356,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          gestor_id?: string | null
           id?: string
           nome: string
+          observacoes?: string | null
           responsavel_cpf?: string | null
           responsavel_nome?: string | null
           sigla?: string | null
@@ -2370,8 +2374,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          gestor_id?: string | null
           id?: string
           nome?: string
+          observacoes?: string | null
           responsavel_cpf?: string | null
           responsavel_nome?: string | null
           sigla?: string | null
@@ -2381,6 +2387,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "setores_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "setores_unidade_id_fkey"
             columns: ["unidade_id"]
