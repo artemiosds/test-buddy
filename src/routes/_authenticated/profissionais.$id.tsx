@@ -113,12 +113,15 @@ function ProfissionalDetailPage() {
           `id, nome_completo, nome_social, cpf, matricula, email, telefone,
            data_nascimento, sexo, data_admissao, carga_horaria_semanal, status,
            observacoes, banco, agencia, conta_corrente, proj, h_p, c_h, jorn,
+           conselho_classe, conselho_numero, conselho_uf, conselho_validade,
+           situacao_funcional,
            secretaria:secretarias(nome, sigla),
            unidade:unidades(id, nome, sigla),
            setor:setores(id, nome),
            cargo:cargos(nome),
            funcao:funcoes(nome),
-           vinculo:vinculos(nome, natureza)`,
+           vinculo:vinculos(nome, natureza),
+           gestor:profissionais!profissionais_gestor_imediato_id_fkey(id, nome_completo, matricula)`,
         )
         .eq("id", id)
         .maybeSingle();
@@ -212,12 +215,21 @@ async function loadNever() {
     h_p: number | null;
     c_h: number | null;
     jorn: number | null;
+    conselho_classe: string | null;
+    conselho_numero: string | null;
+    conselho_uf: string | null;
+    conselho_validade: string | null;
+    situacao_funcional: string | null;
     secretaria: { nome: string; sigla: string | null } | null;
     unidade: { id: string; nome: string; sigla: string | null } | null;
     setor: { id: string; nome: string } | null;
     cargo: { nome: string } | null;
     funcao: { nome: string } | null;
     vinculo: { nome: string; natureza: string | null } | null;
+    gestor:
+      | { id: string; nome_completo: string; matricula: string | null }
+      | Array<{ id: string; nome_completo: string; matricula: string | null }>
+      | null;
   };
 }
 
@@ -244,6 +256,50 @@ function FinanceiroAgiliCard({ p }: { p: ProfDetail }) {
         <Field label="H.P" value={p.h_p} />
         <Field label="C.H" value={p.c_h} />
         <Field label="Jorn" value={p.jorn} />
+      </div>
+    </Card>
+  );
+}
+
+const SITUACAO_FUNCIONAL_DETAIL_LABEL: Record<string, string> = {
+  ativo: "Ativo",
+  licenca: "Licença",
+  ferias: "Férias",
+  cedido: "Cedido",
+  afastado: "Afastado",
+  desligado: "Desligado",
+};
+
+function DadosFuncionaisCard({ p }: { p: ProfDetail }) {
+  const gestor = Array.isArray(p.gestor) ? p.gestor[0] ?? null : p.gestor;
+  const hasAnything =
+    p.conselho_classe ||
+    p.conselho_numero ||
+    p.conselho_uf ||
+    p.conselho_validade ||
+    p.situacao_funcional ||
+    gestor;
+  if (!hasAnything) return null;
+  const situacaoLabel = p.situacao_funcional
+    ? SITUACAO_FUNCIONAL_DETAIL_LABEL[p.situacao_funcional] ?? p.situacao_funcional
+    : null;
+  return (
+    <Card className="p-4">
+      <h3 className="mb-3 text-sm font-semibold">Dados Funcionais</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Situação funcional" value={situacaoLabel} />
+        <Field
+          label="Gestor imediato"
+          value={
+            gestor
+              ? `${gestor.matricula ? gestor.matricula + " - " : ""}${gestor.nome_completo}`
+              : null
+          }
+        />
+        <Field label="Conselho" value={p.conselho_classe} />
+        <Field label="Nº conselho" value={p.conselho_numero} />
+        <Field label="UF conselho" value={p.conselho_uf} />
+        <Field label="Validade conselho" value={fmtDate(p.conselho_validade)} />
       </div>
     </Card>
   );
@@ -291,6 +347,7 @@ function DadosGeraisTab({
           <Field label="CH semanal" value={p.carga_horaria_semanal} />
         </div>
       </Card>
+      <DadosFuncionaisCard p={p} />
       <FinanceiroAgiliCard p={p} />
       {p.observacoes && (
         <Card className="p-4 md:col-span-2">

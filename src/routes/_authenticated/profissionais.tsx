@@ -110,6 +110,12 @@ type FormState = {
   h_p: string;
   c_h: string;
   jorn: string;
+  conselho_classe: string;
+  conselho_numero: string;
+  conselho_uf: string;
+  conselho_validade: string;
+  gestor_imediato_id: string;
+  situacao_funcional: string;
 };
 
 const EMPTY: FormState = {
@@ -138,6 +144,12 @@ const EMPTY: FormState = {
   h_p: "",
   c_h: "",
   jorn: "",
+  conselho_classe: "",
+  conselho_numero: "",
+  conselho_uf: "",
+  conselho_validade: "",
+  gestor_imediato_id: "",
+  situacao_funcional: "",
 };
 
 const STATUS_LABEL: Record<StatusProf, string> = {
@@ -148,6 +160,20 @@ const STATUS_LABEL: Record<StatusProf, string> = {
   licenca: "Licença",
   desligado: "Desligado",
 };
+
+const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
+  ativo: "Ativo",
+  licenca: "Licença",
+  ferias: "Férias",
+  cedido: "Cedido",
+  afastado: "Afastado",
+  desligado: "Desligado",
+};
+
+const UF_LIST = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
 
 const STATUS_VARIANT: Record<StatusProf, "default" | "secondary" | "outline" | "destructive"> = {
   ativo: "default",
@@ -191,7 +217,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
         )
         .is("deleted_at", null)
         .order("nome_completo");
@@ -371,6 +397,22 @@ function ProfissionaisPage() {
     enabled: open && !!form.unidade_id,
   });
 
+  const { data: gestoresOpt } = useQuery({
+    queryKey: ["profissionais-gestor-opt"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id,nome_completo,matricula")
+        .is("deleted_at", null)
+        .eq("status", "ativo")
+        .order("nome_completo")
+        .limit(1000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const upsert = useMutation({
     mutationFn: async (f: FormState) => {
       const cpfDigits = f.cpf.replace(/\D/g, "");
@@ -404,12 +446,24 @@ function ProfissionaisPage() {
         h_p: f.h_p ? Number(f.h_p) : null,
         c_h: f.c_h ? Number(f.c_h) : null,
         jorn: f.jorn ? Number(f.jorn) : null,
+        conselho_classe: f.conselho_classe.trim() || null,
+        conselho_numero: f.conselho_numero.trim() || null,
+        conselho_uf: f.conselho_uf || null,
+        conselho_validade: f.conselho_validade || null,
+        gestor_imediato_id: f.gestor_imediato_id || null,
+        situacao_funcional: f.situacao_funcional || null,
       };
       if (f.id) {
-        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
+        if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
+          throw new Error("Profissional não pode ser gestor imediato de si mesmo.");
+        }
+        const { error } = await supabase
+          .from("profissionais")
+          .update(payload as never)
+          .eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("profissionais").insert(payload);
+        const { error } = await supabase.from("profissionais").insert(payload as never);
         if (error) throw error;
       }
     },
@@ -470,6 +524,17 @@ function ProfissionaisPage() {
       h_p: (p as unknown as { h_p?: number | null }).h_p?.toString() ?? "",
       c_h: (p as unknown as { c_h?: number | null }).c_h?.toString() ?? "",
       jorn: (p as unknown as { jorn?: number | null }).jorn?.toString() ?? "",
+      conselho_classe:
+        (p as unknown as { conselho_classe?: string | null }).conselho_classe ?? "",
+      conselho_numero:
+        (p as unknown as { conselho_numero?: string | null }).conselho_numero ?? "",
+      conselho_uf: (p as unknown as { conselho_uf?: string | null }).conselho_uf ?? "",
+      conselho_validade:
+        (p as unknown as { conselho_validade?: string | null }).conselho_validade ?? "",
+      gestor_imediato_id:
+        (p as unknown as { gestor_imediato_id?: string | null }).gestor_imediato_id ?? "",
+      situacao_funcional:
+        (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
     });
     setOpen(true);
   };
@@ -991,6 +1056,92 @@ function ProfissionaisPage() {
                         </>
                       );
                     })()}
+                    <div className="md:col-span-2 border-t pt-3 mt-1">
+                      <h3 className="text-sm font-semibold text-muted-foreground">
+                        Dados Funcionais
+                      </h3>
+                    </div>
+                    <div>
+                      <Label>Situação funcional</Label>
+                      <Select
+                        value={form.situacao_funcional || undefined}
+                        onValueChange={(v) => setForm({ ...form, situacao_funcional: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(SITUACAO_FUNCIONAL_LABEL).map(([v, l]) => (
+                            <SelectItem key={v} value={v}>
+                              {l}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Gestor imediato</Label>
+                      <Select
+                        value={form.gestor_imediato_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, gestor_imediato_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {gestoresOpt
+                            ?.filter((g) => g.id !== form.id)
+                            .map((g) => (
+                              <SelectItem key={g.id} value={g.id}>
+                                {g.matricula ? `${g.matricula} - ` : ""}
+                                {g.nome_completo}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Conselho de classe</Label>
+                      <Input
+                        value={form.conselho_classe}
+                        onChange={(e) => setForm({ ...form, conselho_classe: e.target.value })}
+                        placeholder="Ex.: COREN, CRM, CRO"
+                      />
+                    </div>
+                    <div>
+                      <Label>Número do conselho</Label>
+                      <Input
+                        value={form.conselho_numero}
+                        onChange={(e) => setForm({ ...form, conselho_numero: e.target.value })}
+                        placeholder="Ex.: 123456"
+                      />
+                    </div>
+                    <div>
+                      <Label>UF do conselho</Label>
+                      <Select
+                        value={form.conselho_uf || undefined}
+                        onValueChange={(v) => setForm({ ...form, conselho_uf: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="UF" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UF_LIST.map((uf) => (
+                            <SelectItem key={uf} value={uf}>
+                              {uf}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Validade do conselho</Label>
+                      <Input
+                        type="date"
+                        value={form.conselho_validade}
+                        onChange={(e) => setForm({ ...form, conselho_validade: e.target.value })}
+                      />
+                    </div>
                     <div className="md:col-span-2">
                       <Label>Observações</Label>
                       <Textarea

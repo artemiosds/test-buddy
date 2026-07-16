@@ -1872,6 +1872,7 @@ export type Database = {
           conselho_classe: string | null
           conselho_numero: string | null
           conselho_uf: string | null
+          conselho_validade: string | null
           conta_corrente: string | null
           cpf: string
           created_at: string
@@ -1884,6 +1885,7 @@ export type Database = {
           email: string | null
           foto_url: string | null
           funcao_id: string | null
+          gestor_imediato_id: string | null
           h_p: number | null
           horas_previstas: number | null
           id: string
@@ -1902,6 +1904,9 @@ export type Database = {
           secretaria_id: string
           setor_id: string | null
           sexo: string | null
+          situacao_funcional:
+            | Database["public"]["Enums"]["situacao_funcional"]
+            | null
           status: Database["public"]["Enums"]["status_profissional"]
           telefone: string | null
           unidade_id: string | null
@@ -1919,6 +1924,7 @@ export type Database = {
           conselho_classe?: string | null
           conselho_numero?: string | null
           conselho_uf?: string | null
+          conselho_validade?: string | null
           conta_corrente?: string | null
           cpf: string
           created_at?: string
@@ -1931,6 +1937,7 @@ export type Database = {
           email?: string | null
           foto_url?: string | null
           funcao_id?: string | null
+          gestor_imediato_id?: string | null
           h_p?: number | null
           horas_previstas?: number | null
           id?: string
@@ -1949,6 +1956,9 @@ export type Database = {
           secretaria_id: string
           setor_id?: string | null
           sexo?: string | null
+          situacao_funcional?:
+            | Database["public"]["Enums"]["situacao_funcional"]
+            | null
           status?: Database["public"]["Enums"]["status_profissional"]
           telefone?: string | null
           unidade_id?: string | null
@@ -1966,6 +1976,7 @@ export type Database = {
           conselho_classe?: string | null
           conselho_numero?: string | null
           conselho_uf?: string | null
+          conselho_validade?: string | null
           conta_corrente?: string | null
           cpf?: string
           created_at?: string
@@ -1978,6 +1989,7 @@ export type Database = {
           email?: string | null
           foto_url?: string | null
           funcao_id?: string | null
+          gestor_imediato_id?: string | null
           h_p?: number | null
           horas_previstas?: number | null
           id?: string
@@ -1996,6 +2008,9 @@ export type Database = {
           secretaria_id?: string
           setor_id?: string | null
           sexo?: string | null
+          situacao_funcional?:
+            | Database["public"]["Enums"]["situacao_funcional"]
+            | null
           status?: Database["public"]["Enums"]["status_profissional"]
           telefone?: string | null
           unidade_id?: string | null
@@ -2016,6 +2031,13 @@ export type Database = {
             columns: ["funcao_id"]
             isOneToOne: false
             referencedRelation: "funcoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissionais_gestor_imediato_id_fkey"
+            columns: ["gestor_imediato_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
           {
@@ -3049,6 +3071,13 @@ export type Database = {
         | "reaberta"
         | "cancelada"
       prioridade_notificacao: "baixa" | "normal" | "alta" | "urgente"
+      situacao_funcional:
+        | "ativo"
+        | "licenca"
+        | "ferias"
+        | "cedido"
+        | "afastado"
+        | "desligado"
       status_competencia:
         | "aberta"
         | "em_processamento"
@@ -3328,6 +3357,14 @@ export const Constants = {
         "cancelada",
       ],
       prioridade_notificacao: ["baixa", "normal", "alta", "urgente"],
+      situacao_funcional: [
+        "ativo",
+        "licenca",
+        "ferias",
+        "cedido",
+        "afastado",
+        "desligado",
+      ],
       status_competencia: [
         "aberta",
         "em_processamento",
