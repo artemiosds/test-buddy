@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarRange, ClipboardList, CheckSquare, Users2, AlertTriangle,
-  FileClock, Building2, Bell, Clock,
+  FileClock, Building2, Bell, Clock, ArrowUpRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
+import { KpiCard, KpiGridSkeleton, EmptyState } from "@/components/shared";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -16,11 +19,12 @@ export const Route = createFileRoute("/_authenticated/")({
 
 type CardData = {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   icon: typeof CalendarRange;
   hint?: string;
   to?: string;
-  tone?: "default" | "warn" | "danger" | "ok";
+  tone?: "default" | "warning" | "danger" | "success";
+  loading?: boolean;
 };
 
 function Dashboard() {
@@ -186,14 +190,14 @@ function Dashboard() {
         hint: "Folhas enviadas ou em análise",
         icon: CheckSquare,
         to: "/aprovacoes",
-        tone: pendAprovacao > 0 ? "warn" : "ok",
+        tone: pendAprovacao > 0 ? "warning" : "success",
       },
       {
         label: "Unidades sem envio",
         value: unidadesSemEnvio,
         hint: "Ainda não enviaram nesta competência",
         icon: Building2,
-        tone: unidadesSemEnvio > 0 ? "danger" : "ok",
+        tone: unidadesSemEnvio > 0 ? "danger" : "success",
       },
     );
   }
@@ -213,7 +217,7 @@ function Dashboard() {
         hint: "Precisam de atenção",
         icon: AlertTriangle,
         to: "/pendencias",
-        tone: devolvidas > 0 ? "danger" : "ok",
+        tone: devolvidas > 0 ? "danger" : "success",
       },
     );
   }
@@ -232,34 +236,42 @@ function Dashboard() {
     value: notifNaoLidas,
     icon: Bell,
     to: "/notificacoes",
-    tone: notifNaoLidas > 0 ? "warn" : "default",
+    tone: notifNaoLidas > 0 ? "warning" : "default",
   });
 
   const primeiro = userCtx?.nome_completo?.split(" ")[0] ?? "seja bem-vindo";
 
+  // Loading agregado das queries dos KPIs para skeleton unificado.
+  const kpisLoading = !userCtx || (!!compId && competencia == null);
+
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Olá, {primeiro}.</h1>
-        <p className="text-sm text-muted-foreground">
-          Sistema de Gestão de Frequência e Folha — Secretaria Municipal de Saúde de Oriximiná.
-        </p>
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:flex sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+            Olá, {primeiro}.
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sistema de Gestão de Frequência e Folha — Secretaria Municipal de Saúde de Oriximiná.
+          </p>
+        </div>
+        {competencia && (
+          <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            {competencia.label}
+          </span>
+        )}
       </header>
 
       {!competencia && (
-        <div className="rounded-md border border-warning/40 bg-warning-soft p-4 text-sm text-warning-soft-foreground">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <div>
-              Nenhuma competência aberta no momento. Um gestor precisa abrir a competência do mês
-              para liberar o lançamento de frequências.
-            </div>
-          </div>
-        </div>
+        <EmptyState
+          icon={<AlertTriangle className="h-5 w-5" strokeWidth={1.75} />}
+          title="Nenhuma competência aberta"
+          description="Um gestor precisa abrir a competência do mês para liberar o lançamento de frequências."
+        />
       )}
 
       {showPrazoAviso && competencia && (
-        <div className="rounded-md border-2 border-warning bg-warning-soft p-4 text-warning-soft-foreground">
+        <div className="rounded-lg border-2 border-warning bg-warning-soft p-4 text-warning-soft-foreground animate-in fade-in slide-in-from-top-1 duration-300">
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
@@ -275,35 +287,41 @@ function Dashboard() {
         </div>
       )}
 
-
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          const toneClass =
-            c.tone === "danger" ? "border-destructive/40 bg-destructive/5"
-            : c.tone === "warn" ? "border-warning/40 bg-warning-soft/60"
-            : c.tone === "ok" ? "border-success/40 bg-success-soft/60"
-            : "";
-          const inner = (
-            <div className={`rounded-lg border bg-card p-4 transition hover:shadow-sm ${toneClass}`}>
-              <div className="flex items-center justify-between">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {c.label}
-                </div>
-                <Icon className="h-4 w-4 text-primary" />
-              </div>
-              <div className="mt-2 text-2xl font-semibold">{c.value}</div>
-              {c.hint && <div className="mt-1 text-xs text-muted-foreground">{c.hint}</div>}
-            </div>
-          );
-          return c.to ? (
-            <Link key={c.label} to={c.to} className="block">{inner}</Link>
-          ) : (
-            <div key={c.label}>{inner}</div>
-          );
-        })}
-      </div>
+      {kpisLoading ? (
+        <KpiGridSkeleton count={4} className="sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4" />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {cards.map((c) => {
+            const Icon = c.icon;
+            const kpiTone =
+              c.tone === "danger" ? "danger"
+              : c.tone === "warning" ? "warning"
+              : c.tone === "success" ? "success"
+              : "default";
+            const card = (
+              <KpiCard
+                label={c.label}
+                value={c.value}
+                hint={c.hint}
+                tone={kpiTone}
+                icon={<Icon className="h-4 w-4 text-primary" strokeWidth={1.75} />}
+                className="h-full"
+              />
+            );
+            return c.to ? (
+              <Link
+                key={c.label}
+                to={c.to}
+                className="block rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+              >
+                {card}
+              </Link>
+            ) : (
+              <div key={c.label}>{card}</div>
+            );
+          })}
+        </div>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <QuickLinks canApprove={canApprove} canDraft={canDraft} isMaster={isMaster} />
@@ -321,24 +339,28 @@ function QuickLinks({ canApprove, canDraft, isMaster }: { canApprove: boolean; c
   if (isMaster) links.push({ to: "/usuarios", label: "Gerenciar usuários e permissões" });
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <h2 className="text-sm font-semibold mb-3">Atalhos</h2>
+    <Card className="p-4">
+      <h2 className="mb-3 text-sm font-semibold">Atalhos</h2>
       <ul className="space-y-1">
         {links.map((l) => (
           <li key={l.to}>
-            <Link to={l.to} className="text-sm text-primary hover:underline">
-              → {l.label}
+            <Link
+              to={l.to}
+              className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground/80 transition hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2} />
+              <span>{l.label}</span>
             </Link>
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   );
 }
 
 function RecentActivity() {
   const { data: userCtx } = useCurrentUser();
-  const { data = [] } = useQuery({
+  const { data = [], isLoading } = useQuery({
     queryKey: ["dash", "recent-notif", userCtx?.id],
     enabled: !!userCtx?.id,
     queryFn: async () => {
@@ -354,19 +376,35 @@ function RecentActivity() {
   });
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <FileClock className="h-4 w-4 text-primary" />
+    <Card className="p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <FileClock className="h-4 w-4 text-primary" strokeWidth={1.75} />
         <h2 className="text-sm font-semibold">Atividade recente</h2>
       </div>
-      {data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma notificação recente.</p>
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <Skeleton className="mt-1.5 h-1.5 w-1.5 rounded-full" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-3 w-4/5" />
+                <Skeleton className="h-2.5 w-1/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : data.length === 0 ? (
+        <EmptyState
+          title="Sem notificações recentes"
+          description="Novas notificações aparecerão aqui."
+          className="border-0 py-6"
+        />
       ) : (
         <ul className="space-y-2">
           {data.map((n) => (
             <li key={n.id} className="flex items-start gap-2 text-sm">
-              <span className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${n.lida ? "bg-muted-foreground/40" : "bg-primary"}`} />
-              <div className="flex-1 min-w-0">
+              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.lida ? "bg-muted-foreground/40" : "bg-primary"}`} />
+              <div className="min-w-0 flex-1">
                 <div className={`truncate ${n.lida ? "text-muted-foreground" : "font-medium"}`}>
                   {n.titulo}
                 </div>
@@ -378,6 +416,6 @@ function RecentActivity() {
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }

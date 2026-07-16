@@ -462,8 +462,10 @@ function AuthenticatedLayout() {
             </span>
           </div>
         )}
-        <main className="flex-1 p-6">
-          <Outlet />
+        <main className="flex-1 p-4 md:p-6">
+          <div key={pathname} className="route-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

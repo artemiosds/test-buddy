@@ -67,7 +67,7 @@ export function KpiCard({
   const foot = description ?? hint;
   const TrendIcon = trend ? TREND_ICON[trend.direction] : null;
   return (
-    <Card className={cn("p-3", className)} title={tooltip}>
+    <Card className={cn("hover-lift p-3", className)} title={tooltip}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs uppercase tracking-wide text-muted-foreground">
           {label}
