@@ -132,7 +132,7 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
         cargo_id, funcao_id, setor_id,
         cargos ( nome ),
         funcoes ( nome ),
-        setores ( nome ),
+        setores!profissionais_setor_id_fkey ( nome ),
         vinculos!inner ( id, natureza )
       `)
       .eq("unidade_id", data.unidade_id)
