@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, PowerOff, Power, Briefcase } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/cargos-funcoes")({
   component: CargosFuncoesPage,
@@ -36,6 +37,8 @@ type Cargo = {
   codigo: string | null;
   cbo: string | null;
   nivel: "fundamental" | "medio" | "tecnico" | "superior" | "pos_graduacao" | null;
+  area_profissional: string | null;
+  exige_conselho: boolean;
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
 };
 
@@ -44,6 +47,8 @@ type Funcao = {
   nome: string;
   codigo: string | null;
   gratificacao_percentual: number | null;
+  cargo_id: string | null;
+  cargo?: { nome: string } | null;
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
 };
 
@@ -105,11 +110,20 @@ function CargosTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cargo | null>(null);
-  const [form, setForm] = useState<{ nome: string; codigo: string; cbo: string; nivel: Cargo["nivel"] }>({
+  const [form, setForm] = useState<{
+    nome: string;
+    codigo: string;
+    cbo: string;
+    nivel: Cargo["nivel"];
+    area_profissional: string;
+    exige_conselho: boolean;
+  }>({
     nome: "",
     codigo: "",
     cbo: "",
     nivel: null,
+    area_profissional: "",
+    exige_conselho: false,
   });
 
   const { data: cargos = [], isLoading } = useQuery({
@@ -117,7 +131,7 @@ function CargosTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cargos")
-        .select("id, nome, codigo, cbo, nivel, status")
+        .select("id, nome, codigo, cbo, nivel, area_profissional, exige_conselho, status")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
@@ -152,6 +166,8 @@ function CargosTab() {
         codigo: form.codigo.trim() || null,
         cbo: form.cbo.trim() || null,
         nivel: form.nivel,
+        area_profissional: form.area_profissional.trim() || null,
+        exige_conselho: form.exige_conselho,
       };
       if (editing) {
         const { error } = await supabase.from("cargos").update(payload).eq("id", editing.id);
@@ -165,7 +181,7 @@ function CargosTab() {
       toast.success(editing ? "Cargo atualizado" : "Cargo criado");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", codigo: "", cbo: "", nivel: null });
+      setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
       qc.invalidateQueries({ queryKey: ["cargos-admin"] });
       qc.invalidateQueries({ queryKey: ["cargos-select"] });
     },
@@ -188,13 +204,20 @@ function CargosTab() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", codigo: "", cbo: "", nivel: null });
+    setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
     setOpen(true);
   };
 
   const abrirEdit = (c: Cargo) => {
     setEditing(c);
-    setForm({ nome: c.nome, codigo: c.codigo ?? "", cbo: c.cbo ?? "", nivel: c.nivel });
+    setForm({
+      nome: c.nome,
+      codigo: c.codigo ?? "",
+      cbo: c.cbo ?? "",
+      nivel: c.nivel,
+      area_profissional: c.area_profissional ?? "",
+      exige_conselho: !!c.exige_conselho,
+    });
     setOpen(true);
   };
 
@@ -242,6 +265,24 @@ function CargosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Área profissional</Label>
+                <Input
+                  value={form.area_profissional}
+                  onChange={(e) => setForm({ ...form, area_profissional: e.target.value })}
+                  placeholder="Ex.: Saúde, Administração, Educação..."
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.exige_conselho}
+                  onCheckedChange={(v) => setForm({ ...form, exige_conselho: v === true })}
+                />
+                Exige registro em conselho profissional
+                <span className="text-xs text-muted-foreground">
+                  (o tipo/número do conselho é preenchido no cadastro do profissional)
+                </span>
+              </label>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
