@@ -247,7 +247,7 @@ function Dashboard() {
       </header>
 
       {!competencia && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-md border border-warning/40 bg-warning-soft p-4 text-sm text-warning-soft-foreground">
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>
@@ -259,7 +259,7 @@ function Dashboard() {
       )}
 
       {showPrazoAviso && competencia && (
-        <div className="rounded-md border-2 border-orange-400 bg-orange-50 p-4 text-orange-900">
+        <div className="rounded-md border-2 border-warning bg-warning-soft p-4 text-warning-soft-foreground">
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
@@ -282,8 +282,8 @@ function Dashboard() {
           const Icon = c.icon;
           const toneClass =
             c.tone === "danger" ? "border-destructive/40 bg-destructive/5"
-            : c.tone === "warn" ? "border-amber-200 bg-amber-50/50"
-            : c.tone === "ok" ? "border-emerald-200/60 bg-emerald-50/40"
+            : c.tone === "warn" ? "border-warning/40 bg-warning-soft/60"
+            : c.tone === "ok" ? "border-success/40 bg-success-soft/60"
             : "";
           const inner = (
             <div className={`rounded-lg border bg-card p-4 transition hover:shadow-sm ${toneClass}`}>
