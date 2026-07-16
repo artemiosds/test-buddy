@@ -6,12 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
+    let hasUser = false;
     try {
       const { data } = await supabase.auth.getUser();
-      if (data.user) throw redirect({ to: "/" });
+      hasUser = !!data.user;
     } catch {
       // Se a sessão ainda estiver inicializando ou indisponível, mantém a tela de login.
     }
+    if (hasUser) throw redirect({ to: "/" });
   },
   head: () => ({
     meta: [
