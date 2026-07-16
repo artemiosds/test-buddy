@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared";
 import { statusOptions } from "@/lib/status";
+import { formatCPF } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -518,14 +519,6 @@ function ProfissionaisPage() {
         (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
     });
     setOpen(true);
-  };
-
-  const formatCPF = (v: string) => {
-    const d = v.replace(/\D/g, "").slice(0, 11);
-    return d
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
   // KPIs agregados no servidor (count exact) — independentes do limit(500) da

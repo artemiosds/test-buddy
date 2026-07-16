@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { KpiCard } from "@/components/shared";
+import { formatNumber as fmt } from "@/lib/formatters";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -25,10 +26,6 @@ export const Route = createFileRoute("/_authenticated/relatorios-executivo")({
 
 const MES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "#22c55e", "#ef4444", "#f59e0b", "#8b5cf6"];
-
-function fmt(n: number) {
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
-}
 
 function hoursBetween(a: string, b: string): number {
   return (new Date(b).getTime() - new Date(a).getTime()) / 36e5;
