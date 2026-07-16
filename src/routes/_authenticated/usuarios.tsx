@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/shared";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
@@ -46,16 +47,6 @@ type UsuarioRow = {
 type Perfil = { id: string; codigo: string; nome: string };
 
 const STATUS_OPTS = ["ativo", "pendente", "inativo", "bloqueado"] as const;
-
-function statusColor(s: string) {
-  return s === "ativo"
-    ? "bg-emerald-100 text-emerald-700"
-    : s === "pendente"
-      ? "bg-amber-100 text-amber-700"
-      : s === "bloqueado"
-        ? "bg-rose-100 text-rose-700"
-        : "bg-slate-100 text-slate-700";
-}
 
 function UsuariosPage() {
   const location = useLocation();
@@ -505,17 +496,13 @@ function UsuariosList() {
                         <SelectContent>
                           {STATUS_OPTS.map((s) => (
                             <SelectItem key={s} value={s}>
-                              <Badge variant="secondary" className={statusColor(s)}>
-                                {s}
-                              </Badge>
+                              <StatusBadge domain="usuario" value={s} />
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant="secondary" className={statusColor(u.status)}>
-                        {u.status}
-                      </Badge>
+                      <StatusBadge domain="usuario" value={u.status} />
                     )}
                   </td>
                   <td className="px-4 py-2 text-right">

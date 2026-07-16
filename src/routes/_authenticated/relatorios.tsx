@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared";
+import { statusLabel } from "@/lib/status";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -20,16 +21,6 @@ type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
 });
-
-const STATUS_LABEL: Record<StatusFreq, string> = {
-  rascunho: "Rascunho",
-  enviada: "Enviada",
-  em_analise: "Em análise",
-  com_pendencias: "Com pendências",
-  aprovada: "Aprovada",
-  rejeitada: "Rejeitada",
-  arquivada: "Arquivada",
-};
 
 const MES_LABEL = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -159,7 +150,7 @@ function RelatoriosPage() {
         u?.nome ?? "",
         u?.sigla ?? "",
         l.tipo === "contratados" ? "Contratados" : "Efetivos",
-        STATUS_LABEL[l.status],
+        statusLabel("frequencia", l.status),
         l.total_profissionais ?? 0,
         l.total_dias_trabalhados ?? 0,
         l.total_faltas ?? 0,
@@ -192,7 +183,7 @@ function RelatoriosPage() {
         "Unidade": u?.nome ?? "",
         "Sigla": u?.sigla ?? "",
         "Tipo": l.tipo === "contratados" ? "Contratados" : "Efetivos",
-        "Status": STATUS_LABEL[l.status],
+        "Status": statusLabel("frequencia", l.status),
         "Profissionais": l.total_profissionais ?? 0,
         "Dias trabalhados": l.total_dias_trabalhados ?? 0,
         "Faltas": l.total_faltas ?? 0,
@@ -333,7 +324,7 @@ function RelatoriosPage() {
                     {l.tipo === "contratados" ? "Contratados" : "Efetivos"}
                   </td>
                   <td className="px-3 py-2">
-                    <Badge variant="outline">{STATUS_LABEL[l.status]}</Badge>
+                    <StatusBadge domain="frequencia" value={l.status} />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{l.total_profissionais ?? 0}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{l.total_dias_trabalhados ?? 0}</td>

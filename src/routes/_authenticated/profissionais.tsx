@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/shared";
+import { statusOptions } from "@/lib/status";
 import {
   Dialog,
   DialogContent,
@@ -153,15 +154,6 @@ const EMPTY: FormState = {
   situacao_funcional: "",
 };
 
-const STATUS_LABEL: Record<StatusProf, string> = {
-  ativo: "Ativo",
-  inativo: "Inativo",
-  afastado: "Afastado",
-  ferias: "Férias",
-  licenca: "Licença",
-  desligado: "Desligado",
-};
-
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   ativo: "Ativo",
   licenca: "Licença",
@@ -175,15 +167,6 @@ const UF_LIST = [
   "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
   "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
 ];
-
-const STATUS_VARIANT: Record<StatusProf, "default" | "secondary" | "outline" | "destructive"> = {
-  ativo: "default",
-  inativo: "secondary",
-  afastado: "secondary",
-  ferias: "secondary",
-  licenca: "outline",
-  desligado: "destructive",
-};
 
 function getVinculoLabel(
   vinculo?: { nome: string | null; natureza: NaturezaVinculo | null } | null,
@@ -659,7 +642,7 @@ function ProfissionaisPage() {
     {
       key: "status",
       header: "Status",
-      cell: (p) => <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>,
+      cell: (p) => <StatusBadge domain="profissional" value={p.status} />,
     },
     {
       key: "acoes",
@@ -931,9 +914,9 @@ function ProfissionaisPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {STATUS_LABEL[s]}
+                          {statusOptions("profissional").map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1247,9 +1230,9 @@ function ProfissionaisPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
-              {(Object.keys(STATUS_LABEL) as StatusProf[]).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABEL[s]}
+              {statusOptions("profissional").map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
                 </SelectItem>
               ))}
             </SelectContent>

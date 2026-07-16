@@ -11,8 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -57,20 +57,6 @@ const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
-
-const STATUS_LABEL: Record<StatusComp, string> = {
-  aberta: "Aberta",
-  em_processamento: "Em processamento",
-  encerrada: "Encerrada",
-  arquivada: "Arquivada",
-};
-
-const STATUS_VARIANT: Record<StatusComp, "default" | "secondary" | "outline" | "destructive"> = {
-  aberta: "default",
-  em_processamento: "secondary",
-  encerrada: "outline",
-  arquivada: "destructive",
-};
 
 function lastDay(ano: number, mes: number) {
   return new Date(ano, mes, 0).getDate();
@@ -219,7 +205,7 @@ function CompetenciasPage() {
                     {c.prazo_analise && <div>Análise: {new Date(c.prazo_analise).toLocaleDateString("pt-BR")}</div>}
                   </td>
                   <td className="p-3">
-                    <Badge variant={STATUS_VARIANT[c.status]}>{STATUS_LABEL[c.status]}</Badge>
+                    <StatusBadge domain="competencia" value={c.status} />
                   </td>
                   <td className="p-3">
                     <div className="flex justify-end gap-1">

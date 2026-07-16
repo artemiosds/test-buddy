@@ -7,6 +7,8 @@ import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/shared";
+import { statusLabel } from "@/lib/status";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -21,26 +23,6 @@ import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
-
-const STATUS_LABEL: Record<StatusFreq, string> = {
-  rascunho: "Rascunho",
-  enviada: "Enviada",
-  em_analise: "Em análise",
-  com_pendencias: "Com pendências",
-  aprovada: "Aprovada",
-  rejeitada: "Rejeitada",
-  arquivada: "Arquivada",
-};
-
-const STATUS_VARIANT: Record<StatusFreq, "default" | "secondary" | "outline" | "destructive"> = {
-  rascunho: "outline",
-  enviada: "default",
-  em_analise: "default",
-  com_pendencias: "destructive",
-  aprovada: "secondary",
-  rejeitada: "destructive",
-  arquivada: "outline",
-};
 
 const FILTROS: { value: "pendentes" | StatusFreq | "todas"; label: string }[] = [
   { value: "pendentes", label: "Pendentes (enviada + em análise)" },
@@ -219,7 +201,7 @@ function AprovacoesPage() {
                     <td className="p-3 capitalize">{r.tipo}</td>
                     <td className="p-3">{r.total_profissionais ?? 0}</td>
                     <td className="p-3">
-                      <Badge variant={STATUS_VARIANT[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                      <StatusBadge domain="frequencia" value={r.status} />
                     </td>
                     <td className="p-3">{r.data_envio ? new Date(r.data_envio).toLocaleString("pt-BR") : "—"}</td>
                     <td className="p-3">
@@ -350,7 +332,7 @@ function TrilhaDialog({ freqId, onClose }: { freqId: string | null; onClose: () 
                   </div>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {r.status_anterior ? STATUS_LABEL[r.status_anterior as StatusFreq] : "—"} → {STATUS_LABEL[r.status_novo as StatusFreq]}
+                  {r.status_anterior ? statusLabel("frequencia", r.status_anterior) : "—"} → {statusLabel("frequencia", r.status_novo)}
                   {r.usuarios?.nome_completo ? ` · por ${r.usuarios.nome_completo}` : ""}
                 </div>
                 {r.observacoes && (

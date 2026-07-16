@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/shared";
+import { statusLabel } from "@/lib/status";
 import {
   Dialog,
   DialogContent,
@@ -114,16 +116,6 @@ const STATUS_LINHA_VARIANT: Record<StatusLinha, "outline" | "secondary" | "destr
   pendente: "outline",
   aprovada: "secondary",
   rejeitada: "destructive",
-};
-
-const STATUS_LABEL: Record<StatusFreq, string> = {
-  rascunho: "Rascunho",
-  enviada: "Enviada",
-  em_analise: "Em análise",
-  com_pendencias: "Com pendências",
-  aprovada: "Aprovada",
-  rejeitada: "Rejeitada",
-  arquivada: "Arquivada",
 };
 
 type Natureza = Database["public"]["Enums"]["natureza_vinculo"];
@@ -703,7 +695,7 @@ function FrequenciaDetalhe() {
     doc.setFontSize(10);
     doc.text(`Unidade: ${unidade}`, 14, startY + 4);
     doc.text(`Competência: ${compLabel}`, 14, startY + 10);
-    doc.text(`Status: ${STATUS_LABEL[frequencia.status]}`, 14, startY + 16);
+    doc.text(`Status: ${statusLabel("frequencia", frequencia.status)}`, 14, startY + 16);
 
     autoTable(doc, {
       startY: startY + 22,
@@ -776,7 +768,7 @@ function FrequenciaDetalhe() {
               )}
             </p>
           </div>
-          <Badge variant="secondary">{STATUS_LABEL[frequencia.status]}</Badge>
+          <StatusBadge domain="frequencia" value={frequencia.status} />
         </div>
       </div>
 

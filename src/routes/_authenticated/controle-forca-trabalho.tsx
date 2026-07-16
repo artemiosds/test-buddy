@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { PageHeader, KpiCard, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
 import { Button } from "@/components/ui/button";

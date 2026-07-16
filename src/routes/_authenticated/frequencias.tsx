@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { iniciarFrequencia } from "@/lib/competencias.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shared";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -19,33 +20,12 @@ export const Route = createFileRoute("/_authenticated/frequencias")({
   component: FrequenciasPage,
 });
 
-type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 type TipoFreq = Database["public"]["Enums"]["tipo_frequencia"];
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
-
-const STATUS_LABEL: Record<StatusFreq, string> = {
-  rascunho: "Rascunho",
-  enviada: "Enviada",
-  em_analise: "Em análise",
-  com_pendencias: "Com pendências",
-  aprovada: "Aprovada",
-  rejeitada: "Rejeitada",
-  arquivada: "Arquivada",
-};
-
-const STATUS_VARIANT: Record<StatusFreq, "default" | "secondary" | "outline" | "destructive"> = {
-  rascunho: "outline",
-  enviada: "default",
-  em_analise: "secondary",
-  com_pendencias: "destructive",
-  aprovada: "default",
-  rejeitada: "destructive",
-  arquivada: "outline",
-};
 
 function FrequenciasPage() {
   const { has } = usePermissions();
@@ -213,7 +193,7 @@ function FrequenciasPage() {
                   <td className="p-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {freq ? (
-                        <Badge variant={STATUS_VARIANT[freq.status]}>{STATUS_LABEL[freq.status]}</Badge>
+                        <StatusBadge domain="frequencia" value={freq.status} />
                       ) : (
                         <Badge variant="outline">Não iniciada</Badge>
                       )}

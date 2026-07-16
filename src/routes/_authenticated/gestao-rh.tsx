@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, RefreshCw, Users, Building2, ClipboardList, CheckCircle2, AlertCircle, Clock, CalendarRange } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAnalytics, type AnalyticsFilters as AF } from "@/hooks/useAnalytics";
+import { useAnalytics, type AnalyticsFilters as AF } from "@/hooks/use-analytics";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
 import { PageHeader, KpiCard, FilterBar, DataTable, type DataTableColumn } from "@/components/shared";
 import { Button } from "@/components/ui/button";

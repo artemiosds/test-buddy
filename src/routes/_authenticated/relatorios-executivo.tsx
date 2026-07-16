@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileSpreadsheet } from "lucide-react";
+import { KpiCard } from "@/components/shared";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -232,10 +233,10 @@ function RelatorioExecutivoPage() {
       <RelatoriosTabs />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Linhas</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{kpis.totLinhas}</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Taxa de aprovação</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{kpis.taxa.toFixed(1)}%</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">HE total (h)</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{fmt(kpis.totHE)}</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">TMR pendências</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{pendSla ? `${pendSla.tmr.toFixed(1)}h` : "—"}</CardContent></Card>
+        <KpiCard label="Linhas" value={kpis.totLinhas} />
+        <KpiCard label="Taxa de aprovação" value={`${kpis.taxa.toFixed(1)}%`} />
+        <KpiCard label="HE total (h)" value={fmt(kpis.totHE)} />
+        <KpiCard label="TMR pendências" value={pendSla ? `${pendSla.tmr.toFixed(1)}h` : "—"} loading={!pendSla} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -289,11 +290,11 @@ function RelatorioExecutivoPage() {
             <div className="text-sm text-muted-foreground">Carregando…</div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <Kpi label="Total" value={pendSla.total} />
-              <Kpi label="Abertas" value={pendSla.abertas} />
-              <Kpi label="Resolvidas" value={pendSla.resolvidas} />
-              <Kpi label="Atrasadas" value={pendSla.atrasadas} tone={pendSla.atrasadas ? "danger" : undefined} />
-              <Kpi label="No prazo" value={pendSla.noPrazo} tone="success" />
+              <KpiCard label="Total" value={pendSla.total} />
+              <KpiCard label="Abertas" value={pendSla.abertas} />
+              <KpiCard label="Resolvidas" value={pendSla.resolvidas} />
+              <KpiCard label="Atrasadas" value={pendSla.atrasadas} tone={pendSla.atrasadas ? "danger" : "default"} />
+              <KpiCard label="No prazo" value={pendSla.noPrazo} tone="success" />
             </div>
           )}
         </CardContent>
@@ -302,12 +303,3 @@ function RelatorioExecutivoPage() {
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: number; tone?: "success" | "danger" }) {
-  const cls = tone === "danger" ? "text-destructive" : tone === "success" ? "text-emerald-600" : "";
-  return (
-    <div className="rounded-lg border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`text-xl font-semibold ${cls}`}>{value}</div>
-    </div>
-  );
-}
