@@ -305,6 +305,8 @@ function CargosTab() {
                 <th className="p-3">Código</th>
                 <th className="p-3">CBO</th>
                 <th className="p-3">Nível</th>
+                <th className="p-3">Área</th>
+                <th className="p-3">Conselho</th>
                 <th className="p-3">Em uso</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Ações</th>
@@ -319,6 +321,10 @@ function CargosTab() {
                     <td className="p-3 text-muted-foreground">{c.codigo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.cbo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.nivel ?? "—"}</td>
+                    <td className="p-3 text-muted-foreground">{c.area_profissional ?? "—"}</td>
+                    <td className="p-3">
+                      {c.exige_conselho ? <Badge variant="secondary">Sim</Badge> : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="p-3">
                       {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
                     </td>
