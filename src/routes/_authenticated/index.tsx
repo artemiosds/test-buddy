@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarRange, ClipboardList, CheckSquare, Users2, AlertTriangle,
-  FileClock, Building2, Bell, Clock,
+  FileClock, Building2, Bell, Clock, ArrowUpRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
+import { KpiCard, KpiGridSkeleton, EmptyState } from "@/components/shared";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -16,11 +19,12 @@ export const Route = createFileRoute("/_authenticated/")({
 
 type CardData = {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   icon: typeof CalendarRange;
   hint?: string;
   to?: string;
-  tone?: "default" | "warn" | "danger" | "ok";
+  tone?: "default" | "warning" | "danger" | "success";
+  loading?: boolean;
 };
 
 function Dashboard() {
