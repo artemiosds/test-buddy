@@ -895,6 +895,8 @@ function ProfissionaisPage() {
                                 value={form.banco}
                                 onChange={(e) => setForm({ ...form, banco: e.target.value })}
                                 placeholder="Ex.: BANPARÁ"
+                                readOnly={!canEditAgili}
+                                disabled={!canEditAgili}
                               />
                             </div>
                             <div>
@@ -903,6 +905,8 @@ function ProfissionaisPage() {
                                 value={form.agencia}
                                 onChange={(e) => setForm({ ...form, agencia: e.target.value })}
                                 placeholder="Ex.: 0077"
+                                readOnly={!canEditAgili}
+                                disabled={!canEditAgili}
                               />
                             </div>
                             <div>
@@ -913,6 +917,8 @@ function ProfissionaisPage() {
                                   setForm({ ...form, conta_corrente: e.target.value })
                                 }
                                 placeholder="Ex.: 640272-0"
+                                readOnly={!canEditAgili}
+                                disabled={!canEditAgili}
                               />
                             </div>
                           </>
