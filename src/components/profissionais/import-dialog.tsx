@@ -46,6 +46,10 @@ type Parsed = {
   banco: string | null;
   agencia: string | null;
   conta: string | null;
+  proj: number | null;
+  h_p: number | null;
+  c_h: number | null;
+  jorn: number | null;
   erro?: string;
 };
 
@@ -68,6 +72,10 @@ const HEADERS = [
   "banco",
   "agencia",
   "conta",
+  "proj",
+  "h_p",
+  "c_h",
+  "jorn",
   "observacoes",
 ];
 
@@ -137,7 +145,7 @@ export function ImportProfissionaisDialog() {
         supabase.from("setores").select("id,nome,unidade_id").is("deleted_at", null),
         supabase.from("cargos").select("id,nome,codigo").is("deleted_at", null),
         supabase.from("funcoes").select("id,nome,codigo").is("deleted_at", null),
-        supabase.from("vinculos").select("id,nome,codigo").is("deleted_at", null),
+        supabase.from("vinculos").select("id,nome,codigo,natureza").is("deleted_at", null),
       ]);
       return {
         unidades: un.data ?? [],
@@ -174,6 +182,10 @@ export function ImportProfissionaisDialog() {
         "BANPARÁ",
         "0077",
         "640.272-0",
+        1,
+        160,
+        160,
+        30,
         "",
       ],
     ]);
@@ -194,6 +206,11 @@ export function ImportProfissionaisDialog() {
       const get = (k: string) => {
         const key = Object.keys(r).find((h) => norm(h) === norm(k));
         return key ? r[key] : "";
+      };
+      const numOrNull = (v: unknown): number | null => {
+        if (v == null || v === "") return null;
+        const n = Number(String(v).replace(",", "."));
+        return Number.isFinite(n) ? n : null;
       };
       const cpf = String(get("cpf") ?? "").replace(/\D/g, "");
       const nome = String(get("nome_completo") ?? get("nome") ?? "").trim();
@@ -221,6 +238,10 @@ export function ImportProfissionaisDialog() {
         banco: String(get("banco") ?? "").trim() || null,
         agencia: String(get("agencia") ?? get("agência") ?? "").trim() || null,
         conta: String(get("conta") ?? get("conta_corrente") ?? "").trim() || null,
+        proj: numOrNull(get("proj")),
+        h_p: numOrNull(get("h_p") ?? get("h.p") ?? get("hp")),
+        c_h: numOrNull(get("c_h") ?? get("c.h") ?? get("ch")),
+        jorn: numOrNull(get("jorn") ?? get("jornada")),
       };
       if (!row.nome_completo) row.erro = "Nome vazio";
       else if (row.cpf.length !== 11) row.erro = "CPF inválido";
@@ -230,7 +251,7 @@ export function ImportProfissionaisDialog() {
   };
 
   const resolve = (
-    list: Array<{ id: string; nome: string; sigla?: string | null; codigo?: string | null }>,
+    list: Array<{ id: string; nome: string; sigla?: string | null; codigo?: string | null; natureza?: string | null }>,
     key: string | null,
   ) => {
     if (!key) return null;
@@ -264,6 +285,17 @@ export function ImportProfissionaisDialog() {
       const cargo_id = resolve(lookups.cargos, r.cargo_key);
       const funcao_id = resolve(lookups.funcoes, r.funcao_key);
       const vinculo_id = resolve(lookups.vinculos, r.vinculo_key);
+      const vinculoNat = vinculo_id
+        ? lookups.vinculos.find((v) => v.id === vinculo_id)?.natureza ?? null
+        : null;
+      const isEfetivo = vinculoNat === "efetivo" || vinculoNat === "comissionado";
+      const hasAgili =
+        r.proj != null || r.h_p != null || r.c_h != null || r.jorn != null;
+      if (hasAgili && !isEfetivo) {
+        erros.push(
+          `Linha ${r.linha} (${r.nome_completo}): Proj/H.P/C.H/Jorn ignorados — vínculo não é efetivo`,
+        );
+      }
 
       if (r.unidade_key && !unidade_id) {
         fail++;
@@ -292,6 +324,10 @@ export function ImportProfissionaisDialog() {
         banco: r.banco,
         agencia: r.agencia,
         conta_corrente: r.conta,
+        proj: isEfetivo ? r.proj : null,
+        h_p: isEfetivo ? r.h_p : null,
+        c_h: isEfetivo ? r.c_h : null,
+        jorn: isEfetivo ? r.jorn : null,
       };
 
       // upsert por CPF via lookup manual (o índice único de cpf é parcial:
