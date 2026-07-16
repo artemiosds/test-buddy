@@ -20,6 +20,7 @@ import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
 import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
 import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
+import { Route as AuthenticatedSalaSituacaoRouteImport } from './routes/_authenticated/sala-situacao'
 import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
 import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
 import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
@@ -106,6 +107,12 @@ const AuthenticatedSegurancaRoute = AuthenticatedSegurancaRouteImport.update({
   path: '/seguranca',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSalaSituacaoRoute =
+  AuthenticatedSalaSituacaoRouteImport.update({
+    id: '/sala-situacao',
+    path: '/sala-situacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRelatoriosStatusRoute =
   AuthenticatedRelatoriosStatusRouteImport.update({
     id: '/relatorios-status',
@@ -302,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -343,6 +351,7 @@ export interface FileRoutesByTo {
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -387,6 +396,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
+  '/_authenticated/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
   '/_authenticated/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -432,6 +442,7 @@ export interface FileRouteTypes {
     | '/relatorios-executivo'
     | '/relatorios-profissional'
     | '/relatorios-status'
+    | '/sala-situacao'
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/relatorios-executivo'
     | '/relatorios-profissional'
     | '/relatorios-status'
+    | '/sala-situacao'
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
@@ -516,6 +528,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios-executivo'
     | '/_authenticated/relatorios-profissional'
     | '/_authenticated/relatorios-status'
+    | '/_authenticated/sala-situacao'
     | '/_authenticated/seguranca'
     | '/_authenticated/setores'
     | '/_authenticated/tipos-unidade'
@@ -622,6 +635,13 @@ declare module '@tanstack/react-router' {
       path: '/seguranca'
       fullPath: '/seguranca'
       preLoaderRoute: typeof AuthenticatedSegurancaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sala-situacao': {
+      id: '/_authenticated/sala-situacao'
+      path: '/sala-situacao'
+      fullPath: '/sala-situacao'
+      preLoaderRoute: typeof AuthenticatedSalaSituacaoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/relatorios-status': {
@@ -923,6 +943,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRelatoriosExecutivoRoute: typeof AuthenticatedRelatoriosExecutivoRoute
   AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
   AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
+  AuthenticatedSalaSituacaoRoute: typeof AuthenticatedSalaSituacaoRoute
   AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
@@ -958,6 +979,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRelatoriosProfissionalRoute:
     AuthenticatedRelatoriosProfissionalRoute,
   AuthenticatedRelatoriosStatusRoute: AuthenticatedRelatoriosStatusRoute,
+  AuthenticatedSalaSituacaoRoute: AuthenticatedSalaSituacaoRoute,
   AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
