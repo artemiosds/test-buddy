@@ -272,18 +272,7 @@ function DadosGeraisTab({
           <Field label="CH semanal" value={p.carga_horaria_semanal} />
         </div>
       </Card>
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Financeiro (Ágili)</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Banco" value={p.banco} />
-          <Field label="Agência" value={p.agencia} />
-          <Field label="Conta" value={p.conta_corrente} />
-          <Field label="Proj" value={p.proj} />
-          <Field label="H.P" value={p.h_p} />
-          <Field label="C.H" value={p.c_h} />
-          <Field label="Jorn" value={p.jorn} />
-        </div>
-      </Card>
+      <FinanceiroAgiliCard p={p} />
       {p.observacoes && (
         <Card className="p-4 md:col-span-2">
           <h3 className="mb-2 text-sm font-semibold">Observações</h3>
