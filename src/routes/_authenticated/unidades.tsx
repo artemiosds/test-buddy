@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -92,16 +92,6 @@ const EMPTY: FormState = {
 };
 
 const STATUS_OPTS: StatusEnt[] = ["ativa", "inativa", "suspensa", "arquivada"];
-
-function statusColor(s: StatusEnt) {
-  return s === "ativa"
-    ? "bg-emerald-100 text-emerald-700"
-    : s === "suspensa"
-      ? "bg-amber-100 text-amber-700"
-      : s === "arquivada"
-        ? "bg-slate-100 text-slate-700"
-        : "bg-rose-100 text-rose-700";
-}
 
 function UnidadesPage() {
   const qc = useQueryClient();
@@ -559,9 +549,7 @@ function UnidadesPage() {
                     {u.secretaria?.sigla ?? u.secretaria?.nome ?? "—"}
                   </td>
                   <td className="px-4 py-2">
-                    <Badge variant="secondary" className={statusColor(u.status)}>
-                      {u.status}
-                    </Badge>
+                    <StatusBadge domain="unidade" value={u.status} />
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex justify-end gap-1">
