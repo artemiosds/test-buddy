@@ -435,46 +435,18 @@ function AuthenticatedLayout() {
 
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between gap-3 border-b bg-card px-4 md:px-6">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent md:hidden"
-            aria-label="Abrir menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          {competencia ? (
-            <div className="rounded-md bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              Competência: {competencia.label} — {competencia.status === "aberta" ? "Aberta" : competencia.status === "em_processamento" ? "Em processamento" : competencia.status}
-            </div>
-          ) : (
-            <div className="rounded-md bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive">
-              Nenhuma competência aberta no momento
-            </div>
-          )}
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              to="/notificacoes"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-accent"
-              aria-label="Notificações"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-            <div className="text-right leading-tight">
-              <div className="font-medium">{nome}</div>
-              <div className="text-xs text-muted-foreground">{perfil}</div>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {(nome[0] ?? "U").toUpperCase()}
-            </div>
-          </div>
-        </header>
+        <TopBar
+          onOpenMobile={() => setMobileOpen(true)}
+          nome={nome}
+          perfil={perfil}
+          competencia={competencia}
+          unreadCount={unreadCount}
+          currentPageLabel={currentPageLabel}
+          currentGroupLabel={currentGroupLabel}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onSignOut={handleSignOut}
+        />
         {parametros?.mensagem_topo && parametros.mensagem_topo.trim() && (
           <div className="flex items-start gap-2 border-b bg-warning-soft px-6 py-2 text-sm text-warning-soft-foreground">
             <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
