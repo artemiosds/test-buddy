@@ -16,10 +16,14 @@ export const Route = createFileRoute("/_authenticated")({
     if (typeof window === "undefined") {
       return { user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] };
     }
-    await supabase.auth.getSession();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    try {
+      await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) throw redirect({ to: "/auth" });
+      return { user: data.user };
+    } catch {
+      throw redirect({ to: "/auth" });
+    }
   },
   component: AuthenticatedLayout,
 });

@@ -4,11 +4,14 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/" });
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) throw redirect({ to: "/" });
+    } catch {
+      // Se a sessão ainda estiver inicializando ou indisponível, mantém a tela de login.
+    }
   },
   head: () => ({
     meta: [
