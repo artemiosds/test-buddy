@@ -85,20 +85,11 @@ const EMPTY: FormState = {
   observacoes: "",
 };
 
-function fmtDate(v?: string | null) {
-  if (!v) return "-";
-  return new Date(v).toLocaleDateString("pt-BR");
-}
-function fmtNum(v?: number | null) {
-  return Number(v ?? 0).toLocaleString("pt-BR");
-}
-function fmtCPF(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 11);
-  return d
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-}
+import {
+  formatDate as fmtDate,
+  formatNumber as fmtNum,
+  formatCPF as fmtCPF,
+} from "@/lib/formatters";
 
 function ProfissionalDetailPage() {
   const { id } = Route.useParams();

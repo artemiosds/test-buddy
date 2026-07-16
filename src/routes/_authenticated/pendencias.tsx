@@ -20,8 +20,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/shared";
+import { EmptyState, StatusBadge } from "@/components/shared";
 import { statusLabel, statusOptions } from "@/lib/status";
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from "@/lib/formatters";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -77,19 +78,6 @@ const CATEGORIA_LABEL: Record<Categoria, string> = {
   folha: "Folha",
   geral: "Geral",
 };
-
-function fmtDate(v?: string | null) {
-  if (!v) return "—";
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR");
-}
-function fmtDateTime(v?: string | null) {
-  if (!v) return "—";
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("pt-BR");
-}
 
 function slaBadge(prazo?: string | null, status?: Status) {
   if (!prazo || (status && ["resolvida", "cancelada"].includes(status))) return null;
@@ -211,7 +199,9 @@ function PendenciasPage() {
           {list.isLoading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">Carregando…</div>
           ) : rows.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">Nenhuma pendência encontrada.</div>
+            <div className="p-4">
+              <EmptyState title="Nenhuma pendência encontrada." description="Ajuste os filtros ou aguarde novos registros." />
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
