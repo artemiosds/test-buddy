@@ -187,7 +187,7 @@ export function useProfissionaisLookup(opts?: { unidadeId?: string | null; limit
 
 // ---------- Usuários (lookup enxuto) ----------
 
-export type UsuarioLookup = { id: string; nome: string | null; email: string };
+export type UsuarioLookup = { id: string; nome_completo: string; email: string };
 
 export function useUsuariosLookup() {
   return useQuery({
@@ -196,8 +196,9 @@ export function useUsuariosLookup() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("usuarios")
-        .select("id, nome, email")
-        .order("nome");
+        .select("id, nome_completo, email")
+        .is("deleted_at", null)
+        .order("nome_completo");
       if (error) throw error;
       return (data ?? []) as UsuarioLookup[];
     },
@@ -236,10 +237,10 @@ export function useFeriadosLookup(opts?: { ano?: number }) {
 
 export type AssinaturaLookup = {
   id: string;
-  cargo_titulo: string | null;
-  nome_exibicao: string | null;
+  titular_cargo: string | null;
+  titular_nome: string;
   unidade_id: string | null;
-  ativo: boolean | null;
+  ativa: boolean;
 };
 
 export function useAssinaturasLookup(opts?: { unidadeId?: string | null; ativasOnly?: boolean }) {
@@ -249,10 +250,11 @@ export function useAssinaturasLookup(opts?: { unidadeId?: string | null; ativasO
     queryFn: async () => {
       let q = supabase
         .from("assinaturas_institucionais")
-        .select("id, cargo_titulo, nome_exibicao, unidade_id, ativo")
-        .order("cargo_titulo");
+        .select("id, titular_cargo, titular_nome, unidade_id, ativa")
+        .is("deleted_at", null)
+        .order("titular_nome");
       if (opts?.unidadeId) q = q.eq("unidade_id", opts.unidadeId);
-      if (opts?.ativasOnly) q = q.eq("ativo", true);
+      if (opts?.ativasOnly) q = q.eq("ativa", true);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as AssinaturaLookup[];
