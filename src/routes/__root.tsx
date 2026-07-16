@@ -110,9 +110,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const env = typeof process !== "undefined" ? process.env : undefined;
   const supabaseConfig = {
-    url: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "",
-    publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+    url: env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? "",
+    publishableKey: env?.SUPABASE_PUBLISHABLE_KEY ?? env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
   };
 
   return (
