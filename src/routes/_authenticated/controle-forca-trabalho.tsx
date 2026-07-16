@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Building2, RefreshCw, ArrowRight, Clock } from "lucide-react";
+import { Building2, RefreshCw, ArrowRight, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -290,9 +290,8 @@ function ControleForcaTrabalhoPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<Activity className="h-5 w-5" />}
         title="Centro de Controle da Força de Trabalho"
-        subtitle={
+        description={
           competencia
             ? `Competência atual: ${competencia.mes.toString().padStart(2, "0")}/${competencia.ano}`
             : "Sem competência ativa"
@@ -335,7 +334,7 @@ function ControleForcaTrabalhoPage() {
           description="Você não tem acesso a nenhuma unidade ou nenhuma foi cadastrada."
         />
       ) : (
-        <DataTable data={rows} columns={columns} rowKey={(r) => r.id} />
+        <DataTable<UnidadeRow> rows={rows} columns={columns} getRowKey={(r) => r.id} />
       )}
 
       <div className="text-xs text-muted-foreground">
