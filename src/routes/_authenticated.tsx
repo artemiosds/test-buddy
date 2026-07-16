@@ -10,6 +10,12 @@ import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    // Skip on server: this route is ssr:false, and the Supabase client
+    // requires envs that may not exist in prerender/SSR environments.
+    // The auth check re-runs on the client after hydration.
+    if (typeof window === "undefined") {
+      return { user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] };
+    }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };
