@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
+import { TableSkeleton } from "./Skeletons";
 
 export type DataTableColumn<T> = {
   key: string;
@@ -14,6 +15,8 @@ type Props<T> = {
   rows: T[];
   getRowKey: (row: T, index: number) => string;
   loading?: boolean;
+  /** Número de linhas do skeleton quando `loading` é true. */
+  skeletonRows?: number;
   emptyTitle?: string;
   emptyDescription?: string;
   onRowClick?: (row: T) => void;
@@ -28,6 +31,7 @@ export function DataTable<T>({
   rows,
   getRowKey,
   loading,
+  skeletonRows = 5,
   emptyTitle = "Nenhum registro",
   emptyDescription,
   onRowClick,
@@ -51,16 +55,11 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody>
-          {loading && (
-            <tr>
-              <td colSpan={columns.length} className="px-3 py-6 text-center text-muted-foreground">
-                Carregando…
-              </td>
-            </tr>
-          )}
-          {!loading &&
-            rows.map((row, i) => (
+        {loading ? (
+          <TableSkeleton rows={skeletonRows} columns={columns.length} />
+        ) : (
+          <tbody>
+            {rows.map((row, i) => (
               <tr
                 key={getRowKey(row, i)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -76,7 +75,8 @@ export function DataTable<T>({
                 ))}
               </tr>
             ))}
-        </tbody>
+          </tbody>
+        )}
       </table>
     </div>
   );
