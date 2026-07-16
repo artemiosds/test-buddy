@@ -226,7 +226,10 @@ async function loadNever() {
     cargo: { nome: string } | null;
     funcao: { nome: string } | null;
     vinculo: { nome: string; natureza: string | null } | null;
-    gestor: { id: string; nome_completo: string; matricula: string | null } | null;
+    gestor:
+      | { id: string; nome_completo: string; matricula: string | null }
+      | Array<{ id: string; nome_completo: string; matricula: string | null }>
+      | null;
   };
 }
 
