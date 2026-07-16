@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, ShieldAlert, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 export const Route = createFileRoute("/_authenticated/seguranca")({
   head: () => ({ meta: [{ title: "Segurança (MFA) — GESTÃO SAÚDE ORIXIMINÁ - SMS" }] }),
@@ -15,6 +16,7 @@ function SegurancaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const askConfirm = useConfirm();
 
   const [enroll, setEnroll] = useState<{ id: string; qr: string; secret: string } | null>(null);
   const [code, setCode] = useState("");
@@ -69,7 +71,13 @@ function SegurancaPage() {
   }
 
   async function removeFactor(id: string) {
-    if (!confirm("Remover este fator de autenticação?")) return;
+    const ok = await askConfirm({
+      title: "Remover este fator de autenticação?",
+      description: "Você perderá o segundo fator vinculado a esta conta.",
+      tone: "destructive",
+      confirmLabel: "Remover",
+    });
+    if (!ok) return;
     setBusy(true);
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
     if (error) setError(error.message);

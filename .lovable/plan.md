@@ -1,87 +1,103 @@
 
-# Folha de Efetivos Aprovada — Réplica visual do padrão Ágili
+# Sublote 3C — Consolidação final da camada de UI compartilhada
 
-Objetivo: gerar um PDF **visualmente equivalente** ao SAUDE.pdf. Somente para folhas com `status = aprovada`. Marca do rodapé mantida idêntica ao Ágili nesta primeira versão; hierarquia de agrupamento com placeholders visuais marcados.
+Objetivo: fechar a refatoração estrutural do frontend introduzindo os três blocos
+reservados nos sublotes anteriores (Skeleton, ConfirmDialog, Lookups) e
+absorvendo o débito remanescente do `DataTable`/`FilterBar`. Sem alteração
+visual, funcional, de regras, layout, banco ou permissões.
 
-## 1. Especificação visual confirmada no PDF de referência
+## Escopo
 
-- **Formato**: A4 **paisagem**, margens ~10mm.
-- **Cabeçalho institucional**: retângulo com borda fina em volta, brasão à esquerda, texto à direita em 2 linhas — linha 1 pequena ("ESTADO DO PARÁ"), linha 2 em negrito ("PREFEITURA MUNICIPAL DE ORIXIMINÁ"). Fonte Helvetica.
-- **Barras hierárquicas** (4 níveis), largura total, altura ~5mm cada, texto branco em **Courier** (monoespaçado):
-  - Nível 1 `1 - Raiz` — marrom escuro `#8B6A2A`
-  - Nível 2 `1.18 - SECRETARIA…` — marrom médio `#B8934A`
-  - Nível 3 `1.18.00X - UNIDADE` — mostarda `#D4A853`
-  - Nível 4 `X - SETOR` — mostarda clara `#E8C578`
-- **Linha "Qtd funcionários: N"** logo abaixo das barras, sem borda, alinhada à esquerda.
-- **Tabela com grade completa** (bordas verticais e horizontais em todas as células), duas linhas de cabeçalho:
-  - Banda superior (mesclada): `Totalizadores` | `Hora extra` | `Férias` | `Variáveis`
-  - Colunas: `Matricula | Nome | Proj | H.P | C.H | Jorn | DIAS | FALTA | ATT | MAT | 50% | 100% | 1/3 | Integ. | SAL.SUB/H. | ADIC NOT | AULAS SUPLE. | PLANTÃO | SOBRE AVISO | INCENTIVO`
-  - Sub-rótulos em 2 linhas quando o texto quebra (`SAL./SUB/H.`, `ADIC/NOT`, `AULAS/SUPLE.`, `SOBRE/AVISO`).
-- **Linha do profissional**: célula alta (~14mm) contendo dois blocos empilhados:
-  - Bloco superior: `Matricula` centralizada em negrito | `Nome` em negrito
-  - Bloco inferior separado por linha fina: `Cargo` em rótulo à esquerda | valor do cargo centralizado
-  - Colunas numéricas (Proj, H.P, C.H, Jorn, …) mesclam verticalmente a linha dupla e ficam centralizadas.
-- **Rodapé em 2 linhas** com régua superior:
-  - Linha 1 (negrito 9pt): esquerda `Data: dd/MM/aaaa HH:mm:ss` · direita `Página: X de Y`
-  - Linha 2 (regular 7pt cinza): esquerda `Data da emissão: …` · centro `ÁGILIBlue Recursos Humanos - Ágili Software Brasil` · direita `Emitido por: NOME`
+1. **Skeletons de listagem/KPIs**
+   - Novo `src/components/shared/Skeletons.tsx`:
+     - `TableSkeleton` (linhas × colunas configuráveis)
+     - `KpiCardSkeleton` e `KpiGridSkeleton`
+     - `DetailSkeleton` (blocos de página de detalhe)
+   - `DataTable` passa a renderizar `TableSkeleton` no estado `loading`
+     (substitui o placeholder textual "Carregando…" atual, preservando o
+     mesmo layout de colunas).
+   - `KpiCard` ganha estado `loading` unificado usando `KpiCardSkeleton`
+     (já existia `loading` → migra para skeleton em vez do texto "…").
 
-## 2. Arquitetura
+2. **ConfirmDialog compartilhado**
+   - Novo `src/components/shared/ConfirmDialog.tsx` sobre `AlertDialog`
+     shadcn: props `title`, `description`, `confirmLabel`, `cancelLabel`,
+     `tone: "default" | "destructive"`, `open`, `onOpenChange`, `onConfirm`,
+     `loading`.
+   - Hook opcional `useConfirm()` para uso imperativo em handlers
+     (`await confirm({...})`).
+   - Substitui `AlertDialog` inline em rotas que já usam confirmação
+     (usuarios, unidades, feriados, assinaturas, seguranca, notificacoes,
+     profissionais listagem e detalhe). Nenhuma nova confirmação é
+     introduzida — apenas troca de estrutura.
 
-- Novo gerador puro em `src/lib/pdf-folha-efetivos-oficial.ts`
-  - Usa **jsPDF + jspdf-autotable** já instalados.
-  - Coordenadas em mm calibradas contra o PDF de referência.
-  - Renderiza cabeçalho institucional, barras hierárquicas, cabeçalho de tabela em 2 níveis (via `head` do autoTable), linhas duplas (via `didParseCell`/`didDrawCell` desenhando o `Cargo`), rodapé fixo (via `didDrawPage`).
-  - Segunda passada preenche `Página: X de Y` usando `doc.getNumberOfPages()`.
-- Nova server function `gerarFolhaEfetivosAprovadaPDF` em `src/lib/frequencias-efetivos.functions.ts`
-  - `.middleware([requireSupabaseAuth])`.
-  - Recebe `{ competenciaId, unidadeId }`.
-  - Verifica que **todas** as linhas estão `status = 'aprovada'` — senão retorna `{ ok: false, motivo }`.
-  - Retorna DTO ordenado: `{ header, grupos: [{ unidade, setor, funcionarios: [...] }] }`.
-- Botão "Baixar PDF Oficial" em `frequencias-efetivos-page.tsx`, habilitado somente quando a folha está aprovada; chama a server function, alimenta o gerador no cliente.
-- Rota pública `/validar/:id` já existente é reaproveitada; o QR de assinatura é desenhado em uma faixa acima do rodapé oficial **apenas na última página**, sem invadir o layout.
+3. **Lookups compartilhados (hooks)**
+   - Novo `src/hooks/use-lookups.ts` com queries reutilizáveis e chaves
+     estáveis:
+     - `useUnidadesLookup({ ativasOnly? })`
+     - `useSetoresLookup({ unidadeId? })`
+     - `useCargosLookup()`, `useFuncoesLookup()`, `useVinculosLookup()`
+     - `useCompetenciasLookup({ status? })`
+     - `useTiposUnidadeLookup()`
+   - Cada hook: `staleTime: 5 min`, `select` mínimo (id/nome/sigla), sem
+     `refetchOnWindowFocus`. Reaproveita QueryClient global do Sublote 2.
+   - Rotas migradas para consumir os hooks (elimina `useQuery` inline
+     duplicado). Alvo prioritário: `gestao-rh`, `relatorios`,
+     `relatorios-executivo`, `relatorios-consolidado`,
+     `relatorios-status`, `relatorios-profissional`, `analitico`,
+     `aprovacoes`, `frequencias`, `controle-forca-trabalho`,
+     `sala-situacao`, `profissionais`, `setores`, `cargos-funcoes`,
+     `assinaturas`. Consultas com filtros específicos (ex.: joins/count)
+     permanecem locais.
 
-## 3. Placeholders explicitamente marcados
+4. **Débito residual do 3B**
+   - `FilterBar` ganha helper `FilterBar.Field` para padronizar
+     `label + Select/Input` (elimina blocos `<div><label/>Select</div>`
+     repetidos em ~10 rotas — troca cosmética apenas).
+   - Tabelas com `colSpan` para empty/loading migram para `DataTable`
+     onde couber sem alterar layout; casos com colunas dinâmicas ficam
+     documentados como divergência aceita.
 
-Onde o banco ainda não fornece o dado exato do modelo Ágili, o campo é preenchido com valor visualmente coerente e destacado com `⚠` em nota discreta na 1ª página listando pendências:
+## Fora de escopo (mantido para ondas seguintes)
 
-- Códigos hierárquicos das 4 barras (`1`, `1.18`, `1.18.00X`, `X` do setor) — hoje `unidades`/`setores` não têm `codigo_hierarquico`.
-- Rótulo "Raiz" e "SEMSA" fixos até termos `secretarias.codigo` + `municipio_config.raiz`.
-- "Emitido por" usa `nome_completo` de `usuarios`; se ausente, cai para o e-mail.
-- Ordem de colunas do banco → colunas do modelo já mapeada (DIAS/FALTA são separadas visualmente mas usam o mesmo `dias_falta` até desdobrarmos).
+- Alterações de layout, cores ou tipografia (Onda 4).
+- Novas telas, novos filtros ou novas ações destrutivas.
+- Refatoração de páginas de PDF (`pdf-*`) e edge functions.
+- Consolidação de formulários (dialogos de criação/edição) —
+  reservado para eventual Sublote 3D se necessário.
 
-## 4. Validação visual obrigatória
+## Detalhes técnicos
 
-Após implementar, gero um PDF de exemplo com dados reais aprovados, converto com `pdftoppm -r 200` e comparo lado a lado com `SAUDE.pdf` página 1 e 2. Ajusto larguras de coluna, cores e espaçamentos até bater. Só considero pronto após esse passe.
+- `ConfirmDialog` controlado por props (padrão) + `useConfirm()` opcional
+  via provider montado em `src/routes/__root.tsx` dentro de
+  `RootComponent` (não afeta SSR — provider client-side).
+- `Skeletons` usam `Skeleton` de `@/components/ui/skeleton`, respeitando
+  tokens (`bg-muted`) — nenhuma cor hardcoded.
+- Hooks de lookup exportam tipos (`UnidadeLookup`, etc.) reutilizáveis
+  em selects e tabelas.
+- `DataTable`: assinatura pública mantida; `loading` agora renderiza
+  skeleton com número de linhas = `skeletonRows ?? 5`.
 
-## 5. Fora do escopo desta entrega
+## Ordem de execução
 
-- Migração para criar `codigo_hierarquico` em `unidades`/`setores` (fica para uma 2ª iteração quando você validar o visual).
-- Substituição da marca central do rodapé pela identidade da Prefeitura (fica para quando você definir o texto).
-- Alterações no fluxo de aprovação (permanece em `/aprovacoes`).
+1. Criar `Skeletons.tsx` + adaptar `DataTable`/`KpiCard`.
+2. Criar `ConfirmDialog.tsx` + `useConfirm`. Migrar rotas com
+   confirmações inline uma a uma.
+3. Criar `use-lookups.ts`. Migrar rotas em lote, validando typecheck
+   entre cada grupo (relatórios, frequências, cadastros).
+4. Introduzir `FilterBar.Field` e limpar duplicações restantes.
+5. Rodar `bunx tsgo --noEmit` e busca por padrões legados
+   (`useQuery.*unidades.*select.*id, nome`, `AlertDialog` inline em
+   rotas, `Carregando…` textual em tabelas).
 
-## 6. Ordem de execução
+## Entregas ao final
 
-1. Criar `src/lib/pdf-folha-efetivos-oficial.ts` com o layout completo + dados mock e um botão de teste.
-2. Calibrar larguras/cores contra o PDF de referência (Playwright + pdftoppm, iterativo).
-3. Adicionar `gerarFolhaEfetivosAprovadaPDF` bloqueando não-aprovadas.
-4. Ligar o botão na página de Efetivos (habilitado só quando aprovada).
-5. Validação visual final e checklist de placeholders.
-
----
-
-## PR 2 — Fundação técnica (checklist)
-
-- [x] **Item 1 — mover `/gestao-rh` para `_authenticated`** (mesclado no PR 1).
-- [x] **Item 2 — `use-profissionais.ts` em RQ v5** (`useQuery({ queryKey, queryFn, placeholderData: keepPreviousData })`).
-- [x] **Item 3 — grupo "Gestão de Pessoas" na sidebar** (`src/routes/_authenticated.tsx`, grupo `gestao_pessoas`).
-- [x] **Item 4 — componentes compartilhados** em `src/components/shared/`:
-  `PageHeader`, `KpiCard`, `FilterBar`, `EmptyState`, `DataTable` (+ `index.ts` de reexport).
-
-### Aceito com validação parcial
-- **Filtro de unidade em `frequencia_pendencias` (useAnalytics)**: sintaxe do join
-  `frequencias!inner(competencia_unidades!inner(unidade_id))` validada sem erro de
-  coluna; RLS de `frequencia_pendencias` confirmado como camada de proteção real
-  (restringe SELECT por unidade do usuário via `user_has_unit`). Validação
-  end-to-end com dado real (A=1, B=1, total=2) fica **pendente** para quando a
-  tabela tiver volume natural — ambiente de homologação ou primeiro uso real em
-  produção. **Não bloqueia os módulos seguintes.**
+- Arquivos criados/alterados (lista).
+- Componentes compartilhados adicionados (Skeletons, ConfirmDialog,
+  FilterBar.Field) e hooks (`use-lookups`).
+- Confirmações migradas (contagem).
+- Consultas de lookup unificadas (antes/depois).
+- Linhas de código eliminadas (estimativa).
+- Débito remanescente e justificativa.
+- Confirmação de zero regressão (typecheck + inspeção visual das rotas
+  principais).

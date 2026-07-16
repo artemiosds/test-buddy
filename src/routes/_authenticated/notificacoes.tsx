@@ -12,6 +12,7 @@ import { Bell, BellRing, Check, CheckCheck, Trash2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { EmptyState } from "@/components/shared";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 type Tipo = Database["public"]["Enums"]["tipo_notificacao"];
 type Prioridade = Database["public"]["Enums"]["prioridade_notificacao"];
@@ -62,6 +63,7 @@ const FILTROS: { value: Filtro; label: string }[] = [
 function NotificacoesPage() {
   const qc = useQueryClient();
   const { data: userCtx } = useCurrentUser();
+  const askConfirm = useConfirm();
   const [filtro, setFiltro] = useState<Filtro>("nao_lidas");
 
   const { data: notifs, isLoading } = useQuery({
@@ -223,7 +225,14 @@ function NotificacoesPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (confirm("Excluir esta notificação?")) excluir.mutate(n.id);
+                      void (async () => {
+                        const ok = await askConfirm({
+                          title: "Excluir esta notificação?",
+                          tone: "destructive",
+                          confirmLabel: "Excluir",
+                        });
+                        if (ok) excluir.mutate(n.id);
+                      })();
                     }}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />

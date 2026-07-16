@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { statusOptions } from "@/lib/status";
 import { formatCPF } from "@/lib/formatters";
 import {
@@ -180,6 +181,7 @@ function ProfissionaisPage() {
   const qc = useQueryClient();
   const { has: hasPermission } = usePermissions();
   const { data: me } = useCurrentUser();
+  const askConfirm = useConfirm();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -659,7 +661,15 @@ function ProfissionaisPage() {
               size="icon"
               variant="ghost"
               onClick={() => {
-                if (confirm(`Arquivar ${p.nome_completo}?`)) archive.mutate(p.id);
+                void (async () => {
+                  const ok = await askConfirm({
+                    title: `Arquivar ${p.nome_completo}?`,
+                    description: "O profissional deixará de aparecer nas listagens ativas.",
+                    confirmLabel: "Arquivar",
+                    tone: "destructive",
+                  });
+                  if (ok) archive.mutate(p.id);
+                })();
               }}
               title="Arquivar"
             >

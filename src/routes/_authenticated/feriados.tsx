@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ function FeriadosPage() {
   const qc = useQueryClient();
   const { data: userCtx, isLoading: userLoading } = useCurrentUser();
   const isMaster = !!userCtx?.is_master;
+  const askConfirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Feriado | null>(null);
@@ -286,7 +288,14 @@ function FeriadosPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          if (confirm(`Remover "${f.descricao}"?`)) delMut.mutate(f.id);
+                          void (async () => {
+                            const ok = await askConfirm({
+                              title: `Remover "${f.descricao}"?`,
+                              tone: "destructive",
+                              confirmLabel: "Remover",
+                            });
+                            if (ok) delMut.mutate(f.id);
+                          })();
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
