@@ -474,7 +474,7 @@ export function FrequenciasEfetivosPage() {
       </div>
 
       {compFechada && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-3 py-2">
+        <div className="rounded-md border border-warning/40 bg-warning-soft text-warning-soft-foreground text-sm px-3 py-2">
           Competência encerrada — folha em modo somente leitura.
         </div>
       )}
@@ -496,7 +496,7 @@ export function FrequenciasEfetivosPage() {
                 Modelo oficial — Prefeitura
               </th>
               <th
-                className="text-center px-2 py-1 border-l bg-amber-50 text-amber-900"
+                className="text-center px-2 py-1 border-l bg-warning-soft text-warning-soft-foreground"
                 colSpan={CAMPOS_SMS.length}
               >
                 Campos adicionais SMS
@@ -516,7 +516,7 @@ export function FrequenciasEfetivosPage() {
               {CAMPOS_SMS.map((c, i) => (
                 <th
                   key={c.key}
-                  className={`text-right px-2 py-1 whitespace-nowrap bg-amber-50 text-amber-900 ${i === 0 ? "border-l" : ""}`}
+                  className={`text-right px-2 py-1 whitespace-nowrap bg-warning-soft text-warning-soft-foreground ${i === 0 ? "border-l" : ""}`}
                 >
                   {c.label}
                 </th>
@@ -557,7 +557,7 @@ export function FrequenciasEfetivosPage() {
                     </td>
                   ))}
                   {CAMPOS_SMS.map((c, i) => (
-                    <td key={c.key} className={`px-1 py-1 bg-amber-50/60 ${i === 0 ? "border-l" : ""}`}>
+                    <td key={c.key} className={`px-1 py-1 bg-warning-soft/60 ${i === 0 ? "border-l" : ""}`}>
                       <Input
                         type="number" min={0} step="1"
                         value={l?.[c.key as keyof LinhaState] as number ?? 0}
