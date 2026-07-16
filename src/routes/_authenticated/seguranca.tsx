@@ -99,9 +99,9 @@ function SegurancaPage() {
       <div className="rounded-lg border bg-card p-5">
         <div className="mb-3 flex items-center gap-2">
           {verified.length > 0 ? (
-            <><ShieldCheck className="h-5 w-5 text-emerald-600" /><span className="font-medium">MFA ativo</span></>
+            <><ShieldCheck className="h-5 w-5 text-success" /><span className="font-medium">MFA ativo</span></>
           ) : (
-            <><ShieldAlert className="h-5 w-5 text-amber-600" /><span className="font-medium">MFA não configurado</span></>
+            <><ShieldAlert className="h-5 w-5 text-warning-soft-foreground" /><span className="font-medium">MFA não configurado</span></>
           )}
         </div>
 
@@ -120,7 +120,7 @@ function SegurancaPage() {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm">Escaneie o QR Code no seu aplicativo autenticador:</p>
-                <div className="flex justify-center rounded-md border bg-white p-4">
+                <div className="flex justify-center rounded-md border bg-surface-elevated p-4">
                   <img src={enroll.qr} alt="QR Code MFA" className="h-48 w-48" />
                 </div>
                 <p className="text-xs text-muted-foreground">Ou insira manualmente esta chave: <code className="rounded bg-muted px-1.5 py-0.5">{enroll.secret}</code></p>
