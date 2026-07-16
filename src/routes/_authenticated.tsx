@@ -469,3 +469,183 @@ function AuthenticatedLayout() {
     </div>
   );
 }
+
+type TopBarProps = {
+  onOpenMobile: () => void;
+  nome: string;
+  perfil: string;
+  competencia: { label: string; status: string } | null | undefined;
+  unreadCount: number;
+  currentPageLabel: string;
+  currentGroupLabel: string | null;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
+  onSignOut: () => void | Promise<void>;
+};
+
+function TopBar({
+  onOpenMobile,
+  nome,
+  perfil,
+  competencia,
+  unreadCount,
+  currentPageLabel,
+  currentGroupLabel,
+  theme,
+  onToggleTheme,
+  onSignOut,
+}: TopBarProps) {
+  const initial = (nome[0] ?? "U").toUpperCase();
+  const compStatusLabel =
+    competencia?.status === "aberta"
+      ? "Aberta"
+      : competencia?.status === "em_processamento"
+      ? "Em processamento"
+      : competencia?.status ?? "";
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:px-6">
+        <button
+          type="button"
+          onClick={onOpenMobile}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md transition hover:bg-accent md:hidden"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
+        </button>
+
+        {/* Breadcrumbs (desktop) + título compacto (mobile) */}
+        <div className="min-w-0 flex-1">
+          <Breadcrumb className="hidden md:block">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/" className="text-muted-foreground transition hover:text-foreground">
+                    Início
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {currentGroupLabel && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <span className="text-muted-foreground">{currentGroupLabel}</span>
+                  </BreadcrumbItem>
+                </>
+              )}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-semibold text-foreground">
+                  {currentPageLabel}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="truncate text-base font-semibold md:hidden">{currentPageLabel}</h1>
+        </div>
+
+        {/* Competência (chip) — recolhida em mobile */}
+        {competencia ? (
+          <div className="hidden rounded-md bg-primary/10 px-3 py-1 text-xs font-medium text-primary lg:block">
+            <span className="text-muted-foreground">Competência:</span>{" "}
+            <span className="font-semibold">{competencia.label}</span>
+            <span className="mx-1 text-muted-foreground">·</span>
+            <span>{compStatusLabel}</span>
+          </div>
+        ) : (
+          <div className="hidden rounded-md bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive lg:block">
+            Nenhuma competência aberta
+          </div>
+        )}
+
+        <div className="flex items-center gap-1">
+          {/* Toggle de tema */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                aria-label={theme === "dark" ? "Tema claro" : "Tema escuro"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" strokeWidth={1.75} />
+                ) : (
+                  <Moon className="h-4 w-4" strokeWidth={1.75} />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Notificações */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                to="/notificacoes"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                aria-label="Notificações"
+              >
+                <Bell className="h-4 w-4" strokeWidth={1.75} />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-sm">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Notificações</TooltipContent>
+          </Tooltip>
+
+          {/* Avatar + menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="ml-1 flex items-center gap-2 rounded-full pl-1 pr-2 py-1 transition hover:bg-accent"
+                aria-label="Menu do usuário"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  {initial}
+                </span>
+                <span className="hidden text-left leading-tight sm:block">
+                  <span className="block max-w-[160px] truncate text-sm font-medium">{nome}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{perfil}</span>
+                </span>
+                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" strokeWidth={2} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="flex flex-col gap-0.5">
+                <span className="truncate text-sm font-semibold">{nome}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">{perfil}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/seguranca" className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" strokeWidth={1.75} />
+                  Segurança (MFA)
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onToggleTheme}>
+                {theme === "dark" ? (
+                  <><Sun className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema claro</>
+                ) : (
+                  <><Moon className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema escuro</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void onSignOut()} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+    </TooltipProvider>
+  );
+}
