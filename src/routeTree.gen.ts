@@ -41,6 +41,7 @@ import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
+import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
@@ -221,6 +222,11 @@ const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedUnidadesRoute,
 } as any)
+const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedSetoresRoute,
+} as any)
 const AuthenticatedProfissionaisIdRoute =
   AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
@@ -289,7 +295,7 @@ export interface FileRoutesByFullPath {
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
-  '/setores': typeof AuthenticatedSetoresRoute
+  '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
@@ -328,7 +335,7 @@ export interface FileRoutesByTo {
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
-  '/setores': typeof AuthenticatedSetoresRoute
+  '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
@@ -339,6 +346,7 @@ export interface FileRoutesByTo {
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
@@ -370,7 +378,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
-  '/_authenticated/setores': typeof AuthenticatedSetoresRoute
+  '/_authenticated/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/_authenticated/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
@@ -423,6 +432,7 @@ export interface FileRouteTypes {
     | '/frequencia/efetivos'
     | '/frequencias/$id'
     | '/profissionais/$id'
+    | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/api/public/hooks/deadline-check'
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/frequencia/efetivos'
     | '/frequencias/$id'
     | '/profissionais/$id'
+    | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/api/public/hooks/deadline-check'
@@ -504,6 +515,7 @@ export interface FileRouteTypes {
     | '/_authenticated/frequencia/efetivos'
     | '/_authenticated/frequencias_/$id'
     | '/_authenticated/profissionais/$id'
+    | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/api/public/hooks/deadline-check'
@@ -746,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
       parentRoute: typeof AuthenticatedUnidadesRoute
     }
+    '/_authenticated/setores/$id': {
+      id: '/_authenticated/setores/$id'
+      path: '/$id'
+      fullPath: '/setores/$id'
+      preLoaderRoute: typeof AuthenticatedSetoresIdRouteImport
+      parentRoute: typeof AuthenticatedSetoresRoute
+    }
     '/_authenticated/profissionais/$id': {
       id: '/_authenticated/profissionais/$id'
       path: '/$id'
@@ -826,6 +845,17 @@ const AuthenticatedProfissionaisRouteWithChildren =
     AuthenticatedProfissionaisRouteChildren,
   )
 
+interface AuthenticatedSetoresRouteChildren {
+  AuthenticatedSetoresIdRoute: typeof AuthenticatedSetoresIdRoute
+}
+
+const AuthenticatedSetoresRouteChildren: AuthenticatedSetoresRouteChildren = {
+  AuthenticatedSetoresIdRoute: AuthenticatedSetoresIdRoute,
+}
+
+const AuthenticatedSetoresRouteWithChildren =
+  AuthenticatedSetoresRoute._addFileChildren(AuthenticatedSetoresRouteChildren)
+
 interface AuthenticatedUnidadesRouteChildren {
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
 }
@@ -873,7 +903,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
   AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
   AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
-  AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRoute
+  AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRouteWithChildren
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
@@ -906,7 +936,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedRelatoriosProfissionalRoute,
   AuthenticatedRelatoriosStatusRoute: AuthenticatedRelatoriosStatusRoute,
   AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
-  AuthenticatedSetoresRoute: AuthenticatedSetoresRoute,
+  AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUnidadesRoute: AuthenticatedUnidadesRouteWithChildren,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,

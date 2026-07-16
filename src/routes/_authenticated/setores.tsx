@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
@@ -23,7 +23,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, PowerOff, Power, Network } from "lucide-react";
+import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 
 const searchSchema = z.object({
@@ -41,6 +42,9 @@ type Setor = {
   nome: string;
   sigla: string | null;
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
+  gestor_id: string | null;
+  observacoes: string | null;
+  gestor: { id: string; nome_completo: string } | null;
 };
 
 function SetoresPage() {
@@ -53,7 +57,7 @@ function SetoresPage() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Setor | null>(null);
-  const [form, setForm] = useState({ nome: "", sigla: "" });
+  const [form, setForm] = useState({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
 
   const { data: unidades = [] } = useQuery({
     queryKey: ["unidades-select"],
@@ -70,18 +74,36 @@ function SetoresPage() {
 
   const unidadeId = search.unidade ?? "";
 
+  // Profissionais ativos da unidade — candidatos a gestor do setor.
+  const { data: gestoresOpt = [] } = useQuery({
+    queryKey: ["setores-gestores-opt", unidadeId],
+    queryFn: async () => {
+      if (!unidadeId) return [];
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id, nome_completo")
+        .eq("unidade_id", unidadeId)
+        .eq("status", "ativo")
+        .is("deleted_at", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string }[];
+    },
+    enabled: !!unidadeId,
+  });
+
   const { data: setores = [], isLoading } = useQuery({
     queryKey: ["setores-admin", unidadeId],
     queryFn: async () => {
       if (!unidadeId) return [] as Setor[];
       const { data, error } = await supabase
         .from("setores")
-        .select("id, unidade_id, nome, sigla, status")
+        .select("id, unidade_id, nome, sigla, status, gestor_id, observacoes, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)")
         .eq("unidade_id", unidadeId)
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as Setor[];
+      return (data ?? []) as unknown as Setor[];
     },
     enabled: !!unidadeId,
   });
@@ -112,7 +134,12 @@ function SetoresPage() {
       const nomeT = form.nome.trim();
       if (!nomeT) throw new Error("Informe o nome");
       if (!unidadeId) throw new Error("Selecione uma unidade");
-      const payload = { nome: nomeT, sigla: form.sigla.trim() || null };
+      const payload = {
+        nome: nomeT,
+        sigla: form.sigla.trim() || null,
+        gestor_id: form.gestor_id || null,
+        observacoes: form.observacoes.trim() || null,
+      };
       if (editing) {
         const { error } = await supabase.from("setores").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -125,7 +152,7 @@ function SetoresPage() {
       toast.success(editing ? "Setor atualizado" : "Setor criado");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", sigla: "" });
+      setForm({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
       qc.invalidateQueries({ queryKey: ["setores-admin"] });
       qc.invalidateQueries({ queryKey: ["setores-select"] });
     },
@@ -147,12 +174,17 @@ function SetoresPage() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", sigla: "" });
+    setForm({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
     setOpen(true);
   };
   const abrirEdit = (s: Setor) => {
     setEditing(s);
-    setForm({ nome: s.nome, sigla: s.sigla ?? "" });
+    setForm({
+      nome: s.nome,
+      sigla: s.sigla ?? "",
+      gestor_id: s.gestor_id ?? "",
+      observacoes: s.observacoes ?? "",
+    });
     setOpen(true);
   };
 
@@ -222,6 +254,34 @@ function SetoresPage() {
                   <Label>Sigla</Label>
                   <Input value={form.sigla} onChange={(e) => setForm({ ...form, sigla: e.target.value })} />
                 </div>
+                <div>
+                  <Label>Gestor do setor</Label>
+                  <Select
+                    value={form.gestor_id || "__none__"}
+                    onValueChange={(v) => setForm({ ...form, gestor_id: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um profissional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— não informado —</SelectItem>
+                      {gestoresOpt.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Apenas profissionais ativos vinculados à unidade aparecem aqui.
+                  </p>
+                </div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.observacoes}
+                    onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -248,6 +308,7 @@ function SetoresPage() {
                 <tr>
                   <th className="p-3">Nome</th>
                   <th className="p-3">Sigla</th>
+                  <th className="p-3">Gestor</th>
                   <th className="p-3">Em uso</th>
                   <th className="p-3">Status</th>
                   <th className="p-3 text-right">Ações</th>
@@ -260,6 +321,7 @@ function SetoresPage() {
                     <tr key={s.id} className="border-t">
                       <td className="p-3 font-medium">{s.nome}</td>
                       <td className="p-3 text-muted-foreground">{s.sigla ?? "—"}</td>
+                      <td className="p-3 text-muted-foreground">{s.gestor?.nome_completo ?? "—"}</td>
                       <td className="p-3">
                         {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
                       </td>
@@ -268,6 +330,11 @@ function SetoresPage() {
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" asChild title="Painel do setor">
+                            <Link to="/setores/$id" params={{ id: s.id }}>
+                              <LayoutDashboard className="h-4 w-4" />
+                            </Link>
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => abrirEdit(s)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
