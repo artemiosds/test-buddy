@@ -190,14 +190,14 @@ function Dashboard() {
         hint: "Folhas enviadas ou em análise",
         icon: CheckSquare,
         to: "/aprovacoes",
-        tone: pendAprovacao > 0 ? "warn" : "ok",
+        tone: pendAprovacao > 0 ? "warning" : "success",
       },
       {
         label: "Unidades sem envio",
         value: unidadesSemEnvio,
         hint: "Ainda não enviaram nesta competência",
         icon: Building2,
-        tone: unidadesSemEnvio > 0 ? "danger" : "ok",
+        tone: unidadesSemEnvio > 0 ? "danger" : "success",
       },
     );
   }
@@ -217,7 +217,7 @@ function Dashboard() {
         hint: "Precisam de atenção",
         icon: AlertTriangle,
         to: "/pendencias",
-        tone: devolvidas > 0 ? "danger" : "ok",
+        tone: devolvidas > 0 ? "danger" : "success",
       },
     );
   }
@@ -236,7 +236,7 @@ function Dashboard() {
     value: notifNaoLidas,
     icon: Bell,
     to: "/notificacoes",
-    tone: notifNaoLidas > 0 ? "warn" : "default",
+    tone: notifNaoLidas > 0 ? "warning" : "default",
   });
 
   const primeiro = userCtx?.nome_completo?.split(" ")[0] ?? "seja bem-vindo";
