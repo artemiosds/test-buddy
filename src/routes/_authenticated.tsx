@@ -135,6 +135,7 @@ function AuthenticatedLayout() {
   const { has, isLoading: permLoading } = usePermissions();
   const { data: competencia } = useCompetenciaAtiva();
   const { data: parametros } = useMunicipioParametros();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const { data: unreadCount = 0, refetch: refetchUnread } = useQuery({
     queryKey: ["notificacoes-unread", userCtx?.id],
