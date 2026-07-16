@@ -64,6 +64,7 @@ const GROUPS: NavGroup[] = [
       { to: "/gestao-rh", label: "Dashboard RH", icon: LayoutDashboard },
       // Reuse existing routes where present (do not duplicate)
       { to: "/profissionais", label: "Profissionais", icon: Users, perm: "profissional.visualizar" },
+      { to: "/gestao-profissionais", label: "Centro de Gestão de Profissionais", icon: Users, perm: "profissional.visualizar" },
       { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar" },
       { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar" },
       { to: "/cargos-funcoes", label: "Cargos e Funções", icon: Briefcase, perm: "configuracao.editar" },

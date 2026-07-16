@@ -13,7 +13,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as ProfissionaisIndexRouteImport } from './routes/profissionais/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -30,6 +29,7 @@ import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authen
 import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
 import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
 import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticated/gestao-rh'
+import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
 import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
 import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
 import { Route as AuthenticatedConfiguracaoRouteImport } from './routes/_authenticated/configuracao'
@@ -65,11 +65,6 @@ const AuthRoute = AuthRouteImport.update({
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfissionaisIndexRoute = ProfissionaisIndexRouteImport.update({
-  id: '/profissionais/',
-  path: '/profissionais/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -159,6 +154,12 @@ const AuthenticatedGestaoRhRoute = AuthenticatedGestaoRhRouteImport.update({
   path: '/gestao-rh',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedGestaoProfissionaisRoute =
+  AuthenticatedGestaoProfissionaisRouteImport.update({
+    id: '/gestao-profissionais',
+    path: '/gestao-profissionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedFrequenciasRoute =
   AuthenticatedFrequenciasRouteImport.update({
     id: '/frequencias',
@@ -271,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
@@ -286,7 +288,6 @@ export interface FileRoutesByFullPath {
   '/unidades': typeof AuthenticatedUnidadesRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
-  '/profissionais/': typeof ProfissionaisIndexRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -309,10 +310,11 @@ export interface FileRoutesByTo {
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
-  '/profissionais': typeof ProfissionaisIndexRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
@@ -349,6 +351,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
   '/_authenticated/frequencias': typeof AuthenticatedFrequenciasRoute
+  '/_authenticated/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/_authenticated/gestao-rh': typeof AuthenticatedGestaoRhRoute
   '/_authenticated/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/_authenticated/pendencias': typeof AuthenticatedPendenciasRoute
@@ -365,7 +368,6 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/profissionais/': typeof ProfissionaisIndexRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -391,6 +393,7 @@ export interface FileRouteTypes {
     | '/configuracao'
     | '/feriados'
     | '/frequencias'
+    | '/gestao-profissionais'
     | '/gestao-rh'
     | '/notificacoes'
     | '/pendencias'
@@ -406,7 +409,6 @@ export interface FileRouteTypes {
     | '/unidades'
     | '/usuarios'
     | '/validar/$id'
-    | '/profissionais/'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
@@ -429,6 +431,7 @@ export interface FileRouteTypes {
     | '/configuracao'
     | '/feriados'
     | '/frequencias'
+    | '/gestao-profissionais'
     | '/gestao-rh'
     | '/notificacoes'
     | '/pendencias'
@@ -468,6 +471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracao'
     | '/_authenticated/feriados'
     | '/_authenticated/frequencias'
+    | '/_authenticated/gestao-profissionais'
     | '/_authenticated/gestao-rh'
     | '/_authenticated/notificacoes'
     | '/_authenticated/pendencias'
@@ -484,7 +488,6 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/validar/$id'
     | '/_authenticated/'
-    | '/profissionais/'
     | '/_authenticated/competencias/$id'
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
@@ -501,7 +504,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ValidarIdRoute: typeof ValidarIdRoute
-  ProfissionaisIndexRoute: typeof ProfissionaisIndexRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -534,13 +536,6 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profissionais/': {
-      id: '/profissionais/'
-      path: '/profissionais'
-      fullPath: '/profissionais/'
-      preLoaderRoute: typeof ProfissionaisIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -653,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao-rh'
       fullPath: '/gestao-rh'
       preLoaderRoute: typeof AuthenticatedGestaoRhRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-profissionais': {
+      id: '/_authenticated/gestao-profissionais'
+      path: '/gestao-profissionais'
+      fullPath: '/gestao-profissionais'
+      preLoaderRoute: typeof AuthenticatedGestaoProfissionaisRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/frequencias': {
@@ -828,6 +830,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRoute
   AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
   AuthenticatedFrequenciasRoute: typeof AuthenticatedFrequenciasRoute
+  AuthenticatedGestaoProfissionaisRoute: typeof AuthenticatedGestaoProfissionaisRoute
   AuthenticatedGestaoRhRoute: typeof AuthenticatedGestaoRhRoute
   AuthenticatedNotificacoesRoute: typeof AuthenticatedNotificacoesRoute
   AuthenticatedPendenciasRoute: typeof AuthenticatedPendenciasRoute
@@ -858,6 +861,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRoute,
   AuthenticatedFeriadosRoute: AuthenticatedFeriadosRoute,
   AuthenticatedFrequenciasRoute: AuthenticatedFrequenciasRoute,
+  AuthenticatedGestaoProfissionaisRoute: AuthenticatedGestaoProfissionaisRoute,
   AuthenticatedGestaoRhRoute: AuthenticatedGestaoRhRoute,
   AuthenticatedNotificacoesRoute: AuthenticatedNotificacoesRoute,
   AuthenticatedPendenciasRoute: AuthenticatedPendenciasRoute,
@@ -891,7 +895,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ValidarIdRoute: ValidarIdRoute,
-  ProfissionaisIndexRoute: ProfissionaisIndexRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
 }
