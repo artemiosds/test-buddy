@@ -397,7 +397,7 @@ function UsuariosList() {
       )}
 
       {tempPass && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+        <div className="rounded-md border border-warning/40 bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           Usuário criado. Senha temporária: <code className="font-mono">{tempPass}</code>
           <Button
             size="sm"
@@ -499,7 +499,7 @@ function UsuariosList() {
                         <Badge variant="secondary">{u.perfil?.nome ?? "—"}</Badge>
                       )}
                       {u.acesso_todas_unidades && u.acesso_todas_secretarias && (
-                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                        <Badge className="bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft">
                           MASTER — acesso total
                         </Badge>
                       )}
@@ -553,7 +553,7 @@ function UsuariosList() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-rose-600 hover:text-rose-700"
+                          className="text-destructive hover:text-destructive/80"
                           disabled={deleteMut.isPending}
                           onClick={() => {
                             void (async () => {
