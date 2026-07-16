@@ -7,14 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { toast } from "sonner";
 import { Plus, Pencil, PowerOff, Power, Tag } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
@@ -154,32 +147,25 @@ function TiposUnidadePage() {
             </p>
           </div>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={abrirNovo}>
-              <Plus className="mr-1 h-4 w-4" />Novo tipo
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editing ? "Editar tipo" : "Novo tipo"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Nome *</Label>
-                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: UBS, Hospital, CAPS" />
-              </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={abrirNovo}>
+          <Plus className="mr-1 h-4 w-4" />Novo tipo
+        </Button>
+        <FormDialog
+          open={open}
+          onOpenChange={setOpen}
+          title={editing ? "Editar tipo" : "Novo tipo"}
+          onSubmit={() => saveMut.mutate()}
+          loading={saveMut.isPending}
+        >
+          <div>
+            <Label>Nome *</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: UBS, Hospital, CAPS" />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          </div>
+        </FormDialog>
       </div>
 
       <div className="rounded-lg border bg-card">
