@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/shared";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
@@ -46,16 +47,6 @@ type UsuarioRow = {
 type Perfil = { id: string; codigo: string; nome: string };
 
 const STATUS_OPTS = ["ativo", "pendente", "inativo", "bloqueado"] as const;
-
-function statusColor(s: string) {
-  return s === "ativo"
-    ? "bg-emerald-100 text-emerald-700"
-    : s === "pendente"
-      ? "bg-amber-100 text-amber-700"
-      : s === "bloqueado"
-        ? "bg-rose-100 text-rose-700"
-        : "bg-slate-100 text-slate-700";
-}
 
 function UsuariosPage() {
   const location = useLocation();
