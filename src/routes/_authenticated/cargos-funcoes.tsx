@@ -365,10 +365,25 @@ function FuncoesTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Funcao | null>(null);
-  const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string }>({
+  const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string; cargo_id: string | null }>({
     nome: "",
     codigo: "",
     gratificacao: "",
+    cargo_id: null,
+  });
+
+  const { data: cargosAtivos = [] } = useQuery({
+    queryKey: ["cargos-select"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cargos")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
   });
 
   const { data: funcoes = [], isLoading } = useQuery({
@@ -376,7 +391,7 @@ function FuncoesTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("funcoes")
-        .select("id, nome, codigo, gratificacao_percentual, status")
+        .select("id, nome, codigo, gratificacao_percentual, cargo_id, status, cargo:cargos(nome)")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
@@ -413,6 +428,7 @@ function FuncoesTab() {
         nome: nomeT,
         codigo: form.codigo.trim() || null,
         gratificacao_percentual: grat,
+        cargo_id: form.cargo_id,
       };
       if (editing) {
         const { error } = await supabase.from("funcoes").update(payload).eq("id", editing.id);
@@ -426,7 +442,7 @@ function FuncoesTab() {
       toast.success(editing ? "Função atualizada" : "Função criada");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", codigo: "", gratificacao: "" });
+      setForm({ nome: "", codigo: "", gratificacao: "", cargo_id: null });
       qc.invalidateQueries({ queryKey: ["funcoes-admin"] });
       qc.invalidateQueries({ queryKey: ["funcoes-select"] });
     },
@@ -449,7 +465,7 @@ function FuncoesTab() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", codigo: "", gratificacao: "" });
+    setForm({ nome: "", codigo: "", gratificacao: "", cargo_id: null });
     setOpen(true);
   };
 
@@ -459,6 +475,7 @@ function FuncoesTab() {
       nome: f.nome,
       codigo: f.codigo ?? "",
       gratificacao: f.gratificacao_percentual !== null ? String(f.gratificacao_percentual) : "",
+      cargo_id: f.cargo_id ?? null,
     });
     setOpen(true);
   };
@@ -495,6 +512,23 @@ function FuncoesTab() {
                     onChange={(e) => setForm({ ...form, gratificacao: e.target.value })}
                   />
                 </div>
+              </div>
+              <div>
+                <Label>Cargo relacionado</Label>
+                <Select
+                  value={form.cargo_id ?? "__none__"}
+                  onValueChange={(v) => setForm({ ...form, cargo_id: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem vínculo</SelectItem>
+                    {cargosAtivos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
