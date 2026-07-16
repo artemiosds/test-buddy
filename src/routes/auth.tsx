@@ -33,22 +33,34 @@ function AuthPage() {
   const [mfaCode, setMfaCode] = useState("");
 
   useEffect(() => {
-    (async () => {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.currentLevel === "aal2" || (aal?.nextLevel === aal?.currentLevel && aal?.currentLevel === "aal1")) {
-        // Already authenticated at required level (or no MFA required)
-        const { data } = await supabase.auth.getUser();
-        if (data.user && aal?.nextLevel !== "aal2") navigate({ to: "/" });
-      }
-    })();
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event) => {
+    let mounted = true;
+
+    const redirectIfAuthenticated = () => {
+      void (async () => {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!mounted || !sessionData.session) return;
+          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (!mounted) return;
+          if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") return;
+          navigate({ to: "/" });
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+    };
+
+    redirectIfAuthenticated();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") return; // wait for MFA step
-        navigate({ to: "/" });
+        redirectIfAuthenticated();
       }
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   async function startMfaChallenge() {
