@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Bell, BellRing, Check, CheckCheck, Trash2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
+import { EmptyState } from "@/components/shared";
 
 type Tipo = Database["public"]["Enums"]["tipo_notificacao"];
 type Prioridade = Database["public"]["Enums"]["prioridade_notificacao"];
@@ -170,9 +171,11 @@ function NotificacoesPage() {
           <div className="p-8 text-center text-muted-foreground">Carregando...</div>
         )}
         {!isLoading && !notifs?.length && (
-          <div className="flex flex-col items-center justify-center gap-2 p-10 text-muted-foreground">
-            <Bell className="h-8 w-8" />
-            <p>Nenhuma notificação encontrada.</p>
+          <div className="p-6">
+            <EmptyState
+              icon={<Bell className="h-8 w-8" />}
+              title="Nenhuma notificação encontrada."
+            />
           </div>
         )}
         <ul className="divide-y">
