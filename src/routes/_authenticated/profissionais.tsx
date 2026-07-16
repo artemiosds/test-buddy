@@ -430,12 +430,24 @@ function ProfissionaisPage() {
         h_p: f.h_p ? Number(f.h_p) : null,
         c_h: f.c_h ? Number(f.c_h) : null,
         jorn: f.jorn ? Number(f.jorn) : null,
+        conselho_classe: f.conselho_classe.trim() || null,
+        conselho_numero: f.conselho_numero.trim() || null,
+        conselho_uf: f.conselho_uf || null,
+        conselho_validade: f.conselho_validade || null,
+        gestor_imediato_id: f.gestor_imediato_id || null,
+        situacao_funcional: f.situacao_funcional || null,
       };
       if (f.id) {
-        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
+        if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
+          throw new Error("Profissional não pode ser gestor imediato de si mesmo.");
+        }
+        const { error } = await supabase
+          .from("profissionais")
+          .update(payload as never)
+          .eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("profissionais").insert(payload);
+        const { error } = await supabase.from("profissionais").insert(payload as never);
         if (error) throw error;
       }
     },
