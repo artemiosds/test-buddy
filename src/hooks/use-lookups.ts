@@ -132,7 +132,7 @@ export function useCompetenciasLookup(opts?: { status?: string | null }) {
         .is("deleted_at", null)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
-      if (opts?.status) q = q.eq("status", opts.status);
+      if (opts?.status) q = q.eq("status", opts.status as never);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as CompetenciaLookup[];
