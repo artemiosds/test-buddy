@@ -420,7 +420,7 @@ function AuthenticatedLayout() {
           </div>
         </header>
         {parametros?.mensagem_topo && parametros.mensagem_topo.trim() && (
-          <div className="flex items-start gap-2 border-b bg-amber-50 px-6 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="flex items-start gap-2 border-b bg-warning-soft px-6 py-2 text-sm text-warning-soft-foreground">
             <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{parametros.mensagem_topo}</span>
           </div>
