@@ -311,6 +311,35 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     },
   });
 
+  const distribuicaoFuncao = useQuery({
+    queryKey: ["analytics", "distribuicaoFuncao", filters.unidadeId, filters.setorId, filters.cargoId],
+    staleTime,
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("funcao_id, funcoes(nome)")
+        .is("deleted_at", null)
+        .not("funcao_id", "is", null)
+        .limit(5000);
+      if (filters.unidadeId) q = q.eq("unidade_id", filters.unidadeId);
+      if (filters.setorId) q = q.eq("setor_id", filters.setorId);
+      if (filters.cargoId) q = q.eq("cargo_id", filters.cargoId);
+      const { data, error } = await q;
+      if (error) throw error;
+      const map = new Map<string, { id: string; nome: string; total: number }>();
+      for (const r of (data ?? []) as Array<{
+        funcao_id: string | null;
+        funcoes: { nome: string } | null;
+      }>) {
+        if (!r.funcao_id) continue;
+        const cur = map.get(r.funcao_id) ?? { id: r.funcao_id, nome: r.funcoes?.nome ?? "—", total: 0 };
+        cur.total += 1;
+        map.set(r.funcao_id, cur);
+      }
+      return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    },
+  });
+
   // Lista de profissionais para painéis (Cargo/Função). Filtra por qualquer
   // dimensão passada; retorna nome + unidade + setor + status.
   const equipeProfissionais = useQuery({
