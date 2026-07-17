@@ -3022,6 +3022,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      health_cron_jobs: { Args: never; Returns: Json }
+      health_eventos_dominio: { Args: never; Returns: Json }
+      health_pendencias_sla: { Args: never; Returns: Json }
       is_master: { Args: { _user_id: string }; Returns: boolean }
       log_client_action: {
         Args: {
