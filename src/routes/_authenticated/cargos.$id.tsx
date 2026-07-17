@@ -5,6 +5,7 @@ import { ArrowLeft, Briefcase, Users, Building2, Layers, Search } from "lucide-r
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { PermissionGate } from "@/components/permission-gate";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, StatusBadge,
   type DataTableColumn,
@@ -26,6 +27,17 @@ export const Route = createFileRoute("/_authenticated/cargos/$id")({
 });
 
 function CargoPainel() {
+  return (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <CargoPainelContent />
+    </PermissionGate>
+  );
+}
+
+function CargoPainelContent() {
   const { id } = Route.useParams();
 
   const metaQ = useQuery({
