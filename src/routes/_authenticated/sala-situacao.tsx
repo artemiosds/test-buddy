@@ -282,24 +282,6 @@ function SalaSituacaoPage() {
 
       {/* Filtros globais */}
       <FilterBar>
-        <FilterBar.Field label="Período">
-          <Select
-            value={compSel}
-            onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__ativa__">
-                Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
-              </SelectItem>
-              {(competenciasQ.data ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FilterBar.Field>
         <FilterBar.Field label="Unidade">
           <Select
             value={unidadeSel}
@@ -324,6 +306,24 @@ function SalaSituacaoPage() {
               <SelectItem value="__all__">Todos</SelectItem>
               {STATUS_VALUE.map((v, i) => (
                 <SelectItem key={v} value={v}>{STATUS_LABEL[i]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterBar.Field>
+        <FilterBar.Field label="Período">
+          <Select
+            value={compSel}
+            onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__ativa__">
+                Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+              </SelectItem>
+              {(competenciasQ.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
