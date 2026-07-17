@@ -2,6 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  buildRanking,
+  countByStatus,
+  STATUS_APROVADAS,
+  STATUS_ENVIADAS,
+  STATUS_PENDENTES,
+  sumField,
+  type FrequenciaRow,
+} from "@/lib/analytics-aggregations";
 
 export type AnalyticsFilters = {
   competenciaId?: string | null;
@@ -124,67 +133,17 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Array<{
-        id: string;
-        status: string;
-        total_profissionais: number | null;
-        total_faltas: number | null;
-        total_horas_extras: number | null;
-        competencia_unidades: {
-          competencia_id: string;
-          unidade_id: string;
-          unidades: { id: string; nome: string; sigla: string | null };
-        };
-      }>;
+      return (data ?? []) as FrequenciaRow[];
     },
   });
 
   const rows = frequencias.data ?? [];
-  const countBy = (statuses: string[]) => rows.filter((r) => statuses.includes(r.status)).length;
-  const sumBy = (field: "total_faltas" | "total_horas_extras") =>
-    rows.reduce((acc, r) => acc + Number(r[field] ?? 0), 0);
-
-  const frequenciasEnviadas = countBy(["enviada", "em_analise", "com_pendencias"]);
-  const frequenciasPendentes = countBy(["rascunho"]);
-  const frequenciasAprovadas = countBy(["aprovada"]);
-  const totalHorasExtras = sumBy("total_horas_extras");
-  const totalFaltas = sumBy("total_faltas");
-
-  // Ranking por unidade: agrega múltiplas linhas de `frequencias` (tipo efetivo/contratado)
-  // por unidade. Ordena por total de horas extras desc.
-  type RankingRow = {
-    unidade_id: string;
-    unidade_nome: string;
-    unidade_sigla: string | null;
-    total_profissionais: number;
-    total_faltas: number;
-    total_horas_extras: number;
-    aprovadas: number;
-    total_folhas: number;
-  };
-  const rankingMap = new Map<string, RankingRow>();
-  for (const r of rows) {
-    const u = r.competencia_unidades.unidades;
-    const cur = rankingMap.get(u.id) ?? {
-      unidade_id: u.id,
-      unidade_nome: u.nome,
-      unidade_sigla: u.sigla,
-      total_profissionais: 0,
-      total_faltas: 0,
-      total_horas_extras: 0,
-      aprovadas: 0,
-      total_folhas: 0,
-    };
-    cur.total_profissionais += Number(r.total_profissionais ?? 0);
-    cur.total_faltas += Number(r.total_faltas ?? 0);
-    cur.total_horas_extras += Number(r.total_horas_extras ?? 0);
-    cur.total_folhas += 1;
-    if (r.status === "aprovada") cur.aprovadas += 1;
-    rankingMap.set(u.id, cur);
-  }
-  const ranking = Array.from(rankingMap.values()).sort(
-    (a, b) => b.total_horas_extras - a.total_horas_extras,
-  );
+  const frequenciasEnviadas = countByStatus(rows, STATUS_ENVIADAS);
+  const frequenciasPendentes = countByStatus(rows, STATUS_PENDENTES);
+  const frequenciasAprovadas = countByStatus(rows, STATUS_APROVADAS);
+  const totalHorasExtras = sumField(rows, "total_horas_extras");
+  const totalFaltas = sumField(rows, "total_faltas");
+  const ranking = buildRanking(rows);
 
   return {
     competenciaAtiva,
