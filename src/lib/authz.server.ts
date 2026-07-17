@@ -1,6 +1,7 @@
 // Server-only permission gate + catálogo de Ações + emissor de Eventos de Domínio.
 // Importe SOMENTE de handlers de *.functions.ts. SupabaseClient é intencionalmente
 // loose-typed para evitar acoplar Database types no call site.
+import { logger } from "./logger";
 
 // -----------------------------------------------------------------------------
 // Catálogo canônico de AÇÕES do sistema (Autorização Baseada em Ação).
@@ -193,12 +194,12 @@ export async function emitEvento(
       _versao: opts.versao ?? 1,
     });
     if (error) {
-      console.warn(`[emit_evento] ${tipo}:`, error.message);
+      logger.warn("emit_evento.rpc_error", { tipo, message: error.message });
       return null;
     }
     return (data as string) ?? null;
   } catch (e) {
-    console.warn(`[emit_evento] ${tipo} falhou:`, (e as Error).message);
+    logger.warn("emit_evento.exception", { tipo, message: (e as Error).message });
     return null;
   }
 }

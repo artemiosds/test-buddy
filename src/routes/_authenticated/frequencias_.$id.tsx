@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   salvarLinhasFrequencia,
   alterarStatusFrequencia,
@@ -740,7 +741,7 @@ function FrequenciaDetalhe() {
       });
       drawSignatureStamp(doc, sig);
     } catch (err) {
-      console.error("Falha ao registrar assinatura digital:", err);
+      logger.error("frequencia.signature_failed", { error: err });
     }
 
     doc.save(`frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`);

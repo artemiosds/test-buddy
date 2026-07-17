@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { installBrowserErrorHandlers, logger } from "../lib/logger";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
@@ -38,9 +39,9 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
   const router = useRouter();
   useEffect(() => {
+    logger.error("route.error_boundary", { error });
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
@@ -146,6 +147,7 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    installBrowserErrorHandlers();
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       void router.invalidate();

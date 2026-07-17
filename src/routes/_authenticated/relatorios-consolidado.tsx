@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
@@ -231,7 +232,7 @@ function RelatorioConsolidadoPage() {
         dados: { competencia: compLabel, tipo, unidades: aggregated.length, totais },
       });
       drawSignatureStamp(doc, sig);
-    } catch (err) { console.error("assinatura:", err); }
+    } catch (err) { logger.error("relatorios_consolidado.signature_failed", { error: err }); }
     doc.save(`consolidado_${compLabel.replace("/", "-")}.pdf`);
   }
 

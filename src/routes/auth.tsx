@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
@@ -50,7 +51,7 @@ function AuthPage() {
           if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") return;
           navigate({ to: "/" });
         } catch (err) {
-          console.error(err);
+          logger.error("auth.redirect_check_failed", { error: err });
         }
       })();
     };
