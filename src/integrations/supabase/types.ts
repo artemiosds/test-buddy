@@ -3023,6 +3023,17 @@ export type Database = {
         Returns: boolean
       }
       is_master: { Args: { _user_id: string }; Returns: boolean }
+      log_client_action: {
+        Args: {
+          _acao: string
+          _contexto?: Json
+          _operacao: Database["public"]["Enums"]["operacao_auditoria"]
+          _registro_id?: string
+          _tabela?: string
+          _user_agent?: string
+        }
+        Returns: number
+      }
       nack_evento_dominio: {
         Args: { _erro: string; _id: string }
         Returns: undefined
