@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate, retainSearchParams } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, RefreshCw, Clock, Users, Layers, UserCheck, UserMinus, Umbrella, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -9,6 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useCompetenciasLookup } from "@/hooks/use-lookups";
+import {
+  workforceFiltersValidator,
+  resolveWorkforceFilters,
+  mergeWorkforceFilters,
+  WORKFORCE_FILTER_KEYS,
+  type WorkforceFilters,
+} from "@/lib/workforce-filters";
 import {
   PageHeader, KpiCard, StatusBadge, EmptyState, FilterBar,
 } from "@/components/shared";
@@ -20,6 +27,8 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")({
+  validateSearch: workforceFiltersValidator,
+  search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
     <PermissionGate
       permission="profissional.visualizar"
@@ -57,14 +66,24 @@ function maxDate(a: string | null, b: string | null): string | null {
 
 function ControleForcaTrabalhoPage() {
   const navigate = useNavigate();
+  const routeNavigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const competenciasQ = useCompetenciasLookup();
-  const [competenciaId, setCompetenciaId] = useState<string>("__ativa__");
+  const resolved = resolveWorkforceFilters(search, competenciaAtiva?.id ?? null);
+  const effectiveCompId = resolved.competenciaId;
+  const competenciaSel = search.competencia === "" ? "__ativa__" : search.competencia;
+  const patchFilter = (patch: Partial<WorkforceFilters>) =>
+    routeNavigate({
+      search: (prev: WorkforceFilters) => mergeWorkforceFilters(prev, patch),
+      replace: true,
+    });
 
-  const effectiveCompId =
-    competenciaId === "__ativa__" ? competenciaAtiva?.id ?? null : competenciaId;
-
-  const a = useAnalytics({ competenciaId: effectiveCompId });
+  const a = useAnalytics({
+    competenciaId: effectiveCompId,
+    unidadeId: resolved.unidadeId,
+    status: resolved.status,
+  });
 
   const unidadesQ = useQuery({
     queryKey: ["controle-fw", "unidades"],
@@ -224,7 +243,10 @@ function ControleForcaTrabalhoPage() {
 
       <FilterBar>
         <FilterBar.Field label="Competência">
-          <Select value={competenciaId} onValueChange={setCompetenciaId}>
+          <Select
+            value={competenciaSel}
+            onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__ativa__">
