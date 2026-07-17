@@ -19,6 +19,7 @@ import {
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
   head: () => ({
@@ -27,7 +28,14 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
       { name: "description", content: "Visão executiva consolidada de pessoas, estrutura e operação." },
     ],
   }),
-  component: DashboardExecutivo,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <DashboardExecutivo />
+    </PermissionGate>
+  ),
 });
 
 function n(v: number | undefined | null) {
