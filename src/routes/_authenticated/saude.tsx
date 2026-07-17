@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
+import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -72,9 +74,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_eventos_dominio" as never);
-      if (error) throw error;
-      return data as unknown as EventosResp;
+      return withBreaker("rpc.health_eventos_dominio", async () => {
+        const { data, error } = await supabase.rpc("health_eventos_dominio" as never);
+        if (error) throw error;
+        return data as unknown as EventosResp;
+      });
     },
   });
   const slaQ = useQuery({
@@ -82,9 +86,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_pendencias_sla" as never);
-      if (error) throw error;
-      return data as unknown as SlaResp;
+      return withBreaker("rpc.health_pendencias_sla", async () => {
+        const { data, error } = await supabase.rpc("health_pendencias_sla" as never);
+        if (error) throw error;
+        return data as unknown as SlaResp;
+      });
     },
   });
   const cronQ = useQuery({
@@ -92,9 +98,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_cron_jobs" as never);
-      if (error) throw error;
-      return data as unknown as CronResp;
+      return withBreaker("rpc.health_cron_jobs", async () => {
+        const { data, error } = await supabase.rpc("health_cron_jobs" as never);
+        if (error) throw error;
+        return data as unknown as CronResp;
+      });
     },
   });
   const usoQ = useQuery({
@@ -102,9 +110,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("uso_metricas" as never, { _dias: 7 } as never);
-      if (error) throw error;
-      return data as unknown as UsoResp;
+      return withBreaker("rpc.uso_metricas", async () => {
+        const { data, error } = await supabase.rpc("uso_metricas" as never, { _dias: 7 } as never);
+        if (error) throw error;
+        return data as unknown as UsoResp;
+      });
     },
   });
 
