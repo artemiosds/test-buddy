@@ -48,6 +48,7 @@ import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
+import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
 import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
 import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
@@ -268,6 +269,12 @@ const AuthenticatedGestaoPessoasSituacaoFuncionalRoute =
     path: '/gestao-pessoas/situacao-funcional',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedGestaoPessoasLotacaoRoute =
+  AuthenticatedGestaoPessoasLotacaoRouteImport.update({
+    id: '/gestao-pessoas/lotacao',
+    path: '/gestao-pessoas/lotacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedFrequenciasIdRoute =
   AuthenticatedFrequenciasIdRouteImport.update({
     id: '/frequencias_/$id',
@@ -341,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
@@ -387,6 +395,7 @@ export interface FileRoutesByTo {
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
@@ -435,6 +444,7 @@ export interface FileRoutesById {
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
     | '/setores/$id'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
     | '/setores/$id'
@@ -576,6 +588,7 @@ export interface FileRouteTypes {
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
     | '/_authenticated/frequencias_/$id'
+    | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/setores/$id'
@@ -872,6 +885,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/gestao-pessoas/lotacao': {
+      id: '/_authenticated/gestao-pessoas/lotacao'
+      path: '/gestao-pessoas/lotacao'
+      fullPath: '/gestao-pessoas/lotacao'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasLotacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/frequencias_/$id': {
       id: '/_authenticated/frequencias_/$id'
       path: '/frequencias/$id'
@@ -1000,6 +1020,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
+  AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
@@ -1041,6 +1062,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
   AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
+  AuthenticatedGestaoPessoasLotacaoRoute:
+    AuthenticatedGestaoPessoasLotacaoRoute,
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
     AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
