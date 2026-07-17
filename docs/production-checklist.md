@@ -56,17 +56,23 @@ três somados intencionalmente pelas Ondas 6B/6C/6D
 
 Itens conhecidos e conscientemente adiados. **Nenhum bloqueia produção.**
 
-- **Diálogos complexos** de aprovação/análise de frequência ainda usam
-  markup próprio; podem migrar para `FormDialog` numa rodada futura de
-  padronização.
+- **Diálogos complexos remanescentes** — os diálogos simples de CRUD
+  (`feriados`, `setores`, `competencias` reabertura) foram migrados para
+  `FormDialog` na Onda 7B. Permanecem em `Dialog` inline os fluxos que não
+  se encaixam no formato uniforme do wrapper: `aprovacoes` (3 modais com
+  ações condicionais), `assinaturas` (preview + upload), `auditoria`
+  (viewer de detalhes, não é formulário), `frequencias_.$id` (copiar
+  competência, pendência, anexos), `import-dialog` (multi-step com
+  upload/parse/preview), `usuarios`/`profissionais` (formulários longos
+  com tabs, cargos-funcoes (tabs internos). Documentados como débito
+  aceito — nenhum bloqueia produção.
 - **Lookups N+1** em telas de listagem de profissionais/setores — mitigados
   pelo `staleTime: 60s` global; refatorar para `select()` com join no
   Supabase quando o volume superar ~5k linhas.
-- **`FilterBar.Field`** (componente unificado de filtros) planejado na
-  Onda 3 e não implementado — cada tela ainda declara seus filtros
-  manualmente. Sem impacto funcional.
-- **Sublote 5D.1** — fluxo self-service de redenção de backup code 2FA:
-  admin recupera-se hoje via reset manual; UX pode ser melhorada.
+- **`FilterBar.Field`** (componente unificado de filtros) — Sublote 7C.
+- **Sublote 5D.1** — ✔ concluído na Onda 7A: fluxo self-service de
+  recuperação 2FA via código de backup implementado na tela de login
+  (`verify_and_consume_backup_code` + `consumeBackupCodeAndUnenroll`).
 - **Leaked Password Protection** (Supabase Auth): habilitar no dashboard.
 - **`pg_net`** já movido para schema `extensions` (Onda 5). Nenhum outro
   débito de schema.
