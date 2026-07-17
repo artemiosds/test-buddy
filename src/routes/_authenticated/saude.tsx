@@ -550,7 +550,6 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
   );
 }
 
-function BreakersSection() {
 function AlertsBanner({ eventos, sla, cron, travados }: {
   eventos: EventosResp | null;
   sla: SlaResp | null;
