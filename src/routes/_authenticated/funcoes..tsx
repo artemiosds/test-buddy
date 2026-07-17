@@ -17,23 +17,23 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export const Route = createFileRoute("/_authenticated/cargos/")({
-  component: CargoPainel,
+export const Route = createFileRoute("/_authenticated/funcoes/$id")({
+  component: FuncaoPainel,
   errorComponent: ({ error }) => (
     <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
   ),
-  notFoundComponent: () => <div className="p-6">Cargo não encontrado.</div>,
+  notFoundComponent: () => <div className="p-6">Função não encontrada.</div>,
 });
 
-function CargoPainel() {
+function FuncaoPainel() {
   const { id } = Route.useParams();
 
   const metaQ = useQuery({
-    queryKey: ["cargo-painel", id, "meta"],
+    queryKey: ["funcao-painel", id, "meta"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("cargos")
-        .select("id, nome, codigo, cbo, nivel, area_profissional, status")
+        .from("funcoes")
+        .select("id, nome, codigo, gratificacao_percentual, status, cargo:cargos(nome)")
         .eq("id", id)
         .is("deleted_at", null)
         .maybeSingle();
@@ -42,16 +42,13 @@ function CargoPainel() {
     },
   });
 
-  const a = useAnalytics({ cargoId: id });
+  const a = useAnalytics({ funcaoId: id });
   const equipe = a.equipeProfissionais.data ?? [];
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data ?? { efetivos: 0, temporarios: 0, outros: 0 };
   const porUnidade = a.distribuicaoUnidade.data ?? [];
   const porSetor = a.distribuicaoSetor.data ?? [];
-
   const total = a.totalProfessionals.data ?? 0;
-  const unidadesUnicas = porUnidade.length;
-  const setoresUnicos = porSetor.length;
 
   const [q, setQ] = useState("");
   const equipeFiltrada = useMemo(() => {
@@ -84,18 +81,22 @@ function CargoPainel() {
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão de Pessoas</Link></BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cargos-funcoes" hash="cargos">Cargos</Link></BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cargos-funcoes" hash="funcoes">Funções</Link></BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem><BreadcrumbPage>{metaQ.data?.nome ?? "…"}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <PageHeader
-        title={metaQ.data?.nome ?? "Cargo"}
-        description={[metaQ.data?.codigo && `Código ${metaQ.data.codigo}`, metaQ.data?.cbo && `CBO ${metaQ.data.cbo}`, metaQ.data?.nivel, metaQ.data?.area_profissional].filter(Boolean).join(" · ") || "Painel do cargo"}
+        title={metaQ.data?.nome ?? "Função"}
+        description={[
+          metaQ.data?.codigo && `Código ${metaQ.data.codigo}`,
+          metaQ.data?.cargo?.nome && `Cargo: ${metaQ.data.cargo.nome}`,
+          metaQ.data?.gratificacao_percentual != null && `Gratificação ${metaQ.data.gratificacao_percentual}%`,
+        ].filter(Boolean).join(" · ") || "Painel da função"}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/cargos-funcoes" hash="cargos"><ArrowLeft className="mr-1 h-4 w-4" /> Voltar</Link>
+            <Link to="/cargos-funcoes" hash="funcoes"><ArrowLeft className="mr-1 h-4 w-4" /> Voltar</Link>
           </Button>
         }
       />
@@ -106,14 +107,14 @@ function CargoPainel() {
         <KpiCard label="Afastados" value={(status.afastado ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
         <KpiCard label="Férias" value={(status.ferias ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
         <KpiCard label="Licenças" value={(status.licenca ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Unidades" value={unidadesUnicas.toLocaleString("pt-BR")} loading={a.distribuicaoUnidade.isLoading} icon={<Building2 className="h-4 w-4" />} />
-        <KpiCard label="Setores" value={setoresUnicos.toLocaleString("pt-BR")} loading={a.distribuicaoSetor.isLoading} icon={<Layers className="h-4 w-4" />} />
+        <KpiCard label="Unidades" value={porUnidade.length.toLocaleString("pt-BR")} loading={a.distribuicaoUnidade.isLoading} icon={<Building2 className="h-4 w-4" />} />
+        <KpiCard label="Setores" value={porSetor.length.toLocaleString("pt-BR")} loading={a.distribuicaoSetor.isLoading} icon={<Layers className="h-4 w-4" />} />
         <KpiCard label="Efetivos / Temporários" value={`${vinc.efetivos} / ${vinc.temporarios}`} loading={a.vinculoBreakdown.isLoading} icon={<Briefcase className="h-4 w-4" />} />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-sm">Profissionais por Unidade (top 10)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">Profissionais por Unidade</CardTitle></CardHeader>
           <CardContent>
             <DataTable
               rows={porUnidade.slice(0, 10)}
@@ -125,7 +126,7 @@ function CargoPainel() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Profissionais por Setor (top 10)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">Profissionais por Setor</CardTitle></CardHeader>
           <CardContent>
             <DataTable
               rows={porSetor.slice(0, 10)}
@@ -176,7 +177,7 @@ function CargoPainel() {
               getRowKey={(p) => p.id}
               columns={cols}
               loading={a.equipeProfissionais.isLoading}
-              emptyTitle="Nenhum profissional com este cargo"
+              emptyTitle="Nenhum profissional com esta função"
             />
           </CardContent>
         </Card>
