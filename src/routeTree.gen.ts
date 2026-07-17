@@ -16,7 +16,6 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
-import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
 import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
 import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
@@ -42,6 +41,7 @@ import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
+import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -85,11 +85,6 @@ const ValidarIdRoute = ValidarIdRouteImport.update({
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedUnidadesRoute = AuthenticatedUnidadesRouteImport.update({
-  id: '/unidades',
-  path: '/unidades',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTiposUnidadeRoute =
@@ -232,15 +227,21 @@ const AuthenticatedAnaliticoRoute = AuthenticatedAnaliticoRouteImport.update({
   path: '/analitico',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedUnidadesIndexRoute =
+  AuthenticatedUnidadesIndexRouteImport.update({
+    id: '/unidades/',
+    path: '/unidades/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AuthenticatedUsuariosRoute,
 } as any)
 const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedUnidadesRoute,
+  id: '/unidades/$id',
+  path: '/unidades/$id',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
   id: '/$id',
@@ -320,7 +321,6 @@ export interface FileRoutesByFullPath {
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
-  '/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
@@ -331,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -363,7 +364,6 @@ export interface FileRoutesByTo {
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
-  '/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/': typeof AuthenticatedIndexRoute
@@ -375,6 +375,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -409,7 +410,6 @@ export interface FileRoutesById {
   '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
   '/_authenticated/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
-  '/_authenticated/unidades': typeof AuthenticatedUnidadesRouteWithChildren
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -421,6 +421,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -456,7 +457,6 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
-    | '/unidades'
     | '/usuarios'
     | '/validar/$id'
     | '/competencias/$id'
@@ -467,6 +467,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   fileRoutesByTo: FileRoutesByTo
@@ -499,7 +500,6 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
-    | '/unidades'
     | '/usuarios'
     | '/validar/$id'
     | '/'
@@ -511,6 +511,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/unidades'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   id:
@@ -544,7 +545,6 @@ export interface FileRouteTypes {
     | '/_authenticated/seguranca'
     | '/_authenticated/setores'
     | '/_authenticated/tipos-unidade'
-    | '/_authenticated/unidades'
     | '/_authenticated/usuarios'
     | '/validar/$id'
     | '/_authenticated/'
@@ -556,6 +556,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/_authenticated/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   fileRoutesById: FileRoutesById
@@ -619,13 +620,6 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/unidades': {
-      id: '/_authenticated/unidades'
-      path: '/unidades'
-      fullPath: '/unidades'
-      preLoaderRoute: typeof AuthenticatedUnidadesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/tipos-unidade': {
@@ -803,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnaliticoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/unidades/': {
+      id: '/_authenticated/unidades/'
+      path: '/unidades'
+      fullPath: '/unidades/'
+      preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
       path: '/$id'
@@ -812,10 +813,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/unidades/$id': {
       id: '/_authenticated/unidades/$id'
-      path: '/$id'
+      path: '/unidades/$id'
       fullPath: '/unidades/$id'
       preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
-      parentRoute: typeof AuthenticatedUnidadesRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/setores/$id': {
       id: '/_authenticated/setores/$id'
@@ -915,19 +916,6 @@ const AuthenticatedSetoresRouteChildren: AuthenticatedSetoresRouteChildren = {
 const AuthenticatedSetoresRouteWithChildren =
   AuthenticatedSetoresRoute._addFileChildren(AuthenticatedSetoresRouteChildren)
 
-interface AuthenticatedUnidadesRouteChildren {
-  AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
-}
-
-const AuthenticatedUnidadesRouteChildren: AuthenticatedUnidadesRouteChildren = {
-  AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
-}
-
-const AuthenticatedUnidadesRouteWithChildren =
-  AuthenticatedUnidadesRoute._addFileChildren(
-    AuthenticatedUnidadesRouteChildren,
-  )
-
 interface AuthenticatedUsuariosRouteChildren {
   AuthenticatedUsuariosIdRoute: typeof AuthenticatedUsuariosIdRoute
 }
@@ -967,12 +955,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
-  AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRouteWithChildren
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
+  AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
+  AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1004,13 +993,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
-  AuthenticatedUnidadesRoute: AuthenticatedUnidadesRouteWithChildren,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedFrequenciaContratadosRoute:
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
   AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
+  AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
+  AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
