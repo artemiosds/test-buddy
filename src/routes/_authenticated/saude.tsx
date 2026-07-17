@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, Clock, RefreshCw, ShieldAlert, Timer } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
 
@@ -30,6 +30,15 @@ type CronResp = {
   disponivel: boolean;
   jobs: Array<{ jobid: number; jobname: string | null; schedule: string; active: boolean }>;
   falhas_24h: Array<{ jobid: number; jobname: string | null; status: string; start_time: string; end_time: string | null; return_message: string | null }>;
+  gerado_em: string;
+};
+type UsoResp = {
+  periodo_dias: number;
+  total_eventos: number;
+  por_evento: Array<{ evento: string; qtd: number }>;
+  top_rotas: Array<{ rota: string; qtd: number }>;
+  dau: Array<{ dia: string; sessoes: number }>;
+  por_perfil: Array<{ perfil: string; qtd: number }>;
   gerado_em: string;
 };
 
@@ -88,6 +97,16 @@ function SaudePage() {
       return data as unknown as CronResp;
     },
   });
+  const usoQ = useQuery({
+    queryKey: ["saude", "uso", 7],
+    enabled: isMaster,
+    refetchInterval: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("uso_metricas" as never, { _dias: 7 } as never);
+      if (error) throw error;
+      return data as unknown as UsoResp;
+    },
+  });
 
   if (!me) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!isMaster) {
@@ -102,8 +121,9 @@ function SaudePage() {
   const ev = eventosQ.data;
   const sla = slaQ.data;
   const cron = cronQ.data;
+  const uso = usoQ.data;
   const refetchAll = () => {
-    void eventosQ.refetch(); void slaQ.refetch(); void cronQ.refetch();
+    void eventosQ.refetch(); void slaQ.refetch(); void cronQ.refetch(); void usoQ.refetch();
   };
 
   const pendentes = (ev?.por_status?.["pendente"] ?? 0) + (ev?.por_status?.["falhou_retry"] ?? 0);
@@ -234,6 +254,88 @@ function SaudePage() {
             </Card>
           </>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Uso do sistema (7 dias — anônimo)</h2>
+        {usoQ.isError && <p className="text-sm text-destructive">Falha ao carregar métricas de uso.</p>}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard icon={BarChart3} label="Eventos" value={uso?.total_eventos ?? "—"} />
+          <KpiCard
+            icon={Users}
+            label="Sessões únicas (7d)"
+            value={uso ? new Set(uso.dau.map((d) => d.dia)).size ? uso.dau.reduce((s, d) => s + d.sessoes, 0) : 0 : "—"}
+          />
+          <KpiCard
+            icon={Activity}
+            label="Rotas distintas"
+            value={uso?.top_rotas?.length ?? "—"}
+          />
+          <KpiCard
+            icon={Clock}
+            label="Última leitura"
+            value={uso ? formatDateTime(uso.gerado_em) : "—"}
+          />
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-2">Top rotas</div>
+            {uso?.top_rotas?.length ? (
+              <ul className="space-y-1 text-sm">
+                {uso.top_rotas.slice(0, 10).map((r, i) => (
+                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                    <span className="font-mono text-xs truncate">{r.rota}</span>
+                    <Badge variant="secondary">{r.qtd}</Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem eventos ainda.</p>
+            )}
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-2">Eventos por tipo</div>
+            {uso?.por_evento?.length ? (
+              <ul className="space-y-1 text-sm">
+                {uso.por_evento.map((e, i) => (
+                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                    <span className="font-mono text-xs">{e.evento}</span>
+                    <Badge variant="outline">{e.qtd}</Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">—</p>
+            )}
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-2">Sessões por dia</div>
+            {uso?.dau?.length ? (
+              <ul className="space-y-1 text-sm">
+                {uso.dau.map((d, i) => (
+                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                    <span className="font-mono text-xs">{d.dia}</span>
+                    <Badge variant="secondary">{d.sessoes}</Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">—</p>
+            )}
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-2">Por perfil</div>
+            {uso?.por_perfil?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {uso.por_perfil.map((p, i) => (
+                  <Badge key={i} variant="outline">{p.perfil}: {p.qtd}</Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">—</p>
+            )}
+          </Card>
+        </div>
       </section>
     </div>
   );
