@@ -20,6 +20,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
+import {
+  ALERT_RULES,
+  buildAlertas,
+  filterHeCritico,
+  type Alerta,
+} from "@/lib/sala-situacao-alerts";
 import { PageHeader, KpiCard, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,17 +39,8 @@ export const Route = createFileRoute("/_authenticated/sala-situacao")({
   notFoundComponent: () => <div className="p-6">Não encontrado.</div>,
 });
 
-// Regra dos alertas — documentada e testável:
-// - PENDÊNCIA CRÍTICA: frequencia_pendencias.status IN ('aberta','respondida')
-//   e created_at < now() - 7 dias (mais de uma semana sem resolução).
-// - FOLHA EM RASCUNHO NA COMPETÊNCIA: frequencias.status = 'rascunho' na
-//   competência ativa (o painel de origem já sinaliza; aqui virá alerta).
-// - HORAS EXTRAS ELEVADAS: unidade com total_horas_extras > 200h na
-//   competência ativa (limiar operacional simples — ajustável).
-const ALERT_RULES = {
-  pendenciaDiasCritico: 7,
-  heCriticoUnidade: 200,
-} as const;
+// Regras dos alertas vivem em `@/lib/sala-situacao-alerts` (lógica pura,
+// coberta por Vitest no Sublote 5B).
 
 function SalaSituacaoPage() {
   const { data: competencia } = useCompetenciaAtiva();
@@ -111,51 +108,19 @@ function SalaSituacaoPage() {
   });
 
   const heCriticoUnidades = useMemo(
-    () => a.ranking.filter((r) => r.total_horas_extras > ALERT_RULES.heCriticoUnidade),
+    () => filterHeCritico(a.ranking),
     [a.ranking],
   );
 
-  type Alerta = {
-    id: string;
-    tipo: "pendencia" | "he" | "rascunho";
-    titulo: string;
-    detalhe: string;
-    origem: string;
-  };
-  const alertas: Alerta[] = useMemo(() => {
-    const list: Alerta[] = [];
-    for (const p of alertPendCriticasQ.data ?? []) {
-      const dias = Math.floor(
-        (Date.now() - new Date(p.created_at).getTime()) / (24 * 3600 * 1000),
-      );
-      list.push({
-        id: `pend-${p.id}`,
-        tipo: "pendencia",
-        titulo: p.titulo ?? "Pendência sem título",
-        detalhe: `${dias} dias em aberto (status ${p.status})`,
-        origem: "frequencia_pendencias",
-      });
-    }
-    for (const u of heCriticoUnidades) {
-      list.push({
-        id: `he-${u.unidade_id}`,
-        tipo: "he",
-        titulo: u.unidade_nome,
-        detalhe: `${u.total_horas_extras.toLocaleString("pt-BR")}h de HE na competência`,
-        origem: "useAnalytics.ranking",
-      });
-    }
-    if (a.frequenciasPendentes > 0) {
-      list.push({
-        id: "rascunho-global",
-        tipo: "rascunho",
-        titulo: "Folhas ainda em rascunho",
-        detalhe: `${a.frequenciasPendentes} folha(s) sem envio na competência atual`,
-        origem: "useAnalytics.frequenciasPendentes",
-      });
-    }
-    return list;
-  }, [alertPendCriticasQ.data, heCriticoUnidades, a.frequenciasPendentes]);
+  const alertas: Alerta[] = useMemo(
+    () =>
+      buildAlertas({
+        pendencias: alertPendCriticasQ.data ?? [],
+        ranking: a.ranking,
+        frequenciasPendentes: a.frequenciasPendentes,
+      }),
+    [alertPendCriticasQ.data, a.ranking, a.frequenciasPendentes],
+  );
 
   const rankingCols: DataTableColumn<(typeof a.ranking)[number]>[] = [
     {
