@@ -207,13 +207,28 @@ function ProfissionaisPage() {
   const canEdit = hasPermission("profissional.editar");
   const canDelete = hasPermission("profissional.excluir");
 
-  const { data: profissionais, isLoading } = useQuery({
-    queryKey: ["profissionais", search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor],
+  const { data: profissionaisPage, isLoading, isFetching } = useQuery({
+    queryKey: [
+      "profissionais",
+      search,
+      fUnidade,
+      fVinculo,
+      fStatus,
+      fCargo,
+      fFuncao,
+      fSetor,
+      page,
+      pageSize,
+    ],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       let q = supabase
         .from("profissionais")
         .select(
           "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          { count: "exact" },
         )
         .is("deleted_at", null)
         .order("nome_completo");
@@ -227,11 +242,16 @@ function ProfissionaisPage() {
       if (fCargo !== "todos") q = q.eq("cargo_id", fCargo);
       if (fFuncao !== "todos") q = q.eq("funcao_id", fFuncao);
       if (fSetor !== "todos") q = q.eq("setor_id", fSetor);
-      const { data, error } = await q.limit(500);
+      const { data, count, error } = await q.range(from, to);
       if (error) throw error;
-      return (data ?? []) as unknown as Profissional[];
+      return {
+        rows: (data ?? []) as unknown as Profissional[],
+        count: count ?? 0,
+      };
     },
   });
+  const profissionais = profissionaisPage?.rows;
+  const profissionaisTotal = profissionaisPage?.count ?? 0;
 
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-select"],
