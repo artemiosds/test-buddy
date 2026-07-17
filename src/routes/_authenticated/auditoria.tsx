@@ -118,10 +118,31 @@ function AuditoriaPage() {
   const rows = data?.rows ?? [];
   const total = data?.count ?? 0;
 
-  const exportarCsv = () => {
-    if (!rows.length) {
+  const exportarCsv = async () => {
+    if (!total) {
       toast.error("Nada para exportar");
       return;
+    }
+    // Exporta o conjunto filtrado inteiro (não apenas a página atual), limitado a 5000
+    let q = supabase
+      .from("audit_log")
+      .select("*")
+      .gte("ocorrido_em", desde)
+      .order("ocorrido_em", { ascending: false })
+      .limit(5000);
+    if (operacao !== "todas") q = q.eq("operacao", operacao);
+    if (tabela !== "todas") q = q.eq("tabela", tabela);
+    if (busca.trim()) {
+      const b = busca.trim();
+      q = q.or(`usuario_email.ilike.%${b}%,registro_id.ilike.%${b}%,tabela.ilike.%${b}%`);
+    }
+    const { data: exportRows, error } = await q;
+    if (error || !exportRows?.length) {
+      toast.error("Falha ao preparar exportação");
+      return;
+    }
+    if (total > 5000) {
+      toast.warning(`Exportação limitada a 5000 registros (total filtrado: ${total}).`);
     }
     const header = [
       "ocorrido_em", "operacao", "tabela", "registro_id",
@@ -129,7 +150,7 @@ function AuditoriaPage() {
     ];
     const csv = [
       "\ufeff" + header.join(";"),
-      ...rows.map((r) =>
+      ...(exportRows as AuditRow[]).map((r) =>
         [
           r.ocorrido_em,
           r.operacao,
@@ -151,7 +172,7 @@ function AuditoriaPage() {
     URL.revokeObjectURL(url);
     void auditClient.action(AUDIT_ACOES.EXPORT_CSV, {
       tabela: "audit_log",
-      contexto: { total: rows.length, filtros: { operacao, tabela, dias } },
+      contexto: { total: (exportRows as AuditRow[]).length, filtros: { operacao, tabela, dias } },
     });
   };
 
