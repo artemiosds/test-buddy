@@ -19,6 +19,7 @@ nesta auditoria — apenas verificação e consolidação.
 | 7 | Timeouts/retries em chamadas críticas           | ✔          | `QueryClient` global (`retry: 1`) + toasts em mutations; Supabase Auth com refresh automático |
 | 8 | Dark mode íntegro nas rotas principais          | ✔          | Sidebar, TopBar, dashboards, formulários — verificados na Onda 4; tokens semânticos aplicados em todos os componentes compartilhados |
 | 9 | Mobile sem overflow em `/`, `/frequencias`, `/profissionais` | ✔          | Sidebar recolhe, tabelas com scroll horizontal, cards em `grid-cols-1` no breakpoint `sm` |
+| 10| Runbook de incidentes acessível ao time de operação | ✔          | `docs/runbook.md` (Sublote 8E). Cobre alertas VERMELHO/ÂMBAR do `/saude`, reprocessamento de eventos, recuperação de 2FA, rotação de segredos e escalação. |
 
 ## 2. Warnings do Supabase Linter (esperados)
 
