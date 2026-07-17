@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
   Users,
@@ -15,6 +15,9 @@ import {
   Clock,
   CalendarRange,
   ShieldAlert,
+  LayoutDashboard,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -75,6 +78,39 @@ function DashboardExecutivo() {
         title="Dashboard Executivo"
         description="Visão consolidada de pessoas, estrutura e operação — dados em tempo real."
       />
+
+      <Section title="Blocos funcionais">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <BlockCard
+            to="/sala-situacao"
+            title="Visão Executiva"
+            description="Sala de Situação, Dashboard RH e Indicadores."
+            icon={<LayoutDashboard className="h-5 w-5" />}
+            accent="📊"
+          />
+          <BlockCard
+            to="/profissionais"
+            title="Profissionais"
+            description="Cadastro, gestão e situação funcional."
+            icon={<Users className="h-5 w-5" />}
+            accent="👥"
+          />
+          <BlockCard
+            to="/unidades"
+            title="Estrutura Organizacional"
+            description="Unidades, setores, cargos e funções."
+            icon={<Building2 className="h-5 w-5" />}
+            accent="🏥"
+          />
+          <BlockCard
+            to="/controle-forca-trabalho"
+            title="Gestão Operacional"
+            description="Força de trabalho, lotação e distribuição."
+            icon={<Activity className="h-5 w-5" />}
+            accent="📍"
+          />
+        </div>
+      </Section>
 
       <Section title="Pessoas">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -158,6 +194,39 @@ function DashboardExecutivo() {
         ))}
       </div>
     </div>
+  );
+}
+
+function BlockCard({
+  to,
+  title,
+  description,
+  icon,
+  accent,
+}: {
+  to: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  accent: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="hover-lift group flex items-start gap-3 rounded-md border bg-card p-3 transition hover:border-primary/40 hover:bg-accent/40"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+          <span aria-hidden>{accent}</span>
+          <span className="truncate">{title}</span>
+        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+    </Link>
   );
 }
 
