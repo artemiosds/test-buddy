@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { retainSearchParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +19,12 @@ import {
 } from "@/hooks/use-lookups";
 import { ALERT_RULES } from "@/lib/sala-situacao-alerts";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
+import {
+  workforceFiltersValidator,
+  resolveWorkforceFilters,
+  mergeWorkforceFilters,
+  WORKFORCE_FILTER_KEYS,
+} from "@/lib/workforce-filters";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, FilterBar,
   type DataTableColumn,
@@ -36,6 +44,8 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/sala-situacao")({
+  validateSearch: workforceFiltersValidator,
+  search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
     <PermissionGate
       permission="profissional.visualizar"
@@ -54,18 +64,21 @@ const STATUS_LABEL = "Ativos|Afastados|Férias|Licenças".split("|");
 const STATUS_VALUE = ["ativo", "afastado", "ferias", "licenca"];
 
 function SalaSituacaoPage() {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const competenciasQ = useCompetenciasLookup();
   const unidadesQ = useUnidadesLookup({ ativasOnly: true });
 
-  const [compSel, setCompSel] = useState<string>("__ativa__");
-  const [unidadeSel, setUnidadeSel] = useState<string>("__all__");
-  const [statusSel, setStatusSel] = useState<string>("__all__");
-
-  const competenciaId =
-    compSel === "__ativa__" ? competenciaAtiva?.id ?? null : compSel;
-  const unidadeId = unidadeSel === "__all__" ? null : unidadeSel;
-  const status = statusSel === "__all__" ? null : statusSel;
+  const { competenciaId, unidadeId, status } = resolveWorkforceFilters(
+    search,
+    competenciaAtiva?.id ?? null,
+  );
+  const compSel = search.competencia === "" ? "__ativa__" : search.competencia;
+  const unidadeSel = search.unidade === "" ? "__all__" : search.unidade;
+  const statusSel = search.status === "" ? "__all__" : search.status;
+  const patchFilter = (patch: Parameters<typeof mergeWorkforceFilters>[1]) =>
+    navigate({ search: (prev) => mergeWorkforceFilters(prev, patch), replace: true });
 
   const a = useAnalytics({ competenciaId, unidadeId, status });
   const intel = useIntelligence(a);
@@ -266,7 +279,10 @@ function SalaSituacaoPage() {
       {/* Filtros globais */}
       <FilterBar>
         <FilterBar.Field label="Competência">
-          <Select value={compSel} onValueChange={setCompSel}>
+          <Select
+            value={compSel}
+            onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__ativa__">
@@ -281,7 +297,10 @@ function SalaSituacaoPage() {
           </Select>
         </FilterBar.Field>
         <FilterBar.Field label="Unidade">
-          <Select value={unidadeSel} onValueChange={setUnidadeSel}>
+          <Select
+            value={unidadeSel}
+            onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todas</SelectItem>
@@ -292,7 +311,10 @@ function SalaSituacaoPage() {
           </Select>
         </FilterBar.Field>
         <FilterBar.Field label="Status">
-          <Select value={statusSel} onValueChange={setStatusSel}>
+          <Select
+            value={statusSel}
+            onValueChange={(v) => patchFilter({ status: v === "__all__" ? "" : v })}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todos</SelectItem>
