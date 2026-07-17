@@ -261,6 +261,11 @@ function AuthenticatedLayout() {
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isSegurancaRoute = pathname === "/seguranca";
+  // Sublote 6D — page view anônimo por mudança de rota autenticada.
+  useEffect(() => {
+    if (!userCtx?.id) return;
+    trackPageView(pathname);
+  }, [pathname, userCtx?.id]);
   useEffect(() => {
     if (mfaRequired && mfaMissing && !isSegurancaRoute) {
       navigate({ to: "/seguranca", replace: true });
