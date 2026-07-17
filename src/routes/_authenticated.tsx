@@ -382,14 +382,17 @@ function AuthenticatedLayout() {
             )}
             {open && (
               <div className={compact ? "space-y-0.5" : "mt-0.5 space-y-0.5 pl-2"}>
-                {g.items.map((item) => {
+                {g.items.map((item, idx) => {
                   const Icon = item.icon;
                   const active = isItemActive(item.to);
                   const showBadge = item.to === "/pendencias" && pendAbertasCount > 0;
-                  return (
+                  const prev = idx > 0 ? g.items[idx - 1] : null;
+                  const showSectionHeader =
+                    !compact && !!item.section && (!prev || prev.section !== item.section);
+                  const linkNode = (
                     <Link
-                      key={item.to}
                       to={item.to}
+                      hash={item.hash}
                       onClick={() => setMobileOpen(false)}
                       title={compact ? item.label : undefined}
                       className={
@@ -411,6 +414,16 @@ function AuthenticatedLayout() {
                         </span>
                       )}
                     </Link>
+                  );
+                  return (
+                    <div key={`${item.to}${item.hash ?? ""}-${idx}`}>
+                      {showSectionHeader && (
+                        <div className="mt-2 border-t border-border/60 px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                          {item.section}
+                        </div>
+                      )}
+                      {linkNode}
+                    </div>
                   );
                 })}
               </div>
