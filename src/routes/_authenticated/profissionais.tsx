@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from "@/components/shared";
+import { Pagination } from "@/components/shared/Pagination";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
@@ -194,17 +195,40 @@ function ProfissionaisPage() {
   const [fFuncao, setFFuncao] = useState<string>("todos");
   const [fSetor, setFSetor] = useState<string>("todos");
 
+  // Paginação server-side
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  // Volta para a primeira página sempre que qualquer filtro mudar
+  useEffect(() => {
+    setPage(1);
+  }, [search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor, pageSize]);
+
   const canCreate = hasPermission("profissional.criar");
   const canEdit = hasPermission("profissional.editar");
   const canDelete = hasPermission("profissional.excluir");
 
-  const { data: profissionais, isLoading } = useQuery({
-    queryKey: ["profissionais", search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor],
+  const { data: profissionaisPage, isLoading, isFetching } = useQuery({
+    queryKey: [
+      "profissionais",
+      search,
+      fUnidade,
+      fVinculo,
+      fStatus,
+      fCargo,
+      fFuncao,
+      fSetor,
+      page,
+      pageSize,
+    ],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       let q = supabase
         .from("profissionais")
         .select(
           "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          { count: "exact" },
         )
         .is("deleted_at", null)
         .order("nome_completo");
@@ -218,11 +242,16 @@ function ProfissionaisPage() {
       if (fCargo !== "todos") q = q.eq("cargo_id", fCargo);
       if (fFuncao !== "todos") q = q.eq("funcao_id", fFuncao);
       if (fSetor !== "todos") q = q.eq("setor_id", fSetor);
-      const { data, error } = await q.limit(500);
+      const { data, count, error } = await q.range(from, to);
       if (error) throw error;
-      return (data ?? []) as unknown as Profissional[];
+      return {
+        rows: (data ?? []) as unknown as Profissional[],
+        count: count ?? 0,
+      };
     },
   });
+  const profissionais = profissionaisPage?.rows;
+  const profissionaisTotal = profissionaisPage?.count ?? 0;
 
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-select"],
@@ -1292,6 +1321,14 @@ function ProfissionaisPage() {
         loading={isLoading}
         emptyTitle="Nenhum profissional encontrado"
         emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
+      />
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={profissionaisTotal}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        disabled={isFetching}
       />
     </div>
   );
