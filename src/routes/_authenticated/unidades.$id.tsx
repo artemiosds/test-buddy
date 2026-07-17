@@ -10,6 +10,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
+import { PermissionGate } from "@/components/permission-gate";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, StatusBadge,
   type DataTableColumn,
@@ -24,9 +25,14 @@ import {
 
 export const Route = createFileRoute("/_authenticated/unidades/$id")({
   component: () => (
-    <AnalyticsFilterProvider>
-      <UnidadePainelPage />
-    </AnalyticsFilterProvider>
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <AnalyticsFilterProvider>
+        <UnidadePainelPage />
+      </AnalyticsFilterProvider>
+    </PermissionGate>
   ),
   errorComponent: ({ error }) => (
     <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
