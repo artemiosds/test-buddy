@@ -50,12 +50,12 @@ import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_auth
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
 import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
 import { Route as AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport } from './routes/_authenticated/gestao-pessoas.distribuicao-setor'
+import { Route as AuthenticatedFuncoesIdRouteImport } from './routes/_authenticated/funcoes.$id'
 import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
 import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
-import { Route as AuthenticatedFuncoesRouteImport } from './routes/_authenticated/funcoes.'
-import { Route as AuthenticatedCargosRouteImport } from './routes/_authenticated/cargos.'
+import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
 
@@ -284,6 +284,11 @@ const AuthenticatedGestaoPessoasDistribuicaoSetorRoute =
     path: '/gestao-pessoas/distribuicao-setor',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedFuncoesIdRoute = AuthenticatedFuncoesIdRouteImport.update({
+  id: '/funcoes/$id',
+  path: '/funcoes/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedFrequenciasIdRoute =
   AuthenticatedFrequenciasIdRouteImport.update({
     id: '/frequencias_/$id',
@@ -308,14 +313,9 @@ const AuthenticatedCompetenciasIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedCompetenciasRoute,
   } as any)
-const AuthenticatedFuncoesRoute = AuthenticatedFuncoesRouteImport.update({
-  id: '/funcoes/',
-  path: '/funcoes/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCargosRoute = AuthenticatedCargosRouteImport.update({
-  id: '/cargos/',
-  path: '/cargos/',
+const AuthenticatedCargosIdRoute = AuthenticatedCargosIdRouteImport.update({
+  id: '/cargos/$id',
+  path: '/cargos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const ApiPublicHooksEventosWorkerRoute =
@@ -363,12 +363,12 @@ export interface FileRoutesByFullPath {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
-  '/cargos/': typeof AuthenticatedCargosRoute
-  '/funcoes/': typeof AuthenticatedFuncoesRoute
+  '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/funcoes/$id': typeof AuthenticatedFuncoesIdRoute
   '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
@@ -413,12 +413,12 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/': typeof AuthenticatedIndexRoute
-  '/cargos': typeof AuthenticatedCargosRoute
-  '/funcoes': typeof AuthenticatedFuncoesRoute
+  '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/funcoes/$id': typeof AuthenticatedFuncoesIdRoute
   '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
@@ -465,12 +465,12 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/cargos/': typeof AuthenticatedCargosRoute
-  '/_authenticated/funcoes/': typeof AuthenticatedFuncoesRoute
+  '/_authenticated/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/_authenticated/funcoes/$id': typeof AuthenticatedFuncoesIdRoute
   '/_authenticated/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
@@ -517,12 +517,12 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
-    | '/cargos/'
-    | '/funcoes/'
+    | '/cargos/$id'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/funcoes/$id'
     | '/gestao-pessoas/distribuicao-setor'
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
@@ -567,12 +567,12 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/validar/$id'
     | '/'
-    | '/cargos'
-    | '/funcoes'
+    | '/cargos/$id'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/funcoes/$id'
     | '/gestao-pessoas/distribuicao-setor'
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
@@ -618,12 +618,12 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/validar/$id'
     | '/_authenticated/'
-    | '/_authenticated/cargos/'
-    | '/_authenticated/funcoes/'
+    | '/_authenticated/cargos/$id'
     | '/_authenticated/competencias/$id'
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
     | '/_authenticated/frequencias_/$id'
+    | '/_authenticated/funcoes/$id'
     | '/_authenticated/gestao-pessoas/distribuicao-setor'
     | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
@@ -936,6 +936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/funcoes/$id': {
+      id: '/_authenticated/funcoes/$id'
+      path: '/funcoes/$id'
+      fullPath: '/funcoes/$id'
+      preLoaderRoute: typeof AuthenticatedFuncoesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/frequencias_/$id': {
       id: '/_authenticated/frequencias_/$id'
       path: '/frequencias/$id'
@@ -964,18 +971,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompetenciasIdRouteImport
       parentRoute: typeof AuthenticatedCompetenciasRoute
     }
-    '/_authenticated/funcoes/': {
-      id: '/_authenticated/funcoes/'
-      path: '/funcoes'
-      fullPath: '/funcoes/'
-      preLoaderRoute: typeof AuthenticatedFuncoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/cargos/': {
-      id: '/_authenticated/cargos/'
-      path: '/cargos'
-      fullPath: '/cargos/'
-      preLoaderRoute: typeof AuthenticatedCargosRouteImport
+    '/_authenticated/cargos/$id': {
+      id: '/_authenticated/cargos/$id'
+      path: '/cargos/$id'
+      fullPath: '/cargos/$id'
+      preLoaderRoute: typeof AuthenticatedCargosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/hooks/eventos-worker': {
@@ -1075,11 +1075,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedCargosRoute: typeof AuthenticatedCargosRoute
-  AuthenticatedFuncoesRoute: typeof AuthenticatedFuncoesRoute
+  AuthenticatedCargosIdRoute: typeof AuthenticatedCargosIdRoute
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
+  AuthenticatedFuncoesIdRoute: typeof AuthenticatedFuncoesIdRoute
   AuthenticatedGestaoPessoasDistribuicaoSetorRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
@@ -1119,12 +1119,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedCargosRoute: AuthenticatedCargosRoute,
-  AuthenticatedFuncoesRoute: AuthenticatedFuncoesRoute,
+  AuthenticatedCargosIdRoute: AuthenticatedCargosIdRoute,
   AuthenticatedFrequenciaContratadosRoute:
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
   AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
+  AuthenticatedFuncoesIdRoute: AuthenticatedFuncoesIdRoute,
   AuthenticatedGestaoPessoasDistribuicaoSetorRoute:
     AuthenticatedGestaoPessoasDistribuicaoSetorRoute,
   AuthenticatedGestaoPessoasLotacaoRoute:
@@ -1152,13 +1152,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
