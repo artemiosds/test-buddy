@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,8 @@ import {
   Building2,
   Briefcase,
   UserCheck,
+  LayoutGrid,
+  List as ListIcon,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
@@ -48,6 +50,13 @@ import {
 } from "@/components/shared";
 import { Pagination } from "@/components/shared/Pagination";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  useUnidadesLookup,
+  useSetoresLookup,
+  useCargosLookup,
+  useFuncoesLookup,
+  useVinculosLookup,
+} from "@/hooks/use-lookups";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
   component: ProfissionaisPage,
@@ -184,6 +193,7 @@ function ProfissionaisPage() {
   const { data: me } = useCurrentUser();
   const askConfirm = useConfirm();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -194,6 +204,28 @@ function ProfissionaisPage() {
   const [fCargo, setFCargo] = useState<string>("todos");
   const [fFuncao, setFFuncao] = useState<string>("todos");
   const [fSetor, setFSetor] = useState<string>("todos");
+  const [fNome, setFNome] = useState<string>("");
+  const [fCpf, setFCpf] = useState<string>("");
+  const [fMatricula, setFMatricula] = useState<string>("");
+  const [fGestor, setFGestor] = useState<"todos" | "sim" | "nao">("todos");
+
+  // Ordenação e visualização
+  type SortKey =
+    | "nome_asc"
+    | "nome_desc"
+    | "matricula_asc"
+    | "matricula_desc"
+    | "unidade_asc"
+    | "admissao_desc"
+    | "admissao_asc";
+  const [sortBy, setSortBy] = useState<SortKey>("nome_asc");
+  const [viewMode, setViewMode] = useState<"tabela" | "cards">("tabela");
+
+  // Debounce da busca global (300ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // Paginação server-side
   const [page, setPage] = useState(1);
@@ -201,26 +233,69 @@ function ProfissionaisPage() {
   // Volta para a primeira página sempre que qualquer filtro mudar
   useEffect(() => {
     setPage(1);
-  }, [search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor, pageSize]);
+  }, [
+    debouncedSearch,
+    fUnidade,
+    fVinculo,
+    fStatus,
+    fCargo,
+    fFuncao,
+    fSetor,
+    fNome,
+    fCpf,
+    fMatricula,
+    fGestor,
+    sortBy,
+    pageSize,
+  ]);
 
   const canCreate = hasPermission("profissional.criar");
   const canEdit = hasPermission("profissional.editar");
   const canDelete = hasPermission("profissional.excluir");
 
+  // Ids de profissionais que aparecem como gestor imediato de alguém.
+  // Usado apenas quando o filtro "Gestor" está ativo (Sim/Não).
+  const { data: gestorIds } = useQuery({
+    queryKey: ["profissionais", "gestor-ids"],
+    enabled: fGestor !== "todos",
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("gestor_imediato_id")
+        .is("deleted_at", null)
+        .not("gestor_imediato_id", "is", null)
+        .limit(5000);
+      if (error) throw error;
+      const set = new Set<string>();
+      for (const r of (data ?? []) as Array<{ gestor_imediato_id: string | null }>) {
+        if (r.gestor_imediato_id) set.add(r.gestor_imediato_id);
+      }
+      return Array.from(set);
+    },
+  });
+
   const { data: profissionaisPage, isLoading, isFetching } = useQuery({
     queryKey: [
       "profissionais",
-      search,
+      debouncedSearch,
       fUnidade,
       fVinculo,
       fStatus,
       fCargo,
       fFuncao,
       fSetor,
+      fNome,
+      fCpf,
+      fMatricula,
+      fGestor,
+      sortBy,
+      fGestor !== "todos" ? (gestorIds?.length ?? 0) : 0,
       page,
       pageSize,
     ],
     placeholderData: keepPreviousData,
+    enabled: fGestor === "todos" || !!gestorIds,
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -230,18 +305,54 @@ function ProfissionaisPage() {
           "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
-        .is("deleted_at", null)
-        .order("nome_completo");
-      if (search.trim()) {
-        const s = `%${search.trim()}%`;
+        .is("deleted_at", null);
+      // Ordenação
+      switch (sortBy) {
+        case "nome_desc":
+          q = q.order("nome_completo", { ascending: false });
+          break;
+        case "matricula_asc":
+          q = q.order("matricula", { ascending: true, nullsFirst: false });
+          break;
+        case "matricula_desc":
+          q = q.order("matricula", { ascending: false, nullsFirst: false });
+          break;
+        case "unidade_asc":
+          q = q.order("nome", { referencedTable: "unidades", ascending: true });
+          break;
+        case "admissao_desc":
+          q = q.order("data_admissao", { ascending: false, nullsFirst: false });
+          break;
+        case "admissao_asc":
+          q = q.order("data_admissao", { ascending: true, nullsFirst: false });
+          break;
+        case "nome_asc":
+        default:
+          q = q.order("nome_completo", { ascending: true });
+      }
+      if (debouncedSearch) {
+        const s = `%${debouncedSearch}%`;
         q = q.or(`nome_completo.ilike.${s},cpf.ilike.${s},matricula.ilike.${s}`);
       }
+      if (fNome.trim()) q = q.ilike("nome_completo", `%${fNome.trim()}%`);
+      if (fCpf.trim()) q = q.ilike("cpf", `%${fCpf.replace(/\D/g, "")}%`);
+      if (fMatricula.trim()) q = q.ilike("matricula", `%${fMatricula.trim()}%`);
       if (fUnidade !== "todos") q = q.eq("unidade_id", fUnidade);
       if (fVinculo !== "todos") q = q.eq("vinculo_id", fVinculo);
       if (fStatus !== "todos") q = q.eq("status", fStatus as StatusProf);
       if (fCargo !== "todos") q = q.eq("cargo_id", fCargo);
       if (fFuncao !== "todos") q = q.eq("funcao_id", fFuncao);
       if (fSetor !== "todos") q = q.eq("setor_id", fSetor);
+      if (fGestor === "sim") {
+        const ids = gestorIds ?? [];
+        if (ids.length === 0) return { rows: [], count: 0 };
+        q = q.in("id", ids);
+      } else if (fGestor === "nao") {
+        const ids = gestorIds ?? [];
+        if (ids.length > 0) {
+          q = q.not("id", "in", `(${ids.join(",")})`);
+        }
+      }
       const { data, count, error } = await q.range(from, to);
       if (error) throw error;
       return {
@@ -252,6 +363,7 @@ function ProfissionaisPage() {
   });
   const profissionais = profissionaisPage?.rows;
   const profissionaisTotal = profissionaisPage?.count ?? 0;
+  const profissionaisExibidos = profissionais?.length ?? 0;
 
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-select"],
