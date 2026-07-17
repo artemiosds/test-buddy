@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { auditClient } from "@/lib/audit-client";
+import { trackPageView } from "@/lib/usage-tracker";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
