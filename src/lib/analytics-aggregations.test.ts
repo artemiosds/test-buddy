@@ -15,22 +15,27 @@ const row = (
     unidade_nome?: string;
     unidade_sigla?: string | null;
   } = {},
-): FrequenciaRow => ({
-  id: overrides.id ?? crypto.randomUUID(),
-  status: overrides.status ?? "enviada",
-  total_profissionais: overrides.total_profissionais ?? 10,
-  total_faltas: overrides.total_faltas ?? 0,
-  total_horas_extras: overrides.total_horas_extras ?? 0,
-  competencia_unidades: overrides.competencia_unidades ?? {
-    competencia_id: "c1",
-    unidade_id: overrides.unidade_id ?? "u1",
-    unidades: {
-      id: overrides.unidade_id ?? "u1",
-      nome: overrides.unidade_nome ?? "Unidade 1",
-      sigla: overrides.unidade_sigla ?? "U1",
+): FrequenciaRow => {
+  const unidadeId = overrides.unidade_id ?? "u1";
+  const base: FrequenciaRow = {
+    id: crypto.randomUUID(),
+    status: "enviada",
+    total_profissionais: 10,
+    total_faltas: 0,
+    total_horas_extras: 0,
+    competencia_unidades: {
+      competencia_id: "c1",
+      unidade_id: unidadeId,
+      unidades: {
+        id: unidadeId,
+        nome: overrides.unidade_nome ?? "Unidade 1",
+        sigla: overrides.unidade_sigla ?? "U1",
+      },
     },
-  },
-});
+  };
+  const { unidade_id: _u, unidade_nome: _n, unidade_sigla: _s, ...rest } = overrides;
+  return { ...base, ...rest };
+};
 
 describe("countByStatus", () => {
   const rows = [
