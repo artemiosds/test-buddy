@@ -3,6 +3,7 @@ import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, Shield
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { auditClient } from "@/lib/audit-client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
@@ -236,6 +237,7 @@ function AuthenticatedLayout() {
   // tela de configuração (nem gerar redirect loop).
 
   async function handleSignOut() {
+    await auditClient.logout();
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
