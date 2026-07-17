@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/select";
 import { FormDialog } from "@/components/shared/FormDialog";
 import { toast } from "sonner";
-import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard } from "lucide-react";
+import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 const searchSchema = z.object({
   unidade: z.string().uuid().optional(),
@@ -165,6 +166,40 @@ function SetoresPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const confirm = useConfirm();
+  const deleteMut = useMutation({
+    mutationFn: async (s: Setor) => {
+      const usoCount = uso[s.id] ?? 0;
+      if (usoCount > 0) {
+        throw new Error(
+          `Não é possível excluir: existem ${usoCount} profissional(is) vinculado(s). Reatribua-os antes.`,
+        );
+      }
+      const { error } = await supabase
+        .from("setores")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", s.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Setor excluído");
+      qc.invalidateQueries({ queryKey: ["setores-admin"] });
+      qc.invalidateQueries({ queryKey: ["setores-select"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const askDelete = async (s: Setor) => {
+    const ok = await confirm({
+      title: `Excluir setor "${s.nome}"?`,
+      description:
+        "Esta ação remove o setor do sistema (exclusão lógica). Setores com profissionais vinculados não podem ser excluídos — inative-os.",
+      confirmLabel: "Excluir",
+      tone: "destructive",
+    });
+    if (ok) deleteMut.mutate(s);
+  };
 
   const abrirNovo = () => {
     setEditing(null);
@@ -344,6 +379,19 @@ function SetoresPage() {
                             ) : (
                               <Power className="h-4 w-4 text-primary" />
                             )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => askDelete(s)}
+                            disabled={usoCount > 0}
+                            title={
+                              usoCount > 0
+                                ? "Não é possível excluir: há profissionais vinculados"
+                                : "Excluir setor"
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </td>
