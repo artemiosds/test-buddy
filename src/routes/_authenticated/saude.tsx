@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { auditClient } from "@/lib/audit-client";
 import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
+import { useServerFn } from "@tanstack/react-start";
+import { getPerfMetrics } from "@/lib/perf-metrics.functions";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -374,6 +376,8 @@ function SaudePage() {
       <BreakersSection />
 
       <EventosTravadosSection isMaster={isMaster} />
+
+      <PerformanceSection isMaster={isMaster} />
     </div>
   );
 }
