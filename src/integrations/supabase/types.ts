@@ -3011,6 +3011,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      descartar_evento_dominio: {
+        Args: { _id: string; _motivo?: string }
+        Returns: undefined
+      }
       emit_evento: {
         Args: {
           _agregado: string
@@ -3025,6 +3029,7 @@ export type Database = {
         }
         Returns: string
       }
+      eventos_travados: { Args: { _limit?: number }; Returns: Json }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: {
         Args: never
@@ -3075,6 +3080,7 @@ export type Database = {
         Args: { _secretaria_id: string }
         Returns: string
       }
+      reprocessar_evento_dominio: { Args: { _id: string }; Returns: undefined }
       sla_pendencias_processar: {
         Args: never
         Returns: {

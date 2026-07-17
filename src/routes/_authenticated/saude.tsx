@@ -1,14 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
 import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -349,7 +352,182 @@ function SaudePage() {
       </section>
 
       <BreakersSection />
+
+      <EventosTravadosSection isMaster={isMaster} />
     </div>
+  );
+}
+
+// ---------------- Sublote 8C — Fila de reprocessamento manual ----------------
+
+type EventoTravado = {
+  id: string;
+  tipo: string;
+  agregado: string;
+  agregado_id: string | null;
+  status: string;
+  tentativas: number;
+  ultimo_erro: string | null;
+  created_at: string;
+  updated_at: string;
+  proxima_tentativa_em: string | null;
+};
+type TravadosResp = { rows: EventoTravado[]; gerado_em: string };
+
+function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
+  const qc = useQueryClient();
+  const confirm = useConfirm();
+
+  const q = useQuery({
+    queryKey: ["saude", "eventos-travados"],
+    enabled: isMaster,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      return withBreaker("rpc.eventos_travados", async () => {
+        const { data, error } = await supabase.rpc("eventos_travados" as never, { _limit: 100 } as never);
+        if (error) throw error;
+        return data as unknown as TravadosResp;
+      });
+    },
+  });
+
+  const reprocessar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("reprocessar_evento_dominio" as never, { _id: id } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Evento re-enfileirado como pendente.");
+      qc.invalidateQueries({ queryKey: ["saude", "eventos-travados"] });
+      qc.invalidateQueries({ queryKey: ["saude", "eventos"] });
+    },
+    onError: (e: Error) => {
+      logger.error("evento.reprocessar_falha", { message: e.message });
+      toast.error(e.message || "Falha ao reprocessar evento.");
+    },
+  });
+
+  const descartar = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string | null }) => {
+      const { error } = await supabase.rpc(
+        "descartar_evento_dominio" as never,
+        { _id: id, _motivo: motivo } as never,
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Evento descartado.");
+      qc.invalidateQueries({ queryKey: ["saude", "eventos-travados"] });
+      qc.invalidateQueries({ queryKey: ["saude", "eventos"] });
+    },
+    onError: (e: Error) => {
+      logger.error("evento.descartar_falha", { message: e.message });
+      toast.error(e.message || "Falha ao descartar evento.");
+    },
+  });
+
+  const onReprocessar = async (ev: EventoTravado) => {
+    const ok = await confirm({
+      title: "Reprocessar evento?",
+      description: `Volta o evento ${ev.tipo} (${ev.agregado}) para a fila como pendente. Será re-tentado imediatamente.`,
+      confirmLabel: "Reprocessar",
+    });
+    if (!ok) return;
+    reprocessar.mutate(ev.id);
+  };
+
+  const onDescartar = async (ev: EventoTravado) => {
+    const ok = await confirm({
+      title: "Descartar evento?",
+      description: `O evento ${ev.tipo} (${ev.agregado}) será marcado como descartado e não será mais processado. Ação registrada em auditoria.`,
+      confirmLabel: "Descartar",
+      tone: "destructive",
+    });
+    if (!ok) return;
+    descartar.mutate({ id: ev.id, motivo: "descartado_via_dashboard" });
+  };
+
+  if (!isMaster) return null;
+  const rows = q.data?.rows ?? [];
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <Inbox className="h-5 w-5" /> Eventos travados
+      </h2>
+      {q.isError && <p className="text-sm text-destructive">Falha ao carregar eventos travados.</p>}
+      <Card className="p-4">
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum evento travado. (Considerados travados: <span className="font-mono">falhou_retry</span> com ≥5 tentativas ou <span className="font-mono">falhou</span> definitivo.)
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-muted-foreground">
+                <tr>
+                  <th className="text-left py-1">Tipo / agregado</th>
+                  <th className="text-left">Status</th>
+                  <th className="text-left">Tentativas</th>
+                  <th className="text-left">Último erro</th>
+                  <th className="text-left">Atualizado</th>
+                  <th className="text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((ev) => (
+                  <tr key={ev.id} className="border-t border-border align-top">
+                    <td className="py-2">
+                      <div className="font-mono text-xs">{ev.tipo}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {ev.agregado}{ev.agregado_id ? ` · ${ev.agregado_id}` : ""}
+                      </div>
+                    </td>
+                    <td>
+                      <Badge variant={ev.status === "falhou" ? "destructive" : "secondary"}>
+                        {ev.status}
+                      </Badge>
+                    </td>
+                    <td className="tabular-nums">{ev.tentativas}</td>
+                    <td className="max-w-md">
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {ev.ultimo_erro ?? "—"}
+                      </p>
+                    </td>
+                    <td className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(ev.updated_at)}
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onReprocessar(ev)}
+                          disabled={reprocessar.isPending || descartar.isPending}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reprocessar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onDescartar(ev)}
+                          disabled={reprocessar.isPending || descartar.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Ações restritas a MASTER. Cada reprocessamento/descartamento é registrado em <span className="font-mono">audit_log</span>.
+        </p>
+      </Card>
+    </section>
   );
 }
 
