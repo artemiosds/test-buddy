@@ -51,6 +51,12 @@ function permsHandler() {
   return http.post(`${BASE}/rpc/get_my_permissions`, () => HttpResponse.json([]));
 }
 
+// useAnalytics chama useCompetenciaAtiva internamente; devolvemos vazio para
+// silenciar o request e forçar o uso do competenciaId passado no filtro.
+function competenciaAtivaHandler() {
+  return http.get(`${BASE}/competencias`, () => HttpResponse.json([]));
+}
+
 describe("useAnalytics", () => {
   it("mapeia frequencias em contagens/agregações e counts em KPIs", async () => {
     server.use(
