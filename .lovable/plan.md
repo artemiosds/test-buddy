@@ -1,78 +1,54 @@
-# Onda 6 — Observabilidade & Operação
+## Objetivo
+Evoluir os dashboards existentes (Executivo, RH, Sala de Situação) em um Centro de Inteligência Gerencial reutilizando 100% da arquitetura atual — sem novas rotas, tabelas, APIs, permissões ou regras de negócio.
 
-Objetivo: instrumentar o sistema para operar em produção com visibilidade de erros, uso, auditoria e saúde — sem introduzir funcionalidades de negócio.
+## Escopo por sublotes
 
-Regras da onda (herdadas):
-- Não altera RLS, policies ou lógica de negócio já validadas.
-- Reaproveita componentes/hooks/tokens das Ondas 3 e 4.
-- Cada sublote termina com typecheck limpo + testes verdes + relatório curto.
-- Backend em migração usa `supabase--migration`; nada de service_role novo.
+Execução sequencial. Cada sublote termina com typecheck + `bun test` (53/53) e relatório curto.
 
-## Sublote 6A — Logger estruturado + captura global
+### Sublote 12A — Base compartilhada (fundação)
+- Estender `src/hooks/use-analytics.ts` com seletores derivados (sem novas queries HTTP):
+  - `useSemaforoExecutivo()` → classifica 🟢/🟡/🔴 a partir de contadores já buscados (pendências, alertas, afastados, sem lotação, unidades sem gestor).
+  - `useIntegridadeCadastral()` → percentual + breakdown por campo faltante, derivado da lista de profissionais já em cache.
+  - `useTendencias(competencia)` → compara competência atual vs. anterior usando `frequencias_*` já carregadas.
+  - `useInsightsGerenciais()` → regras determinísticas sobre distribuições existentes (top 1 unidade em HE, setor com maior concentração, etc.).
+- Criar componentes compartilhados **presentacionais** em `src/components/intelligence/`:
+  - `SemaforoCard.tsx`, `TendenciaKpi.tsx` (sparkline SVG inline), `AlertaItem.tsx`, `InsightCard.tsx`, `IntegridadeCard.tsx`.
+- Nenhum componente duplica shadcn/PageHeader/KpiCard existentes — todos os novos são wrappers finos.
 
-Substitui `console.log/error` dispersos por um logger central, e captura falhas não tratadas.
+### Sublote 12B — Módulo 01 (Semáforo) + 04 (Integridade)
+- Inserir `<SemaforoCard/>` no topo de `gestao-pessoas.index.tsx` e `sala-situacao.tsx`.
+- Adicionar `<IntegridadeCard/>` como KPI estratégico no Dashboard Executivo, com drill-down abrindo `/profissionais?filter=<campo-faltante>` (usa search params já suportados).
 
-- `src/lib/logger.ts`: níveis `debug|info|warn|error`, saída JSON no server (workerd) e formatada no browser, correlação por `requestId`/`userId` quando disponível, redaction de campos sensíveis (`email`, `cpf`, `token`, `authorization`).
-- Handlers globais no browser: `window.onerror`, `unhandledrejection` → `logger.error` + toast discreto.
-- Middleware TanStack de request (`src/start.ts`) que loga método, path, status, duração — sem PII.
-- Regra de lint (script simples via `rg`) documentada no README para caçar `console.*` fora de `logger.ts`.
+### Sublote 12C — Módulo 02 (Tendências) + 06 (Insights)
+- Seção "Tendências" no Dashboard Executivo e Sala de Situação com `TendenciaKpi` (HE, pendências, aprovadas, ativos, afastados, unidades críticas).
+- Seção "Inteligência Gerencial" (lista de `InsightCard`) gerada por regras puras.
 
-Entrega: logger + 2 testes de redaction, migração de ~20 `console.error` mais críticos (server functions + guards de auth).
+### Sublote 12D — Módulo 03 (Alertas) + 05 (Cockpit)
+- Consolidar alertas existentes de `useAnalytics.alertas` em painel único na Sala de Situação com prioridade/origem/ações (Visualizar → rota existente; Resolver = link para tela responsável, sem mutação nova).
+- Reorganizar Dashboard Executivo em cockpit: Semáforo → KPIs estratégicos → Tendências → Alertas resumidos → Ranking → Integridade → Insights.
 
-## Sublote 6B — Auditoria de ações críticas
+### Sublote 12E — Filtros globais sincronizados
+- Reutilizar `AnalyticsFilters` + URL search params (Competência/Unidade/Setor/Cargo/Função/Vínculo/Status/Ano) nos 3 painéis, garantindo que o estado viaja via `Link`.
+- Sem novo contexto: cada rota lê `Route.useSearch()` e passa aos hooks.
 
-Aproveitar `audit_log` e `emit_evento` já existentes: garantir cobertura consistente das ações sensíveis do frontend, sem duplicar o que triggers já registram.
+### Sublote 12F — Fechamento
+- Ajustes de responsivo/tokens.
+- Rodar typecheck + `bun test` (esperado 53/53, zero warnings MSW; adicionar handlers se surgirem novas queries — não deve haver).
+- Relatório final.
 
-- Auditar no cliente: login/logout, troca de perfil, remoção de fator 2FA, regeneração de códigos de recuperação, aprovação/rejeição de frequência, exclusão de pendência.
-- Página `/_authenticated/auditoria` (somente MASTER): lista `audit_log` com filtros (usuário, tabela, operação, período), paginação server-side, uso de `StatusBadge` + `FilterBar`.
-- Zero mudança em triggers existentes.
+## Regras rígidas
+- Nenhuma migration, edge function, RPC, tabela ou permissão nova.
+- Nenhuma rota nova no menu — tudo dentro de Dashboard Executivo, Dashboard RH e Sala de Situação.
+- Reuso obrigatório: `useAnalytics`, `usePermissions`, `PageHeader`, `KpiCard`, `StatusBadge`, `EmptyState`, `DataTable`, `AnalyticsFilters`, React Query cache.
+- Sem consultas N+1: derivações via `useMemo` sobre dados já buscados.
 
-Entrega: rota + hook `use-audit-log.ts` + 3 testes MSW (filtros, paginação, gate MASTER).
+## Detalhes técnicos
+- Sparkline: SVG puro (~40 linhas), sem nova dependência.
+- Semáforo: função pura `classificar(metricas): 'ok' | 'atencao' | 'critico'` com thresholds em `src/lib/intelligence-thresholds.ts` (constantes revisáveis).
+- Insights: gerador `gerarInsights(analytics): Insight[]` — regras determinísticas com i18n pt-BR estático.
+- Drill-down: navegação por `Link to="/profissionais" search={{...}}` — filtros já existem em `profissionais.tsx`.
 
-## Sublote 6C — Health dashboard interno
+## Entrega esperada por sublote
+Typecheck limpo, 53/53 testes, sem warnings MSW, sem alteração de schema, arquivos modificados/criados listados.
 
-Rota `/_authenticated/saude` (MASTER) mostrando estado operacional em tempo quase real.
-
-- KPIs: eventos_domínio pendentes/em_retry/falhou (últimas 24h), pendências SLA vencidas hoje, jobs `pg_cron` com falha recente, número de usuários ativos nas últimas 24h, warnings do linter Supabase (contagem).
-- Server function `getSystemHealth()` agrega via `supabase.rpc` / views existentes. Nenhum novo secret.
-- Componente `HealthCard` reutiliza `KpiCard` + `StatusBadge`.
-- Refetch a cada 60s via TanStack Query.
-
-Entrega: rota + função + 2 testes de agregação pura.
-
-## Sublote 6D — Métricas de uso (client-side, anônimas)
-
-Contagem local de eventos de produto para dimensionar uso — sem provedor externo, sem PII.
-
-- Tabela `public.uso_eventos` (evento TEXT, usuario_id UUID null, contexto JSONB, created_at). GRANTs + RLS: INSERT autenticado próprio; SELECT MASTER.
-- Hook `useTrackEvent()` com throttle e fila local (localStorage) que faz flush em batch a cada 30s ou no `visibilitychange`.
-- Instrumentação em 6 pontos-chave: abrir Sala de Situação, exportar frequência, criar pendência, imprimir documento, buscar profissional, mudar competência ativa.
-- Painel simples de contagem por evento/dia dentro de `/saude`.
-
-Entrega: migração + hook + 3 testes (fila, flush, retry).
-
-## Sublote 6E — Auditoria final e parecer
-
-Fechamento formal da preparação para produção.
-
-- Checklist de produção (segurança, performance, observabilidade, acessibilidade básica, SEO por rota).
-- Rodar novamente: `bunx tsgo --noEmit`, `bun test`, `security_regression.sql`, `supabase--linter`.
-- README técnico: como rodar, como monitorar, como reagir a alertas.
-- Parecer técnico final: **APROVADO PARA PRODUÇÃO** ou **NECESSITA NOVA REVISÃO** com evidências.
-
-Entrega: `README.md` atualizado + `docs/production-checklist.md` + relatório final.
-
-## Ordem e portões
-
-```text
-6A  →  6B  →  6C  →  6D  →  6E
-       (cada portão exige aprovação explícita antes de seguir)
-```
-
-## Fora de escopo (para não confundir)
-
-- Integração com Sentry/Datadog/PostHog externos (exige decisão de vendor + secret + LGPD).
-- 5D.1 (redeem de backup no login).
-- Novas funcionalidades de produto.
-
-Confirma o plano e libero o início do **Sublote 6A**?
+Aguardo aprovação para iniciar **12A**.
