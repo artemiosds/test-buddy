@@ -18,7 +18,7 @@ function countResponse(total: number) {
 
 function baseCountHandlers(counts: Record<string, number>) {
   return Object.entries(counts).map(([table, n]) =>
-    http.get(`${BASE}/${table}`, () => countResponse(n)),
+    http.head(`${BASE}/${table}`, () => countResponse(n)),
   );
 }
 
