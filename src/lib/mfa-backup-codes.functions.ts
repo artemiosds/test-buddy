@@ -58,3 +58,48 @@ export const countBackupCodes = createServerFn({ method: "GET" })
       : [];
     return { count: list.length };
   });
+
+/**
+ * 7A/5D.1 — Consome um código de recuperação e desenrola os fatores MFA do
+ * usuário. Requer sessão autenticada (aal1 já basta, o próprio fluxo é para
+ * quem não consegue completar o desafio MFA). O código é validado no banco
+ * via RPC `verify_and_consume_backup_code` (SECURITY DEFINER, SHA-256).
+ * Se válido, usa o cliente admin (server-only, service_role) apenas para
+ * remover os fatores TOTP verificados do próprio usuário — nenhuma outra
+ * operação privilegiada é exposta ao cliente.
+ */
+export const consumeBackupCodeAndUnenroll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { code: string }) => {
+    const code = String(input?.code ?? "").trim();
+    if (code.length < 8 || code.length > 32) {
+      throw new Error("Código de recuperação inválido");
+    }
+    return { code };
+  })
+  .handler(async ({ data, context }) => {
+    const { data: ok, error: rpcErr } = await context.supabase.rpc(
+      "verify_and_consume_backup_code",
+      { _code: data.code },
+    );
+    if (rpcErr) throw new Error(rpcErr.message);
+    if (!ok) {
+      return { ok: false as const };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: factorsData, error: listErr } =
+      await supabaseAdmin.auth.admin.mfa.listFactors({ userId: context.userId });
+    if (listErr) throw new Error(listErr.message);
+
+    const factors = factorsData?.factors ?? [];
+    for (const f of factors) {
+      const { error: delErr } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
+        userId: context.userId,
+        id: f.id,
+      });
+      if (delErr) throw new Error(delErr.message);
+    }
+
+    return { ok: true as const, removed: factors.length };
+  });
