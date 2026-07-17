@@ -42,6 +42,7 @@ type Setor = {
 
 function SetoresPage() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const { data: userCtx, isLoading: userLoading } = useCurrentUser();
   const { has } = usePermissions();
   const canManage = !!userCtx?.is_master || has("unidade.editar");
