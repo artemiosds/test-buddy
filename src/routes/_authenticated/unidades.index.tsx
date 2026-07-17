@@ -29,7 +29,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/unidades")({
+export const Route = createFileRoute("/_authenticated/unidades/")({
   component: UnidadesPage,
 });
 
