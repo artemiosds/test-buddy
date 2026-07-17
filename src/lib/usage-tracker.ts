@@ -26,7 +26,7 @@ export async function trackUso(
   try {
     const { error } = await supabase.rpc("track_uso", {
       _evento: evento,
-      _rota: opts.rota ?? null,
+      _rota: opts.rota ?? undefined,
       _contexto: (opts.contexto ?? {}) as never,
     });
     if (error) {
