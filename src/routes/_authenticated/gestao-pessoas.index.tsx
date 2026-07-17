@@ -57,7 +57,7 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
   }),
   component: () => (
     <PermissionGate
-      permission="profissional.visualizar"
+      permission="dashboard.visualizar"
       fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
     >
       <DashboardExecutivo />
