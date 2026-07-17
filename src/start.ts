@@ -3,6 +3,7 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { recordRequest } from "./lib/perf-metrics.server";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -34,11 +35,19 @@ const requestLoggingMiddleware = createMiddleware().server(async ({ next, reques
   } finally {
     try {
       const url = new URL(request.url);
+      const duration_ms = Date.now() - started;
+      recordRequest({
+        ts: started,
+        method: request.method,
+        path: url.pathname,
+        status,
+        duration_ms,
+      });
       logger.info("http.request", {
         method: request.method,
         path: url.pathname,
         status,
-        duration_ms: Date.now() - started,
+        duration_ms,
       });
     } catch {
       /* ignore logging failures */
