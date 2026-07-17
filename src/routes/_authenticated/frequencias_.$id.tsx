@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useRetryMutation } from "@/lib/retry-mutation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
@@ -616,7 +617,9 @@ function FrequenciaDetalhe() {
   });
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
-  const statusMutation = useMutation({
+  // Idempotente: alterar_status é uma transição para um estado alvo por id.
+  const statusMutation = useRetryMutation({
+    retry: { operation: "frequencia.alterar_status" },
     mutationFn: async (status: StatusFreq) => {
       await alterarStatusFn({ data: { frequencia_id: id, status } });
     },
