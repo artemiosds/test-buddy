@@ -214,7 +214,14 @@ function AuthenticatedLayout() {
     },
     enabled: !!userCtx?.id,
   });
-  const mfaRequired = !!userCtx && (userCtx.is_master || userCtx.perfil_codigo === "ADMIN_SMS");
+  // Flag do perfil (`admin_2fa_required`) é a fonte de verdade a partir do 5D.
+  // Mantemos o fallback para perfis MASTER / ADMIN_SMS caso o backend ainda não
+  // tenha refletido a nova coluna (por exemplo, cache de RPC antigo).
+  const mfaRequired =
+    !!userCtx &&
+    (userCtx.perfil_admin_2fa_required ||
+      userCtx.is_master ||
+      userCtx.perfil_codigo === "ADMIN_SMS");
 
   if (!user) {
     return (
@@ -223,6 +230,10 @@ function AuthenticatedLayout() {
       </div>
     );
   }
+
+  // Guard 5D: administradores só acessam rotas fora de /seguranca depois de
+  // ativar o segundo fator. Executado no render para não bloquear a própria
+  // tela de configuração (nem gerar redirect loop).
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -242,6 +253,12 @@ function AuthenticatedLayout() {
   const perfil = userCtx?.perfil_nome ?? (userCtx?.is_master ? "MASTER" : "—");
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isSegurancaRoute = pathname === "/seguranca";
+  useEffect(() => {
+    if (mfaRequired && mfaMissing && !isSegurancaRoute) {
+      navigate({ to: "/seguranca", replace: true });
+    }
+  }, [mfaRequired, mfaMissing, isSegurancaRoute, navigate]);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");

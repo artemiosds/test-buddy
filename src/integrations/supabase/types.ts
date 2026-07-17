@@ -1781,6 +1781,7 @@ export type Database = {
       }
       perfis: {
         Row: {
+          admin_2fa_required: boolean
           codigo: string
           created_at: string
           created_by: string | null
@@ -1796,6 +1797,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          admin_2fa_required?: boolean
           codigo: string
           created_at?: string
           created_by?: string | null
@@ -1811,6 +1813,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          admin_2fa_required?: boolean
           codigo?: string
           created_at?: string
           created_by?: string | null
@@ -2784,6 +2787,7 @@ export type Database = {
           email: string
           foto_url: string | null
           id: string
+          mfa_backup_codes: Json
           nome_completo: string
           observacoes: string | null
           perfil_id: string | null
@@ -2806,6 +2810,7 @@ export type Database = {
           email: string
           foto_url?: string | null
           id: string
+          mfa_backup_codes?: Json
           nome_completo: string
           observacoes?: string | null
           perfil_id?: string | null
@@ -2828,6 +2833,7 @@ export type Database = {
           email?: string
           foto_url?: string | null
           id?: string
+          mfa_backup_codes?: Json
           nome_completo?: string
           observacoes?: string | null
           perfil_id?: string | null
@@ -2999,6 +3005,7 @@ export type Database = {
           id: string
           is_master: boolean
           nome_completo: string
+          perfil_admin_2fa_required: boolean
           perfil_codigo: string
           perfil_id: string
           perfil_nome: string
