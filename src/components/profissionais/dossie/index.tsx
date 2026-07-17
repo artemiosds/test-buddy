@@ -78,7 +78,7 @@ export function ProfissionalHeader({ p }: { p: ProfHeaderData }) {
             <h2 className="truncate text-lg font-semibold">
               {p.nome_social || p.nome_completo}
             </h2>
-            {p.status && <StatusBadge status={p.status} />}
+            {p.status && <StatusBadge domain="profissional" value={p.status} />}
             {p.situacao_funcional && (
               <Badge variant="outline" className="capitalize">
                 {p.situacao_funcional}
