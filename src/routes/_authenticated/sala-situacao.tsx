@@ -282,7 +282,7 @@ function SalaSituacaoPage() {
 
       {/* Filtros globais */}
       <FilterBar>
-        <FilterBar.Field label="Competência">
+        <FilterBar.Field label="Período">
           <Select
             value={compSel}
             onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
@@ -340,16 +340,16 @@ function SalaSituacaoPage() {
         <KpiCard label="Pendências críticas" value={(pendCriticasQ.data?.length ?? 0).toLocaleString("pt-BR")} icon={<AlertCircle className="h-4 w-4" />} loading={pendCriticasQ.isLoading} />
         <KpiCard label="Horas extras (comp.)" value={a.totalHorasExtras.toLocaleString("pt-BR")} icon={<Clock className="h-4 w-4" />} hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`} />
         <KpiCard
-          label="Competência ativa"
+          label="Período ativo"
           value={competenciaAtiva ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano) : "—"}
           icon={<CalendarRange className="h-4 w-4" />}
         />
       </section>
 
-      {/* Tendências vs competência anterior */}
+      {/* Tendências vs período anterior */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Tendências (vs. competência anterior)</CardTitle>
+          <CardTitle className="text-base">Tendências (vs. período anterior)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -381,7 +381,7 @@ function SalaSituacaoPage() {
             </TabsList>
 
             <TabsContent value="unidades">
-              {rankingUnidades.length === 0 ? <EmptyState title="Sem dados" description="Nenhuma folha processada na competência." /> :
+              {rankingUnidades.length === 0 ? <EmptyState title="Sem dados" description="Nenhuma folha processada no período." /> :
                 <DataTable rows={rankingUnidades} columns={colsUnidades} getRowKey={(r) => r.unidade_id} />}
             </TabsContent>
             <TabsContent value="setores">

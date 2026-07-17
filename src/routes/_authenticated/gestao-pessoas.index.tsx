@@ -138,7 +138,7 @@ function DashboardExecutivo() {
 
       <div className="mt-4">
         <FilterBar>
-          <FilterBar.Field label="Competência">
+          <FilterBar.Field label="Período">
             <Select
               value={compSel}
               onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
@@ -222,7 +222,7 @@ function DashboardExecutivo() {
         </div>
       </Section>
 
-      <Section title="Tendências (vs. competência anterior)">
+      <Section title="Tendências (vs. período anterior)">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <TendenciaKpi label="Horas extras" tendencia={intel.tendencias.horasExtras} invertBad />
           <TendenciaKpi label="Faltas" tendencia={intel.tendencias.faltas} invertBad />
@@ -256,9 +256,9 @@ function DashboardExecutivo() {
       <Section title="Operação">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <KpiCard label="Pendências abertas" value={n(a.pendencias.data)} loading={a.pendencias.isLoading} icon={<AlertCircle className="h-4 w-4" />} />
-          <KpiCard label="Horas extras (total)" value={n(a.totalHorasExtras)} loading={a.frequencias.isLoading} hint="Somatório da competência ativa" icon={<Clock className="h-4 w-4" />} />
-          <KpiCard label="Faltas (total)" value={n(a.totalFaltas)} loading={a.frequencias.isLoading} hint="Somatório da competência ativa" icon={<AlertCircle className="h-4 w-4" />} />
-          <KpiCard label="Competência ativa" value={a.competenciaAtiva?.label ?? "—"} icon={<CalendarRange className="h-4 w-4" />} />
+          <KpiCard label="Horas extras (total)" value={n(a.totalHorasExtras)} loading={a.frequencias.isLoading} hint="Somatório do período ativo" icon={<Clock className="h-4 w-4" />} />
+          <KpiCard label="Faltas (total)" value={n(a.totalFaltas)} loading={a.frequencias.isLoading} hint="Somatório do período ativo" icon={<AlertCircle className="h-4 w-4" />} />
+          <KpiCard label="Período ativo" value={a.competenciaAtiva?.label ?? "—"} icon={<CalendarRange className="h-4 w-4" />} />
         </div>
       </Section>
 

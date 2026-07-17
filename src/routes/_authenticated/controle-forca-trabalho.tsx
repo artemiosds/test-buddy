@@ -119,7 +119,7 @@ function ControleForcaTrabalhoPage() {
     },
   });
 
-  // Pendências abertas por unidade na competência selecionada.
+  // Pendências abertas por unidade no período selecionado.
   const pendenciasPorUnidadeQ = useQuery({
     queryKey: ["controle-fw", "pendencias-unidade", effectiveCompId ?? null],
     staleTime: 60_000,
@@ -233,7 +233,7 @@ function ControleForcaTrabalhoPage() {
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
         title="Centro de Controle da Força de Trabalho"
-        description="Visão operacional por Unidade — competência selecionável."
+        description="Visão operacional por Unidade — período selecionável."
         actions={
           <Button variant="outline" size="sm" onClick={refetchAll}>
             <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
@@ -242,7 +242,7 @@ function ControleForcaTrabalhoPage() {
       />
 
       <FilterBar>
-        <FilterBar.Field label="Competência">
+        <FilterBar.Field label="Período">
           <Select
             value={competenciaSel}
             onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
