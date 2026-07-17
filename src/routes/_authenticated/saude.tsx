@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, BarChart3, Bell, CheckCircle2, Clock, Info, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
-import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
+import { withBreaker, listBreakers, subscribeBreakers, getBreaker, type BreakerSnapshot } from "@/lib/circuit-breaker";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { auditClient } from "@/lib/audit-client";
 import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
 
 export const Route = createFileRoute("/_authenticated/saude")({
