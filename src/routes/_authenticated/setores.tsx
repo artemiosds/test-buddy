@@ -14,14 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared/FormDialog";
 import { toast } from "sonner";
 import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -235,16 +228,17 @@ function SetoresPage() {
         </div>
 
         {unidadeId && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={abrirNovo}>
-                <Plus className="mr-1 h-4 w-4" /> Novo setor
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editing ? "Editar setor" : "Novo setor"}</DialogTitle>
-              </DialogHeader>
+          <>
+            <Button onClick={abrirNovo}>
+              <Plus className="mr-1 h-4 w-4" /> Novo setor
+            </Button>
+            <FormDialog
+              open={open}
+              onOpenChange={setOpen}
+              title={editing ? "Editar setor" : "Novo setor"}
+              onSubmit={() => saveMut.mutate()}
+              loading={saveMut.isPending}
+            >
               <div className="grid gap-3">
                 <div>
                   <Label>Nome *</Label>
@@ -283,12 +277,8 @@ function SetoresPage() {
                   />
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </FormDialog>
+          </>
         )}
       </div>
 
