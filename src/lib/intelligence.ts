@@ -56,9 +56,9 @@ export function classifySemaforo(input: SemaforoInput): SemaforoResult {
     motivos.push(`${input.frequenciasPendentes} frequência(s) pendente(s) no período ativo`);
     bump("atencao");
   }
-  // `T` (thresholds), `afastados` e `horasExtras` ficam disponíveis mas não
-  // alteram o semáforo — mantidos por compatibilidade com o restante da UI.
-  void T;
+  // `afastados`, `horasExtras` e `totalProfessionals` ficam disponíveis no
+  // input por compatibilidade com o restante da UI, mas NÃO influenciam este
+  // semáforo — as três condições acima são a única regra vigente.
   void input.afastados;
   void input.horasExtras;
   void input.totalProfessionals;
