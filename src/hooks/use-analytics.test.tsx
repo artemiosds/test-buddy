@@ -60,7 +60,7 @@ function competenciaAtivaHandler() {
 describe("useAnalytics", () => {
   it("mapeia frequencias em contagens/agregações e counts em KPIs", async () => {
     server.use(
-      permsHandler(),
+      permsHandler(), competenciaAtivaHandler(),
       ...baseCountHandlers({
         profissionais: 42,
         unidades: 7,
@@ -98,7 +98,7 @@ describe("useAnalytics", () => {
 
   it("resposta vazia => agregações zeradas, sem crash", async () => {
     server.use(
-      permsHandler(),
+      permsHandler(), competenciaAtivaHandler(),
       ...baseCountHandlers({
         profissionais: 0,
         unidades: 0,
@@ -122,7 +122,7 @@ describe("useAnalytics", () => {
 
   it("erro em frequencias => isError sem exception no hook", async () => {
     server.use(
-      permsHandler(),
+      permsHandler(), competenciaAtivaHandler(),
       ...baseCountHandlers({
         profissionais: 0,
         unidades: 0,
