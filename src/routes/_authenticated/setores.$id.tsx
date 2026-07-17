@@ -25,7 +25,7 @@ import {
 export const Route = createFileRoute("/_authenticated/setores/$id")({
   component: () => (
     <PermissionGate
-      permission="profissional.visualizar"
+      anyOf={["unidade.visualizar", "profissional.visualizar"]}
       fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
     >
       <AnalyticsFilterProvider>

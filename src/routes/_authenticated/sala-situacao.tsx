@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/sala-situacao")({
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
     <PermissionGate
-      permission="profissional.visualizar"
+      permission="dashboard.visualizar"
       fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
     >
       <SalaSituacaoPage />
