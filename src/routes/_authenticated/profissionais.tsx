@@ -1269,17 +1269,78 @@ function ProfissionaisPage() {
         />
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Buscar por nome, CPF ou matrícula..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Pesquisar por nome, CPF ou matrícula..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nome_asc">Nome (A-Z)</SelectItem>
+              <SelectItem value="nome_desc">Nome (Z-A)</SelectItem>
+              <SelectItem value="matricula_asc">Matrícula (crescente)</SelectItem>
+              <SelectItem value="matricula_desc">Matrícula (decrescente)</SelectItem>
+              <SelectItem value="unidade_asc">Unidade (A-Z)</SelectItem>
+              <SelectItem value="admissao_desc">Admissão (mais recente)</SelectItem>
+              <SelectItem value="admissao_asc">Admissão (mais antiga)</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="inline-flex rounded-md border p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === "tabela" ? "secondary" : "ghost"}
+              onClick={() => setViewMode("tabela")}
+              title="Modo tabela"
+              aria-pressed={viewMode === "tabela"}
+            >
+              <ListIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === "cards" ? "secondary" : "ghost"}
+              onClick={() => setViewMode("cards")}
+              title="Modo cards"
+              aria-pressed={viewMode === "cards"}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <FilterBar>
+        <FilterBar.Field label="Nome">
+          <Input
+            value={fNome}
+            onChange={(e) => setFNome(e.target.value)}
+            placeholder="Contém..."
+          />
+        </FilterBar.Field>
+        <FilterBar.Field label="CPF">
+          <Input
+            value={fCpf}
+            onChange={(e) => setFCpf(e.target.value)}
+            placeholder="Somente dígitos"
+          />
+        </FilterBar.Field>
+        <FilterBar.Field label="Matrícula">
+          <Input
+            value={fMatricula}
+            onChange={(e) => setFMatricula(e.target.value)}
+            placeholder="Contém..."
+          />
+        </FilterBar.Field>
         <FilterBar.Field label="Unidade">
           <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
             <SelectTrigger>
@@ -1305,7 +1366,7 @@ function ProfissionaisPage() {
               <SelectItem value="todos">Todos</SelectItem>
               {vinculosFiltro?.map((v) => (
                 <SelectItem key={v.id} value={v.id}>
-                  {getVinculoLabel(v)}
+                  {v.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1371,16 +1432,40 @@ function ProfissionaisPage() {
             </SelectContent>
           </Select>
         </FilterBar.Field>
+        <FilterBar.Field label="Gestor">
+          <Select value={fGestor} onValueChange={(v) => setFGestor(v as typeof fGestor)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterBar.Field>
       </FilterBar>
 
-      <DataTable<Profissional>
-        columns={columns}
-        rows={profissionais ?? []}
-        getRowKey={(p) => p.id}
-        loading={isLoading}
-        emptyTitle="Nenhum profissional encontrado"
-        emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
-      />
+      <div className="text-sm text-muted-foreground">
+        Exibindo <span className="font-medium text-foreground">{profissionaisExibidos.toLocaleString("pt-BR")}</span> de{" "}
+        <span className="font-medium text-foreground">{profissionaisTotal.toLocaleString("pt-BR")}</span> profissionais
+      </div>
+
+      {viewMode === "tabela" ? (
+        <DataTable<Profissional>
+          columns={columns}
+          rows={profissionais ?? []}
+          getRowKey={(p) => p.id}
+          loading={isLoading}
+          emptyTitle="Nenhum profissional encontrado"
+          emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
+        />
+      ) : (
+        <ProfissionalCards
+          rows={profissionais ?? []}
+          loading={isLoading}
+        />
+      )}
       <Pagination
         page={page}
         pageSize={pageSize}
@@ -1389,6 +1474,70 @@ function ProfissionaisPage() {
         onPageSizeChange={setPageSize}
         disabled={isFetching}
       />
+    </div>
+  );
+}
+
+function initials(nome: string) {
+  const parts = nome.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const a = parts[0]?.[0] ?? "";
+  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  return (a + b).toUpperCase();
+}
+
+function ProfissionalCards({
+  rows,
+  loading,
+}: {
+  rows: Profissional[];
+  loading?: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-32 animate-pulse rounded-md border bg-muted/30" />
+        ))}
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">
+        Nenhum profissional encontrado.
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {rows.map((p) => (
+        <Link
+          key={p.id}
+          to="/profissionais/$id"
+          params={{ id: p.id }}
+          className="group flex items-start gap-3 rounded-md border p-3 transition-colors hover:bg-accent"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {initials(p.nome_completo)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate font-medium">{p.nome_completo}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {p.cargo?.nome ?? "—"}
+                </div>
+              </div>
+              <StatusBadge domain="profissional" value={p.status} />
+            </div>
+            <div className="mt-1 truncate text-xs text-muted-foreground">
+              {p.unidade ? (p.unidade.sigla ?? p.unidade.nome) : "Sem unidade"}
+              {p.matricula ? ` · mat. ${p.matricula}` : ""}
+            </div>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }
