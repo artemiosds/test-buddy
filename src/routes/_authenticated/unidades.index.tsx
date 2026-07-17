@@ -99,6 +99,7 @@ function UnidadesPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const askConfirm = useConfirm();
+  const navigate = useNavigate();
   const canCreate = me?.is_master || has("unidade.criar");
   const canEdit = me?.is_master || has("unidade.editar");
   const canDelete = me?.is_master || has("unidade.excluir");
@@ -543,7 +544,11 @@ function UnidadesPage() {
               </tr>
             ) : (
               filtered.map((u) => (
-                <tr key={u.id} className="border-t">
+                <tr
+                  key={u.id}
+                  className="border-t cursor-pointer transition hover:bg-accent/40"
+                  onClick={() => navigate({ to: "/unidades/$id", params: { id: u.id } })}
+                >
                   <td className="px-4 py-2 font-medium">{u.nome}</td>
                   <td className="px-4 py-2 text-muted-foreground">{u.sigla ?? "—"}</td>
                   <td className="px-4 py-2 text-muted-foreground">{u.cnes ?? "—"}</td>
@@ -553,7 +558,7 @@ function UnidadesPage() {
                   <td className="px-4 py-2">
                     <StatusBadge domain="unidade" value={u.status} />
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <Button size="sm" variant="outline" asChild title="Painel da unidade">
                         <Link to="/unidades/$id" params={{ id: u.id }}>
