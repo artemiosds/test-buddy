@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
+import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -72,9 +74,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_eventos_dominio" as never);
-      if (error) throw error;
-      return data as unknown as EventosResp;
+      return withBreaker("rpc.health_eventos_dominio", async () => {
+        const { data, error } = await supabase.rpc("health_eventos_dominio" as never);
+        if (error) throw error;
+        return data as unknown as EventosResp;
+      });
     },
   });
   const slaQ = useQuery({
@@ -82,9 +86,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_pendencias_sla" as never);
-      if (error) throw error;
-      return data as unknown as SlaResp;
+      return withBreaker("rpc.health_pendencias_sla", async () => {
+        const { data, error } = await supabase.rpc("health_pendencias_sla" as never);
+        if (error) throw error;
+        return data as unknown as SlaResp;
+      });
     },
   });
   const cronQ = useQuery({
@@ -92,9 +98,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("health_cron_jobs" as never);
-      if (error) throw error;
-      return data as unknown as CronResp;
+      return withBreaker("rpc.health_cron_jobs", async () => {
+        const { data, error } = await supabase.rpc("health_cron_jobs" as never);
+        if (error) throw error;
+        return data as unknown as CronResp;
+      });
     },
   });
   const usoQ = useQuery({
@@ -102,9 +110,11 @@ function SaudePage() {
     enabled: isMaster,
     refetchInterval: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("uso_metricas" as never, { _dias: 7 } as never);
-      if (error) throw error;
-      return data as unknown as UsoResp;
+      return withBreaker("rpc.uso_metricas", async () => {
+        const { data, error } = await supabase.rpc("uso_metricas" as never, { _dias: 7 } as never);
+        if (error) throw error;
+        return data as unknown as UsoResp;
+      });
     },
   });
 
@@ -337,6 +347,67 @@ function SaudePage() {
           </Card>
         </div>
       </section>
+
+      <BreakersSection />
     </div>
+  );
+}
+
+function BreakersSection() {
+  const [snap, setSnap] = useState<BreakerSnapshot[]>(() => listBreakers());
+  useEffect(() => {
+    const tick = () => setSnap(listBreakers());
+    tick();
+    const off = subscribeBreakers(tick);
+    const iv = setInterval(tick, 5_000);
+    return () => { off(); clearInterval(iv); };
+  }, []);
+
+  const badgeFor = (s: BreakerSnapshot) => {
+    if (s.state === "open") return <Badge variant="destructive">aberto</Badge>;
+    if (s.state === "half_open") return <Badge variant="secondary">meia-abertura</Badge>;
+    return <Badge variant="outline">fechado</Badge>;
+  };
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <Zap className="h-5 w-5" /> Disjuntores de RPC
+      </h2>
+      <Card className="p-4">
+        {snap.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum disjuntor registrado ainda.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left py-1">RPC</th>
+                <th className="text-left">Estado</th>
+                <th className="text-left">Falhas (janela)</th>
+                <th className="text-left">Tripes</th>
+                <th className="text-left">Próxima tentativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snap.map((s) => (
+                <tr key={s.key} className="border-t border-border">
+                  <td className="py-1 font-mono text-xs">{s.key}</td>
+                  <td>{badgeFor(s)}</td>
+                  <td>{s.failures}</td>
+                  <td>{s.totalTrips}</td>
+                  <td className="text-xs text-muted-foreground">
+                    {s.state === "open" && s.nextAttemptAt ? formatDateTime(new Date(s.nextAttemptAt).toISOString()) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Regra: 5 falhas em 30s abrem o disjuntor por 60s. Em meia-abertura, uma requisição de teste decide se ele
+          volta a fechar ou reabre por mais 60s. Fallback degradado seguro é aplicado quando disponível.
+        </p>
+      </Card>
+    </section>
   );
 }

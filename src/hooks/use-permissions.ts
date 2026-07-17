@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withBreaker } from "@/lib/circuit-breaker";
 
 export type UserContext = {
   id: string;
@@ -21,10 +22,18 @@ export function useCurrentUser() {
     queryKey: ["current-user-context"],
     staleTime: 60_000,
     queryFn: async (): Promise<UserContext | null> => {
-      const { data, error } = await supabase.rpc("get_my_user_context");
-      if (error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      return (row as UserContext) ?? null;
+      return withBreaker(
+        "rpc.get_my_user_context",
+        async () => {
+          const { data, error } = await supabase.rpc("get_my_user_context");
+          if (error) throw error;
+          const row = Array.isArray(data) ? data[0] : data;
+          return (row as UserContext) ?? null;
+        },
+        // Fallback degradado seguro: sem contexto → tratado como não-master
+        // pelo restante da UI (canSee bloqueia rotas master-only).
+        { fallback: () => null },
+      );
     },
   });
 }
@@ -34,10 +43,17 @@ export function usePermissions() {
     queryKey: ["my-permissions"],
     staleTime: 60_000,
     queryFn: async (): Promise<Set<string>> => {
-      const { data, error } = await supabase.rpc("get_my_permissions");
-      if (error) throw error;
-      const list = (data as unknown as string[]) ?? [];
-      return new Set(list);
+      return withBreaker(
+        "rpc.get_my_permissions",
+        async () => {
+          const { data, error } = await supabase.rpc("get_my_permissions");
+          if (error) throw error;
+          const list = (data as unknown as string[]) ?? [];
+          return new Set(list);
+        },
+        // Fallback degradado seguro: sem permissões → nega tudo (`has()` false).
+        { fallback: () => new Set<string>() },
+      );
     },
   });
 
