@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useRetryMutation, type RetryConfig } from "@/lib/retry-mutation";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listPendencias,
@@ -343,26 +344,39 @@ function PendenciaDetail({
     },
   });
 
-  const useAction = (fn: any, msgOk: string) => {
+  // `retry` só deve ser informado para operações IDEMPOTENTES.
+  // `responderPendencia` cria um novo registro de histórico — repetir causaria
+  // duplicata visível — por isso é a única que segue sem retry.
+  const useAction = (fn: any, msgOk: string, retry?: RetryConfig) => {
     const call = useServerFn(fn);
-    return useMutation({
-      mutationFn: (payload: any) => call({ data: payload }),
+    const base = {
       onSuccess: () => {
         toast.success(msgOk);
         detail.refetch();
         onChange();
       },
       onError: (e: any) => toast.error(e?.message ?? "Falha na operação"),
+    };
+    if (retry) {
+      return useRetryMutation<unknown, any>({
+        ...base,
+        retry,
+        mutationFn: (payload: any) => call({ data: payload }),
+      });
+    }
+    return useMutation({
+      ...base,
+      mutationFn: (payload: any) => call({ data: payload }),
     });
   };
 
-  const mAtribuir = useAction(atribuirPendencia, "Responsável atualizado.");
-  const mResponder = useAction(responderPendencia, "Resposta registrada.");
-  const mResolver = useAction(resolverPendencia, "Pendência resolvida.");
-  const mReabrir = useAction(reabrirPendencia, "Pendência reaberta.");
-  const mCancelar = useAction(cancelarPendencia, "Pendência cancelada.");
-  const mPrioridade = useAction(alterarPrioridade, "Prioridade alterada.");
-  const mPrazo = useAction(alterarPrazo, "Prazo alterado.");
+  const mAtribuir  = useAction(atribuirPendencia,  "Responsável atualizado.", { operation: "pendencia.atribuir" });
+  const mResponder = useAction(responderPendencia, "Resposta registrada."); // NÃO idempotente
+  const mResolver  = useAction(resolverPendencia,  "Pendência resolvida.",   { operation: "pendencia.resolver" });
+  const mReabrir   = useAction(reabrirPendencia,   "Pendência reaberta.",    { operation: "pendencia.reabrir" });
+  const mCancelar  = useAction(cancelarPendencia,  "Pendência cancelada.",   { operation: "pendencia.cancelar" });
+  const mPrioridade = useAction(alterarPrioridade, "Prioridade alterada.",   { operation: "pendencia.alterar_prioridade" });
+  const mPrazo     = useAction(alterarPrazo,       "Prazo alterado.",        { operation: "pendencia.alterar_prazo" });
 
   const [resposta, setResposta] = useState("");
   const [motivo, setMotivo] = useState("");
