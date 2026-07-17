@@ -396,66 +396,13 @@ function ProfissionaisPage() {
     enabled: open,
   });
 
-  // Opções para os filtros de listagem (sempre carregadas)
-  const { data: unidadesFiltro } = useQuery({
-    queryKey: ["unidades-filtro"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unidades")
-        .select("id,nome,sigla")
-        .is("deleted_at", null)
-        .order("nome");
-      return data ?? [];
-    },
-  });
-  const { data: cargosFiltro } = useQuery({
-    queryKey: ["cargos-filtro"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("cargos")
-        .select("id,nome")
-        .is("deleted_at", null)
-        .eq("status", "ativa")
-        .order("nome");
-      return data ?? [];
-    },
-  });
-  const { data: funcoesFiltro } = useQuery({
-    queryKey: ["funcoes-filtro"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("funcoes")
-        .select("id,nome")
-        .is("deleted_at", null)
-        .eq("status", "ativa")
-        .order("nome");
-      return data ?? [];
-    },
-  });
-  const { data: vinculosFiltro } = useQuery({
-    queryKey: ["vinculos-filtro"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("vinculos")
-        .select("id,nome,natureza")
-        .is("deleted_at", null)
-        .eq("status", "ativa")
-        .order("nome");
-      return (data ?? []) as VinculoOption[];
-    },
-  });
-  const { data: setoresFiltro } = useQuery({
-    queryKey: ["setores-filtro", fUnidade],
-    enabled: fUnidade !== "todos",
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("setores")
-        .select("id,nome")
-        .eq("unidade_id", fUnidade)
-        .is("deleted_at", null)
-        .order("nome");
-      return (data ?? []) as VinculoOption[];
-    },
+  // Opções para os filtros de listagem — hooks compartilhados (use-lookups)
+  const { data: unidadesFiltro } = useUnidadesLookup();
+  const { data: cargosFiltro } = useCargosLookup();
+  const { data: funcoesFiltro } = useFuncoesLookup();
+  const { data: vinculosFiltro } = useVinculosLookup();
+  const { data: setoresFiltro } = useSetoresLookup({
+    unidadeId: fUnidade !== "todos" ? fUnidade : null,
   });
 
   // Reseta filtro de setor quando unidade muda
