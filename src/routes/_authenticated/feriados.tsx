@@ -7,14 +7,7 @@ import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared/FormDialog";
 import {
   Select,
   SelectContent,
@@ -189,16 +182,16 @@ function FeriadosPage() {
             value={year}
             onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
           />
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={abrirNovo}>
-                <Plus className="mr-1 h-4 w-4" />Novo feriado
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editing ? "Editar feriado" : "Novo feriado"}</DialogTitle>
-              </DialogHeader>
+          <Button onClick={abrirNovo}>
+            <Plus className="mr-1 h-4 w-4" />Novo feriado
+          </Button>
+          <FormDialog
+            open={open}
+            onOpenChange={setOpen}
+            title={editing ? "Editar feriado" : "Novo feriado"}
+            onSubmit={() => saveMut.mutate()}
+            loading={saveMut.isPending}
+          >
               <div className="grid gap-3">
                 <div>
                   <Label>Data *</Label>
@@ -241,12 +234,7 @@ function FeriadosPage() {
                   Recorrente (ocorre todos os anos na mesma data)
                 </label>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          </FormDialog>
         </div>
       </div>
 
