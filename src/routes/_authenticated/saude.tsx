@@ -555,6 +555,178 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
   );
 }
 
+// ---------------- Sublote 9E — Métricas de performance ----------------
+
+type PerfSample = {
+  ts: number;
+  method: string;
+  path: string;
+  status: number;
+  duration_ms: number;
+};
+type PerfSnapshot = {
+  booted_at: number;
+  total_requests: number;
+  sample_size: number;
+  samples: PerfSample[];
+  gerado_em: string;
+};
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  return sorted[Math.max(0, idx)];
+}
+
+function PerformanceSection({ isMaster }: { isMaster: boolean }) {
+  const qc = useQueryClient();
+  const fetchPerf = useServerFn(getPerfMetrics);
+  const [snap, setSnap] = useState<PerfSnapshot | null>(null);
+  const [cacheStats, setCacheStats] = useState<{ total: number; fresh: number; stale: number; hitRate: number }>({
+    total: 0, fresh: 0, stale: 0, hitRate: 0,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    if (!isMaster) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = (await fetchPerf()) as PerfSnapshot;
+      setSnap(data);
+
+      const queries = qc.getQueryCache().getAll();
+      const total = queries.length;
+      let fresh = 0;
+      let withData = 0;
+      for (const q of queries) {
+        if (q.state.data !== undefined) withData += 1;
+        if (!q.isStale()) fresh += 1;
+      }
+      const hitRate = total > 0 ? Math.round((withData / total) * 100) : 0;
+      setCacheStats({ total, fresh, stale: total - fresh, hitRate });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      logger.error("saude.perf.fetch", { error: msg });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isMaster) return null;
+
+  const durations = (snap?.samples ?? []).map((s) => s.duration_ms).sort((a, b) => a - b);
+  const p95 = percentile(durations, 95);
+  const p99 = percentile(durations, 99);
+
+  // Top 5 rotas mais lentas (média)
+  const byRoute = new Map<string, { total: number; count: number }>();
+  for (const s of snap?.samples ?? []) {
+    const key = `${s.method} ${s.path}`;
+    const cur = byRoute.get(key) ?? { total: 0, count: 0 };
+    cur.total += s.duration_ms;
+    cur.count += 1;
+    byRoute.set(key, cur);
+  }
+  const topSlow = Array.from(byRoute.entries())
+    .map(([rota, v]) => ({ rota, avg: v.total / v.count, count: v.count }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 5);
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-semibold">Performance</h2>
+          {snap && (
+            <span className="text-xs text-muted-foreground">
+              amostra: {snap.sample_size} · desde {formatDateTime(new Date(snap.booted_at).toISOString())}
+            </span>
+          )}
+        </div>
+        <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
+          Atualizar métricas
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="p-3 border-destructive/40">
+          <p className="text-sm text-destructive">{error}</p>
+        </Card>
+      )}
+
+      {!snap && !error && (
+        <Card className="p-4">
+          <p className="text-sm text-muted-foreground">
+            Clique em <span className="font-mono">Atualizar métricas</span> para capturar o estado atual do runtime.
+          </p>
+        </Card>
+      )}
+
+      {snap && (
+        <>
+          <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+            <KpiCard icon={Activity} label="Total de requests" value={snap.total_requests.toLocaleString("pt-BR")} />
+            <KpiCard
+              icon={Timer}
+              label="p95 latência"
+              value={`${p95} ms`}
+              tone={p95 > 1500 ? "warn" : "default"}
+            />
+            <KpiCard
+              icon={Timer}
+              label="p99 latência"
+              value={`${p99} ms`}
+              tone={p99 > 3000 ? "danger" : p99 > 1500 ? "warn" : "default"}
+            />
+            <KpiCard icon={Inbox} label="Queries em cache" value={cacheStats.total} />
+            <KpiCard
+              icon={CheckCircle2}
+              label="Cache hit (est.)"
+              value={`${cacheStats.hitRate}%`}
+              tone={cacheStats.hitRate >= 70 ? "ok" : cacheStats.hitRate >= 40 ? "warn" : "danger"}
+            />
+          </div>
+
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-2">Top 5 rotas mais lentas (média)</div>
+            {topSlow.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem amostras suficientes.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="py-2">Rota</th>
+                    <th className="py-2 text-right">Chamadas</th>
+                    <th className="py-2 text-right">Média (ms)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topSlow.map((r) => (
+                    <tr key={r.rota} className="border-t border-border/50">
+                      <td className="py-2 font-mono text-xs">{r.rota}</td>
+                      <td className="py-2 text-right">{r.count}</td>
+                      <td className="py-2 text-right">{Math.round(r.avg)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Métricas em memória do runtime (buffer circular, últimas 1000 requests). Zeram a cada reciclagem do isolate.
+              Cache hit é estimado por queries com dados no cache do React Query.
+            </p>
+          </Card>
+        </>
+      )}
+    </section>
+  );
+}
+
 function AlertsBanner({ eventos, sla, cron, travados }: {
   eventos: EventosResp | null;
   sla: SlaResp | null;
