@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, ShieldAlert, Trash2, KeyRound, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import {
@@ -93,7 +94,7 @@ function SegurancaPage() {
         await refetchBackupCount();
       } catch (err) {
         setInfo("Autenticação em duas etapas ativada com sucesso.");
-        console.error("Falha ao gerar códigos de recuperação:", err);
+        logger.error("seguranca.backup_codes_failed", { error: err });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Código inválido");
