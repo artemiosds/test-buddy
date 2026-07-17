@@ -533,6 +533,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     distribuicaoUnidade,
     distribuicaoCargo,
     distribuicaoSetor,
+    distribuicaoFuncao,
     equipeProfissionais,
     quadroLotacao,
     refetch: () => Promise.all([
@@ -549,6 +550,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       distribuicaoUnidade.refetch(),
       distribuicaoCargo.refetch(),
       distribuicaoSetor.refetch(),
+      distribuicaoFuncao.refetch(),
     ]),
     lastUpdated: Date.now(),
   };
