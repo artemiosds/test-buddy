@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from "@/components/shared";
+import { Pagination } from "@/components/shared/Pagination";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
@@ -193,6 +194,14 @@ function ProfissionaisPage() {
   const [fCargo, setFCargo] = useState<string>("todos");
   const [fFuncao, setFFuncao] = useState<string>("todos");
   const [fSetor, setFSetor] = useState<string>("todos");
+
+  // Paginação server-side
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  // Volta para a primeira página sempre que qualquer filtro mudar
+  useEffect(() => {
+    setPage(1);
+  }, [search, fUnidade, fVinculo, fStatus, fCargo, fFuncao, fSetor, pageSize]);
 
   const canCreate = hasPermission("profissional.criar");
   const canEdit = hasPermission("profissional.editar");
