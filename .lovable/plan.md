@@ -1,54 +1,59 @@
-## Objetivo
-Evoluir os dashboards existentes (Executivo, RH, Sala de Situação) em um Centro de Inteligência Gerencial reutilizando 100% da arquitetura atual — sem novas rotas, tabelas, APIs, permissões ou regras de negócio.
 
-## Escopo por sublotes
+# Dossiê Funcional do Profissional
 
-Execução sequencial. Cada sublote termina com typecheck + `bun test` (53/53) e relatório curto.
+Transformar `/profissionais/$id` em um dossiê completo, **sem** criar migrações, alterar APIs, cálculos, permissões ou funcionalidades atuais. Toda a informação vem de tabelas/hooks já existentes (`profissionais`, `profissional_historico_funcional`, `frequencia_profissional`, `frequencias`, `pendencias`, `audit_log`, `use-analytics`, `use-lookups`).
 
-### Sublote 12A — Base compartilhada (fundação)
-- Estender `src/hooks/use-analytics.ts` com seletores derivados (sem novas queries HTTP):
-  - `useSemaforoExecutivo()` → classifica 🟢/🟡/🔴 a partir de contadores já buscados (pendências, alertas, afastados, sem lotação, unidades sem gestor).
-  - `useIntegridadeCadastral()` → percentual + breakdown por campo faltante, derivado da lista de profissionais já em cache.
-  - `useTendencias(competencia)` → compara competência atual vs. anterior usando `frequencias_*` já carregadas.
-  - `useInsightsGerenciais()` → regras determinísticas sobre distribuições existentes (top 1 unidade em HE, setor com maior concentração, etc.).
-- Criar componentes compartilhados **presentacionais** em `src/components/intelligence/`:
-  - `SemaforoCard.tsx`, `TendenciaKpi.tsx` (sparkline SVG inline), `AlertaItem.tsx`, `InsightCard.tsx`, `IntegridadeCard.tsx`.
-- Nenhum componente duplica shadcn/PageHeader/KpiCard existentes — todos os novos são wrappers finos.
+## Escopo (o que existe hoje x o que falta)
 
-### Sublote 12B — Módulo 01 (Semáforo) + 04 (Integridade)
-- Inserir `<SemaforoCard/>` no topo de `gestao-pessoas.index.tsx` e `sala-situacao.tsx`.
-- Adicionar `<IntegridadeCard/>` como KPI estratégico no Dashboard Executivo, com drill-down abrindo `/profissionais?filter=<campo-faltante>` (usa search params já suportados).
+A rota já tem 926 linhas com abas Dados, Timeline (histórico funcional), Pendências, Estatísticas. Vamos **reorganizar e enriquecer** — não reescrever do zero — mantendo mutações e RLS atuais.
 
-### Sublote 12C — Módulo 02 (Tendências) + 06 (Insights)
-- Seção "Tendências" no Dashboard Executivo e Sala de Situação com `TendenciaKpi` (HE, pendências, aprovadas, ativos, afastados, unidades críticas).
-- Seção "Inteligência Gerencial" (lista de `InsightCard`) gerada por regras puras.
+## Sublotes
 
-### Sublote 12D — Módulo 03 (Alertas) + 05 (Cockpit)
-- Consolidar alertas existentes de `useAnalytics.alertas` em painel único na Sala de Situação com prioridade/origem/ações (Visualizar → rota existente; Resolver = link para tela responsável, sem mutação nova).
-- Reorganizar Dashboard Executivo em cockpit: Semáforo → KPIs estratégicos → Tendências → Alertas resumidos → Ranking → Integridade → Insights.
+### 13A — Cabeçalho Executivo + Resumo
+- Novo componente `ProfissionalHeader` (`src/components/profissionais/dossie/`) exibindo: foto (avatar fallback), nome, matrícula, CPF, cargo/função atual, unidade/setor, vínculo, status, data admissão, **tempo de serviço calculado** (`formatters.ts::formatTempoServico`, novo helper puro).
+- `ResumoExecutivoCard`: derivado dos dados já consultados (contagens de unidades/setores/cargos/funções distintos no histórico funcional, competências processadas via `frequencia_profissional`, pendências abertas, % frequências aprovadas, dias desde última movimentação).
 
-### Sublote 12E — Filtros globais sincronizados
-- Reutilizar `AnalyticsFilters` + URL search params (Competência/Unidade/Setor/Cargo/Função/Vínculo/Status/Ano) nos 3 painéis, garantindo que o estado viaja via `Link`.
-- Sem novo contexto: cada rota lê `Route.useSearch()` e passa aos hooks.
+### 13B — Reorganização em abas (Tabs shadcn existente)
+Ordem final: **Visão Geral · Linha do Tempo · Lotações · Competências · Movimentações · Documentos · Observações**.
+- Aba "Dados" atual vira "Visão Geral" (mantém formulário de edição intacto).
+- Aba "Histórico" atual é dividida em "Linha do Tempo" (vertical) + "Movimentações" (tabela filtrada por tipos de mudança).
 
-### Sublote 12F — Fechamento
-- Ajustes de responsivo/tokens.
-- Rodar typecheck + `bun test` (esperado 53/53, zero warnings MSW; adicionar handlers se surgirem novas queries — não deve haver).
-- Relatório final.
+### 13C — Linha do Tempo funcional
+- Componente `TimelineFuncional` renderizando eventos de `profissional_historico_funcional` já carregados + eventos derivados (competências enviadas/aprovadas de `frequencia_profissional` do profissional, licenças/afastamentos do próprio histórico).
+- Sem nova query: reutiliza `historico` e adiciona um `useQuery` leve para últimas competências (já disponível via `useAnalytics`/`frequencia_profissional`).
 
-## Regras rígidas
-- Nenhuma migration, edge function, RPC, tabela ou permissão nova.
-- Nenhuma rota nova no menu — tudo dentro de Dashboard Executivo, Dashboard RH e Sala de Situação.
-- Reuso obrigatório: `useAnalytics`, `usePermissions`, `PageHeader`, `KpiCard`, `StatusBadge`, `EmptyState`, `DataTable`, `AnalyticsFilters`, React Query cache.
-- Sem consultas N+1: derivações via `useMemo` sobre dados já buscados.
+### 13D — Histórico de Lotações
+- Tabela `LotacoesTable` (DataTable existente) derivada de `profissional_historico_funcional` filtrando eventos com `unidade_destino_id`/`setor_destino_id`, ordenada por período, com colunas Unidade, Setor, Cargo, Função, Início, Fim (próximo evento), Motivo, Situação.
 
-## Detalhes técnicos
-- Sparkline: SVG puro (~40 linhas), sem nova dependência.
-- Semáforo: função pura `classificar(metricas): 'ok' | 'atencao' | 'critico'` com thresholds em `src/lib/intelligence-thresholds.ts` (constantes revisáveis).
-- Insights: gerador `gerarInsights(analytics): Insight[]` — regras determinísticas com i18n pt-BR estático.
-- Drill-down: navegação por `Link to="/profissionais" search={{...}}` — filtros já existem em `profissionais.tsx`.
+### 13E — Histórico de Competências + Indicadores Individuais
+- Nova query dedicada `frequencia_profissional` por `profissional_id` (já permitida pela RLS existente) trazendo competência, unidade, situação, horas extras, faltas, pendências relacionadas.
+- Filtros por Ano/Competência/Unidade via `FilterBar` compartilhado.
+- Cards de indicadores (total competências, frequências, HE, faltas, pendências abertas/resolvidas, tempo na unidade/setor/serviço).
 
-## Entrega esperada por sublote
-Typecheck limpo, 53/53 testes, sem warnings MSW, sem alteração de schema, arquivos modificados/criados listados.
+### 13F — Evolução Funcional + Situação Funcional
+- Painel "antes → depois" para cargo/função/última movimentação/última atualização cadastral (usa `audit_log` já existente, filtrado por `entity_id = profissional`).
+- Bloco Situação Funcional com badge atual + histórico de mudanças de `situacao_funcional` do `audit_log`.
 
-Aguardo aprovação para iniciar **12A**.
+### 13G — Documentos + Observações Administrativas
+- Aba **Documentos**: usa `documentos_assinados` (já existente) filtrado por profissional; se vazio, `EmptyState` preparado para futura expansão.
+- Aba **Observações**: campo `observacoes` do profissional + últimas 10 entradas de `audit_log` que tocam o registro, com responsável e data.
+
+### 13H — Pesquisa + Exportação
+- Input de busca global dentro do dossiê que filtra timeline/lotações/competências/movimentações client-side.
+- Botão "Exportar dossiê" gera CSV (helper existente em `src/lib/csv.ts` se houver, senão adicionar utilitário puro sem dep externa) consolidando dados já carregados. **Nenhuma nova API.**
+
+### 13I — Performance & Testes
+- Todas as consultas via React Query com `queryKey` estável e `staleTime` alinhado ao `QueryClient` global.
+- `useMemo` para derivações (contagem distinta, agrupamentos).
+- Testes: adicionar `dossie.test.ts` cobrindo `formatTempoServico`, agregador de resumo executivo e filtro de lotações a partir do histórico funcional. Alvo: suíte cresce de 72 → ~78 verdes.
+
+## Regras invariantes
+- Sem migração, sem alteração de schema, RLS, permissões ou mutações existentes.
+- Reuso obrigatório: `PageHeader`, `DataTable`, `EmptyState`, `FilterBar`, `StatusBadge`, `KpiCard`, `Tabs`, `useAnalytics`, `use-permissions`, `formatters`.
+- Rota permanece protegida pelo `_authenticated` + `PermissionGate` atual (`profissional.visualizar`).
+- Nenhum recálculo de folha/frequência: apenas leitura e apresentação.
+
+## Entrega por sublote
+Cada sublote fecha com: arquivos alterados, contagem de testes verdes da suíte inteira, e confirmação de que nenhuma lógica de negócio mudou.
+
+Começo por **13A + 13B** (base estrutural) assim que aprovado.
