@@ -1,6 +1,7 @@
 // Server-only permission gate + catálogo de Ações + emissor de Eventos de Domínio.
 // Importe SOMENTE de handlers de *.functions.ts. SupabaseClient é intencionalmente
 // loose-typed para evitar acoplar Database types no call site.
+import { logger } from "./logger";
 
 // -----------------------------------------------------------------------------
 // Catálogo canônico de AÇÕES do sistema (Autorização Baseada em Ação).
