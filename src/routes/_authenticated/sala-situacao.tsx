@@ -18,7 +18,7 @@ import {
 import { ALERT_RULES } from "@/lib/sala-situacao-alerts";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import {
-  PageHeader, KpiCard, DataTable, EmptyState, FilterBar, StatusBadge,
+  PageHeader, KpiCard, DataTable, EmptyState, FilterBar,
   type DataTableColumn,
 } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
