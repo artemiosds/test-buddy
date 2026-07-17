@@ -44,6 +44,7 @@ import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authentica
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
+import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
 import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
@@ -246,6 +247,11 @@ const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedUsuariosRoute,
 } as any)
+const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
+  id: '/unidades/$id',
+  path: '/unidades/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedProfissionaisIdRoute =
   AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
@@ -393,6 +400,7 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
@@ -441,6 +449,7 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
@@ -489,6 +498,7 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
+    | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas/'
     | '/unidades/'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
+    | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas'
     | '/unidades'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/profissionais/$id'
+    | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/unidades/'
@@ -846,6 +858,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosIdRouteImport
       parentRoute: typeof AuthenticatedUsuariosRoute
     }
+    '/_authenticated/unidades/$id': {
+      id: '/_authenticated/unidades/$id'
+      path: '/unidades/$id'
+      fullPath: '/unidades/$id'
+      preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/profissionais/$id': {
       id: '/_authenticated/profissionais/$id'
       path: '/$id'
@@ -994,6 +1013,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedGestaoPessoasDistribuicaoSetorRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
+  AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
@@ -1039,6 +1059,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedGestaoPessoasLotacaoRoute,
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
     AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
+  AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
