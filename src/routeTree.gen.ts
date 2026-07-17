@@ -44,8 +44,6 @@ import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authentica
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
-import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
-import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
 import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
@@ -248,16 +246,6 @@ const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedUsuariosRoute,
 } as any)
-const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
-  id: '/unidades/$id',
-  path: '/unidades/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedSetoresRoute,
-} as any)
 const AuthenticatedProfissionaisIdRoute =
   AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
@@ -347,7 +335,7 @@ export interface FileRoutesByFullPath {
   '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/saude': typeof AuthenticatedSaudeRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
-  '/setores': typeof AuthenticatedSetoresRouteWithChildren
+  '/setores': typeof AuthenticatedSetoresRoute
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
@@ -359,8 +347,6 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/setores/$id': typeof AuthenticatedSetoresIdRoute
-  '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
@@ -394,7 +380,7 @@ export interface FileRoutesByTo {
   '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/saude': typeof AuthenticatedSaudeRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
-  '/setores': typeof AuthenticatedSetoresRouteWithChildren
+  '/setores': typeof AuthenticatedSetoresRoute
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
@@ -407,8 +393,6 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/setores/$id': typeof AuthenticatedSetoresIdRoute
-  '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
@@ -444,7 +428,7 @@ export interface FileRoutesById {
   '/_authenticated/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
   '/_authenticated/saude': typeof AuthenticatedSaudeRoute
   '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
-  '/_authenticated/setores': typeof AuthenticatedSetoresRouteWithChildren
+  '/_authenticated/setores': typeof AuthenticatedSetoresRoute
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
@@ -457,8 +441,6 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
-  '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
@@ -507,8 +489,6 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
-    | '/setores/$id'
-    | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas/'
     | '/unidades/'
@@ -555,8 +535,6 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
-    | '/setores/$id'
-    | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas'
     | '/unidades'
@@ -604,8 +582,6 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/profissionais/$id'
-    | '/_authenticated/setores/$id'
-    | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/unidades/'
@@ -870,20 +846,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosIdRouteImport
       parentRoute: typeof AuthenticatedUsuariosRoute
     }
-    '/_authenticated/unidades/$id': {
-      id: '/_authenticated/unidades/$id'
-      path: '/unidades/$id'
-      fullPath: '/unidades/$id'
-      preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/setores/$id': {
-      id: '/_authenticated/setores/$id'
-      path: '/$id'
-      fullPath: '/setores/$id'
-      preLoaderRoute: typeof AuthenticatedSetoresIdRouteImport
-      parentRoute: typeof AuthenticatedSetoresRoute
-    }
     '/_authenticated/profissionais/$id': {
       id: '/_authenticated/profissionais/$id'
       path: '/$id'
@@ -985,17 +947,6 @@ const AuthenticatedProfissionaisRouteWithChildren =
     AuthenticatedProfissionaisRouteChildren,
   )
 
-interface AuthenticatedSetoresRouteChildren {
-  AuthenticatedSetoresIdRoute: typeof AuthenticatedSetoresIdRoute
-}
-
-const AuthenticatedSetoresRouteChildren: AuthenticatedSetoresRouteChildren = {
-  AuthenticatedSetoresIdRoute: AuthenticatedSetoresIdRoute,
-}
-
-const AuthenticatedSetoresRouteWithChildren =
-  AuthenticatedSetoresRoute._addFileChildren(AuthenticatedSetoresRouteChildren)
-
 interface AuthenticatedUsuariosRouteChildren {
   AuthenticatedUsuariosIdRoute: typeof AuthenticatedUsuariosIdRoute
 }
@@ -1033,7 +984,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSalaSituacaoRoute: typeof AuthenticatedSalaSituacaoRoute
   AuthenticatedSaudeRoute: typeof AuthenticatedSaudeRoute
   AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
-  AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
+  AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRoute
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -1043,7 +994,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedGestaoPessoasDistribuicaoSetorRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
-  AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
@@ -1075,7 +1025,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSalaSituacaoRoute: AuthenticatedSalaSituacaoRoute,
   AuthenticatedSaudeRoute: AuthenticatedSaudeRoute,
   AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
-  AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
+  AuthenticatedSetoresRoute: AuthenticatedSetoresRoute,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
@@ -1089,7 +1039,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedGestaoPessoasLotacaoRoute,
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
     AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
-  AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
