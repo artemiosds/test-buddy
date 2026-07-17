@@ -54,6 +54,10 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   perm?: string | string[];
   masterOnly?: boolean;
+  /** Subsecção visual dentro do grupo. Itens sem `section` ficam no topo. */
+  section?: string;
+  /** Hash opcional (para links que apontam para o mesmo pathname). */
+  hash?: string;
 };
 
 type NavGroup = {
@@ -86,16 +90,24 @@ const GROUPS: NavGroup[] = [
     label: "Gestão de Pessoas",
     icon: Users,
     items: [
-      // Dashboard RH - placeholder route (non-destructive)
-      { to: "/gestao-rh", label: "Dashboard RH", icon: LayoutDashboard },
-      // Reuse existing routes where present (do not duplicate)
-      { to: "/profissionais", label: "Profissionais", icon: Users, perm: "profissional.visualizar" },
-      { to: "/gestao-profissionais", label: "Centro de Gestão de Profissionais", icon: Users, perm: "profissional.visualizar" },
-      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar" },
-      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar" },
-      { to: "/cargos-funcoes", label: "Cargos e Funções", icon: Briefcase, perm: "configuracao.editar" },
-      { to: "/controle-forca-trabalho", label: "Centro de Controle da Força de Trabalho", icon: Activity },
-      { to: "/sala-situacao", label: "Sala de Situação", icon: LayoutDashboard },
+      // Porta de entrada
+      { to: "/gestao-pessoas", label: "Dashboard Executivo", icon: LayoutDashboard },
+      // Profissionais
+      { to: "/profissionais", label: "Cadastro de Profissionais", icon: Users, perm: "profissional.visualizar", section: "Profissionais" },
+      { to: "/gestao-profissionais", label: "Gestão dos Profissionais", icon: Users, perm: "profissional.visualizar", section: "Profissionais" },
+      { to: "/gestao-pessoas/situacao-funcional", label: "Situação Funcional", icon: Activity, section: "Profissionais" },
+      // Estrutura Organizacional
+      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar", section: "Estrutura Organizacional" },
+      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar", section: "Estrutura Organizacional" },
+      { to: "/cargos-funcoes", label: "Cargos", icon: Briefcase, perm: "configuracao.editar", section: "Estrutura Organizacional", hash: "cargos" },
+      { to: "/cargos-funcoes", label: "Funções", icon: Briefcase, perm: "configuracao.editar", section: "Estrutura Organizacional", hash: "funcoes" },
+      // Gestão Operacional
+      { to: "/controle-forca-trabalho", label: "Controle da Força de Trabalho", icon: Activity, section: "Gestão Operacional" },
+      { to: "/gestao-pessoas/lotacao", label: "Lotação das Unidades", icon: Building2, section: "Gestão Operacional" },
+      { to: "/gestao-pessoas/distribuicao-setor", label: "Distribuição por Setor", icon: Network, section: "Gestão Operacional" },
+      // Indicadores
+      { to: "/sala-situacao", label: "Sala de Situação", icon: LayoutDashboard, section: "Indicadores" },
+      { to: "/gestao-rh", label: "Dashboard RH", icon: LayoutDashboard, section: "Indicadores" },
     ],
   },
   {
@@ -370,14 +382,17 @@ function AuthenticatedLayout() {
             )}
             {open && (
               <div className={compact ? "space-y-0.5" : "mt-0.5 space-y-0.5 pl-2"}>
-                {g.items.map((item) => {
+                {g.items.map((item, idx) => {
                   const Icon = item.icon;
                   const active = isItemActive(item.to);
                   const showBadge = item.to === "/pendencias" && pendAbertasCount > 0;
-                  return (
+                  const prev = idx > 0 ? g.items[idx - 1] : null;
+                  const showSectionHeader =
+                    !compact && !!item.section && (!prev || prev.section !== item.section);
+                  const linkNode = (
                     <Link
-                      key={item.to}
                       to={item.to}
+                      hash={item.hash}
                       onClick={() => setMobileOpen(false)}
                       title={compact ? item.label : undefined}
                       className={
@@ -399,6 +414,16 @@ function AuthenticatedLayout() {
                         </span>
                       )}
                     </Link>
+                  );
+                  return (
+                    <div key={`${item.to}${item.hash ?? ""}-${idx}`}>
+                      {showSectionHeader && (
+                        <div className="mt-2 border-t border-border/60 px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                          {item.section}
+                        </div>
+                      )}
+                      {linkNode}
+                    </div>
                   );
                 })}
               </div>

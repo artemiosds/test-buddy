@@ -42,10 +42,14 @@ import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
+import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
+import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
+import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
+import { Route as AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport } from './routes/_authenticated/gestao-pessoas.distribuicao-setor'
 import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
 import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
@@ -233,6 +237,12 @@ const AuthenticatedUnidadesIndexRoute =
     path: '/unidades/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedGestaoPessoasIndexRoute =
+  AuthenticatedGestaoPessoasIndexRouteImport.update({
+    id: '/gestao-pessoas/',
+    path: '/gestao-pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -253,6 +263,24 @@ const AuthenticatedProfissionaisIdRoute =
     id: '/$id',
     path: '/$id',
     getParentRoute: () => AuthenticatedProfissionaisRoute,
+  } as any)
+const AuthenticatedGestaoPessoasSituacaoFuncionalRoute =
+  AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport.update({
+    id: '/gestao-pessoas/situacao-funcional',
+    path: '/gestao-pessoas/situacao-funcional',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoPessoasLotacaoRoute =
+  AuthenticatedGestaoPessoasLotacaoRouteImport.update({
+    id: '/gestao-pessoas/lotacao',
+    path: '/gestao-pessoas/lotacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoPessoasDistribuicaoSetorRoute =
+  AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport.update({
+    id: '/gestao-pessoas/distribuicao-setor',
+    path: '/gestao-pessoas/distribuicao-setor',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedFrequenciasIdRoute =
   AuthenticatedFrequenciasIdRouteImport.update({
@@ -327,10 +355,14 @@ export interface FileRoutesByFullPath {
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
+  '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
+  '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -371,10 +403,14 @@ export interface FileRoutesByTo {
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
+  '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
+  '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -417,10 +453,14 @@ export interface FileRoutesById {
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
+  '/_authenticated/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
+  '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
+  '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -463,10 +503,14 @@ export interface FileRouteTypes {
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/gestao-pessoas/distribuicao-setor'
+    | '/gestao-pessoas/lotacao'
+    | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/gestao-pessoas/'
     | '/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -507,10 +551,14 @@ export interface FileRouteTypes {
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
+    | '/gestao-pessoas/distribuicao-setor'
+    | '/gestao-pessoas/lotacao'
+    | '/gestao-pessoas/situacao-funcional'
     | '/profissionais/$id'
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/gestao-pessoas'
     | '/unidades'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -552,10 +600,14 @@ export interface FileRouteTypes {
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
     | '/_authenticated/frequencias_/$id'
+    | '/_authenticated/gestao-pessoas/distribuicao-setor'
+    | '/_authenticated/gestao-pessoas/lotacao'
+    | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -804,6 +856,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/gestao-pessoas/': {
+      id: '/_authenticated/gestao-pessoas/'
+      path: '/gestao-pessoas'
+      fullPath: '/gestao-pessoas/'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
       path: '/$id'
@@ -831,6 +890,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/profissionais/$id'
       preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
       parentRoute: typeof AuthenticatedProfissionaisRoute
+    }
+    '/_authenticated/gestao-pessoas/situacao-funcional': {
+      id: '/_authenticated/gestao-pessoas/situacao-funcional'
+      path: '/gestao-pessoas/situacao-funcional'
+      fullPath: '/gestao-pessoas/situacao-funcional'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-pessoas/lotacao': {
+      id: '/_authenticated/gestao-pessoas/lotacao'
+      path: '/gestao-pessoas/lotacao'
+      fullPath: '/gestao-pessoas/lotacao'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasLotacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-pessoas/distribuicao-setor': {
+      id: '/_authenticated/gestao-pessoas/distribuicao-setor'
+      path: '/gestao-pessoas/distribuicao-setor'
+      fullPath: '/gestao-pessoas/distribuicao-setor'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/frequencias_/$id': {
       id: '/_authenticated/frequencias_/$id'
@@ -960,7 +1040,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
+  AuthenticatedGestaoPessoasDistribuicaoSetorRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
+  AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
+  AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
+  AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
 
@@ -999,7 +1083,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
   AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
+  AuthenticatedGestaoPessoasDistribuicaoSetorRoute:
+    AuthenticatedGestaoPessoasDistribuicaoSetorRoute,
+  AuthenticatedGestaoPessoasLotacaoRoute:
+    AuthenticatedGestaoPessoasLotacaoRoute,
+  AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
+    AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
+  AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
 
