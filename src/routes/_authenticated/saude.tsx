@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, BarChart3, Bell, CheckCircle2, Clock, Info, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
-import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
+import { withBreaker, listBreakers, subscribeBreakers, getBreaker, type BreakerSnapshot } from "@/lib/circuit-breaker";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { auditClient } from "@/lib/audit-client";
 import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
 
 export const Route = createFileRoute("/_authenticated/saude")({
@@ -608,6 +609,8 @@ function AlertsBanner({ eventos, sla, cron, travados }: {
 
 function BreakersSection() {
   const [snap, setSnap] = useState<BreakerSnapshot[]>(() => listBreakers());
+  const [lastReset, setLastReset] = useState<Record<string, number>>({});
+  const confirm = useConfirm();
   useEffect(() => {
     const tick = () => setSnap(listBreakers());
     tick();
@@ -620,6 +623,42 @@ function BreakersSection() {
     if (s.state === "open") return <Badge variant="destructive">aberto</Badge>;
     if (s.state === "half_open") return <Badge variant="secondary">meia-abertura</Badge>;
     return <Badge variant="outline">fechado</Badge>;
+  };
+
+  const RESET_COOLDOWN_MS = 5 * 60_000;
+  const cooldownRemaining = (key: string) => {
+    const last = lastReset[key];
+    if (!last) return 0;
+    return Math.max(0, RESET_COOLDOWN_MS - (Date.now() - last));
+  };
+
+  const onReset = async (s: BreakerSnapshot) => {
+    const remaining = cooldownRemaining(s.key);
+    if (remaining > 0) {
+      toast.error(`Aguarde ${Math.ceil(remaining / 1000)}s antes de resetar novamente.`);
+      return;
+    }
+    const ok = await confirm({
+      title: "Forçar reset do disjuntor?",
+      description: `Zera o contador de falhas de ${s.key} e fecha o circuito imediatamente. Use apenas após confirmar que a causa raiz foi resolvida.`,
+      confirmLabel: "Resetar",
+      tone: "destructive",
+    });
+    if (!ok) return;
+    try {
+      getBreaker(s.key).reset();
+      setLastReset((prev) => ({ ...prev, [s.key]: Date.now() }));
+      await auditClient.action("circuit_breaker.reset", {
+        contexto: { breaker: s.key, estado_anterior: s.state, falhas_anteriores: s.failures },
+      });
+      logger.info("circuit_breaker.reset", { key: s.key, from: s.state });
+      toast.success(`Disjuntor ${s.key} resetado.`);
+      setSnap(listBreakers());
+    } catch (e) {
+      const err = e as Error;
+      logger.error("circuit_breaker.reset_falha", { key: s.key, message: err.message });
+      toast.error("Falha ao registrar reset em auditoria.");
+    }
   };
 
   return (
@@ -639,6 +678,7 @@ function BreakersSection() {
                 <th className="text-left">Falhas (janela)</th>
                 <th className="text-left">Tripes</th>
                 <th className="text-left">Próxima tentativa</th>
+                <th className="text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -651,6 +691,19 @@ function BreakersSection() {
                   <td className="text-xs text-muted-foreground">
                     {s.state === "open" && s.nextAttemptAt ? formatDateTime(new Date(s.nextAttemptAt).toISOString()) : "—"}
                   </td>
+                  <td className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onReset(s)}
+                      disabled={cooldownRemaining(s.key) > 0}
+                      title={cooldownRemaining(s.key) > 0
+                        ? `Aguarde ${Math.ceil(cooldownRemaining(s.key) / 1000)}s`
+                        : "Zerar contador e fechar circuito"}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Forçar reset
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -659,6 +712,8 @@ function BreakersSection() {
         <p className="mt-3 text-xs text-muted-foreground">
           Regra: 5 falhas em 30s abrem o disjuntor por 60s. Em meia-abertura, uma requisição de teste decide se ele
           volta a fechar ou reabre por mais 60s. Fallback degradado seguro é aplicado quando disponível.
+          Ações de <span className="font-mono">Forçar reset</span> são registradas em auditoria
+          (<span className="font-mono">circuit_breaker.reset</span>) e limitadas a 1 por breaker a cada 5 minutos no cliente.
         </p>
       </Card>
     </section>
