@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { hasStatus, statusMeta, type StatusDomain } from "@/lib/status";
 
 // Cache de avisos para não spammar o console durante DEV.
@@ -10,16 +11,12 @@ function warnUnknownStatus(domain: StatusDomain, value: unknown) {
   const key = `${domain}:${String(value)}`;
   if (warned.has(key)) return;
   warned.add(key);
-  // Stack fornece o arquivo chamador na maior parte dos casos.
   const stack = new Error().stack?.split("\n").slice(2, 5).join("\n") ?? "";
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[StatusBadge] Status desconhecido no registry.\n` +
-      `  domínio: ${domain}\n` +
-      `  valor recebido: ${JSON.stringify(value)}\n` +
-      `  Registre-o em src/lib/status.ts.\n` +
-      (stack ? `  origem:\n${stack}` : ""),
-  );
+  logger.warn("StatusBadge.unknown_status", {
+    domain,
+    value: JSON.stringify(value),
+    origem: stack,
+  });
 }
 
 type Props = {
