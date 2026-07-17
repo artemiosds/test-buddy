@@ -22,8 +22,10 @@ import {
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useIntelligence } from "@/hooks/use-intelligence";
+import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import { Button } from "@/components/ui/button";
 import {
   SemaforoCard,
   TendenciaKpi,
@@ -60,7 +62,6 @@ function DashboardExecutivo() {
 
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
-  const alertas = a.alertas.data;
 
   const topUnidades = useMemo(
     () => (a.distribuicaoUnidade.data ?? []).slice(0, 10),
@@ -71,16 +72,17 @@ function DashboardExecutivo() {
     [a.distribuicaoCargo.data],
   );
 
-  const alertItems: { key: string; label: string; count: number }[] = alertas
-    ? [
-        { key: "u", label: "Profissionais sem unidade", count: alertas.semUnidade },
-        { key: "s", label: "Profissionais sem setor", count: alertas.semSetor },
-        { key: "c", label: "Profissionais sem cargo", count: alertas.semCargo },
-        { key: "f", label: "Profissionais sem função", count: alertas.semFuncao },
-        { key: "ug", label: "Unidades sem gestor", count: alertas.unidadesSemGestor },
-        { key: "sv", label: "Setores vazios", count: alertas.setoresVazios },
-      ]
-    : [];
+  const alertItems = useMemo(
+    () =>
+      buildWorkforceAlertItems({
+        alertas: a.alertas.data,
+        // O Dashboard Executivo não faz a query de "pendências vencidas"
+        // (isso é da Sala de Situação). Usamos 0 aqui — a fonte oficial
+        // continua a Sala de Situação, evitando divergência de números.
+        pendenciasVencidas: 0,
+      }),
+    [a.alertas.data],
+  );
 
   return (
     <div className="p-4 md:p-6">
@@ -195,7 +197,7 @@ function DashboardExecutivo() {
         </div>
       </Section>
 
-      <Section title="Alertas" icon={<ShieldAlert className="h-4 w-4" />}>
+      <Section title="Alertas de Força de Trabalho" icon={<ShieldAlert className="h-4 w-4" />}>
         {a.alertas.isLoading ? (
           <div className="rounded-md border p-4 text-sm text-muted-foreground">Carregando alertas…</div>
         ) : alertItems.every((i) => i.count === 0) ? (
@@ -204,16 +206,25 @@ function DashboardExecutivo() {
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
             {alertItems.map((i) => (
               <div
-                key={i.key}
+                key={i.id}
                 className={
-                  "flex items-center justify-between rounded-md border p-3 text-sm " +
+                  "flex items-center justify-between gap-2 rounded-md border p-3 text-sm " +
                   (i.count > 0 ? "border-warning-soft-foreground/30 bg-warning-soft/30" : "")
                 }
               >
-                <span className="text-foreground">{i.label}</span>
+                <span className="flex-1 text-foreground">{i.label}</span>
                 <span className={"font-semibold tabular-nums " + (i.count > 0 ? "text-warning-soft-foreground" : "text-muted-foreground")}>
                   {n(i.count)}
                 </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={i.count === 0}
+                  onClick={() => navigate({ to: i.to, search: (i.search ?? {}) as never })}
+                >
+                  Ver detalhes
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
               </div>
             ))}
           </div>
