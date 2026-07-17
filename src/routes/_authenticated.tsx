@@ -52,6 +52,7 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   perm?: string | string[];
+  masterOnly?: boolean;
 };
 
 type NavGroup = {
@@ -121,6 +122,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { to: "/usuarios", label: "Usuários e Permissões", icon: UserCog, perm: "usuario.visualizar" },
       { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, perm: "auditoria.visualizar" },
+      { to: "/saude", label: "Saúde do Sistema", icon: Activity, masterOnly: true },
       { to: "/configuracao", label: "Configuração Municipal", icon: Settings2, perm: "configuracao.editar" },
       { to: "/seguranca", label: "Segurança (MFA)", icon: KeyRound },
     ],
@@ -244,7 +246,9 @@ function AuthenticatedLayout() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const canSee = (perm?: string | string[]) => {
+  const canSee = (item: NavItem) => {
+    if (item.masterOnly && !userCtx?.is_master) return false;
+    const perm = item.perm;
     if (!perm) return true;
     if (permLoading) return false;
     if (userCtx?.is_master) return true;
@@ -270,7 +274,7 @@ function AuthenticatedLayout() {
     const q = search.trim().toLowerCase();
     return GROUPS.map((g) => ({
       ...g,
-      items: g.items.filter((it) => canSee(it.perm) && (!q || it.label.toLowerCase().includes(q))),
+      items: g.items.filter((it) => canSee(it) && (!q || it.label.toLowerCase().includes(q))),
     })).filter((g) => g.items.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, permLoading, userCtx?.is_master]);
