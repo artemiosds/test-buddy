@@ -2563,6 +2563,36 @@ export type Database = {
           },
         ]
       }
+      uso_eventos: {
+        Row: {
+          contexto: Json
+          created_at: string
+          evento: string
+          id: number
+          perfil_codigo: string | null
+          rota: string | null
+          sessao_hash: string | null
+        }
+        Insert: {
+          contexto?: Json
+          created_at?: string
+          evento: string
+          id?: number
+          perfil_codigo?: string | null
+          rota?: string | null
+          sessao_hash?: string | null
+        }
+        Update: {
+          contexto?: Json
+          created_at?: string
+          evento?: string
+          id?: number
+          perfil_codigo?: string | null
+          rota?: string | null
+          sessao_hash?: string | null
+        }
+        Relationships: []
+      }
       usuario_permissoes: {
         Row: {
           concedida_em: string
@@ -3053,6 +3083,10 @@ export type Database = {
           vencidas: number
         }[]
       }
+      track_uso: {
+        Args: { _contexto?: Json; _evento: string; _rota?: string }
+        Returns: undefined
+      }
       user_has_secretaria: {
         Args: { _secretaria_id: string; _user_id: string }
         Returns: boolean
@@ -3061,6 +3095,7 @@ export type Database = {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
       }
+      uso_metricas: { Args: { _dias?: number }; Returns: Json }
     }
     Enums: {
       abrangencia_calendario: "municipal" | "estadual" | "nacional"

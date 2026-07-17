@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { auditClient } from "@/lib/audit-client";
+import { trackPageView } from "@/lib/usage-tracker";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
@@ -260,6 +261,11 @@ function AuthenticatedLayout() {
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isSegurancaRoute = pathname === "/seguranca";
+  // Sublote 6D — page view anônimo por mudança de rota autenticada.
+  useEffect(() => {
+    if (!userCtx?.id) return;
+    trackPageView(pathname);
+  }, [pathname, userCtx?.id]);
   useEffect(() => {
     if (mfaRequired && mfaMissing && !isSegurancaRoute) {
       navigate({ to: "/seguranca", replace: true });
