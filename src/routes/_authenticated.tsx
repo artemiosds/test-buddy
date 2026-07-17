@@ -90,24 +90,24 @@ const GROUPS: NavGroup[] = [
     label: "Gestão de Pessoas",
     icon: Users,
     items: [
-      // Porta de entrada
-      { to: "/gestao-pessoas", label: "Dashboard Executivo", icon: LayoutDashboard },
-      // Profissionais
-      { to: "/profissionais", label: "Cadastro de Profissionais", icon: Users, perm: "profissional.visualizar", section: "Profissionais" },
-      { to: "/gestao-profissionais", label: "Gestão dos Profissionais", icon: Users, perm: "profissional.visualizar", section: "Profissionais" },
-      { to: "/gestao-pessoas/situacao-funcional", label: "Situação Funcional", icon: Activity, section: "Profissionais" },
-      // Estrutura Organizacional
-      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar", section: "Estrutura Organizacional" },
-      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar", section: "Estrutura Organizacional" },
-      { to: "/cargos-funcoes", label: "Cargos", icon: Briefcase, perm: "configuracao.editar", section: "Estrutura Organizacional", hash: "cargos" },
-      { to: "/cargos-funcoes", label: "Funções", icon: Briefcase, perm: "configuracao.editar", section: "Estrutura Organizacional", hash: "funcoes" },
-      // Gestão Operacional
-      { to: "/controle-forca-trabalho", label: "Controle da Força de Trabalho", icon: Activity, section: "Gestão Operacional" },
-      { to: "/gestao-pessoas/lotacao", label: "Lotação das Unidades", icon: Building2, section: "Gestão Operacional" },
-      { to: "/gestao-pessoas/distribuicao-setor", label: "Distribuição por Setor", icon: Network, section: "Gestão Operacional" },
-      // Indicadores
-      { to: "/sala-situacao", label: "Sala de Situação", icon: LayoutDashboard, section: "Indicadores" },
-      { to: "/gestao-rh", label: "Dashboard RH", icon: LayoutDashboard, section: "Indicadores" },
+      // 📊 Visão Executiva
+      { to: "/gestao-pessoas", label: "Dashboard Executivo", icon: LayoutDashboard, section: "📊 Visão Executiva" },
+      { to: "/sala-situacao", label: "Sala de Situação", icon: Activity, section: "📊 Visão Executiva" },
+      { to: "/gestao-rh", label: "Dashboard RH", icon: BarChart3, section: "📊 Visão Executiva" },
+      { to: "/analitico", label: "Indicadores", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"], section: "📊 Visão Executiva" },
+      // 👥 Profissionais
+      { to: "/profissionais", label: "Cadastro de Profissionais", icon: Users, perm: "profissional.visualizar", section: "👥 Profissionais" },
+      { to: "/gestao-profissionais", label: "Gestão dos Profissionais", icon: UserCog, perm: "profissional.visualizar", section: "👥 Profissionais" },
+      { to: "/gestao-pessoas/situacao-funcional", label: "Situação Funcional", icon: Activity, section: "👥 Profissionais" },
+      // 🏥 Estrutura Organizacional
+      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar", section: "🏥 Estrutura Organizacional" },
+      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar", section: "🏥 Estrutura Organizacional" },
+      { to: "/cargos-funcoes", label: "Cargos", icon: Briefcase, perm: "configuracao.editar", section: "🏥 Estrutura Organizacional", hash: "cargos" },
+      { to: "/cargos-funcoes", label: "Funções", icon: Tag, perm: "configuracao.editar", section: "🏥 Estrutura Organizacional", hash: "funcoes" },
+      // 📍 Gestão Operacional
+      { to: "/controle-forca-trabalho", label: "Controle da Força de Trabalho", icon: Activity, section: "📍 Gestão Operacional" },
+      { to: "/gestao-pessoas/lotacao", label: "Lotação das Unidades", icon: Building2, section: "📍 Gestão Operacional" },
+      { to: "/gestao-pessoas/distribuicao-setor", label: "Distribuição por Setor", icon: Network, section: "📍 Gestão Operacional" },
     ],
   },
   {
