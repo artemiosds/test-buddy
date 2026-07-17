@@ -12,6 +12,7 @@ import { useCompetenciasLookup } from "@/hooks/use-lookups";
 import {
   PageHeader, KpiCard, StatusBadge, EmptyState, FilterBar,
 } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,7 +20,14 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")({
-  component: ControleForcaTrabalhoPage,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <ControleForcaTrabalhoPage />
+    </PermissionGate>
+  ),
   errorComponent: ({ error }) => (
     <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
   ),
