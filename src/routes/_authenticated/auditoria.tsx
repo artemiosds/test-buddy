@@ -195,7 +195,7 @@ function AuditoriaPage() {
               Atualizar
             </Button>
             <PermissionGate permission="auditoria.exportar" fallback={null}>
-              <Button size="sm" onClick={exportarCsv}>
+              <Button size="sm" onClick={() => void exportarCsv()}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar CSV
               </Button>
