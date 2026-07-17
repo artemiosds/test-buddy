@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, ShieldAlert, Trash2, KeyRound, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import {
@@ -86,10 +87,14 @@ function SegurancaPage() {
       setEnroll(null);
       setCode("");
       await load();
+      void auditClient.action(AUDIT_ACOES.MFA_ATIVADO);
       // Gera automaticamente o primeiro lote de códigos de recuperação.
       try {
         const res = await regenerateFn({});
         setBackupCodes(res.codes);
+        void auditClient.action(AUDIT_ACOES.BACKUP_CODES_GERADOS, {
+          contexto: { origem: "auto_pos_enroll" },
+        });
         setInfo("Autenticação em duas etapas ativada. Guarde seus códigos de recuperação agora — eles só serão exibidos uma vez.");
         await refetchBackupCount();
       } catch (err) {
@@ -115,8 +120,14 @@ function SegurancaPage() {
     if (!ok) return;
     setBusy(true);
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
-    if (error) setError(error.message);
-    else setInfo("Fator removido.");
+    if (error) {
+      setError(error.message);
+    } else {
+      setInfo("Fator removido.");
+      void auditClient.action(AUDIT_ACOES.MFA_REMOVIDO, {
+        contexto: { factor_id: id },
+      });
+    }
     setBusy(false);
     await load();
   }
@@ -133,6 +144,9 @@ function SegurancaPage() {
     try {
       const res = await regenerateFn({});
       setBackupCodes(res.codes);
+      void auditClient.action(AUDIT_ACOES.BACKUP_CODES_GERADOS, {
+        contexto: { origem: "regeneracao_manual" },
+      });
       setInfo("Novos códigos gerados. Guarde-os agora — não serão exibidos novamente.");
       await refetchBackupCount();
     } catch (e) {

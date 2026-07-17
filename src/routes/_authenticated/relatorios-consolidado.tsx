@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
@@ -234,6 +235,10 @@ function RelatorioConsolidadoPage() {
       drawSignatureStamp(doc, sig);
     } catch (err) { logger.error("relatorios_consolidado.signature_failed", { error: err }); }
     doc.save(`consolidado_${compLabel.replace("/", "-")}.pdf`);
+    void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
+      tabela: "relatorios",
+      contexto: { tipo: "consolidado", competencia: compLabel, tipoFolha: tipo },
+    });
   }
 
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;

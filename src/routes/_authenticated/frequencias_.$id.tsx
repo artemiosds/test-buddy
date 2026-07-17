@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import {
   salvarLinhasFrequencia,
   alterarStatusFrequencia,
@@ -745,6 +746,11 @@ function FrequenciaDetalhe() {
     }
 
     doc.save(`frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`);
+    void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
+      tabela: "frequencias",
+      registro_id: frequencia.id,
+      contexto: { tipo: "frequencia", unidade, competencia: compLabel },
+    });
   };
 
   if (!frequencia) {

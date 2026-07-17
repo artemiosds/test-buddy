@@ -14,12 +14,13 @@ import {
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
   component: AuditoriaPage,
 });
 
-type Operacao = "insert" | "update" | "delete";
+type Operacao = "insert" | "update" | "delete" | "login" | "logout" | "custom";
 
 type AuditRow = {
   id: number;
@@ -40,12 +41,18 @@ const OP_VARIANT: Record<Operacao, "default" | "secondary" | "destructive" | "ou
   insert: "secondary",
   update: "default",
   delete: "destructive",
+  login: "outline",
+  logout: "outline",
+  custom: "default",
 };
 
 const OP_LABEL: Record<Operacao, string> = {
   insert: "Inserção",
   update: "Atualização",
   delete: "Exclusão",
+  login: "Login",
+  logout: "Logout",
+  custom: "Ação",
 };
 
 function AuditoriaPage() {
@@ -132,6 +139,10 @@ function AuditoriaPage() {
     a.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    void auditClient.action(AUDIT_ACOES.EXPORT_CSV, {
+      tabela: "audit_log",
+      contexto: { total: rows.length, filtros: { operacao, tabela, dias } },
+    });
   };
 
   return (
@@ -174,6 +185,9 @@ function AuditoriaPage() {
               <SelectItem value="insert">Inserção</SelectItem>
               <SelectItem value="update">Atualização</SelectItem>
               <SelectItem value="delete">Exclusão</SelectItem>
+            <SelectItem value="login">Login</SelectItem>
+            <SelectItem value="logout">Logout</SelectItem>
+            <SelectItem value="custom">Ação (cliente)</SelectItem>
             </SelectContent>
           </Select>
           <Select value={tabela} onValueChange={setTabela}>

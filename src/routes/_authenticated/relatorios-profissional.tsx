@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -327,6 +328,15 @@ function RelatorioProfissionalPage() {
       logger.error("relatorios_profissional.signature_failed", { error: err });
     }
     doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
+    void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
+      tabela: "profissionais",
+      registro_id: profSelecionado?.id ?? null,
+      contexto: {
+        tipo: "relatorio_profissional",
+        matricula: profSelecionado?.matricula,
+        tipoFolha: tipo,
+      },
+    });
   }
 
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
