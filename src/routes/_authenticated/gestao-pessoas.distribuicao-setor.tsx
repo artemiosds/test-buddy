@@ -3,6 +3,7 @@ import { Network, Users } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuicao-setor")({
   head: () => ({
@@ -11,7 +12,14 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuica
       { name: "description", content: "Distribuição de profissionais por setor." },
     ],
   }),
-  component: DistribuicaoSetor,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <DistribuicaoSetor />
+    </PermissionGate>
+  ),
 });
 
 function DistribuicaoSetor() {
