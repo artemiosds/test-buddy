@@ -428,17 +428,17 @@ function ObservacoesContainer({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("audit_log")
-        .select("id, operacao, created_at, ator_nome")
+        .select("id, operacao, ocorrido_em, usuario_email")
         .eq("tabela", "profissionais")
         .eq("registro_id", profissionalId)
-        .order("created_at", { ascending: false })
+        .order("ocorrido_em", { ascending: false })
         .limit(50);
       if (error) return [];
       return (data ?? []) as unknown as Array<{
-        id: string;
+        id: number;
         operacao: string;
-        created_at: string;
-        ator_nome: string | null;
+        ocorrido_em: string;
+        usuario_email: string | null;
       }>;
     },
   });
@@ -447,8 +447,8 @@ function ObservacoesContainer({
       observacoes={observacoes}
       atualizacoes={audit.map((a) => ({
         id: a.id,
-        data: a.created_at,
-        responsavel: a.ator_nome,
+        data: a.ocorrido_em,
+        responsavel: a.usuario_email,
         operacao: a.operacao,
       }))}
     />
