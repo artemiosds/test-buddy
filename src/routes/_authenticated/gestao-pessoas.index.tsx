@@ -138,24 +138,6 @@ function DashboardExecutivo() {
 
       <div className="mt-4">
         <FilterBar>
-          <FilterBar.Field label="Período">
-            <Select
-              value={compSel}
-              onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__ativa__">
-                  Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
-                </SelectItem>
-                {(competenciasQ.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterBar.Field>
           <FilterBar.Field label="Unidade">
             <Select
               value={unidadeSel}
@@ -183,6 +165,24 @@ function DashboardExecutivo() {
                 <SelectItem value="ferias">Férias</SelectItem>
                 <SelectItem value="licenca">Licenças</SelectItem>
                 <SelectItem value="desligado">Desligados</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+          <FilterBar.Field label="Período">
+            <Select
+              value={compSel}
+              onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ativa__">
+                  Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+                </SelectItem>
+                {(competenciasQ.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </FilterBar.Field>
