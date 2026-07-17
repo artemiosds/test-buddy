@@ -5,13 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Bell, CheckCircle2, Clock, Info, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
 import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -142,6 +143,17 @@ function SaudePage() {
   const pendentes = (ev?.por_status?.["pendente"] ?? 0) + (ev?.por_status?.["falhou_retry"] ?? 0);
   const falhou = ev?.por_status?.["falhou"] ?? 0;
 
+  const travadosQ = useQuery({
+    queryKey: ["saude", "eventos-travados"],
+    enabled: isMaster,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("eventos_travados" as never, { _limit: 100 } as never);
+      if (error) throw error;
+      return data as unknown as { rows: unknown[]; gerado_em: string };
+    },
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -157,6 +169,13 @@ function SaudePage() {
           <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
         </Button>
       </div>
+
+      <AlertsBanner
+        eventos={ev ?? null}
+        sla={sla ?? null}
+        cron={cron ?? null}
+        travados={travadosQ.data ?? null}
+      />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Barramento de eventos</h2>
