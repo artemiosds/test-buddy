@@ -24,6 +24,7 @@ import {
   resolveWorkforceFilters,
   mergeWorkforceFilters,
   WORKFORCE_FILTER_KEYS,
+  type WorkforceFilters,
 } from "@/lib/workforce-filters";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, FilterBar,
@@ -78,7 +79,10 @@ function SalaSituacaoPage() {
   const unidadeSel = search.unidade === "" ? "__all__" : search.unidade;
   const statusSel = search.status === "" ? "__all__" : search.status;
   const patchFilter = (patch: Parameters<typeof mergeWorkforceFilters>[1]) =>
-    navigate({ search: (prev) => mergeWorkforceFilters(prev, patch), replace: true });
+    navigate({
+      search: (prev: WorkforceFilters) => mergeWorkforceFilters(prev, patch),
+      replace: true,
+    });
 
   const a = useAnalytics({ competenciaId, unidadeId, status });
   const intel = useIntelligence(a);
