@@ -1192,8 +1192,7 @@ function ProfissionaisPage() {
       </div>
 
       <FilterBar>
-        <div>
-          <Label className="text-xs text-muted-foreground">Unidade</Label>
+        <FilterBar.Field label="Unidade">
           <Select value={fUnidade} onValueChange={changeUnidadeFiltro}>
             <SelectTrigger>
               <SelectValue />
@@ -1208,9 +1207,8 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Vínculo</Label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Vínculo">
           <Select value={fVinculo} onValueChange={setFVinculo}>
             <SelectTrigger>
               <SelectValue />
@@ -1224,9 +1222,8 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Status</Label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Status">
           <Select value={fStatus} onValueChange={setFStatus}>
             <SelectTrigger>
               <SelectValue />
@@ -1240,9 +1237,8 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Cargo</Label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Cargo">
           <Select value={fCargo} onValueChange={setFCargo}>
             <SelectTrigger>
               <SelectValue />
@@ -1256,9 +1252,8 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Função</Label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Função">
           <Select value={fFuncao} onValueChange={setFFuncao}>
             <SelectTrigger>
               <SelectValue />
@@ -1272,9 +1267,8 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Setor</Label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Setor">
           <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
             <SelectTrigger>
               <SelectValue placeholder={fUnidade === "todos" ? "Selecione uma unidade" : "Todos"} />
@@ -1288,7 +1282,7 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </FilterBar.Field>
       </FilterBar>
 
       <DataTable<Profissional>

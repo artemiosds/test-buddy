@@ -111,8 +111,7 @@ function GestaoRhContent() {
       />
 
       <FilterBar>
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Competência</label>
+        <FilterBar.Field label="Competência">
           <Select
             value={filters.competenciaId ?? NONE}
             onValueChange={(v) => setFilters({ competenciaId: v === NONE ? null : v })}
@@ -125,9 +124,8 @@ function GestaoRhContent() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Unidade</label>
+        </FilterBar.Field>
+        <FilterBar.Field label="Unidade">
           <Select
             value={filters.unidadeId ?? NONE}
             onValueChange={(v) => setFilters({ unidadeId: v === NONE ? null : v })}
@@ -140,7 +138,7 @@ function GestaoRhContent() {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </FilterBar.Field>
       </FilterBar>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
