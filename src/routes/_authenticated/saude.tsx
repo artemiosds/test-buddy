@@ -347,6 +347,67 @@ function SaudePage() {
           </Card>
         </div>
       </section>
+
+      <BreakersSection />
     </div>
+  );
+}
+
+function BreakersSection() {
+  const [snap, setSnap] = useState<BreakerSnapshot[]>(() => listBreakers());
+  useEffect(() => {
+    const tick = () => setSnap(listBreakers());
+    tick();
+    const off = subscribeBreakers(tick);
+    const iv = setInterval(tick, 5_000);
+    return () => { off(); clearInterval(iv); };
+  }, []);
+
+  const badgeFor = (s: BreakerSnapshot) => {
+    if (s.state === "open") return <Badge variant="destructive">aberto</Badge>;
+    if (s.state === "half_open") return <Badge variant="secondary">meia-abertura</Badge>;
+    return <Badge variant="outline">fechado</Badge>;
+  };
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <Zap className="h-5 w-5" /> Disjuntores de RPC
+      </h2>
+      <Card className="p-4">
+        {snap.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum disjuntor registrado ainda.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left py-1">RPC</th>
+                <th className="text-left">Estado</th>
+                <th className="text-left">Falhas (janela)</th>
+                <th className="text-left">Tripes</th>
+                <th className="text-left">Próxima tentativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snap.map((s) => (
+                <tr key={s.key} className="border-t border-border">
+                  <td className="py-1 font-mono text-xs">{s.key}</td>
+                  <td>{badgeFor(s)}</td>
+                  <td>{s.failures}</td>
+                  <td>{s.totalTrips}</td>
+                  <td className="text-xs text-muted-foreground">
+                    {s.state === "open" && s.nextAttemptAt ? formatDateTime(new Date(s.nextAttemptAt).toISOString()) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Regra: 5 falhas em 30s abrem o disjuntor por 60s. Em meia-abertura, uma requisição de teste decide se ele
+          volta a fechar ou reabre por mais 60s. Fallback degradado seguro é aplicado quando disponível.
+        </p>
+      </Card>
+    </section>
   );
 }
