@@ -4,6 +4,7 @@ import { Building2, Users, Layers, AlertCircle, ArrowUp, ArrowDown } from "lucid
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useUnidadesLookup, useSetoresLookup, useCargosLookup } from "@/hooks/use-lookups";
+import { PermissionGate } from "@/components/permission-gate";
 import {
   EmptyState, KpiCard, PageHeader, DataTable, FilterBar,
   type DataTableColumn,
@@ -19,7 +20,14 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/lotacao")({
       { name: "description", content: "Quadro consolidado por Unidade, Setor, Cargo e Função." },
     ],
   }),
-  component: QuadroLotacaoPage,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <QuadroLotacaoPage />
+    </PermissionGate>
+  ),
 });
 
 /**

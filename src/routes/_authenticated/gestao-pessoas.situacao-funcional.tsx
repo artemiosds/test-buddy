@@ -3,6 +3,7 @@ import { UserCheck, UserMinus, Umbrella, FileText, UserX } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-funcional")({
   head: () => ({
@@ -11,7 +12,14 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-fu
       { name: "description", content: "Distribuição dos profissionais por situação funcional." },
     ],
   }),
-  component: SituacaoFuncional,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <SituacaoFuncional />
+    </PermissionGate>
+  ),
 });
 
 const ORDER: { key: string; label: string; icon: React.ReactNode; tone?: "success" | "warning" | "danger" }[] = [

@@ -5,6 +5,7 @@ import { ArrowLeft, Briefcase, Users, Building2, Layers, Search } from "lucide-r
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { PermissionGate } from "@/components/permission-gate";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, StatusBadge,
   type DataTableColumn,
@@ -17,7 +18,7 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export const Route = createFileRoute("/_authenticated/cargos/")({
+export const Route = createFileRoute("/_authenticated/cargos/$id")({
   component: CargoPainel,
   errorComponent: ({ error }) => (
     <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
@@ -26,6 +27,17 @@ export const Route = createFileRoute("/_authenticated/cargos/")({
 });
 
 function CargoPainel() {
+  return (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <CargoPainelContent />
+    </PermissionGate>
+  );
+}
+
+function CargoPainelContent() {
   const { id } = Route.useParams();
 
   const metaQ = useQuery({

@@ -19,6 +19,7 @@ import {
   PageHeader, KpiCard, DataTable, EmptyState, FilterBar, StatusBadge,
   type DataTableColumn,
 } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,14 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/sala-situacao")({
-  component: SalaSituacaoPage,
+  component: () => (
+    <PermissionGate
+      permission="profissional.visualizar"
+      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+    >
+      <SalaSituacaoPage />
+    </PermissionGate>
+  ),
   errorComponent: ({ error }) => (
     <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
   ),
