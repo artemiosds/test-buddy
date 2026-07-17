@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -124,7 +125,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       let q = supabase
         .from("frequencias")
         .select(
-          "id, status, total_profissionais, total_faltas, total_horas_extras, competencia_unidades!inner(competencia_id, unidade_id, unidades!inner(id, nome, sigla))",
+          "status, total_profissionais, total_faltas, total_horas_extras, competencia_unidades!inner(unidade_id, unidades!inner(id, nome, sigla))",
         )
         .is("deleted_at", null)
         .eq("competencia_unidades.competencia_id", competenciaId as string);
@@ -137,13 +138,27 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     },
   });
 
-  const rows = frequencias.data ?? [];
-  const frequenciasEnviadas = countByStatus(rows, STATUS_ENVIADAS);
-  const frequenciasPendentes = countByStatus(rows, STATUS_PENDENTES);
-  const frequenciasAprovadas = countByStatus(rows, STATUS_APROVADAS);
-  const totalHorasExtras = sumField(rows, "total_horas_extras");
-  const totalFaltas = sumField(rows, "total_faltas");
-  const ranking = buildRanking(rows);
+  // 9D: memoiza agregações — só recomputa quando o array de linhas muda de
+  // referência (React Query estabiliza a referência entre renders).
+  const aggregates = useMemo(() => {
+    const rows = frequencias.data ?? [];
+    return {
+      frequenciasEnviadas: countByStatus(rows, STATUS_ENVIADAS),
+      frequenciasPendentes: countByStatus(rows, STATUS_PENDENTES),
+      frequenciasAprovadas: countByStatus(rows, STATUS_APROVADAS),
+      totalHorasExtras: sumField(rows, "total_horas_extras"),
+      totalFaltas: sumField(rows, "total_faltas"),
+      ranking: buildRanking(rows),
+    };
+  }, [frequencias.data]);
+  const {
+    frequenciasEnviadas,
+    frequenciasPendentes,
+    frequenciasAprovadas,
+    totalHorasExtras,
+    totalFaltas,
+    ranking,
+  } = aggregates;
 
   return {
     competenciaAtiva,
