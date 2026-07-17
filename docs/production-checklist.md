@@ -76,9 +76,12 @@ Itens conhecidos e conscientemente adiados. **Nenhum bloqueia produção.**
 - **Sublote 5D.1** — ✔ concluído na Onda 7A: fluxo self-service de
   recuperação 2FA via código de backup implementado na tela de login
   (`verify_and_consume_backup_code` + `consumeBackupCodeAndUnenroll`).
-- **Leaked Password Protection** (Supabase Auth): habilitar no dashboard.
-- **`pg_net`** já movido para schema `extensions` (Onda 5). Nenhum outro
-  débito de schema.
+- **Leaked Password Protection** (Supabase Auth): documentado em
+  `docs/hardening-manual.md` (Sublote 7D). Ativação manual de 1 clique
+  no dashboard; sem impacto em código.
+- **Extensões em `public`:** ✔ zero pendências. `pg_net` foi movido
+  para `extensions` na Onda 5; procedimento de verificação e mitigação
+  documentado em `docs/hardening-manual.md`.
 
 ## 5. Ação manual pós-deploy
 
