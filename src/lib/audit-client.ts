@@ -49,8 +49,8 @@ async function callRpc(operacao: AuditOperacao, acao: AuditAcao, opts: LogOpts =
       _operacao: operacao,
       _acao: acao,
       _contexto: (opts.contexto ?? {}) as never,
-      _user_agent: safeUserAgent(),
-      _registro_id: opts.registro_id ?? null,
+      _user_agent: safeUserAgent() ?? undefined,
+      _registro_id: opts.registro_id ?? undefined,
       _tabela: opts.tabela ?? "_client_action",
     });
     if (error) {
