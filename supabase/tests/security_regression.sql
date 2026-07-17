@@ -1,39 +1,49 @@
 -- =============================================================================
--- Security regression smoke tests
+-- Security regression smoke tests  (output em tabela — SQL Editor friendly)
 -- =============================================================================
 -- Cobertura:
 --   5A.1 — guards SECURITY DEFINER: is_master, has_permission,
 --          user_has_unit, user_has_secretaria, proximo_numero_pendencia
 --   5C.2 — policies estreitadas: usuarios / usuario_permissoes SELECT
---          (usuario.gerenciar escopado por secretaria)
 --   Regressão: get_my_user_context() legível pelo próprio usuário.
 --
--- COMO RODAR
+-- COMO RODAR (SQL Editor do Supabase)
 -- ---------------------------------------------------------------------------
--- Este script NÃO contém UUIDs reais. Ele lê dois GUCs obrigatórios:
---   app.test_master_id   — UUID de um usuário Master de teste
---   app.test_common_id   — UUID de um usuário comum (não-master) de teste
+-- Cole em UMA execução, na ordem:
 --
--- Ambos devem existir em auth.users e public.usuarios. Se algum não estiver
--- definido, o script aborta na primeira asserção com mensagem clara.
+--   SET app.test_master_id = '<uuid-master>';
+--   SET app.test_common_id = '<uuid-comum>';
+--   -- ... todo o conteúdo abaixo ...
 --
--- Exemplo de execução (não commitar UUIDs reais em nenhum lugar do repo):
+-- Não commite os UUIDs em lugar nenhum do repo.
 --
---   psql "$DATABASE_URL" \
---     -v ON_ERROR_STOP=1 \
---     -c "SET app.test_master_id = '<uuid-master>';" \
---     -c "SET app.test_common_id = '<uuid-comum>';" \
---     -f supabase/tests/security_regression.sql
+-- O resultado sai como uma grade na aba de resultados:
 --
--- Em CI, injete os UUIDs a partir de secrets — nunca do arquivo.
+--   seq | grupo | label                                 | status | detail
+--   ----+-------+---------------------------------------+--------+--------
+--     1 | 5A.1  | is_master(alheio) como comum → 42501  | OK     |
+--     2 | 5A.1  | is_master(self) como comum → sem erro | OK     |
+--     ...
+--
+-- Nenhum RAISE NOTICE é emitido para os testes — falhas viram linhas com
+-- status='FAIL' + explicação em 'detail'. O script NÃO faz writes em nenhuma
+-- tabela real: só cria funções em pg_temp e lê tabelas via RLS.
 -- =============================================================================
 
-\set ON_ERROR_STOP on
-
-BEGIN;
+-- ---------------------------------------------------------------------------
+-- Acumulador de resultados (temp table de sessão)
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS _sec_test_results;
+CREATE TEMP TABLE _sec_test_results (
+  seq    serial PRIMARY KEY,
+  grupo  text,
+  label  text,
+  status text,          -- 'OK' | 'FAIL' | 'SKIP'
+  detail text
+);
 
 -- ---------------------------------------------------------------------------
--- 0. Sanity — GUCs presentes e usuários existem
+-- 0. Sanity — GUCs presentes e usuários existem (aborta com erro se faltar)
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -42,11 +52,11 @@ DECLARE
 BEGIN
   IF v_master IS NULL OR v_master = '' THEN
     RAISE EXCEPTION
-      'GUC app.test_master_id não definido. Passe via psql -c "SET app.test_master_id = ''<uuid>'';" antes do -f.';
+      'GUC app.test_master_id não definido. Rode "SET app.test_master_id = ''<uuid>'';" no mesmo batch.';
   END IF;
   IF v_common IS NULL OR v_common = '' THEN
     RAISE EXCEPTION
-      'GUC app.test_common_id não definido. Passe via psql -c "SET app.test_common_id = ''<uuid>'';" antes do -f.';
+      'GUC app.test_common_id não definido. Rode "SET app.test_common_id = ''<uuid>'';" no mesmo batch.';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.usuarios WHERE id = v_master::uuid) THEN
     RAISE EXCEPTION 'app.test_master_id (%) não existe em public.usuarios', v_master;
@@ -56,8 +66,9 @@ BEGIN
   END IF;
 END $$;
 
--- Helpers para trocar de identidade dentro da transação.
--- request.jwt.claims é o que auth.uid() lê no runtime do Supabase.
+-- ---------------------------------------------------------------------------
+-- Helpers de sessão e assert (não lançam exceção nos testes — inserem linhas)
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pg_temp.sec_login(_uid uuid) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -76,163 +87,174 @@ BEGIN
   RESET ROLE;
 END $$;
 
--- Executa um SQL como authenticated(_uid) e afirma que ele levanta SQLSTATE 42501.
-CREATE OR REPLACE FUNCTION pg_temp.expect_denied(_uid uuid, _sql text, _label text)
-RETURNS void LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.rec(
+  _grupo text, _label text, _status text, _detail text DEFAULT NULL
+) RETURNS void LANGUAGE sql AS $$
+  INSERT INTO _sec_test_results(grupo, label, status, detail)
+  VALUES (_grupo, _label, _status, _detail);
+$$;
+
+-- Executa _sql como authenticated(_uid) e registra OK se levantar 42501,
+-- FAIL caso contrário. Nunca propaga a exceção.
+CREATE OR REPLACE FUNCTION pg_temp.expect_denied(
+  _grupo text, _uid uuid, _sql text, _label text
+) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
   v_state text;
+  v_msg   text;
 BEGIN
   PERFORM pg_temp.sec_login(_uid);
   BEGIN
     EXECUTE _sql;
     PERFORM pg_temp.sec_logout();
-    RAISE EXCEPTION 'FAIL [%]: esperado 42501 (permission denied), mas execução foi bem-sucedida.', _label;
+    PERFORM pg_temp.rec(_grupo, _label, 'FAIL', 'esperava 42501, execução foi bem-sucedida');
+    RETURN;
   EXCEPTION
     WHEN insufficient_privilege THEN
       PERFORM pg_temp.sec_logout();
-      RAISE NOTICE 'OK   [%]: bloqueado com 42501 como esperado.', _label;
+      PERFORM pg_temp.rec(_grupo, _label, 'OK', NULL);
+      RETURN;
     WHEN OTHERS THEN
-      GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE;
+      GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT;
       PERFORM pg_temp.sec_logout();
-      RAISE EXCEPTION 'FAIL [%]: esperado 42501, obtido SQLSTATE %: %', _label, v_state, SQLERRM;
+      PERFORM pg_temp.rec(_grupo, _label, 'FAIL',
+        format('esperava 42501, obteve SQLSTATE %s: %s', v_state, v_msg));
+      RETURN;
   END;
 END $$;
 
--- Executa como authenticated(_uid) e afirma que retorna sem erro.
-CREATE OR REPLACE FUNCTION pg_temp.expect_ok(_uid uuid, _sql text, _label text)
-RETURNS void LANGUAGE plpgsql AS $$
+-- Executa _sql como authenticated(_uid) e registra OK se retornar sem erro,
+-- FAIL se qualquer exceção acontecer. Nunca propaga.
+CREATE OR REPLACE FUNCTION pg_temp.expect_ok(
+  _grupo text, _uid uuid, _sql text, _label text
+) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE
+  v_state text;
+  v_msg   text;
 BEGIN
   PERFORM pg_temp.sec_login(_uid);
   BEGIN
     EXECUTE _sql;
     PERFORM pg_temp.sec_logout();
-    RAISE NOTICE 'OK   [%]: executou sem erro.', _label;
+    PERFORM pg_temp.rec(_grupo, _label, 'OK', NULL);
+    RETURN;
   EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT;
     PERFORM pg_temp.sec_logout();
-    RAISE EXCEPTION 'FAIL [%]: erro inesperado (%): %', _label, SQLSTATE, SQLERRM;
+    PERFORM pg_temp.rec(_grupo, _label, 'FAIL',
+      format('erro inesperado SQLSTATE %s: %s', v_state, v_msg));
+    RETURN;
   END;
 END $$;
-
--- ---------------------------------------------------------------------------
--- UUIDs são lidos via current_setting('app.test_*') dentro de cada bloco DO.
--- Nada de \set + shell aqui — o script é auto-contido no psql.
--- ---------------------------------------------------------------------------
 
 -- =============================================================================
 -- 5A.1 — Guards SECURITY DEFINER
 -- =============================================================================
 
--- is_master: usuário comum não pode consultar status de outro usuário.
+-- is_master
 DO $$
 DECLARE
   v_master uuid := current_setting('app.test_master_id')::uuid;
   v_common uuid := current_setting('app.test_common_id')::uuid;
 BEGIN
-  PERFORM pg_temp.expect_denied(
-    v_common,
+  PERFORM pg_temp.expect_denied('5A.1', v_common,
     format('SELECT public.is_master(%L::uuid)', v_master),
-    'is_master(alheio) como comum → 42501'
-  );
-  PERFORM pg_temp.expect_ok(
-    v_common,
+    'is_master(alheio) como comum → 42501');
+  PERFORM pg_temp.expect_ok('5A.1', v_common,
     format('SELECT public.is_master(%L::uuid)', v_common),
-    'is_master(self) como comum → sem erro'
-  );
-  PERFORM pg_temp.expect_ok(
-    v_master,
+    'is_master(self) como comum → sem erro');
+  PERFORM pg_temp.expect_ok('5A.1', v_master,
     format('SELECT public.is_master(%L::uuid)', v_common),
-    'is_master(alheio) como master → sem erro'
-  );
+    'is_master(alheio) como master → sem erro');
 END $$;
 
--- has_permission: usuário comum não pode consultar permissões alheias.
+-- has_permission
 DO $$
 DECLARE
   v_master uuid := current_setting('app.test_master_id')::uuid;
   v_common uuid := current_setting('app.test_common_id')::uuid;
 BEGIN
-  PERFORM pg_temp.expect_denied(
-    v_common,
+  PERFORM pg_temp.expect_denied('5A.1', v_common,
     format('SELECT public.has_permission(%L::uuid, %L)', v_master, 'usuario.gerenciar'),
-    'has_permission(alheio, x) como comum → 42501'
-  );
-  PERFORM pg_temp.expect_ok(
-    v_common,
+    'has_permission(alheio, x) como comum → 42501');
+  PERFORM pg_temp.expect_ok('5A.1', v_common,
     format('SELECT public.has_permission(%L::uuid, %L)', v_common, 'usuario.gerenciar'),
-    'has_permission(self, x) como comum → sem erro'
-  );
+    'has_permission(self, x) como comum → sem erro');
 END $$;
 
--- user_has_unit / user_has_secretaria: comum não consulta vínculos alheios.
+-- user_has_unit / user_has_secretaria
 DO $$
 DECLARE
   v_master uuid := current_setting('app.test_master_id')::uuid;
   v_common uuid := current_setting('app.test_common_id')::uuid;
   v_dummy  uuid := '00000000-0000-0000-0000-000000000000';
 BEGIN
-  PERFORM pg_temp.expect_denied(
-    v_common,
+  PERFORM pg_temp.expect_denied('5A.1', v_common,
     format('SELECT public.user_has_unit(%L::uuid, %L::uuid)', v_master, v_dummy),
-    'user_has_unit(alheio) como comum → 42501'
-  );
-  PERFORM pg_temp.expect_denied(
-    v_common,
+    'user_has_unit(alheio) como comum → 42501');
+  PERFORM pg_temp.expect_denied('5A.1', v_common,
     format('SELECT public.user_has_secretaria(%L::uuid, %L::uuid)', v_master, v_dummy),
-    'user_has_secretaria(alheio) como comum → 42501'
-  );
-  PERFORM pg_temp.expect_ok(
-    v_common,
+    'user_has_secretaria(alheio) como comum → 42501');
+  PERFORM pg_temp.expect_ok('5A.1', v_common,
     format('SELECT public.user_has_unit(%L::uuid, %L::uuid)', v_common, v_dummy),
-    'user_has_unit(self) como comum → sem erro'
-  );
-  PERFORM pg_temp.expect_ok(
-    v_common,
+    'user_has_unit(self) como comum → sem erro');
+  PERFORM pg_temp.expect_ok('5A.1', v_common,
     format('SELECT public.user_has_secretaria(%L::uuid, %L::uuid)', v_common, v_dummy),
-    'user_has_secretaria(self) como comum → sem erro'
-  );
+    'user_has_secretaria(self) como comum → sem erro');
 END $$;
 
--- proximo_numero_pendencia: exige pendencia.criar; comum de teste não tem.
+-- proximo_numero_pendencia (assinatura: proximo_numero_pendencia(_secretaria_id uuid))
 DO $$
 DECLARE
   v_common uuid := current_setting('app.test_common_id')::uuid;
   v_dummy  uuid := '00000000-0000-0000-0000-000000000000';
 BEGIN
   IF public.has_permission(v_common, 'pendencia.criar') THEN
-    RAISE NOTICE 'SKIP [proximo_numero_pendencia]: app.test_common_id tem pendencia.criar; asserção não aplicável.';
+    PERFORM pg_temp.rec('5A.1',
+      'proximo_numero_pendencia sem pendencia.criar → 42501',
+      'SKIP', 'app.test_common_id tem pendencia.criar');
   ELSE
-    PERFORM pg_temp.expect_denied(
-      v_common,
+    PERFORM pg_temp.expect_denied('5A.1', v_common,
       format('SELECT public.proximo_numero_pendencia(%L::uuid)', v_dummy),
-      'proximo_numero_pendencia sem pendencia.criar → 42501'
-    );
+      'proximo_numero_pendencia sem pendencia.criar → 42501');
   END IF;
 END $$;
 
 -- =============================================================================
--- Regressão — get_my_user_context é legível pelo próprio usuário
+-- Regressão — get_my_user_context legível pelo próprio usuário
 -- =============================================================================
 DO $$
 DECLARE
   v_common uuid := current_setting('app.test_common_id')::uuid;
   v_count  int;
+  v_state  text;
+  v_msg    text;
 BEGIN
   PERFORM pg_temp.sec_login(v_common);
-  SELECT COUNT(*) INTO v_count FROM public.get_my_user_context();
-  PERFORM pg_temp.sec_logout();
-  IF v_count < 1 THEN
-    RAISE EXCEPTION 'FAIL [get_my_user_context]: esperado ≥1 linha para o próprio usuário, obtido %.', v_count;
-  END IF;
-  RAISE NOTICE 'OK   [get_my_user_context]: retornou % linha(s).', v_count;
+  BEGIN
+    SELECT COUNT(*) INTO v_count FROM public.get_my_user_context();
+    PERFORM pg_temp.sec_logout();
+    IF v_count < 1 THEN
+      PERFORM pg_temp.rec('regressão',
+        'get_my_user_context() como próprio usuário → ≥1 linha',
+        'FAIL', format('obteve %s linha(s)', v_count));
+    ELSE
+      PERFORM pg_temp.rec('regressão',
+        'get_my_user_context() como próprio usuário → ≥1 linha',
+        'OK', format('%s linha(s)', v_count));
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT;
+    PERFORM pg_temp.sec_logout();
+    PERFORM pg_temp.rec('regressão',
+      'get_my_user_context() como próprio usuário → ≥1 linha',
+      'FAIL', format('SQLSTATE %s: %s', v_state, v_msg));
+  END;
 END $$;
 
 -- =============================================================================
 -- 5C.2 — Policies estreitadas de usuarios / usuario_permissoes
 -- =============================================================================
--- Comum sem usuario.gerenciar deve enxergar APENAS a própria linha em
--- public.usuarios e apenas seus próprios overrides em usuario_permissoes.
--- Master deve enxergar > que o comum.
-
 DO $$
 DECLARE
   v_master uuid := current_setting('app.test_master_id')::uuid;
@@ -242,7 +264,12 @@ DECLARE
   v_perm_common  int;
 BEGIN
   IF public.has_permission(v_common, 'usuario.gerenciar') THEN
-    RAISE NOTICE 'SKIP [5C.2 usuarios]: app.test_common_id tem usuario.gerenciar; asserção não aplicável.';
+    PERFORM pg_temp.rec('5C.2',
+      'comum sem usuario.gerenciar vê só a si em usuarios',
+      'SKIP', 'app.test_common_id tem usuario.gerenciar');
+    PERFORM pg_temp.rec('5C.2',
+      'comum sem usuario.gerenciar vê 0 overrides alheios em usuario_permissoes',
+      'SKIP', 'app.test_common_id tem usuario.gerenciar');
   ELSE
     PERFORM pg_temp.sec_login(v_common);
     SELECT COUNT(*) INTO v_count_common FROM public.usuarios;
@@ -251,34 +278,55 @@ BEGIN
       WHERE usuario_id <> v_common;
     PERFORM pg_temp.sec_logout();
 
-    IF v_count_common <> 1 THEN
-      RAISE EXCEPTION
-        'FAIL [5C.2 usuarios]: comum deveria ver exatamente 1 linha em public.usuarios (a si), viu %.',
-        v_count_common;
+    IF v_count_common = 1 THEN
+      PERFORM pg_temp.rec('5C.2',
+        'comum sem usuario.gerenciar vê só a si em usuarios',
+        'OK', NULL);
+    ELSE
+      PERFORM pg_temp.rec('5C.2',
+        'comum sem usuario.gerenciar vê só a si em usuarios',
+        'FAIL', format('viu %s linha(s), esperado 1', v_count_common));
     END IF;
-    IF v_perm_common <> 0 THEN
-      RAISE EXCEPTION
-        'FAIL [5C.2 usuario_permissoes]: comum viu % overrides de OUTROS usuários; esperado 0.',
-        v_perm_common;
+
+    IF v_perm_common = 0 THEN
+      PERFORM pg_temp.rec('5C.2',
+        'comum sem usuario.gerenciar vê 0 overrides alheios em usuario_permissoes',
+        'OK', NULL);
+    ELSE
+      PERFORM pg_temp.rec('5C.2',
+        'comum sem usuario.gerenciar vê 0 overrides alheios em usuario_permissoes',
+        'FAIL', format('viu %s override(s) de outros usuários', v_perm_common));
     END IF;
-    RAISE NOTICE 'OK   [5C.2]: comum vê 1 linha em usuarios e 0 overrides alheios.';
   END IF;
 
   PERFORM pg_temp.sec_login(v_master);
   SELECT COUNT(*) INTO v_count_master FROM public.usuarios;
   PERFORM pg_temp.sec_logout();
 
-  IF v_count_master < 2 THEN
-    RAISE EXCEPTION
-      'FAIL [5C.2 master]: master deveria ver ≥2 linhas em public.usuarios, viu %.',
-      v_count_master;
+  IF v_count_master >= 2 THEN
+    PERFORM pg_temp.rec('5C.2',
+      'master vê ≥2 linhas em usuarios',
+      'OK', format('%s linha(s)', v_count_master));
+  ELSE
+    PERFORM pg_temp.rec('5C.2',
+      'master vê ≥2 linhas em usuarios',
+      'FAIL', format('viu %s linha(s)', v_count_master));
   END IF;
-  RAISE NOTICE 'OK   [5C.2 master]: master vê % linhas em usuarios.', v_count_master;
 END $$;
 
--- Rollback: script é apenas leitura + asserções, nada persistido.
-ROLLBACK;
+-- =============================================================================
+-- Resultado (grade final + resumo)
+-- =============================================================================
+SELECT seq, grupo, label, status, detail
+FROM _sec_test_results
+ORDER BY seq;
 
-\echo '============================================================'
-\echo ' security_regression.sql: TODOS OS TESTES PASSARAM.'
-\echo '============================================================'
+-- Resumo agregado — última query da execução; alguns clientes mostram só a
+-- última grade, outros mostram todas. Se seu editor mostra só a última,
+-- comente esta linha e mantenha o SELECT acima.
+SELECT
+  COUNT(*)                                    AS total,
+  COUNT(*) FILTER (WHERE status = 'OK')       AS ok,
+  COUNT(*) FILTER (WHERE status = 'FAIL')     AS fail,
+  COUNT(*) FILTER (WHERE status = 'SKIP')     AS skip
+FROM _sec_test_results;
