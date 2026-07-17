@@ -55,7 +55,15 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
     const sb = a.statusBreakdown.data ?? {};
     const afastados = sb["afastado"] ?? 0;
     const alertas = a.alertas.data;
-    const semLotacao = Math.max(alertas?.semUnidade ?? 0, alertas?.semSetor ?? 0);
+    // "Sem lotação" = união aproximada de unidade/setor/cargo/função.
+    // Usamos o maior valor para evitar contagem duplicada (o mesmo profissional
+    // pode faltar mais de um campo). Reflete a regra do card.
+    const semLotacao = Math.max(
+      alertas?.semUnidade ?? 0,
+      alertas?.semSetor ?? 0,
+      alertas?.semCargo ?? 0,
+      alertas?.semFuncao ?? 0,
+    );
 
     const semaforo = classifySemaforo({
       totalProfessionals: total,
@@ -64,6 +72,7 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
       semLotacao,
       unidadesSemGestor: alertas?.unidadesSemGestor ?? 0,
       horasExtras: a.totalHorasExtras,
+      frequenciasPendentes: a.frequenciasPendentes,
     });
 
     const integ = a.integridade.data;

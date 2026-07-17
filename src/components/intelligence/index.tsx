@@ -30,9 +30,9 @@ import type {
 // ----------------- Semáforo -----------------
 
 const NIVEL_LABEL = {
-  ok: "Operação Normal",
+  ok: "Regular",
   atencao: "Atenção",
-  critico: "Situação Crítica",
+  critico: "Crítico",
 } as const;
 
 const NIVEL_STYLE = {
@@ -74,7 +74,7 @@ export function SemaforoCard({
           </span>
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Semáforo Executivo
+              Status da Força de Trabalho
             </div>
             <CardTitle className="text-lg">{NIVEL_LABEL[semaforo.nivel]}</CardTitle>
           </div>

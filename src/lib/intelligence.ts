@@ -10,9 +10,12 @@ export type SemaforoInput = {
   totalProfessionals: number;
   afastados: number;
   pendencias: number;
-  semLotacao: number; // semUnidade + semSetor (dedupe via max — aproximação)
+  /** Profissionais sem lotação (união aproximada de unidade/setor/cargo/função — usa o maior valor). */
+  semLotacao: number;
   unidadesSemGestor: number;
   horasExtras: number;
+  /** Frequências pendentes do período (competência) ativo. */
+  frequenciasPendentes?: number;
 };
 
 export type SemaforoResult = {
@@ -30,50 +33,35 @@ export function classifySemaforo(input: SemaforoInput): SemaforoResult {
     else if (novo === "atencao" && nivel === "ok") nivel = "atencao";
   };
 
-  const pctAfast =
-    input.totalProfessionals > 0
-      ? (input.afastados / input.totalProfessionals) * 100
-      : 0;
-
-  if (input.pendencias >= T.pendenciasCritico) {
-    motivos.push(`${input.pendencias} pendências abertas (crítico)`);
+  // Regra de classificação — "Status da Força de Trabalho":
+  //  🔴 Crítico  se pendências vencidas > 0  OU  unidades sem gestor > 0
+  //  🟡 Atenção se profissionais sem lotação > 0  OU  frequências pendentes > 0
+  //  🟢 Regular caso contrário
+  // Observação: o backend expõe `pendências abertas` (não separa "vencidas"),
+  // e o painel usa esse valor como aproximação segura — melhor errar para o
+  // lado de sinalizar do que ocultar.
+  if (input.pendencias > 0) {
+    motivos.push(`${input.pendencias} pendência(s) em aberto`);
     bump("critico");
-  } else if (input.pendencias >= T.pendenciasAtencao) {
-    motivos.push(`${input.pendencias} pendências abertas`);
-    bump("atencao");
   }
-
-  if (pctAfast >= T.afastadosCriticoPct) {
-    motivos.push(`${pctAfast.toFixed(1)}% de profissionais afastados`);
-    bump("critico");
-  } else if (pctAfast >= T.afastadosAtencaoPct) {
-    motivos.push(`${pctAfast.toFixed(1)}% afastados`);
-    bump("atencao");
-  }
-
-  if (input.semLotacao >= T.semLotacaoCritico) {
-    motivos.push(`${input.semLotacao} profissionais sem lotação`);
-    bump("critico");
-  } else if (input.semLotacao >= T.semLotacaoAtencao) {
-    motivos.push(`${input.semLotacao} profissionais sem lotação`);
-    bump("atencao");
-  }
-
-  if (input.unidadesSemGestor >= T.unidadesSemGestorCritico) {
-    motivos.push(`${input.unidadesSemGestor} unidades sem gestor`);
-    bump("critico");
-  } else if (input.unidadesSemGestor >= T.unidadesSemGestorAtencao) {
+  if (input.unidadesSemGestor > 0) {
     motivos.push(`${input.unidadesSemGestor} unidade(s) sem gestor`);
-    bump("atencao");
-  }
-
-  if (input.horasExtras >= T.horasExtrasCritico) {
-    motivos.push(`Horas extras acima de ${T.horasExtrasCritico}h`);
     bump("critico");
-  } else if (input.horasExtras >= T.horasExtrasAtencao) {
-    motivos.push(`Horas extras elevadas`);
+  }
+  if (input.semLotacao > 0) {
+    motivos.push(`${input.semLotacao} profissional(is) sem lotação (unidade/setor/cargo/função)`);
     bump("atencao");
   }
+  if ((input.frequenciasPendentes ?? 0) > 0) {
+    motivos.push(`${input.frequenciasPendentes} frequência(s) pendente(s) no período ativo`);
+    bump("atencao");
+  }
+  // `afastados`, `horasExtras` e `totalProfessionals` ficam disponíveis no
+  // input por compatibilidade com o restante da UI, mas NÃO influenciam este
+  // semáforo — as três condições acima são a única regra vigente.
+  void input.afastados;
+  void input.horasExtras;
+  void input.totalProfessionals;
 
   return { nivel, motivos, contagemAlertas: motivos.length };
 }
@@ -182,7 +170,7 @@ export function generateInsights(input: {
       out.push({
         id: "conc-unidade",
         tipo: "concentracao",
-        texto: `${top.sigla ? `${top.sigla} — ` : ""}${top.nome} concentra ${pct.toFixed(1)}% dos profissionais da Secretaria.`,
+        texto: `${top.sigla ? `${top.sigla} — ` : ""}${top.nome} concentra ${pct.toFixed(1)}% do quadro de profissionais.`,
       });
     }
   }
