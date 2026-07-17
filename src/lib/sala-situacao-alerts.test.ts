@@ -23,10 +23,13 @@ const rank = (over: Partial<RankingRow> = {}): RankingRow => ({
 });
 
 const pend = (over: Partial<PendenciaInput> = {}): PendenciaInput => ({
-  id: over.id ?? "p1",
-  titulo: over.titulo ?? "Pendência X",
-  status: over.status ?? "aberta",
-  created_at: over.created_at ?? new Date(NOW - 10 * DAY).toISOString(),
+  ...{
+    id: "p1",
+    titulo: "Pendência X" as string | null,
+    status: "aberta",
+    created_at: new Date(NOW - 10 * DAY).toISOString(),
+  },
+  ...over,
 });
 
 describe("ALERT_RULES", () => {
