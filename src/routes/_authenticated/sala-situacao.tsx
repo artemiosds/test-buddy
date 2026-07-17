@@ -1,35 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Users,
-  Building2,
-  Network,
-  ClipboardList,
-  AlertCircle,
-  Clock,
-  CalendarRange,
-  MapPin,
-  ArrowRight,
-  RefreshCw,
-  ShieldAlert,
+  Users, Building2, Network, ClipboardList, AlertCircle, Clock, CalendarRange,
+  RefreshCw, ShieldAlert, UserCheck, UserMinus, Umbrella, FileText, ArrowRight,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import {
-  ALERT_RULES,
-  buildAlertas,
-  filterHeCritico,
-  type Alerta,
-} from "@/lib/sala-situacao-alerts";
-import { PageHeader, KpiCard, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
+  useCompetenciasLookup, useUnidadesLookup,
+} from "@/hooks/use-lookups";
+import { ALERT_RULES } from "@/lib/sala-situacao-alerts";
+import {
+  PageHeader, KpiCard, DataTable, EmptyState, FilterBar, StatusBadge,
+  type DataTableColumn,
+} from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/sala-situacao")({
   component: SalaSituacaoPage,
@@ -39,138 +35,208 @@ export const Route = createFileRoute("/_authenticated/sala-situacao")({
   notFoundComponent: () => <div className="p-6">Não encontrado.</div>,
 });
 
-// Regras dos alertas vivem em `@/lib/sala-situacao-alerts` (lógica pura,
-// coberta por Vitest no Sublote 5B).
+const STATUS_LABEL = "Ativos|Afastados|Férias|Licenças".split("|");
+const STATUS_VALUE = ["ativo", "afastado", "ferias", "licenca"];
 
 function SalaSituacaoPage() {
-  const { data: competencia } = useCompetenciaAtiva();
-  // MESMA fonte dos Módulos 01/04/05/07 — não recalcula nada.
-  const a = useAnalytics({});
+  const { data: competenciaAtiva } = useCompetenciaAtiva();
+  const competenciasQ = useCompetenciasLookup();
+  const unidadesQ = useUnidadesLookup({ ativasOnly: true });
 
-  // Últimas movimentações — origem única: audit_log. Mesma fonte usada em
-  // /auditoria; aqui é apenas leitura resumida (top 10).
-  const movQ = useQuery({
-    queryKey: ["sala-situacao", "movimentacoes"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("audit_log")
-        .select("id, ocorrido_em, usuario_email, operacao, tabela, registro_id")
-        .order("ocorrido_em", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const [compSel, setCompSel] = useState<string>("__ativa__");
+  const [unidadeSel, setUnidadeSel] = useState<string>("__all__");
+  const [statusSel, setStatusSel] = useState<string>("__all__");
 
-  // Pendências críticas (regra ALERT_RULES.pendenciaDiasCritico) — origem
-  // única: frequencia_pendencias. Reproduz o mesmo padrão do Módulo 07,
-  // apenas filtrando por idade.
-  const alertPendCriticasQ = useQuery({
-    queryKey: ["sala-situacao", "alertas-pendencias"],
+  const competenciaId =
+    compSel === "__ativa__" ? competenciaAtiva?.id ?? null : compSel;
+  const unidadeId = unidadeSel === "__all__" ? null : unidadeSel;
+  const status = statusSel === "__all__" ? null : statusSel;
+
+  const a = useAnalytics({ competenciaId, unidadeId, status });
+
+  // Pendências críticas (vencidas) — regra ALERT_RULES.pendenciaDiasCritico.
+  const pendCriticasQ = useQuery({
+    queryKey: ["sala-situacao", "pend-criticas", unidadeId],
     staleTime: 60_000,
     queryFn: async () => {
       const cutoff = new Date(
         Date.now() - ALERT_RULES.pendenciaDiasCritico * 24 * 3600 * 1000,
       ).toISOString();
-      const { data, error } = await supabase
+      let q = supabase
         .from("frequencia_pendencias")
-        .select("id, titulo, status, created_at")
+        .select("id, titulo, status, created_at, frequencias!inner(competencia_unidades!inner(unidade_id, unidades(nome, sigla)))")
         .in("status", ["aberta", "respondida"])
         .is("deleted_at", null)
         .lt("created_at", cutoff)
         .order("created_at", { ascending: true })
-        .limit(20);
+        .limit(100);
+      if (unidadeId) q = q.eq("frequencias.competencia_unidades.unidade_id", unidadeId);
+      const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{
+        id: string;
+        titulo: string | null;
+        status: string;
+        created_at: string;
+        frequencias: {
+          competencia_unidades: {
+            unidade_id: string;
+            unidades: { nome: string; sigla: string | null } | null;
+          };
+        };
+      }>;
     },
   });
 
-  // Cobertura geo do mapa — verificação sem simulação.
-  const geoQ = useQuery({
-    queryKey: ["sala-situacao", "geo"],
-    staleTime: 5 * 60_000,
+  // Últimas movimentações — origem: profissional_historico_funcional.
+  const movQ = useQuery({
+    queryKey: ["sala-situacao", "movimentacoes", unidadeId],
+    staleTime: 60_000,
     queryFn: async () => {
-      const totalRes = await supabase
-        .from("unidades")
-        .select("id", { count: "exact", head: true })
-        .is("deleted_at", null);
-      const geoRes = await supabase
-        .from("unidades")
-        .select("id", { count: "exact", head: true })
+      let q = supabase
+        .from("profissional_historico_funcional")
+        .select(
+          "id, data_inicio, tipo_evento, profissional:profissionais(nome_completo), unidade_anterior:unidades!profissional_historico_funcional_unidade_anterior_id_fkey(nome, sigla), unidade_novo:unidades!profissional_historico_funcional_unidade_novo_id_fkey(nome, sigla)",
+        )
         .is("deleted_at", null)
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
-      if (totalRes.error) throw totalRes.error;
-      if (geoRes.error) throw geoRes.error;
-      return { total: totalRes.count ?? 0, comGeo: geoRes.count ?? 0 };
+        .order("data_inicio", { ascending: false })
+        .limit(10);
+      if (unidadeId) {
+        q = q.or(
+          `unidade_novo_id.eq.${unidadeId},unidade_anterior_id.eq.${unidadeId}`,
+        );
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        data_inicio: string;
+        tipo_evento: string;
+        profissional: { nome_completo: string } | null;
+        unidade_anterior: { nome: string; sigla: string | null } | null;
+        unidade_novo: { nome: string; sigla: string | null } | null;
+      }>;
     },
   });
 
-  const heCriticoUnidades = useMemo(
-    () => filterHeCritico(a.ranking),
+  // Rankings vindos de useAnalytics (mesma fonte usada nas demais telas).
+  const rankingUnidades = a.ranking.slice(0, 10);
+  const rankingSetores = (a.distribuicaoSetor.data ?? []).slice(0, 10);
+  const rankingCargos = (a.distribuicaoCargo.data ?? []).slice(0, 10);
+  const rankingFuncoes = (a.distribuicaoFuncao.data ?? []).slice(0, 10);
+  // "Maiores HE" — o dado disponível no modelo é por unidade (limitação
+  // documentada no Módulo 05). Reordenamos o ranking por HE.
+  const rankingHe = useMemo(
+    () => [...a.ranking].sort((x, y) => y.total_horas_extras - x.total_horas_extras).slice(0, 10),
     [a.ranking],
   );
+  // "Unidades críticas" — mais pendências vencidas.
+  const rankingCriticas = useMemo(() => {
+    const map = new Map<string, { unidade_id: string; unidade_nome: string; sigla: string | null; total: number }>();
+    for (const p of pendCriticasQ.data ?? []) {
+      const cu = p.frequencias?.competencia_unidades;
+      if (!cu?.unidade_id) continue;
+      const cur = map.get(cu.unidade_id) ?? {
+        unidade_id: cu.unidade_id,
+        unidade_nome: cu.unidades?.nome ?? "—",
+        sigla: cu.unidades?.sigla ?? null,
+        total: 0,
+      };
+      cur.total += 1;
+      map.set(cu.unidade_id, cur);
+    }
+    return Array.from(map.values()).sort((x, y) => y.total - x.total).slice(0, 10);
+  }, [pendCriticasQ.data]);
 
-  const alertas: Alerta[] = useMemo(
-    () =>
-      buildAlertas({
-        pendencias: alertPendCriticasQ.data ?? [],
-        ranking: a.ranking,
-        frequenciasPendentes: a.frequenciasPendentes,
-      }),
-    [alertPendCriticasQ.data, a.ranking, a.frequenciasPendentes],
-  );
+  // KPIs de status — quando "Todos", derivamos do statusBreakdown.
+  const sb = a.statusBreakdown.data ?? {};
+  const kpiAtivos = status ? (status === "ativo" ? a.totalProfessionals.data ?? 0 : 0) : sb["ativo"] ?? 0;
+  const kpiAfast = status ? (status === "afastado" ? a.totalProfessionals.data ?? 0 : 0) : sb["afastado"] ?? 0;
+  const kpiFerias = status ? (status === "ferias" ? a.totalProfessionals.data ?? 0 : 0) : sb["ferias"] ?? 0;
+  const kpiLic = status ? (status === "licenca" ? a.totalProfessionals.data ?? 0 : 0) : sb["licenca"] ?? 0;
 
-  const rankingCols: DataTableColumn<(typeof a.ranking)[number]>[] = [
-    {
-      key: "unidade",
-      header: "Unidade",
-      cell: (r) => (
-        <Link
-          to="/unidades/$id"
-          params={{ id: r.unidade_id }}
-          className="font-medium hover:underline"
-        >
-          {r.unidade_nome}
-        </Link>
-      ),
-    },
-    { key: "profs", header: "Profissionais", cell: (r) => r.total_profissionais },
-    { key: "he", header: "Horas extras", cell: (r) => r.total_horas_extras.toLocaleString("pt-BR") },
-    { key: "faltas", header: "Faltas", cell: (r) => r.total_faltas.toLocaleString("pt-BR") },
-    { key: "folhas", header: "Folhas", cell: (r) => `${r.aprovadas}/${r.total_folhas}` },
+  const alertas = a.alertas.data;
+
+  const competenciaLabel = (mes: number, ano: number) =>
+    `${String(mes).padStart(2, "0")}/${ano}`;
+
+  // ---- Column defs ----
+  const colsUnidades: DataTableColumn<(typeof a.ranking)[number]>[] = [
+    { key: "u", header: "Unidade", cell: (r) => (
+      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
+        {r.unidade_nome}
+      </Link>
+    ) },
+    { key: "p", header: "Profissionais", cell: (r) => r.total_profissionais.toLocaleString("pt-BR") },
+    { key: "f", header: "Folhas", cell: (r) => `${r.aprovadas}/${r.total_folhas}` },
+  ];
+  const colsSetores: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
+    { key: "s", header: "Setor", cell: (r) => (
+      <Link to="/setores/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
+    ) },
+    { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
+  ];
+  const colsCargos: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
+    { key: "c", header: "Cargo", cell: (r) => (
+      <Link to="/cargos/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
+    ) },
+    { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
+  ];
+  const colsFuncoes: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
+    { key: "f", header: "Função", cell: (r) => (
+      <Link to="/funcoes/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
+    ) },
+    { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
+  ];
+  const colsHe: DataTableColumn<(typeof a.ranking)[number]>[] = [
+    { key: "u", header: "Unidade", cell: (r) => (
+      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
+        {r.unidade_nome}
+      </Link>
+    ) },
+    { key: "he", header: "Horas extras", cell: (r) => <span className="tabular-nums">{r.total_horas_extras.toLocaleString("pt-BR")}</span> },
+    { key: "fl", header: "Faltas", cell: (r) => <span className="tabular-nums">{r.total_faltas.toLocaleString("pt-BR")}</span> },
+  ];
+  const colsCriticas: DataTableColumn<(typeof rankingCriticas)[number]>[] = [
+    { key: "u", header: "Unidade", cell: (r) => (
+      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
+        {r.unidade_nome}{r.sigla ? ` (${r.sigla})` : ""}
+      </Link>
+    ) },
+    { key: "t", header: "Pendências vencidas", cell: (r) => <Badge variant="destructive">{r.total}</Badge> },
   ];
 
-  const rankingTop = a.ranking.slice(0, 10);
+  const colsMov: DataTableColumn<NonNullable<typeof movQ.data>[number]>[] = [
+    { key: "d", header: "Data", cell: (m) => (
+      <span className="text-xs text-muted-foreground" title={new Date(m.data_inicio).toLocaleString("pt-BR")}>
+        {formatDistanceToNow(new Date(m.data_inicio), { addSuffix: true, locale: ptBR })}
+      </span>
+    ) },
+    { key: "p", header: "Profissional", cell: (m) => m.profissional?.nome_completo ?? "—" },
+    { key: "de", header: "De → Para", cell: (m) => (
+      <span className="text-xs">
+        {m.unidade_anterior?.nome ?? "—"} → <strong>{m.unidade_novo?.nome ?? "—"}</strong>
+      </span>
+    ) },
+    { key: "t", header: "Tipo", cell: (m) => <Badge variant="outline">{m.tipo_evento}</Badge> },
+  ];
 
-  const movCols: DataTableColumn<NonNullable<typeof movQ.data>[number]>[] = [
-    {
-      key: "quando",
-      header: "Quando",
-      cell: (m) => (
-        <span
-          className="text-xs text-muted-foreground"
-          title={new Date(m.ocorrido_em).toLocaleString("pt-BR")}
-        >
-          {formatDistanceToNow(new Date(m.ocorrido_em), { addSuffix: true, locale: ptBR })}
-        </span>
-      ),
-    },
-    { key: "usuario", header: "Usuário", cell: (m) => m.usuario_email ?? "—" },
-    { key: "operacao", header: "Operação", cell: (m) => <Badge variant="outline">{m.operacao}</Badge> },
-    { key: "tabela", header: "Tabela", cell: (m) => <code className="text-xs">{m.tabela}</code> },
+  // ---- Alertas de higiene (via useAnalytics.alertas) ----
+  const alertaItems: Array<{ id: string; label: string; count: number; tone: "warning" | "danger" }> = [
+    { id: "prof-sem-unidade", label: "Profissionais sem unidade", count: alertas?.semUnidade ?? 0, tone: "warning" },
+    { id: "prof-sem-setor", label: "Profissionais sem setor", count: alertas?.semSetor ?? 0, tone: "warning" },
+    { id: "prof-sem-cargo", label: "Profissionais sem cargo", count: alertas?.semCargo ?? 0, tone: "warning" },
+    { id: "prof-sem-funcao", label: "Profissionais sem função", count: alertas?.semFuncao ?? 0, tone: "warning" },
+    { id: "uni-sem-gestor", label: "Unidades sem gestor", count: alertas?.unidadesSemGestor ?? 0, tone: "warning" },
+    { id: "set-vazios", label: "Setores vazios", count: alertas?.setoresVazios ?? 0, tone: "warning" },
+    { id: "pend-vencidas", label: "Pendências vencidas (total)", count: pendCriticasQ.data?.length ?? 0, tone: "danger" },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6">
       <PageHeader
         title="Sala de Situação da Secretaria"
-        description={
-          competencia
-            ? `Painel executivo — competência ${competencia.mes.toString().padStart(2, "0")}/${competencia.ano}`
-            : "Sem competência ativa"
-        }
+        description="Painel executivo — visão consolidada do Secretário."
         actions={
           <Button variant="outline" size="sm" onClick={() => a.refetch()}>
             <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
@@ -178,182 +244,161 @@ function SalaSituacaoPage() {
         }
       />
 
-      {/* KPIs — todos os números vêm de useAnalytics (Módulos 01/04/05/07). */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Filtros globais */}
+      <FilterBar>
+        <FilterBar.Field label="Competência">
+          <Select value={compSel} onValueChange={setCompSel}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__ativa__">
+                Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+              </SelectItem>
+              {(competenciasQ.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterBar.Field>
+        <FilterBar.Field label="Unidade">
+          <Select value={unidadeSel} onValueChange={setUnidadeSel}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas</SelectItem>
+              {(unidadesQ.data ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterBar.Field>
+        <FilterBar.Field label="Status">
+          <Select value={statusSel} onValueChange={setStatusSel}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              {STATUS_VALUE.map((v, i) => (
+                <SelectItem key={v} value={v}>{STATUS_LABEL[i]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterBar.Field>
+      </FilterBar>
+
+      {/* Resumo Geral */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="Profissionais" value={(a.totalProfessionals.data ?? 0).toLocaleString("pt-BR")} icon={<Users className="h-4 w-4" />} loading={a.totalProfessionals.isLoading} />
+        <KpiCard label="Ativos" value={kpiAtivos.toLocaleString("pt-BR")} icon={<UserCheck className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
+        <KpiCard label="Afastados" value={kpiAfast.toLocaleString("pt-BR")} icon={<UserMinus className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
+        <KpiCard label="Férias" value={kpiFerias.toLocaleString("pt-BR")} icon={<Umbrella className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
+        <KpiCard label="Licenças" value={kpiLic.toLocaleString("pt-BR")} icon={<FileText className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
+        <KpiCard label="Pendências críticas" value={(pendCriticasQ.data?.length ?? 0).toLocaleString("pt-BR")} icon={<AlertCircle className="h-4 w-4" />} loading={pendCriticasQ.isLoading} />
+        <KpiCard label="Horas extras (comp.)" value={a.totalHorasExtras.toLocaleString("pt-BR")} icon={<Clock className="h-4 w-4" />} hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`} />
         <KpiCard
-          label="Profissionais"
-          value={(a.totalProfessionals.data ?? 0).toLocaleString("pt-BR")}
-          icon={<Users className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Unidades"
-          value={(a.totalUnidades.data ?? 0).toLocaleString("pt-BR")}
-          icon={<Building2 className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Setores"
-          value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}
-          icon={<Network className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Competência"
-          value={
-            competencia
-              ? `${competencia.mes.toString().padStart(2, "0")}/${competencia.ano}`
-              : "—"
-          }
+          label="Competência ativa"
+          value={competenciaAtiva ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano) : "—"}
           icon={<CalendarRange className="h-4 w-4" />}
         />
+      </section>
 
-        <KpiCard
-          label="Folhas em rascunho"
-          value={a.frequenciasPendentes}
-          icon={<ClipboardList className="h-4 w-4" />}
-          hint="Ainda não enviadas na competência"
-        />
-        <KpiCard
-          label="Folhas aprovadas"
-          value={a.frequenciasAprovadas}
-          icon={<ClipboardList className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Pendências abertas"
-          value={(a.pendencias.data ?? 0).toLocaleString("pt-BR")}
-          icon={<AlertCircle className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Horas extras (comp.)"
-          value={a.totalHorasExtras.toLocaleString("pt-BR")}
-          icon={<Clock className="h-4 w-4" />}
-          hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`}
-        />
-      </div>
+      {/* Rankings em Tabs */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Rankings (top 10)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="unidades">
+            <TabsList className="mb-3 flex flex-wrap">
+              <TabsTrigger value="unidades"><Building2 className="mr-1 h-3.5 w-3.5" />Unidades</TabsTrigger>
+              <TabsTrigger value="setores"><Network className="mr-1 h-3.5 w-3.5" />Setores</TabsTrigger>
+              <TabsTrigger value="cargos">Cargos</TabsTrigger>
+              <TabsTrigger value="funcoes">Funções</TabsTrigger>
+              <TabsTrigger value="he"><Clock className="mr-1 h-3.5 w-3.5" />Horas Extras</TabsTrigger>
+              <TabsTrigger value="criticas"><ShieldAlert className="mr-1 h-3.5 w-3.5" />Críticas</TabsTrigger>
+            </TabsList>
 
-      {/* Alertas — regras documentadas no topo do arquivo. */}
+            <TabsContent value="unidades">
+              {rankingUnidades.length === 0 ? <EmptyState title="Sem dados" description="Nenhuma folha processada na competência." /> :
+                <DataTable rows={rankingUnidades} columns={colsUnidades} getRowKey={(r) => r.unidade_id} />}
+            </TabsContent>
+            <TabsContent value="setores">
+              {rankingSetores.length === 0 ? <EmptyState title="Sem dados" /> :
+                <DataTable rows={rankingSetores} columns={colsSetores} getRowKey={(r) => r.id} />}
+            </TabsContent>
+            <TabsContent value="cargos">
+              {rankingCargos.length === 0 ? <EmptyState title="Sem dados" /> :
+                <DataTable rows={rankingCargos} columns={colsCargos} getRowKey={(r) => r.id} />}
+            </TabsContent>
+            <TabsContent value="funcoes">
+              {rankingFuncoes.length === 0 ? <EmptyState title="Sem dados" /> :
+                <DataTable rows={rankingFuncoes} columns={colsFuncoes} getRowKey={(r) => r.id} />}
+            </TabsContent>
+            <TabsContent value="he">
+              {rankingHe.length === 0 ? <EmptyState title="Sem dados" /> : (
+                <>
+                  <DataTable rows={rankingHe} columns={colsHe} getRowKey={(r) => r.unidade_id} />
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    HE agregada por unidade — o modelo atual não sustenta HE por profissional (limitação documentada no Módulo 05).
+                  </div>
+                </>
+              )}
+            </TabsContent>
+            <TabsContent value="criticas">
+              {rankingCriticas.length === 0 ? <EmptyState title="Nenhuma unidade crítica" description={`Nenhuma pendência aberta há mais de ${ALERT_RULES.pendenciaDiasCritico} dias.`} /> :
+                <DataTable rows={rankingCriticas} columns={colsCriticas} getRowKey={(r) => r.unidade_id} />}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Alertas */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="h-4 w-4" />
-            Alertas
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              (pendência &gt; {ALERT_RULES.pendenciaDiasCritico} dias · HE por unidade &gt;{" "}
-              {ALERT_RULES.heCriticoUnidade}h · folhas em rascunho)
-            </span>
+            <ShieldAlert className="h-4 w-4" /> Alertas de higiene
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {alertas.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum alerta ativo.</div>
-          ) : (
-            <ul className="space-y-2">
-              {alertas.map((al) => (
-                <li
-                  key={al.id}
-                  className="flex items-start gap-3 rounded-md border p-3 text-sm"
-                >
-                  <Badge
-                    variant={al.tipo === "he" ? "destructive" : "secondary"}
-                    className="mt-0.5"
-                  >
-                    {al.tipo === "pendencia"
-                      ? "Pendência"
-                      : al.tipo === "he"
-                        ? "HE"
-                        : "Folha"}
-                  </Badge>
-                  <div className="flex-1">
-                    <div className="font-medium">{al.titulo}</div>
-                    <div className="text-xs text-muted-foreground">{al.detalhe}</div>
-                    <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      origem: {al.origem}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <ul className="grid gap-2 md:grid-cols-2">
+            {alertaItems.map((it) => (
+              <li key={it.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                <span>{it.label}</span>
+                <Badge variant={it.count === 0 ? "outline" : it.tone === "danger" ? "destructive" : "secondary"}>
+                  {it.count.toLocaleString("pt-BR")}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+          {(alertas?.setoresSemResponsavel ?? 0) > 0 && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <StatusBadge domain="profissional" value="afastado" />
+              {alertas?.setoresSemResponsavel} setor(es) sem responsável cadastrado.
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2 flex-row items-center justify-between">
-            <CardTitle className="text-base">Ranking de unidades (HE)</CardTitle>
-            <Button asChild size="sm" variant="ghost">
-              <Link to="/controle-forca-trabalho">
-                Ver todas <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {rankingTop.length === 0 ? (
-              <EmptyState title="Sem dados de folha" description="Nenhuma competência com folhas processadas." />
-            ) : (
-              <DataTable
-                rows={rankingTop}
-                columns={rankingCols}
-                getRowKey={(r) => r.unidade_id}
-              />
-            )}
-            <div className="mt-2 text-xs text-muted-foreground">
-              Origem: <code>useAnalytics.ranking</code>. HE/faltas são agregados por
-              unidade — o mesmo valor aparece nos painéis de setor da unidade-mãe
-              (limitação já documentada no Módulo 05).
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2 flex-row items-center justify-between">
-            <CardTitle className="text-base">Últimas movimentações</CardTitle>
-            <Button asChild size="sm" variant="ghost">
-              <Link to="/auditoria">
-                Ver auditoria <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {(movQ.data ?? []).length === 0 ? (
-              <EmptyState title="Sem movimentações recentes" />
-            ) : (
-              <DataTable
-                rows={movQ.data ?? []}
-                columns={movCols}
-                getRowKey={(m) => String(m.id)}
-              />
-            )}
-            <div className="mt-2 text-xs text-muted-foreground">
-              Origem: <code>audit_log</code> (mesma fonte da tela /auditoria).
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Mapa das unidades — bloqueado por dado ausente, não simulado. */}
+      {/* Últimas Movimentações */}
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="h-4 w-4" /> Mapa das unidades
+            <ClipboardList className="h-4 w-4" /> Últimas movimentações
           </CardTitle>
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/auditoria">
+              Ver auditoria <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent>
-          {geoQ.data && geoQ.data.comGeo > 0 ? (
-            <div className="text-sm text-muted-foreground">
-              {geoQ.data.comGeo} de {geoQ.data.total} unidade(s) com coordenadas
-              cadastradas. Integração de mapa não incluída neste módulo — dado
-              disponível para uma futura implementação com Google Maps.
-            </div>
+          {(movQ.data ?? []).length === 0 ? (
+            <EmptyState title="Sem movimentações recentes" description="Nenhuma alteração funcional registrada." />
           ) : (
-            <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-              <strong className="text-foreground">Bloqueado:</strong> nenhuma
-              unidade possui <code>latitude</code>/<code>longitude</code>{" "}
-              preenchidas (
-              {geoQ.data ? `0 de ${geoQ.data.total}` : "verificando…"}
-              ). O mapa não é exibido para evitar simulação de posições. Preencha
-              as coordenadas no cadastro da unidade para habilitar o mapa em uma
-              próxima iteração.
-            </div>
+            <DataTable rows={movQ.data ?? []} columns={colsMov} getRowKey={(m) => m.id} />
           )}
+          <div className="mt-2 text-xs text-muted-foreground">
+            Origem: <code>profissional_historico_funcional</code>.
+          </div>
         </CardContent>
       </Card>
     </div>
