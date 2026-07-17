@@ -42,6 +42,7 @@ import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
+import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -233,6 +234,12 @@ const AuthenticatedUnidadesIndexRoute =
     path: '/unidades/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedGestaoPessoasIndexRoute =
+  AuthenticatedGestaoPessoasIndexRouteImport.update({
+    id: '/gestao-pessoas/',
+    path: '/gestao-pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -331,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -375,6 +383,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -421,6 +430,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -467,6 +477,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/gestao-pessoas/'
     | '/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/gestao-pessoas'
     | '/unidades'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -556,6 +568,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -804,6 +817,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/gestao-pessoas/': {
+      id: '/_authenticated/gestao-pessoas/'
+      path: '/gestao-pessoas'
+      fullPath: '/gestao-pessoas/'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
       path: '/$id'
@@ -961,6 +981,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
+  AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
 
@@ -1000,6 +1021,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
   AuthenticatedFrequenciasIdRoute: AuthenticatedFrequenciasIdRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
+  AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
 
