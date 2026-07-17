@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
@@ -85,8 +86,12 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.mfa.verify({ factorId: mfa.factorId, challengeId: mfa.challengeId, code: mfaCode });
       if (error) throw error;
+      void auditClient.login(AUDIT_ACOES.MFA_VERIFICADO);
       navigate({ to: "/" });
     } catch (err) {
+      void auditClient.action(AUDIT_ACOES.MFA_FALHA, {
+        contexto: { message: err instanceof Error ? err.message : "erro" },
+      });
       setError(err instanceof Error ? err.message : "Código inválido");
     } finally {
       setLoading(false);
@@ -118,10 +123,18 @@ function AuthPage() {
         setInfo("Se este e-mail estiver cadastrado, enviaremos um link para redefinir a senha.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          void auditClient.action(AUDIT_ACOES.LOGIN_FALHA, {
+            contexto: { email, message: error.message },
+          });
+          throw error;
+        }
         const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
+          void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO);
           await startMfaChallenge();
+        } else {
+          void auditClient.login(AUDIT_ACOES.LOGIN_SUCESSO);
         }
       }
     } catch (err) {
