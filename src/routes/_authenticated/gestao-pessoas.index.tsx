@@ -21,8 +21,16 @@ import {
 } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useIntelligence } from "@/hooks/use-intelligence";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import {
+  SemaforoCard,
+  TendenciaKpi,
+  IntegridadeCard,
+  InsightsCard,
+} from "@/components/intelligence";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
   head: () => ({
@@ -47,6 +55,8 @@ function n(v: number | undefined | null) {
 
 function DashboardExecutivo() {
   const a = useAnalytics({});
+  const intel = useIntelligence(a);
+  const navigate = useNavigate();
 
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
@@ -78,6 +88,15 @@ function DashboardExecutivo() {
         title="Dashboard Executivo"
         description="Visão consolidada de pessoas, estrutura e operação — dados em tempo real."
       />
+
+      <div className="mt-4">
+        <SemaforoCard
+          semaforo={intel.semaforo}
+          loading={intel.isLoading}
+          lastUpdated={a.lastUpdated}
+          onRefresh={() => a.refetch()}
+        />
+      </div>
 
       <Section title="Blocos funcionais">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -112,6 +131,15 @@ function DashboardExecutivo() {
         </div>
       </Section>
 
+      <Section title="Tendências (vs. competência anterior)">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <TendenciaKpi label="Horas extras" tendencia={intel.tendencias.horasExtras} invertBad />
+          <TendenciaKpi label="Faltas" tendencia={intel.tendencias.faltas} invertBad />
+          <TendenciaKpi label="Pendências abertas" tendencia={intel.tendencias.pendencias} invertBad />
+          <TendenciaKpi label="Frequências aprovadas" tendencia={intel.tendencias.aprovadas} />
+        </div>
+      </Section>
+
       <Section title="Pessoas">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <KpiCard label="Total de profissionais" value={n(a.totalProfessionals.data)} loading={a.totalProfessionals.isLoading} icon={<Users className="h-4 w-4" />} />
@@ -140,6 +168,30 @@ function DashboardExecutivo() {
           <KpiCard label="Horas extras (total)" value={n(a.totalHorasExtras)} loading={a.frequencias.isLoading} hint="Somatório da competência ativa" icon={<Clock className="h-4 w-4" />} />
           <KpiCard label="Faltas (total)" value={n(a.totalFaltas)} loading={a.frequencias.isLoading} hint="Somatório da competência ativa" icon={<AlertCircle className="h-4 w-4" />} />
           <KpiCard label="Competência ativa" value={a.competenciaAtiva?.label ?? "—"} icon={<CalendarRange className="h-4 w-4" />} />
+        </div>
+      </Section>
+
+      <Section title="Integridade & Inteligência">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <IntegridadeCard
+            integridade={intel.integridade}
+            onCampoClick={(chave) => {
+              const map: Record<string, string> = {
+                cargo: "sem-cargo",
+                funcao: "sem-funcao",
+                setor: "sem-setor",
+                unidade: "sem-unidade",
+                vinculo: "sem-vinculo",
+              };
+              const filtro = map[chave];
+              if (filtro) {
+                navigate({ to: "/profissionais", search: { integridade: filtro } as never });
+              } else {
+                navigate({ to: "/profissionais" });
+              }
+            }}
+          />
+          <InsightsCard insights={intel.insights} />
         </div>
       </Section>
 

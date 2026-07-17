@@ -220,6 +220,125 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     },
   });
 
+  // Sublote 12A — Integridade Cadastral. Faz uma leitura única dos campos-chave
+  // dos profissionais e computa faltantes por campo + cadastros incompletos.
+  const integridade = useQuery({
+    queryKey: ["analytics", "integridade"],
+    staleTime,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select(
+          "id, cargo_id, funcao_id, setor_id, unidade_id, vinculo_id, matricula, telefone, email, banco, conta_corrente",
+        )
+        .is("deleted_at", null)
+        .limit(10000);
+      if (error) throw error;
+      type R = {
+        id: string;
+        cargo_id: string | null;
+        funcao_id: string | null;
+        setor_id: string | null;
+        unidade_id: string | null;
+        vinculo_id: string | null;
+        matricula: string | null;
+        telefone: string | null;
+        email: string | null;
+        banco: string | null;
+        conta_corrente: string | null;
+      };
+      const rows = (data ?? []) as R[];
+      const total = rows.length;
+      const faltas: Record<string, number> = {
+        cargo: 0, funcao: 0, setor: 0, unidade: 0, vinculo: 0,
+        matricula: 0, telefone: 0, email: 0, banco: 0,
+      };
+      let incompletos = 0;
+      for (const r of rows) {
+        let temFalta = false;
+        const tick = (cond: boolean, k: string) => {
+          if (cond) { faltas[k] += 1; temFalta = true; }
+        };
+        tick(!r.cargo_id, "cargo");
+        tick(!r.funcao_id, "funcao");
+        tick(!r.setor_id, "setor");
+        tick(!r.unidade_id, "unidade");
+        tick(!r.vinculo_id, "vinculo");
+        tick(!r.matricula, "matricula");
+        tick(!r.telefone, "telefone");
+        tick(!r.email, "email");
+        tick(!r.banco || !r.conta_corrente, "banco");
+        if (temFalta) incompletos += 1;
+      }
+      return { total, faltas, cadastrosIncompletos: incompletos };
+    },
+  });
+
+  // Sublote 12A — Frequências da competência ANTERIOR à ativa para tendências.
+  const previousCompetenciaId = useQuery({
+    queryKey: ["analytics", "prevCompetencia", competenciaId],
+    staleTime,
+    enabled: !!competenciaId,
+    queryFn: async () => {
+      const { data: cur } = await supabase
+        .from("competencias")
+        .select("mes, ano")
+        .eq("id", competenciaId as string)
+        .maybeSingle();
+      if (!cur) return null;
+      const mesAnt = cur.mes === 1 ? 12 : cur.mes - 1;
+      const anoAnt = cur.mes === 1 ? cur.ano - 1 : cur.ano;
+      const { data } = await supabase
+        .from("competencias")
+        .select("id")
+        .eq("mes", mesAnt)
+        .eq("ano", anoAnt)
+        .maybeSingle();
+      return data?.id ?? null;
+    },
+  });
+
+  const frequenciasAnterior = useQuery({
+    queryKey: ["analytics", "frequenciasAnterior", previousCompetenciaId.data, filters.unidadeId ?? null],
+    staleTime,
+    enabled: !!previousCompetenciaId.data,
+    queryFn: async () => {
+      let q = supabase
+        .from("frequencias")
+        .select(
+          "status, total_profissionais, total_faltas, total_horas_extras, competencia_unidades!inner(unidade_id)",
+        )
+        .is("deleted_at", null)
+        .eq("competencia_unidades.competencia_id", previousCompetenciaId.data as string);
+      if (filters.unidadeId) {
+        q = q.eq("competencia_unidades.unidade_id", filters.unidadeId);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as FrequenciaRow[];
+    },
+  });
+
+  const pendenciasAnterior = useQuery({
+    queryKey: ["analytics", "pendenciasAnterior", previousCompetenciaId.data, filters.unidadeId ?? null],
+    staleTime,
+    enabled: !!previousCompetenciaId.data,
+    queryFn: async () => {
+      const q = supabase
+        .from("frequencia_pendencias")
+        .select(
+          "id, frequencias!inner(competencia_unidades!inner(competencia_id, unidade_id))",
+          { count: "exact", head: true },
+        )
+        .is("deleted_at", null)
+        .eq("frequencias.competencia_unidades.competencia_id" as never, previousCompetenciaId.data as string);
+      if (filters.unidadeId) q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const distribuicaoUnidade = useQuery({
     queryKey: ["analytics", "distribuicaoUnidade", filters.cargoId, filters.funcaoId, filters.setorId],
     staleTime,
@@ -521,6 +640,9 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     totalFuncoes,
     pendencias,
     frequencias,
+    frequenciasAnterior,
+    pendenciasAnterior,
+    integridade,
     frequenciasEnviadas,
     frequenciasPendentes,
     frequenciasAprovadas,
@@ -551,6 +673,9 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       distribuicaoCargo.refetch(),
       distribuicaoSetor.refetch(),
       distribuicaoFuncao.refetch(),
+      integridade.refetch(),
+      frequenciasAnterior.refetch(),
+      pendenciasAnterior.refetch(),
     ]),
     lastUpdated: Date.now(),
   };

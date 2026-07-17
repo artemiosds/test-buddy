@@ -10,6 +10,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useIntelligence } from "@/hooks/use-intelligence";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import {
   useCompetenciasLookup, useUnidadesLookup,
@@ -20,6 +21,11 @@ import {
   type DataTableColumn,
 } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import {
+  SemaforoCard,
+  TendenciaKpi,
+  InsightsCard,
+} from "@/components/intelligence";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +67,7 @@ function SalaSituacaoPage() {
   const status = statusSel === "__all__" ? null : statusSel;
 
   const a = useAnalytics({ competenciaId, unidadeId, status });
+  const intel = useIntelligence(a);
 
   // Pendências críticas (vencidas) — regra ALERT_RULES.pendenciaDiasCritico.
   const pendCriticasQ = useQuery({
@@ -252,6 +259,13 @@ function SalaSituacaoPage() {
         }
       />
 
+      <SemaforoCard
+        semaforo={intel.semaforo}
+        loading={intel.isLoading}
+        lastUpdated={a.lastUpdated}
+        onRefresh={() => a.refetch()}
+      />
+
       {/* Filtros globais */}
       <FilterBar>
         <FilterBar.Field label="Competência">
@@ -308,6 +322,24 @@ function SalaSituacaoPage() {
           icon={<CalendarRange className="h-4 w-4" />}
         />
       </section>
+
+      {/* Tendências vs competência anterior */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Tendências (vs. competência anterior)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <TendenciaKpi label="Horas extras" tendencia={intel.tendencias.horasExtras} invertBad />
+            <TendenciaKpi label="Faltas" tendencia={intel.tendencias.faltas} invertBad />
+            <TendenciaKpi label="Pendências abertas" tendencia={intel.tendencias.pendencias} invertBad />
+            <TendenciaKpi label="Frequências aprovadas" tendencia={intel.tendencias.aprovadas} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Inteligência Gerencial */}
+      <InsightsCard insights={intel.insights} />
 
       {/* Rankings em Tabs */}
       <Card>
