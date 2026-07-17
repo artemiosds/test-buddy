@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,18 @@ const NIVEIS = [
 function CargosFuncoesPage() {
   const { data: userCtx, isLoading: userLoading } = useCurrentUser();
   const isMaster = !!userCtx?.is_master;
+  const nav = useNavigate();
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  const [tab, setTab] = useState<"cargos" | "funcoes">(hash === "funcoes" ? "funcoes" : "cargos");
+  useEffect(() => {
+    if (hash === "funcoes" && tab !== "funcoes") setTab("funcoes");
+    else if (hash === "cargos" && tab !== "cargos") setTab("cargos");
+  }, [hash, tab]);
+  const changeTab = (v: string) => {
+    const next = v === "funcoes" ? "funcoes" : "cargos";
+    setTab(next);
+    nav({ to: "/cargos-funcoes", hash: next, replace: true });
+  };
 
   if (userLoading) return <div className="p-6 text-sm text-muted-foreground">Carregando...</div>;
   if (!isMaster) {
@@ -90,7 +102,7 @@ function CargosFuncoesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="cargos">
+      <Tabs value={tab} onValueChange={changeTab}>
         <TabsList>
           <TabsTrigger value="cargos">Cargos</TabsTrigger>
           <TabsTrigger value="funcoes">Funções</TabsTrigger>
@@ -108,6 +120,7 @@ function CargosFuncoesPage() {
 
 function CargosTab() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cargo | null>(null);
   const [form, setForm] = useState<{
@@ -316,7 +329,11 @@ function CargosTab() {
               {cargos.map((c) => {
                 const usoCount = uso[c.id] ?? 0;
                 return (
-                  <tr key={c.id} className="border-t">
+                  <tr
+                    key={c.id}
+                    className="border-t cursor-pointer transition hover:bg-accent/40"
+                    onClick={() => nav({ to: "/cargos/$id", params: { id: c.id } })}
+                  >
                     <td className="p-3 font-medium">{c.nome}</td>
                     <td className="p-3 text-muted-foreground">{c.codigo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.cbo ?? "—"}</td>
@@ -331,7 +348,7 @@ function CargosTab() {
                     <td className="p-3">
                       <Badge variant={c.status === "ativa" ? "default" : "outline"}>{c.status}</Badge>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="ghost" onClick={() => abrirEdit(c)}>
                           <Pencil className="h-4 w-4" />
@@ -363,6 +380,7 @@ function CargosTab() {
 
 function FuncoesTab() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Funcao | null>(null);
   const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string; cargo_id: string | null }>({
@@ -561,7 +579,11 @@ function FuncoesTab() {
               {funcoes.map((f) => {
                 const usoCount = uso[f.id] ?? 0;
                 return (
-                  <tr key={f.id} className="border-t">
+                  <tr
+                    key={f.id}
+                    className="border-t cursor-pointer transition hover:bg-accent/40"
+                    onClick={() => nav({ to: "/funcoes/$id", params: { id: f.id } })}
+                  >
                     <td className="p-3 font-medium">{f.nome}</td>
                     <td className="p-3 text-muted-foreground">{f.codigo ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{f.cargo?.nome ?? "—"}</td>
@@ -574,7 +596,7 @@ function FuncoesTab() {
                     <td className="p-3">
                       <Badge variant={f.status === "ativa" ? "default" : "outline"}>{f.status}</Badge>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="ghost" onClick={() => abrirEdit(f)}>
                           <Pencil className="h-4 w-4" />
