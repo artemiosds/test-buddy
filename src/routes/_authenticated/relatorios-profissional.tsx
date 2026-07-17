@@ -324,7 +324,7 @@ function RelatorioProfissionalPage() {
       });
       drawSignatureStamp(doc, sig);
     } catch (err) {
-      console.error("assinatura:", err);
+      logger.error("relatorios_profissional.signature_failed", { error: err });
     }
     doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
   }
