@@ -72,19 +72,31 @@ function RelatorioStatusPage() {
     queryKey: ["unidades-ativas-count"],
     enabled: canView,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("unidades").select("id, nome, sigla").is("deleted_at", null);
-      if (error) throw error;
-      const counts = await Promise.all(
-        (data ?? []).map(async (u) => {
-          const { count } = await supabase
-            .from("profissionais")
-            .select("id", { count: "exact", head: true })
-            .eq("unidade_id", u.id).eq("status", "ativo").is("deleted_at", null);
-          return { id: u.id, nome: u.nome, sigla: u.sigla, ativos: count ?? 0 };
-        }),
-      );
-      return counts;
+      // Uma consulta para as unidades, uma consulta para todos os ativos.
+      // Agregação por unidade feita client-side — elimina N+1 (1 + N → 2).
+      const [uRes, pRes] = await Promise.all([
+        supabase.from("unidades").select("id, nome, sigla").is("deleted_at", null),
+        supabase
+          .from("profissionais")
+          .select("unidade_id")
+          .eq("status", "ativo")
+          .is("deleted_at", null)
+          .not("unidade_id", "is", null)
+          .limit(50000),
+      ]);
+      if (uRes.error) throw uRes.error;
+      if (pRes.error) throw pRes.error;
+      const counts = new Map<string, number>();
+      for (const p of pRes.data ?? []) {
+        if (!p.unidade_id) continue;
+        counts.set(p.unidade_id, (counts.get(p.unidade_id) ?? 0) + 1);
+      }
+      return (uRes.data ?? []).map((u) => ({
+        id: u.id,
+        nome: u.nome,
+        sigla: u.sigla,
+        ativos: counts.get(u.id) ?? 0,
+      }));
     },
   });
 
