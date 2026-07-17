@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared";
+import { FormDialog } from "@/components/shared/FormDialog";
 import {
   Dialog,
   DialogContent,
@@ -243,32 +244,25 @@ function CompetenciasPage() {
         )}
       </div>
 
-      <Dialog open={!!reabrirTarget} onOpenChange={(o) => { if (!o) { setReabrirTarget(null); setMotivoReabertura(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Reabrir competência {reabrirTarget ? `${MESES[reabrirTarget.mes - 1]}/${reabrirTarget.ano}` : ""}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Motivo da reabertura <span className="text-destructive">*</span></Label>
-            <Textarea
-              rows={4}
-              value={motivoReabertura}
-              onChange={(e) => setMotivoReabertura(e.target.value)}
-              placeholder="Descreva o motivo da reabertura (obrigatório, ficará no registro de auditoria)."
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              disabled={!motivoReabertura.trim() || statusMutation.isPending}
-              onClick={() => reabrirTarget && statusMutation.mutate({ id: reabrirTarget.id, status: "aberta", motivo: motivoReabertura.trim() })}
-            >
-              Confirmar reabertura
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormDialog
+        open={!!reabrirTarget}
+        onOpenChange={(o) => { if (!o) { setReabrirTarget(null); setMotivoReabertura(""); } }}
+        title={`Reabrir competência ${reabrirTarget ? `${MESES[reabrirTarget.mes - 1]}/${reabrirTarget.ano}` : ""}`}
+        submitLabel="Confirmar reabertura"
+        submitDisabled={!motivoReabertura.trim()}
+        loading={statusMutation.isPending}
+        onSubmit={() => reabrirTarget && statusMutation.mutate({ id: reabrirTarget.id, status: "aberta", motivo: motivoReabertura.trim() })}
+      >
+        <div className="space-y-2">
+          <Label>Motivo da reabertura <span className="text-destructive">*</span></Label>
+          <Textarea
+            rows={4}
+            value={motivoReabertura}
+            onChange={(e) => setMotivoReabertura(e.target.value)}
+            placeholder="Descreva o motivo da reabertura (obrigatório, ficará no registro de auditoria)."
+          />
+        </div>
+      </FormDialog>
     </div>
   );
 }
