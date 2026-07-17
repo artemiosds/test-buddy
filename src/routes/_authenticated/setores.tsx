@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
@@ -42,6 +42,7 @@ type Setor = {
 
 function SetoresPage() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const { data: userCtx, isLoading: userLoading } = useCurrentUser();
   const { has } = usePermissions();
   const canManage = !!userCtx?.is_master || has("unidade.editar");
@@ -308,7 +309,11 @@ function SetoresPage() {
                 {setores.map((s) => {
                   const usoCount = uso[s.id] ?? 0;
                   return (
-                    <tr key={s.id} className="border-t">
+                    <tr
+                      key={s.id}
+                      className="border-t cursor-pointer transition hover:bg-accent/40"
+                      onClick={() => nav({ to: "/setores/$id", params: { id: s.id } })}
+                    >
                       <td className="p-3 font-medium">{s.nome}</td>
                       <td className="p-3 text-muted-foreground">{s.sigla ?? "—"}</td>
                       <td className="p-3 text-muted-foreground">{s.gestor?.nome_completo ?? "—"}</td>
@@ -318,7 +323,7 @@ function SetoresPage() {
                       <td className="p-3">
                         <Badge variant={s.status === "ativa" ? "default" : "outline"}>{s.status}</Badge>
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
                           <Button size="sm" variant="ghost" asChild title="Painel do setor">
                             <Link to="/setores/$id" params={{ id: s.id }}>
