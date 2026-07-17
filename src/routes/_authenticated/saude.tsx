@@ -352,6 +352,8 @@ function SaudePage() {
       </section>
 
       <BreakersSection />
+
+      <EventosTravadosSection isMaster={isMaster} />
     </div>
   );
 }
