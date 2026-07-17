@@ -16,6 +16,7 @@ import {
   useCompetenciasLookup, useUnidadesLookup,
 } from "@/hooks/use-lookups";
 import { ALERT_RULES } from "@/lib/sala-situacao-alerts";
+import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import {
   PageHeader, KpiCard, DataTable, EmptyState, FilterBar, StatusBadge,
   type DataTableColumn,
@@ -171,6 +172,7 @@ function SalaSituacaoPage() {
   const kpiLic = status ? (status === "licenca" ? a.totalProfessionals.data ?? 0 : 0) : sb["licenca"] ?? 0;
 
   const alertas = a.alertas.data;
+  void alertas;
 
   const competenciaLabel = (mes: number, ano: number) =>
     `${String(mes).padStart(2, "0")}/${ano}`;
@@ -236,22 +238,17 @@ function SalaSituacaoPage() {
     { key: "t", header: "Tipo", cell: (m) => <Badge variant="outline">{m.tipo_evento}</Badge> },
   ];
 
-  // ---- Alertas de higiene (via useAnalytics.alertas) ----
-  const alertaItems: Array<{ id: string; label: string; count: number; tone: "warning" | "danger" }> = [
-    { id: "prof-sem-unidade", label: "Profissionais sem unidade", count: alertas?.semUnidade ?? 0, tone: "warning" },
-    { id: "prof-sem-setor", label: "Profissionais sem setor", count: alertas?.semSetor ?? 0, tone: "warning" },
-    { id: "prof-sem-cargo", label: "Profissionais sem cargo", count: alertas?.semCargo ?? 0, tone: "warning" },
-    { id: "prof-sem-funcao", label: "Profissionais sem função", count: alertas?.semFuncao ?? 0, tone: "warning" },
-    { id: "uni-sem-gestor", label: "Unidades sem gestor", count: alertas?.unidadesSemGestor ?? 0, tone: "warning" },
-    { id: "set-vazios", label: "Setores vazios", count: alertas?.setoresVazios ?? 0, tone: "warning" },
-    { id: "pend-vencidas", label: "Pendências vencidas (total)", count: pendCriticasQ.data?.length ?? 0, tone: "danger" },
-  ];
+  // ---- Alertas de Força de Trabalho (somente leitura) ----
+  const alertaItems = buildWorkforceAlertItems({
+    alertas: a.alertas.data,
+    pendenciasVencidas: pendCriticasQ.data?.length ?? 0,
+  });
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
-        title="Sala de Situação da Secretaria"
-        description="Painel executivo — visão consolidada do Secretário."
+        title="Sala de Situação — Força de Trabalho"
+        description="Painel executivo do módulo Gestão de Pessoas — visão consolidada da força de trabalho."
         actions={
           <Button variant="outline" size="sm" onClick={() => a.refetch()}>
             <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
@@ -395,24 +392,28 @@ function SalaSituacaoPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="h-4 w-4" /> Alertas de higiene
+            <ShieldAlert className="h-4 w-4" /> Alertas de Força de Trabalho
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="grid gap-2 md:grid-cols-2">
             {alertaItems.map((it) => (
-              <li key={it.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                <span>{it.label}</span>
+              <li key={it.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                <span className="flex-1">{it.label}</span>
                 <Badge variant={it.count === 0 ? "outline" : it.tone === "danger" ? "destructive" : "secondary"}>
                   {it.count.toLocaleString("pt-BR")}
                 </Badge>
+                <Button asChild size="sm" variant="ghost" disabled={it.count === 0}>
+                  <Link to={it.to} search={it.search as never}>
+                    Ver detalhes <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </li>
             ))}
           </ul>
-          {(alertas?.setoresSemResponsavel ?? 0) > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <StatusBadge domain="profissional" value="afastado" />
-              {alertas?.setoresSemResponsavel} setor(es) sem responsável cadastrado.
+          {(a.alertas.data?.setoresSemResponsavel ?? 0) > 0 && (
+            <div className="mt-3 text-xs text-muted-foreground">
+              {a.alertas.data?.setoresSemResponsavel} setor(es) sem responsável cadastrado.
             </div>
           )}
         </CardContent>
