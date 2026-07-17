@@ -170,7 +170,7 @@ export function generateInsights(input: {
       out.push({
         id: "conc-unidade",
         tipo: "concentracao",
-        texto: `${top.sigla ? `${top.sigla} — ` : ""}${top.nome} concentra ${pct.toFixed(1)}% dos profissionais da Secretaria.`,
+        texto: `${top.sigla ? `${top.sigla} — ` : ""}${top.nome} concentra ${pct.toFixed(1)}% do quadro de profissionais.`,
       });
     }
   }
