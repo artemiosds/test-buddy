@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ShieldCheck, ShieldAlert, Trash2 } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Trash2, KeyRound, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { useCurrentUser } from "@/hooks/use-permissions";
+import {
+  regenerateBackupCodes,
+  countBackupCodes,
+} from "@/lib/mfa-backup-codes.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/seguranca")({
   head: () => ({ meta: [{ title: "Segurança (MFA) — GESTÃO SAÚDE ORIXIMINÁ - SMS" }] }),
@@ -17,10 +24,25 @@ function SegurancaPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const askConfirm = useConfirm();
+  const { data: userCtx } = useCurrentUser();
+  const mfaRequired = !!userCtx?.perfil_admin_2fa_required || !!userCtx?.is_master;
 
   const [enroll, setEnroll] = useState<{ id: string; qr: string; secret: string } | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [copied, setCopied] = useState(false);
+  const regenerateFn = useServerFn(regenerateBackupCodes);
+  const countFn = useServerFn(countBackupCodes);
+
+  const { data: backupCount, refetch: refetchBackupCount } = useQuery({
+    queryKey: ["mfa-backup-codes-count", userCtx?.id],
+    enabled: !!userCtx?.id,
+    queryFn: async () => {
+      const res = await countFn({});
+      return res.count;
+    },
+  });
 
   async function load() {
     setLoading(true);
@@ -33,6 +55,7 @@ function SegurancaPage() {
   useEffect(() => { load(); }, []);
 
   const verified = factors.filter((f) => f.status === "verified");
+  const hasMfa = verified.length > 0;
 
   async function startEnroll() {
     setError(null); setInfo(null); setBusy(true);
@@ -61,8 +84,17 @@ function SegurancaPage() {
       if (e2) throw e2;
       setEnroll(null);
       setCode("");
-      setInfo("Autenticação em duas etapas ativada com sucesso.");
       await load();
+      // Gera automaticamente o primeiro lote de códigos de recuperação.
+      try {
+        const res = await regenerateFn({});
+        setBackupCodes(res.codes);
+        setInfo("Autenticação em duas etapas ativada. Guarde seus códigos de recuperação agora — eles só serão exibidos uma vez.");
+        await refetchBackupCount();
+      } catch (err) {
+        setInfo("Autenticação em duas etapas ativada com sucesso.");
+        console.error("Falha ao gerar códigos de recuperação:", err);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Código inválido");
     } finally {
@@ -73,7 +105,9 @@ function SegurancaPage() {
   async function removeFactor(id: string) {
     const ok = await askConfirm({
       title: "Remover este fator de autenticação?",
-      description: "Você perderá o segundo fator vinculado a esta conta.",
+      description: mfaRequired
+        ? "Seu perfil administrativo exige 2FA. Após remover, você será obrigado a configurar novamente para acessar o sistema."
+        : "Você perderá o segundo fator vinculado a esta conta.",
       tone: "destructive",
       confirmLabel: "Remover",
     });
@@ -86,12 +120,49 @@ function SegurancaPage() {
     await load();
   }
 
+  async function handleRegenerate() {
+    const ok = await askConfirm({
+      title: "Gerar novos códigos de recuperação?",
+      description: "Os códigos anteriores serão invalidados imediatamente.",
+      tone: "destructive",
+      confirmLabel: "Gerar novos",
+    });
+    if (!ok) return;
+    setBusy(true); setError(null);
+    try {
+      const res = await regenerateFn({});
+      setBackupCodes(res.codes);
+      setInfo("Novos códigos gerados. Guarde-os agora — não serão exibidos novamente.");
+      await refetchBackupCount();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao gerar códigos de recuperação");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyBackupCodes() {
+    if (!backupCodes) return;
+    try {
+      await navigator.clipboard.writeText(backupCodes.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* noop */ }
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Segurança da conta</h1>
         <p className="text-sm text-muted-foreground">Ative a verificação em duas etapas (TOTP) usando um aplicativo autenticador (Google Authenticator, Authy, 1Password, Microsoft Authenticator).</p>
       </div>
+
+      {mfaRequired && !hasMfa && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-semibold">Configuração obrigatória</p>
+          <p className="mt-1">Seu perfil administrativo exige 2FA. O acesso às demais telas do sistema permanece bloqueado até a ativação.</p>
+        </div>
+      )}
 
       {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
       {info && <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">{info}</p>}
@@ -171,8 +242,64 @@ function SegurancaPage() {
         )}
       </div>
 
+      {hasMfa && (
+        <div className="rounded-lg border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            <span className="font-medium">Códigos de recuperação</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Use estes códigos para recuperar acesso caso perca seu aplicativo autenticador. Cada código pode ser usado apenas uma vez.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {typeof backupCount === "number"
+              ? `${backupCount} código(s) de recuperação ativos.`
+              : "Verificando códigos ativos…"}
+          </p>
+
+          {backupCodes && (
+            <div className="mt-4 space-y-3">
+              <div className="rounded-md border bg-surface-elevated p-4">
+                <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
+                  {backupCodes.map((c) => (
+                    <li key={c} className="rounded bg-muted px-2 py-1 tracking-wider">{c}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={copyBackupCodes}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  {copied ? <><Check className="h-3.5 w-3.5" /> Copiado</> : <><Copy className="h-3.5 w-3.5" /> Copiar todos</>}
+                </button>
+                <button
+                  onClick={() => setBackupCodes(null)}
+                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  Já guardei em local seguro
+                </button>
+              </div>
+              <p className="text-xs text-destructive">
+                Estes códigos não serão exibidos novamente. Salve-os em um gerenciador de senhas ou local seguro.
+              </p>
+            </div>
+          )}
+
+          {!backupCodes && (
+            <button
+              onClick={handleRegenerate}
+              disabled={busy}
+              className="mt-4 rounded-md border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+            >
+              Gerar novos códigos de recuperação
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="rounded-md border bg-muted/30 p-4 text-xs text-muted-foreground">
-        <p><strong>Obrigatório</strong> para perfis MASTER e ADMIN_SMS. Após ativar, a cada login será solicitado o código de 6 dígitos do aplicativo autenticador.</p>
+        <p><strong>Obrigatório</strong> para perfis marcados como administrativos (flag <code>admin_2fa_required</code> em <em>perfis</em>). Após ativar, a cada login será solicitado o código de 6 dígitos do aplicativo autenticador.</p>
       </div>
     </div>
   );
