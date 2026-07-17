@@ -54,6 +54,7 @@ import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
 import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
+import { Route as AuthenticatedFuncoesRouteImport } from './routes/_authenticated/funcoes.'
 import { Route as AuthenticatedCargosRouteImport } from './routes/_authenticated/cargos.'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
@@ -307,6 +308,11 @@ const AuthenticatedCompetenciasIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedCompetenciasRoute,
   } as any)
+const AuthenticatedFuncoesRoute = AuthenticatedFuncoesRouteImport.update({
+  id: '/funcoes/',
+  path: '/funcoes/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCargosRoute = AuthenticatedCargosRouteImport.update({
   id: '/cargos/',
   path: '/cargos/',
@@ -358,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
   '/cargos/': typeof AuthenticatedCargosRoute
+  '/funcoes/': typeof AuthenticatedFuncoesRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -407,6 +414,7 @@ export interface FileRoutesByTo {
   '/validar/$id': typeof ValidarIdRoute
   '/': typeof AuthenticatedIndexRoute
   '/cargos': typeof AuthenticatedCargosRoute
+  '/funcoes': typeof AuthenticatedFuncoesRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/validar/$id': typeof ValidarIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/cargos/': typeof AuthenticatedCargosRoute
+  '/_authenticated/funcoes/': typeof AuthenticatedFuncoesRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
@@ -509,6 +518,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/validar/$id'
     | '/cargos/'
+    | '/funcoes/'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
@@ -558,6 +568,7 @@ export interface FileRouteTypes {
     | '/validar/$id'
     | '/'
     | '/cargos'
+    | '/funcoes'
     | '/competencias/$id'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/validar/$id'
     | '/_authenticated/'
     | '/_authenticated/cargos/'
+    | '/_authenticated/funcoes/'
     | '/_authenticated/competencias/$id'
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
@@ -952,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompetenciasIdRouteImport
       parentRoute: typeof AuthenticatedCompetenciasRoute
     }
+    '/_authenticated/funcoes/': {
+      id: '/_authenticated/funcoes/'
+      path: '/funcoes'
+      fullPath: '/funcoes/'
+      preLoaderRoute: typeof AuthenticatedFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/cargos/': {
       id: '/_authenticated/cargos/'
       path: '/cargos'
@@ -1057,6 +1076,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCargosRoute: typeof AuthenticatedCargosRoute
+  AuthenticatedFuncoesRoute: typeof AuthenticatedFuncoesRoute
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
@@ -1100,6 +1120,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCargosRoute: AuthenticatedCargosRoute,
+  AuthenticatedFuncoesRoute: AuthenticatedFuncoesRoute,
   AuthenticatedFrequenciaContratadosRoute:
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
