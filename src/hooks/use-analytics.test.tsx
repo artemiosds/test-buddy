@@ -4,23 +4,16 @@ import { HttpResponse, http } from "msw";
 import { waitFor } from "@testing-library/react";
 import { server } from "@/test/msw-server";
 import { renderHookWithQuery } from "@/test/render";
+import {
+  BASE,
+  analyticsHeadCounts,
+  analyticsQueriesOk,
+  analyticsQueriesEmpty,
+  analyticsQueriesError,
+} from "@/test/msw-handlers";
 import { useAnalytics } from "./use-analytics";
 
-const BASE = "http://supabase.test/rest/v1";
-
-// HEAD count: supabase-js lê o total de `content-range: */N`.
-function countResponse(total: number) {
-  return new HttpResponse(null, {
-    status: 200,
-    headers: { "content-range": `0-0/${total}` },
-  });
-}
-
-function baseCountHandlers(counts: Record<string, number>) {
-  return Object.entries(counts).map(([table, n]) =>
-    http.head(`${BASE}/${table}`, () => countResponse(n)),
-  );
-}
+const baseCountHandlers = analyticsHeadCounts;
 
 const FREQ_ROW_A = {
   id: "f1",
@@ -57,10 +50,22 @@ function competenciaAtivaHandler() {
   return http.get(`${BASE}/competencias`, () => HttpResponse.json([]));
 }
 
+// Combos padrão usados por todos os cenários abaixo — silenciam os requests
+// paralelos (statusBreakdown/vinculo/distribuicao*/alertas/quadroLotacao)
+// que disparam automaticamente sem depender de filtro.
+function baseAnalyticsFixture() {
+  return [
+    permsHandler(),
+    competenciaAtivaHandler(),
+    ...baseCountHandlers({}),
+  ];
+}
+
 describe("useAnalytics", () => {
   it("mapeia frequencias em contagens/agregações e counts em KPIs", async () => {
     server.use(
-      permsHandler(), competenciaAtivaHandler(),
+      permsHandler(),
+      competenciaAtivaHandler(),
       ...baseCountHandlers({
         profissionais: 42,
         unidades: 7,
@@ -69,6 +74,7 @@ describe("useAnalytics", () => {
         funcoes: 4,
         frequencia_pendencias: 5,
       }),
+      ...analyticsQueriesOk(),
       http.get(`${BASE}/frequencias`, () =>
         HttpResponse.json([FREQ_ROW_A, FREQ_ROW_B]),
       ),
@@ -98,15 +104,8 @@ describe("useAnalytics", () => {
 
   it("resposta vazia => agregações zeradas, sem crash", async () => {
     server.use(
-      permsHandler(), competenciaAtivaHandler(),
-      ...baseCountHandlers({
-        profissionais: 0,
-        unidades: 0,
-        setores: 0,
-        cargos: 0,
-        funcoes: 0,
-        frequencia_pendencias: 0,
-      }),
+      ...baseAnalyticsFixture(),
+      ...analyticsQueriesEmpty(),
       http.get(`${BASE}/frequencias`, () => HttpResponse.json([])),
     );
 
@@ -122,15 +121,8 @@ describe("useAnalytics", () => {
 
   it("erro em frequencias => isError sem exception no hook", async () => {
     server.use(
-      permsHandler(), competenciaAtivaHandler(),
-      ...baseCountHandlers({
-        profissionais: 0,
-        unidades: 0,
-        setores: 0,
-        cargos: 0,
-        funcoes: 0,
-        frequencia_pendencias: 0,
-      }),
+      ...baseAnalyticsFixture(),
+      ...analyticsQueriesEmpty(),
       http.get(`${BASE}/frequencias`, () =>
         HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
       ),
@@ -143,5 +135,100 @@ describe("useAnalytics", () => {
     // Agregações defaultam com array vazio quando data é undefined.
     expect(result.current.frequenciasAprovadas).toBe(0);
     expect(result.current.ranking).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sublote 11B: cobertura das consultas novas (equipeProfissionais,
+// quadroLotacao, distribuicaoFuncao, statusBreakdown, vinculoBreakdown,
+// alertas). Cada bloco valida OK / vazio / erro.
+// ---------------------------------------------------------------------------
+describe("useAnalytics · consultas novas (11B)", () => {
+  it("OK: statusBreakdown/vinculo/distribuicao*/equipe/quadro/alertas retornam dados", async () => {
+    server.use(
+      ...baseAnalyticsFixture(),
+      ...analyticsQueriesOk(),
+      http.get(`${BASE}/frequencias`, () => HttpResponse.json([])),
+    );
+
+    const { result } = renderHookWithQuery(() =>
+      useAnalytics({ competenciaId: "c1", cargoId: "c1" }),
+    );
+
+    await waitFor(() => expect(result.current.statusBreakdown.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.vinculoBreakdown.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoUnidade.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoCargo.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoSetor.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoFuncao.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.equipeProfissionais.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.quadroLotacao.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
+
+    expect(result.current.statusBreakdown.data).toEqual({ ativo: 2, ferias: 1, afastado: 1 });
+    expect(result.current.vinculoBreakdown.data).toEqual({ efetivos: 2, temporarios: 1, outros: 1 });
+    expect(result.current.distribuicaoUnidade.data?.[0]?.total).toBe(2);
+    expect(result.current.distribuicaoCargo.data?.[0]?.total).toBe(2);
+    expect(result.current.distribuicaoSetor.data?.[0]?.total).toBe(2);
+    expect(result.current.distribuicaoFuncao.data?.length).toBe(2);
+    expect(result.current.equipeProfissionais.data?.length).toBe(3);
+    expect(result.current.quadroLotacao.data?.length).toBe(2);
+    const al = result.current.alertas.data!;
+    // setores retornou 3, com 2 ocupados (s1,s2) => 1 vazio; 1 setor sem gestor+resp
+    expect(al.setoresVazios).toBe(1);
+    expect(typeof al.setoresSemResponsavel).toBe("number");
+  });
+
+  it("VAZIO: consultas novas retornam estruturas zeradas sem crash", async () => {
+    server.use(
+      ...baseAnalyticsFixture(),
+      ...analyticsQueriesEmpty(),
+      http.get(`${BASE}/frequencias`, () => HttpResponse.json([])),
+    );
+
+    const { result } = renderHookWithQuery(() =>
+      useAnalytics({ competenciaId: "c1", cargoId: "c1" }),
+    );
+
+    await waitFor(() => expect(result.current.statusBreakdown.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.equipeProfissionais.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.quadroLotacao.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
+
+    expect(result.current.statusBreakdown.data).toEqual({});
+    expect(result.current.vinculoBreakdown.data).toEqual({ efetivos: 0, temporarios: 0, outros: 0 });
+    expect(result.current.distribuicaoUnidade.data).toEqual([]);
+    expect(result.current.distribuicaoCargo.data).toEqual([]);
+    expect(result.current.distribuicaoSetor.data).toEqual([]);
+    expect(result.current.distribuicaoFuncao.data).toEqual([]);
+    expect(result.current.equipeProfissionais.data).toEqual([]);
+    expect(result.current.quadroLotacao.data).toEqual([]);
+    expect(result.current.alertas.data?.setoresVazios).toBe(0);
+  });
+
+  it("ERRO 500: consultas novas entram em isError sem derrubar o hook", async () => {
+    server.use(
+      ...baseAnalyticsFixture(),
+      ...analyticsQueriesError(),
+      http.get(`${BASE}/frequencias`, () => HttpResponse.json([])),
+    );
+
+    const { result } = renderHookWithQuery(() =>
+      useAnalytics({ competenciaId: "c1", cargoId: "c1" }),
+    );
+
+    await waitFor(() => expect(result.current.statusBreakdown.isError).toBe(true));
+    await waitFor(() => expect(result.current.vinculoBreakdown.isError).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoUnidade.isError).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoCargo.isError).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoSetor.isError).toBe(true));
+    await waitFor(() => expect(result.current.distribuicaoFuncao.isError).toBe(true));
+    await waitFor(() => expect(result.current.equipeProfissionais.isError).toBe(true));
+    await waitFor(() => expect(result.current.quadroLotacao.isError).toBe(true));
+    await waitFor(() => expect(result.current.alertas.isError).toBe(true));
+
+    // Hook continua exportando agregações padrão sem exceção.
+    expect(result.current.ranking).toEqual([]);
+    expect(result.current.frequenciasAprovadas).toBe(0);
   });
 });
