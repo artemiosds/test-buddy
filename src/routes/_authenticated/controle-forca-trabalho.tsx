@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")(
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
     <PermissionGate
-      permission="profissional.visualizar"
+      anyOf={["dashboard.visualizar", "unidade.visualizar"]}
       fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
     >
       <ControleForcaTrabalhoPage />
