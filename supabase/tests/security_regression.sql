@@ -114,11 +114,9 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- Bindings de UUID para uso nas asserções
+-- UUIDs são lidos via current_setting('app.test_*') dentro de cada bloco DO.
+-- Nada de \set + shell aqui — o script é auto-contido no psql.
 -- ---------------------------------------------------------------------------
-\set master_id `echo "'"$(psql -Atqc "SELECT current_setting('app.test_master_id')")"'"`
--- Nota: em vez de depender de \set + shell, lemos via SELECT current_setting()
--- dentro de cada DO/EXECUTE. Isso mantém o script auto-contido no psql.
 
 -- =============================================================================
 -- 5A.1 — Guards SECURITY DEFINER
