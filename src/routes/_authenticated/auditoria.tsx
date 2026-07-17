@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
+import { Pagination } from "@/components/shared/Pagination";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
   component: AuditoriaPage,
@@ -61,6 +62,12 @@ function AuditoriaPage() {
   const [busca, setBusca] = useState("");
   const [dias, setDias] = useState<string>("7");
   const [detalhe, setDetalhe] = useState<AuditRow | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  useEffect(() => {
+    setPage(1);
+  }, [operacao, tabela, busca, dias, pageSize]);
 
   const desde = useMemo(() => {
     const d = new Date();
@@ -84,14 +91,16 @@ function AuditoriaPage() {
   });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["auditoria", { operacao, tabela, busca, desde }],
+    queryKey: ["auditoria", { operacao, tabela, busca, desde, page, pageSize }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       let q = supabase
         .from("audit_log")
-        .select("*")
+        .select("*", { count: "exact" })
         .gte("ocorrido_em", desde)
-        .order("ocorrido_em", { ascending: false })
-        .limit(500);
+        .order("ocorrido_em", { ascending: false });
       if (operacao !== "todas") q = q.eq("operacao", operacao);
       if (tabela !== "todas") q = q.eq("tabela", tabela);
       if (busca.trim()) {
@@ -100,13 +109,14 @@ function AuditoriaPage() {
           `usuario_email.ilike.%${b}%,registro_id.ilike.%${b}%,tabela.ilike.%${b}%`,
         );
       }
-      const { data, error } = await q;
+      const { data, count, error } = await q.range(from, to);
       if (error) throw error;
-      return data as AuditRow[];
+      return { rows: (data ?? []) as AuditRow[], count: count ?? 0 };
     },
   });
 
-  const rows = data ?? [];
+  const rows = data?.rows ?? [];
+  const total = data?.count ?? 0;
 
   const exportarCsv = () => {
     if (!rows.length) {
@@ -250,12 +260,16 @@ function AuditoriaPage() {
               </tbody>
             </table>
           </div>
-          {rows.length >= 500 && (
-            <div className="p-3 text-xs text-muted-foreground border-t bg-muted/30">
-              Exibindo primeiros 500 registros. Refine os filtros para ver mais.
-            </div>
-          )}
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          disabled={isFetching}
+        />
 
         <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
