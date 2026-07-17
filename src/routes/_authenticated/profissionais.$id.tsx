@@ -30,6 +30,26 @@ import { ArrowLeft, Plus, Trash2, FileBarChart } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { PageHeader, DataTable, EmptyState, type DataTableColumn } from "@/components/shared";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  DocumentosTab as DossieDocumentosTab,
+  DossieToolbar,
+  LotacoesTable,
+  MovimentacoesTable,
+  ObservacoesTab as DossieObservacoesTab,
+  ProfissionalHeader,
+  ResumoExecutivoGrid,
+  TimelineFuncional,
+  type DossieDocumento,
+  type LookupMap,
+  type ProfHeaderData,
+} from "@/components/profissionais/dossie";
+import {
+  EVENTO_LABELS,
+  computeDossieResumo,
+  deriveMovimentacoes,
+  type HistoricoEvento,
+} from "@/lib/dossie";
+import { downloadCsv } from "@/lib/csv-export";
 
 export const Route = createFileRoute("/_authenticated/profissionais/$id")({
   component: ProfissionalDetailPage,
@@ -94,7 +114,8 @@ import {
 
 function ProfissionalDetailPage() {
   const { id } = Route.useParams();
-  const [tab, setTab] = useState<string>("dados");
+  const [tab, setTab] = useState<string>("resumo");
+  const [filtroDossie, setFiltroDossie] = useState("");
 
   const { data: profissional, isLoading: loadingProf } = useQuery({
     queryKey: ["profissional-detail", id],
@@ -122,6 +143,96 @@ function ProfissionalDetailPage() {
     },
   });
 
+  const { data: historico = [] } = useQuery({
+    queryKey: ["historico", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissional_historico_funcional")
+        .select("*")
+        .eq("profissional_id", id)
+        .is("deleted_at", null)
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as HistoricoEvento[];
+    },
+  });
+
+  const { data: linhasResumo = [] } = useLinhasFrequencia(id);
+  const { data: pendCounts } = useQuery({
+    queryKey: ["prof-pend-counts", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("frequencia_pendencias")
+        .select("status, frequencia_profissional!inner(profissional_id)")
+        .is("deleted_at", null)
+        .eq("frequencia_profissional.profissional_id", id);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as Array<{ status: string }>;
+      const abertas = rows.filter(
+        (r) => r.status !== "resolvida" && r.status !== "cancelada",
+      ).length;
+      const resolvidas = rows.filter((r) => r.status === "resolvida").length;
+      return { abertas, resolvidas };
+    },
+  });
+
+  const resumo = useMemo(
+    () =>
+      computeDossieResumo({
+        historico,
+        linhas: (linhasResumo ?? []).map((r) => {
+          const c = r.frequencias?.competencia_unidades?.competencias;
+          return {
+            status_linha: r.status_linha,
+            faltas_injustificadas: r.faltas_injustificadas,
+            faltas_justificadas: r.faltas_justificadas,
+            he_50: r.he_50,
+            he_100: r.he_100,
+            competencia_key: c ? `${c.ano}-${c.mes}` : null,
+            unidade_id:
+              r.frequencias?.competencia_unidades?.unidade_id ?? null,
+          };
+        }),
+        pendenciasAbertas: pendCounts?.abertas ?? 0,
+        pendenciasResolvidas: pendCounts?.resolvidas ?? 0,
+      }),
+    [historico, linhasResumo, pendCounts],
+  );
+
+  const headerData: ProfHeaderData | null = profissional
+    ? {
+        nome_completo: profissional.nome_completo,
+        nome_social: profissional.nome_social,
+        matricula: profissional.matricula,
+        cpf: profissional.cpf,
+        status: profissional.status,
+        situacao_funcional: profissional.situacao_funcional,
+        data_admissao: profissional.data_admissao,
+        cargo: profissional.cargo,
+        funcao: profissional.funcao,
+        unidade: profissional.unidade,
+        setor: profissional.setor,
+        vinculo: profissional.vinculo,
+      }
+    : null;
+
+  const handleExport = () => {
+    const movs = deriveMovimentacoes(historico);
+    downloadCsv(
+      `dossie-${profissional?.matricula ?? id}`,
+      movs,
+      [
+        { header: "Data", value: (r) => r.data_inicio },
+        {
+          header: "Tipo",
+          value: (r) => EVENTO_LABELS[r.tipo_evento] ?? r.tipo_evento,
+        },
+        { header: "Motivo", value: (r) => r.motivo ?? "" },
+        { header: "Documento", value: (r) => r.documento_referencia ?? "" },
+      ],
+    );
+  };
+
   return (
     <div className="space-y-4">
       <Button asChild variant="ghost" size="sm">
@@ -130,31 +241,42 @@ function ProfissionalDetailPage() {
         </Link>
       </Button>
 
-      <PageHeader
-        title={profissional?.nome_completo ?? (loadingProf ? "Carregando…" : "Profissional")}
-        description={
-          [
-            profissional?.matricula && `Mat.: ${profissional.matricula}`,
-            profissional?.cpf && `CPF: ${fmtCPF(profissional.cpf)}`,
-            profissional?.cargo?.nome && `Cargo: ${profissional.cargo.nome}`,
-            profissional?.vinculo?.nome && `Vínculo: ${profissional.vinculo.nome}`,
-          ]
-            .filter(Boolean)
-            .join(" · ") || undefined
-        }
+      {headerData ? (
+        <ProfissionalHeader p={headerData} />
+      ) : (
+        <PageHeader
+          title={loadingProf ? "Carregando…" : "Profissional"}
+        />
+      )}
+
+      <DossieToolbar
+        filtro={filtroDossie}
+        onFiltroChange={setFiltroDossie}
+        onExport={handleExport}
       />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap">
+          <TabsTrigger value="resumo">Resumo</TabsTrigger>
+          <TabsTrigger value="trajetoria">Trajetória</TabsTrigger>
           <TabsTrigger value="dados">Dados Gerais</TabsTrigger>
           <TabsTrigger value="lotacao">Lotação</TabsTrigger>
           <TabsTrigger value="frequencias">Frequências</TabsTrigger>
           <TabsTrigger value="competencias">Competências</TabsTrigger>
           <TabsTrigger value="horas">Horas Extras</TabsTrigger>
           <TabsTrigger value="pendencias">Pendências</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
+          <TabsTrigger value="observacoes">Observações</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="resumo" className="mt-4 space-y-4">
+          <ResumoExecutivoGrid resumo={resumo} />
+          <TimelineFuncional historico={historico} filtro={filtroDossie} />
+        </TabsContent>
+        <TabsContent value="trajetoria" className="mt-4 space-y-4">
+          <TrajetoriaTab historico={historico} />
+        </TabsContent>
         <TabsContent value="dados" className="mt-4">
           <DadosGeraisTab profissional={profissional} loading={loadingProf} />
         </TabsContent>
@@ -173,11 +295,163 @@ function ProfissionalDetailPage() {
         <TabsContent value="pendencias" className="mt-4">
           <PendenciasTab profissionalId={id} />
         </TabsContent>
+        <TabsContent value="documentos" className="mt-4">
+          <DocumentosContainer profissionalId={id} />
+        </TabsContent>
+        <TabsContent value="observacoes" className="mt-4">
+          <ObservacoesContainer
+            profissionalId={id}
+            observacoes={profissional?.observacoes ?? null}
+          />
+        </TabsContent>
         <TabsContent value="relatorios" className="mt-4">
           <RelatoriosTab profissionalId={id} />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+/* =============================== Trajetória ============================== */
+
+function useLookups(ids: {
+  unidadeIds: string[];
+  setorIds: string[];
+  cargoIds: string[];
+  funcaoIds: string[];
+}) {
+  const { unidadeIds, setorIds, cargoIds, funcaoIds } = ids;
+  return useQuery({
+    queryKey: [
+      "dossie-lookups",
+      unidadeIds.join(","),
+      setorIds.join(","),
+      cargoIds.join(","),
+      funcaoIds.join(","),
+    ],
+    enabled:
+      unidadeIds.length + setorIds.length + cargoIds.length + funcaoIds.length >
+      0,
+    queryFn: async () => {
+      const [u, s, c, f] = await Promise.all([
+        unidadeIds.length
+          ? supabase.from("unidades").select("id, nome, sigla").in("id", unidadeIds)
+          : Promise.resolve({ data: [] as { id: string; nome: string; sigla: string | null }[], error: null }),
+        setorIds.length
+          ? supabase.from("setores").select("id, nome").in("id", setorIds)
+          : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
+        cargoIds.length
+          ? supabase.from("cargos").select("id, nome").in("id", cargoIds)
+          : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
+        funcaoIds.length
+          ? supabase.from("funcoes").select("id, nome").in("id", funcaoIds)
+          : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
+      ]);
+      const toMap = <T extends { id: string }>(
+        rows: T[] | null,
+        val: (r: T) => string,
+      ): LookupMap => new Map((rows ?? []).map((r) => [r.id, val(r)]));
+      return {
+        unidades: toMap(u.data, (r) => r.sigla ?? r.nome),
+        setores: toMap(s.data, (r) => r.nome),
+        cargos: toMap(c.data, (r) => r.nome),
+        funcoes: toMap(f.data, (r) => r.nome),
+      };
+    },
+  });
+}
+
+function TrajetoriaTab({ historico }: { historico: HistoricoEvento[] }) {
+  const ids = useMemo(() => {
+    const uniq = (arr: (string | null)[]) =>
+      Array.from(new Set(arr.filter((x): x is string => !!x)));
+    return {
+      unidadeIds: uniq(historico.map((e) => e.unidade_novo_id)),
+      setorIds: uniq(historico.map((e) => e.setor_novo_id)),
+      cargoIds: uniq(historico.map((e) => e.cargo_novo_id)),
+      funcaoIds: uniq(historico.map((e) => e.funcao_novo_id)),
+    };
+  }, [historico]);
+  const { data: lookups, isLoading } = useLookups(ids);
+  const empty: LookupMap = new Map();
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Histórico de lotações</h3>
+        <LotacoesTable
+          historico={historico}
+          unidades={lookups?.unidades ?? empty}
+          setores={lookups?.setores ?? empty}
+          cargos={lookups?.cargos ?? empty}
+          funcoes={lookups?.funcoes ?? empty}
+          loading={isLoading}
+        />
+      </div>
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Movimentações funcionais</h3>
+        <MovimentacoesTable historico={historico} />
+      </div>
+    </div>
+  );
+}
+
+/* ============================== Documentos ============================== */
+
+function DocumentosContainer({ profissionalId }: { profissionalId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["prof-documentos", profissionalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos_assinados")
+        .select("id, tipo, descricao, assinado_em, assinado_por_nome")
+        .eq("referencia_id", profissionalId)
+        .order("assinado_em", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as unknown as DossieDocumento[];
+    },
+  });
+  return <DossieDocumentosTab docs={data ?? []} loading={isLoading} />;
+}
+
+/* ============================== Observações ============================= */
+
+function ObservacoesContainer({
+  profissionalId,
+  observacoes,
+}: {
+  profissionalId: string;
+  observacoes: string | null;
+}) {
+  const { data: audit = [] } = useQuery({
+    queryKey: ["prof-audit", profissionalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_log")
+        .select("id, operacao, ocorrido_em, usuario_email")
+        .eq("tabela", "profissionais")
+        .eq("registro_id", profissionalId)
+        .order("ocorrido_em", { ascending: false })
+        .limit(50);
+      if (error) return [];
+      return (data ?? []) as unknown as Array<{
+        id: number;
+        operacao: string;
+        ocorrido_em: string;
+        usuario_email: string | null;
+      }>;
+    },
+  });
+  return (
+    <DossieObservacoesTab
+      observacoes={observacoes}
+      atualizacoes={audit.map((a) => ({
+        id: a.id,
+        data: a.ocorrido_em,
+        responsavel: a.usuario_email,
+        operacao: a.operacao,
+      }))}
+    />
   );
 }
 
