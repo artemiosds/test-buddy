@@ -4,6 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
+import { useServerFn } from "@tanstack/react-start";
+import { consumeBackupCodeAndUnenroll, countBackupCodes } from "@/lib/mfa-backup-codes.functions";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
@@ -38,6 +40,11 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [mfa, setMfa] = useState<{ factorId: string; challengeId: string } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [backupAvailable, setBackupAvailable] = useState<number | null>(null);
+  const countBackupFn = useServerFn(countBackupCodes);
+  const consumeBackupFn = useServerFn(consumeBackupCodeAndUnenroll);
 
   useEffect(() => {
     let mounted = true;
@@ -78,6 +85,13 @@ function AuthPage() {
     const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
     if (cErr) throw cErr;
     setMfa({ factorId: factor.id, challengeId: ch.id });
+    try {
+      const { count } = await countBackupFn();
+      setBackupAvailable(count);
+    } catch (err) {
+      logger.warn("auth.count_backup_failed", { error: err });
+      setBackupAvailable(0);
+    }
   }
 
   async function verifyMfa() {
@@ -93,6 +107,34 @@ function AuthPage() {
         contexto: { message: err instanceof Error ? err.message : "erro" },
       });
       setError(err instanceof Error ? err.message : "Código inválido");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyRecoveryCode() {
+    setLoading(true); setError(null); setInfo(null);
+    try {
+      const res = await consumeBackupFn({ data: { code: recoveryCode } });
+      if (!res.ok) {
+        void auditClient.action(AUDIT_ACOES.MFA_FALHA, {
+          contexto: { origem: "recovery_code" },
+        });
+        throw new Error("Código de recuperação inválido ou já utilizado.");
+      }
+      void auditClient.login(AUDIT_ACOES.MFA_REMOVIDO, {
+        contexto: { origem: "recovery_code", removidos: res.removed },
+      });
+      setInfo("Fator MFA removido. Você será redirecionado para configurar um novo.");
+      setMfa(null);
+      setRecoveryMode(false);
+      setRecoveryCode("");
+      setMfaCode("");
+      // O guard de _authenticated leva o usuário para /seguranca quando o
+      // perfil exige 2FA e não há fator ativo.
+      setTimeout(() => navigate({ to: "/" }), 800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível validar o código");
     } finally {
       setLoading(false);
     }
@@ -155,33 +197,82 @@ function AuthPage() {
 
         {mfa ? (
           <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-medium">Verificação em duas etapas</h2>
-              <p className="text-sm text-muted-foreground">Digite o código de 6 dígitos do seu aplicativo autenticador.</p>
-            </div>
-            <input
-              inputMode="numeric"
-              maxLength={6}
-              autoFocus
-              value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-              className="w-full rounded-md border bg-background px-3 py-2 text-center text-lg tracking-[0.5em]"
-            />
-            {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-            <button
-              onClick={verifyMfa}
-              disabled={loading || mfaCode.length !== 6}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? "Verificando..." : "Entrar"}
-            </button>
-            <button
-              type="button"
-              onClick={async () => { await supabase.auth.signOut(); setMfa(null); setMfaCode(""); }}
-              className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            >
-              Cancelar
-            </button>
+            {recoveryMode ? (
+              <>
+                <div>
+                  <h2 className="text-lg font-medium">Código de recuperação</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Informe um dos códigos de backup gerados quando você configurou o 2FA. O código será
+                    invalidado após o uso e seu fator atual será removido para permitir uma nova configuração.
+                  </p>
+                </div>
+                <input
+                  autoFocus
+                  value={recoveryCode}
+                  onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
+                  placeholder="AAAA-BBBB-CC"
+                  maxLength={12}
+                  spellCheck={false}
+                  autoComplete="one-time-code"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-center font-mono text-lg tracking-[0.25em] uppercase"
+                />
+                {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+                {info && <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">{info}</p>}
+                <button
+                  onClick={verifyRecoveryCode}
+                  disabled={loading || recoveryCode.replace(/-/g, "").length < 8}
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {loading ? "Validando..." : "Usar código de recuperação"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecoveryMode(false); setRecoveryCode(""); setError(null); setInfo(null); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Voltar para o código do aplicativo
+                </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h2 className="text-lg font-medium">Verificação em duas etapas</h2>
+                  <p className="text-sm text-muted-foreground">Digite o código de 6 dígitos do seu aplicativo autenticador.</p>
+                </div>
+                <input
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-center text-lg tracking-[0.5em]"
+                />
+                {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+                <button
+                  onClick={verifyMfa}
+                  disabled={loading || mfaCode.length !== 6}
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {loading ? "Verificando..." : "Entrar"}
+                </button>
+                {backupAvailable !== null && backupAvailable > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setRecoveryMode(true); setError(null); setInfo(null); }}
+                    className="w-full text-center text-xs text-primary hover:underline"
+                  >
+                    Não tenho o aplicativo — usar código de recuperação ({backupAvailable} disponíveis)
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={async () => { await supabase.auth.signOut(); setMfa(null); setMfaCode(""); setBackupAvailable(null); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Cancelar
+                </button>
+              </>
+            )}
           </div>
         ) : (
         <>
