@@ -69,7 +69,10 @@ Itens conhecidos e conscientemente adiados. **Nenhum bloqueia produção.**
 - **Lookups N+1** em telas de listagem de profissionais/setores — mitigados
   pelo `staleTime: 60s` global; refatorar para `select()` com join no
   Supabase quando o volume superar ~5k linhas.
-- **`FilterBar.Field`** (componente unificado de filtros) — Sublote 7C.
+- **`FilterBar.Field`** — ✔ aplicado na Onda 7C nas telas com filtros
+  padronizados (`profissionais`, `gestao-rh`, `ProfessionalsPage`).
+  Demais telas usam filtros específicos (data-range, tabs) que não se
+  encaixam no formato label+controle e permanecem inline por desenho.
 - **Sublote 5D.1** — ✔ concluído na Onda 7A: fluxo self-service de
   recuperação 2FA via código de backup implementado na tela de login
   (`verify_and_consume_backup_code` + `consumeBackupCodeAndUnenroll`).
