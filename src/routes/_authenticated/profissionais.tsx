@@ -1322,6 +1322,14 @@ function ProfissionaisPage() {
         emptyTitle="Nenhum profissional encontrado"
         emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
       />
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={profissionaisTotal}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        disabled={isFetching}
+      />
     </div>
   );
 }
