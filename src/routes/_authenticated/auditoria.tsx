@@ -14,6 +14,7 @@ import {
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
   component: AuditoriaPage,
@@ -132,6 +133,10 @@ function AuditoriaPage() {
     a.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    void auditClient.action(AUDIT_ACOES.EXPORT_CSV, {
+      tabela: "audit_log",
+      contexto: { total: rows.length, filtros: { operacao, tabela, dias } },
+    });
   };
 
   return (
