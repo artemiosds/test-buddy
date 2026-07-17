@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
   Users,
@@ -23,9 +23,12 @@ import {
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
-import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
+import { EmptyState, KpiCard, PageHeader, StatusBadge, FilterBar } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   SemaforoCard,
   TendenciaKpi,
@@ -33,8 +36,19 @@ import {
   InsightsCard,
 } from "@/components/intelligence";
 import { useNavigate } from "@tanstack/react-router";
+import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
+import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";
+import {
+  workforceFiltersValidator,
+  resolveWorkforceFilters,
+  mergeWorkforceFilters,
+  WORKFORCE_FILTER_KEYS,
+  type WorkforceFilters,
+} from "@/lib/workforce-filters";
 
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
+  validateSearch: workforceFiltersValidator,
+  search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   head: () => ({
     meta: [
       { title: "Dashboard Executivo — Gestão de Pessoas" },
@@ -56,9 +70,31 @@ function n(v: number | undefined | null) {
 }
 
 function DashboardExecutivo() {
-  const a = useAnalytics({});
+  const search = Route.useSearch();
+  const routeNavigate = useNavigate({ from: Route.fullPath });
+  const { data: competenciaAtiva } = useCompetenciaAtiva();
+  const competenciasQ = useCompetenciasLookup();
+  const unidadesQ = useUnidadesLookup({ ativasOnly: true });
+  const resolved = resolveWorkforceFilters(search, competenciaAtiva?.id ?? null);
+  const compSel = search.competencia === "" ? "__ativa__" : search.competencia;
+  const unidadeSel = search.unidade === "" ? "__all__" : search.unidade;
+  const statusSel = search.status === "" ? "__all__" : search.status;
+  const patchFilter = (patch: Partial<WorkforceFilters>) =>
+    routeNavigate({
+      search: (prev: WorkforceFilters) => mergeWorkforceFilters(prev, patch),
+      replace: true,
+    });
+
+  const a = useAnalytics({
+    competenciaId: resolved.competenciaId,
+    unidadeId: resolved.unidadeId,
+    status: resolved.status,
+  });
   const intel = useIntelligence(a);
   const navigate = useNavigate();
+
+  const competenciaLabel = (mes: number, ano: number) =>
+    `${String(mes).padStart(2, "0")}/${ano}`;
 
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
@@ -98,6 +134,59 @@ function DashboardExecutivo() {
           lastUpdated={a.lastUpdated}
           onRefresh={() => a.refetch()}
         />
+      </div>
+
+      <div className="mt-4">
+        <FilterBar>
+          <FilterBar.Field label="Competência">
+            <Select
+              value={compSel}
+              onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ativa__">
+                  Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+                </SelectItem>
+                {(competenciasQ.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+          <FilterBar.Field label="Unidade">
+            <Select
+              value={unidadeSel}
+              onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {(unidadesQ.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+          <FilterBar.Field label="Status">
+            <Select
+              value={statusSel}
+              onValueChange={(v) => patchFilter({ status: v === "__all__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                <SelectItem value="ativo">Ativos</SelectItem>
+                <SelectItem value="afastado">Afastados</SelectItem>
+                <SelectItem value="ferias">Férias</SelectItem>
+                <SelectItem value="licenca">Licenças</SelectItem>
+                <SelectItem value="desligado">Desligados</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+        </FilterBar>
       </div>
 
       <Section title="Blocos funcionais">
