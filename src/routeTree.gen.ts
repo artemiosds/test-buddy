@@ -20,6 +20,7 @@ import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
 import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
 import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
+import { Route as AuthenticatedSaudeRouteImport } from './routes/_authenticated/saude'
 import { Route as AuthenticatedSalaSituacaoRouteImport } from './routes/_authenticated/sala-situacao'
 import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
 import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
@@ -105,6 +106,11 @@ const AuthenticatedSetoresRoute = AuthenticatedSetoresRouteImport.update({
 const AuthenticatedSegurancaRoute = AuthenticatedSegurancaRouteImport.update({
   id: '/seguranca',
   path: '/seguranca',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSaudeRoute = AuthenticatedSaudeRouteImport.update({
+  id: '/saude',
+  path: '/saude',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSalaSituacaoRoute =
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
+  '/saude': typeof AuthenticatedSaudeRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
+  '/saude': typeof AuthenticatedSaudeRoute
   '/seguranca': typeof AuthenticatedSegurancaRoute
   '/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
   '/_authenticated/sala-situacao': typeof AuthenticatedSalaSituacaoRoute
+  '/_authenticated/saude': typeof AuthenticatedSaudeRoute
   '/_authenticated/seguranca': typeof AuthenticatedSegurancaRoute
   '/_authenticated/setores': typeof AuthenticatedSetoresRouteWithChildren
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
@@ -443,6 +452,7 @@ export interface FileRouteTypes {
     | '/relatorios-profissional'
     | '/relatorios-status'
     | '/sala-situacao'
+    | '/saude'
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/relatorios-profissional'
     | '/relatorios-status'
     | '/sala-situacao'
+    | '/saude'
     | '/seguranca'
     | '/setores'
     | '/tipos-unidade'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios-profissional'
     | '/_authenticated/relatorios-status'
     | '/_authenticated/sala-situacao'
+    | '/_authenticated/saude'
     | '/_authenticated/seguranca'
     | '/_authenticated/setores'
     | '/_authenticated/tipos-unidade'
@@ -635,6 +647,13 @@ declare module '@tanstack/react-router' {
       path: '/seguranca'
       fullPath: '/seguranca'
       preLoaderRoute: typeof AuthenticatedSegurancaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/saude': {
+      id: '/_authenticated/saude'
+      path: '/saude'
+      fullPath: '/saude'
+      preLoaderRoute: typeof AuthenticatedSaudeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/sala-situacao': {
@@ -944,6 +963,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
   AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
   AuthenticatedSalaSituacaoRoute: typeof AuthenticatedSalaSituacaoRoute
+  AuthenticatedSaudeRoute: typeof AuthenticatedSaudeRoute
   AuthenticatedSegurancaRoute: typeof AuthenticatedSegurancaRoute
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
@@ -980,6 +1000,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedRelatoriosProfissionalRoute,
   AuthenticatedRelatoriosStatusRoute: AuthenticatedRelatoriosStatusRoute,
   AuthenticatedSalaSituacaoRoute: AuthenticatedSalaSituacaoRoute,
+  AuthenticatedSaudeRoute: AuthenticatedSaudeRoute,
   AuthenticatedSegurancaRoute: AuthenticatedSegurancaRoute,
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
