@@ -3096,6 +3096,10 @@ export type Database = {
         Returns: boolean
       }
       uso_metricas: { Args: { _dias?: number }; Returns: Json }
+      verify_and_consume_backup_code: {
+        Args: { _code: string }
+        Returns: boolean
+      }
     }
     Enums: {
       abrangencia_calendario: "municipal" | "estadual" | "nacional"
