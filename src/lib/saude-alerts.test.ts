@@ -47,9 +47,9 @@ describe("computeSaudeAlerts", () => {
   it("sinaliza disjuntores abertos como crítico e meia-abertura como warn", () => {
     const alerts = computeSaudeAlerts({
       breakers: [
-        { key: "rpc.a", state: "open", failures: 5, totalTrips: 1, nextAttemptAt: 0 },
-        { key: "rpc.b", state: "half_open", failures: 0, totalTrips: 2, nextAttemptAt: 0 },
-        { key: "rpc.c", state: "closed", failures: 0, totalTrips: 0, nextAttemptAt: 0 },
+        { key: "rpc.a", state: "open", failures: 5, totalTrips: 1, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
+        { key: "rpc.b", state: "half_open", failures: 0, totalTrips: 2, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
+        { key: "rpc.c", state: "closed", failures: 0, totalTrips: 0, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
       ],
     });
     expect(alerts.find((a) => a.id === "breakers.abertos")?.severity).toBe("critical");
