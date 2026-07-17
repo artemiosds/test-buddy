@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRetryMutation } from "@/lib/retry-mutation";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +117,9 @@ function AprovacoesPage() {
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
 
-  const registraMutation = useMutation({
+  // Idempotente: alterar_status apenas move a frequência para um estado alvo.
+  const registraMutation = useRetryMutation({
+    retry: { operation: "frequencia.alterar_status" },
     mutationFn: async ({ freqId, tipo, observacoes }: {
       freqId: string; tipo: AcaoTipo; observacoes: string; statusAnterior: StatusFreq;
     }) => {
@@ -453,7 +456,9 @@ function LinhasAnaliseDialog({
     },
   });
 
-  const mut = useMutation({
+  // Idempotente: aprovação/rejeição de linha é UPDATE por id com campos determinísticos.
+  const mut = useRetryMutation({
+    retry: { operation: "frequencia_linha.aprovar_rejeitar" },
     mutationFn: async ({ id, status, obs }: { id: string; status: "aprovada" | "rejeitada"; obs: string }) => {
       if (status === "rejeitada" && !obs.trim()) {
         throw new Error("Informe a observação para rejeitar a linha.");
