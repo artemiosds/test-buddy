@@ -196,13 +196,14 @@ END $$;
 DO $$
 DECLARE
   v_common uuid := current_setting('app.test_common_id')::uuid;
+  v_dummy  uuid := '00000000-0000-0000-0000-000000000000';
 BEGIN
   IF public.has_permission(v_common, 'pendencia.criar') THEN
     RAISE NOTICE 'SKIP [proximo_numero_pendencia]: app.test_common_id tem pendencia.criar; asserção não aplicável.';
   ELSE
     PERFORM pg_temp.expect_denied(
       v_common,
-      'SELECT public.proximo_numero_pendencia()',
+      format('SELECT public.proximo_numero_pendencia(%L::uuid)', v_dummy),
       'proximo_numero_pendencia sem pendencia.criar → 42501'
     );
   END IF;
