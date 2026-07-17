@@ -5,13 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Clock, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Bell, CheckCircle2, Clock, Info, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
 import { withBreaker, listBreakers, subscribeBreakers, type BreakerSnapshot } from "@/lib/circuit-breaker";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
 
 export const Route = createFileRoute("/_authenticated/saude")({
   component: SaudePage,
@@ -142,6 +143,17 @@ function SaudePage() {
   const pendentes = (ev?.por_status?.["pendente"] ?? 0) + (ev?.por_status?.["falhou_retry"] ?? 0);
   const falhou = ev?.por_status?.["falhou"] ?? 0;
 
+  const travadosQ = useQuery({
+    queryKey: ["saude", "eventos-travados"],
+    enabled: isMaster,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("eventos_travados" as never, { _limit: 100 } as never);
+      if (error) throw error;
+      return data as unknown as { rows: unknown[]; gerado_em: string };
+    },
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -157,6 +169,13 @@ function SaudePage() {
           <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
         </Button>
       </div>
+
+      <AlertsBanner
+        eventos={ev ?? null}
+        sla={sla ?? null}
+        cron={cron ?? null}
+        travados={travadosQ.data ?? null}
+      />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Barramento de eventos</h2>
@@ -527,6 +546,62 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
           Ações restritas a MASTER. Cada reprocessamento/descartamento é registrado em <span className="font-mono">audit_log</span>.
         </p>
       </Card>
+    </section>
+  );
+}
+
+function AlertsBanner({ eventos, sla, cron, travados }: {
+  eventos: EventosResp | null;
+  sla: SlaResp | null;
+  cron: CronResp | null;
+  travados: { rows: unknown[]; gerado_em: string } | null;
+}) {
+  const [breakers, setBreakers] = useState<BreakerSnapshot[]>(() => listBreakers());
+  useEffect(() => {
+    setBreakers(listBreakers());
+    const off = subscribeBreakers(() => setBreakers(listBreakers()));
+    const iv = setInterval(() => setBreakers(listBreakers()), 5_000);
+    return () => { off(); clearInterval(iv); };
+  }, []);
+
+  const alerts = computeSaudeAlerts({ eventos, sla, cron, travados, breakers });
+
+  if (alerts.length === 0) {
+    return (
+      <Card className="p-4 border-emerald-500/40 bg-emerald-500/5">
+        <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4" />
+          Nenhum alerta ativo. Sistema operando dentro dos parâmetros.
+        </div>
+      </Card>
+    );
+  }
+
+  const iconFor = (s: SaudeAlert["severity"]) =>
+    s === "critical" ? <ShieldAlert className="h-4 w-4" />
+    : s === "warn" ? <AlertTriangle className="h-4 w-4" />
+    : <Info className="h-4 w-4" />;
+  const toneFor = (s: SaudeAlert["severity"]) =>
+    s === "critical" ? "border-destructive/50 bg-destructive/5 text-destructive"
+    : s === "warn" ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300"
+    : "border-border bg-muted/40 text-muted-foreground";
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <Bell className="h-5 w-5" /> Alertas proativos
+        <Badge variant="secondary">{alerts.length}</Badge>
+      </h2>
+      <div className="grid gap-2 md:grid-cols-2">
+        {alerts.map((a) => (
+          <div key={a.id} className={`rounded-md border p-3 text-sm ${toneFor(a.severity)}`}>
+            <div className="flex items-center gap-2 font-medium">
+              {iconFor(a.severity)} {a.title}
+            </div>
+            <p className="mt-1 text-xs opacity-90">{a.detail}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
