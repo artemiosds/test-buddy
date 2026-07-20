@@ -146,3 +146,118 @@ function colDe(m: Record<string, PisoDestino | null>, dest: PisoDestino): string
 export function fingerprint(headers: string[]): string {
   return headers.map((h) => normalize(h)).sort().join("|");
 }
+
+// -------------------- Detecção inteligente de cabeçalho --------------------
+
+/** Palavras-chave que caracterizam uma linha de cabeçalho de folha do Piso. */
+const HEADER_KEYWORDS = [
+  "cpf", "nome", "matricula", "mat", "cargo", "funcao", "unidade", "setor",
+  "vinculo", "regime", "competencia", "referencia",
+  "salario", "vencimento", "base", "piso", "complementacao", "compl",
+  "insalubridade", "insalub", "gratificacao", "gratif",
+  "hora extra", "he 50", "he 100", "adicional noturno", "adic noturno",
+  "auxilio", "financ", "ferias", "1 3", "terco",
+  "inss", "irrf", "ir", "liquido", "total", "valor",
+];
+
+function nonEmptyCells(row: unknown[]): number {
+  let n = 0;
+  for (const c of row) {
+    if (c == null) continue;
+    if (typeof c === "string" && c.trim() === "") continue;
+    n++;
+  }
+  return n;
+}
+
+/** Conta quantas palavras-chave batem nos rótulos da linha. */
+function keywordHits(row: unknown[]): number {
+  let hits = 0;
+  for (const cell of row) {
+    if (cell == null) continue;
+    const s = normalize(String(cell));
+    if (!s) continue;
+    for (const kw of HEADER_KEYWORDS) {
+      if (s === kw || s.includes(kw)) { hits++; break; }
+    }
+  }
+  return hits;
+}
+
+/**
+ * Detecta em qual linha (0-indexed) estão os cabeçalhos reais do arquivo.
+ * Estratégia:
+ *  - percorre as primeiras `maxScan` linhas
+ *  - descarta linhas com ≤1 célula preenchida (títulos como "CALCULO PISO ENFERMAGEM")
+ *  - escolhe a linha com maior número de palavras-chave conhecidas
+ *  - empate: prefere a que tem mais colunas preenchidas
+ *  - fallback: primeira linha com ≥3 células preenchidas; senão, 0.
+ */
+export function detectHeaderRow(aoa: unknown[][], maxScan = 10): number {
+  const limit = Math.min(aoa.length, maxScan);
+  let bestIdx = -1;
+  let bestHits = 0;
+  let bestCols = 0;
+  for (let i = 0; i < limit; i++) {
+    const row = aoa[i] ?? [];
+    const cols = nonEmptyCells(row);
+    if (cols <= 1) continue; // título ou linha vazia
+    const hits = keywordHits(row);
+    if (hits > bestHits || (hits === bestHits && cols > bestCols)) {
+      bestHits = hits;
+      bestCols = cols;
+      bestIdx = i;
+    }
+  }
+  if (bestIdx >= 0 && bestHits >= 2) return bestIdx;
+  // Fallback: primeira linha com ≥3 células preenchidas
+  for (let i = 0; i < limit; i++) {
+    if (nonEmptyCells(aoa[i] ?? []) >= 3) return i;
+  }
+  return 0;
+}
+
+/** Normaliza um rótulo de cabeçalho, gerando nome sintético para células vazias/duplicadas. */
+function labelHeaders(row: unknown[]): string[] {
+  const out: string[] = [];
+  const seen = new Map<string, number>();
+  for (let i = 0; i < row.length; i++) {
+    const raw = row[i];
+    let label = raw == null ? "" : String(raw).trim();
+    if (!label) label = `Coluna ${i + 1}`;
+    const count = seen.get(label) ?? 0;
+    seen.set(label, count + 1);
+    out.push(count === 0 ? label : `${label} (${count + 1})`);
+  }
+  return out;
+}
+
+/**
+ * Constrói `{ headers, rows }` a partir de um AOA e do índice da linha de cabeçalho.
+ *  - pula linhas totalmente vazias após o cabeçalho
+ *  - descarta linhas onde a coluna de CPF (se identificável) não parece um CPF —
+ *    isto elimina sub-cabeçalhos repetidos tipo "NOME. CPF".
+ */
+export function buildRowsFromAoa(
+  aoa: unknown[][],
+  headerRowIndex: number,
+): { headers: string[]; rows: Record<string, unknown>[] } {
+  const headers = labelHeaders(aoa[headerRowIndex] ?? []);
+  const cpfColIdx = headers.findIndex((h) => normalize(h).includes("cpf"));
+  const rows: Record<string, unknown>[] = [];
+  for (let i = headerRowIndex + 1; i < aoa.length; i++) {
+    const raw = aoa[i] ?? [];
+    if (nonEmptyCells(raw) === 0) continue;
+    if (cpfColIdx >= 0) {
+      const cell = String(raw[cpfColIdx] ?? "").trim();
+      // linha de rótulo se a "célula de CPF" é a própria palavra "CPF"
+      if (cell && normalize(cell) === "cpf") continue;
+    }
+    const obj: Record<string, unknown> = {};
+    for (let c = 0; c < headers.length; c++) {
+      obj[headers[c]] = raw[c] ?? "";
+    }
+    rows.push(obj);
+  }
+  return { headers, rows };
+}
