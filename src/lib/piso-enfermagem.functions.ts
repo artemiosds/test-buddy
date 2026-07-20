@@ -3,6 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensurePermission } from "./authz.server";
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+type PisoRow = { [k: string]: JsonValue };
+
 const MODELO = z.enum(["Efetivos", "Contratados", "Ministério", "Personalizado"]);
 const TIPO_ARQ = z.enum(["PDF", "Excel", "CSV"]);
 
@@ -190,14 +193,17 @@ export const getHistoricoImportacao = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!hist) return { historico: null, linhas: [] as Record<string, unknown>[] };
+    if (!hist) return { historico: null as PisoRow | null, linhas: [] as PisoRow[] };
     const { data: linhas, error: lerr } = await context.supabase
       .from("piso_enfermagem")
       .select("*")
       .eq("historico_id", data.id)
       .order("nome", { ascending: true });
     if (lerr) throw new Error(lerr.message);
-    return { historico: hist, linhas: (linhas ?? []) as Record<string, unknown>[] };
+    return {
+      historico: hist as unknown as PisoRow,
+      linhas: (linhas ?? []) as unknown as PisoRow[],
+    };
   });
 
 // --------------------- Mapeamentos salvos ---------------------
