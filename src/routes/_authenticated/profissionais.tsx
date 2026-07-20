@@ -43,6 +43,7 @@ import {
   List as ListIcon,
   User as UserIcon,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
