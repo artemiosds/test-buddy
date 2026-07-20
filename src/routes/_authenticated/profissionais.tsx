@@ -1156,6 +1156,7 @@ function ProfissionalFormBody({
   vinculos,
   gestoresOpt,
   canEditAgili,
+  canSeeBanco,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
@@ -1167,6 +1168,7 @@ function ProfissionalFormBody({
   vinculos: VinculoLookup[] | undefined;
   gestoresOpt: GestorOpt[] | undefined;
   canEditAgili: boolean;
+  canSeeBanco: boolean;
 }) {
   const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
   const isEfetivo = nat === "efetivo" || nat === "comissionado";
@@ -1623,7 +1625,7 @@ function ProfissionalFormBody({
         ) : null}
 
         {/* Dados bancários (Contratados) */}
-        {isContratado ? (
+        {isContratado && canSeeBanco ? (
           <Card className="bg-muted/40 p-4">
             <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
               Dados bancários (folha de pagamento — Contratados)
