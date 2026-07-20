@@ -15,6 +15,7 @@ import { Pagination } from "@/components/shared/Pagination";
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/auditoria")({
   component: AuditoriaGerencial,
@@ -174,6 +175,7 @@ function AuditoriaGerencial() {
   return (
     <PermissionGate permission="auditoria.visualizar">
       <div className="space-y-4">
+        <IntelligencePanel foco="auditoria" titulo="Auditoria Gerencial" />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">

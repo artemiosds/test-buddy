@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { getOrganograma, type OrgUnidade } from "@/lib/relatorios-gerenciais";
 import { useUnidadesLookup } from "@/hooks/use-lookups";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/estrutura")({
   component: EstruturaOrganizacional,
@@ -88,6 +89,7 @@ function EstruturaOrganizacional() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="estrutura" titulo="Estrutura Organizacional" />
       <FilterBar
         actions={
           <div className="flex gap-2">

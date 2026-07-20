@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { getIndicadoresResumo } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/indicadores")({
   component: IndicadoresPage,
@@ -32,6 +33,7 @@ function IndicadoresPage() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="geral" titulo="Indicadores Gerais" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard label="Profissionais" value={data.totalProfissionais} />
         <KpiCard label="Unidades" value={data.totalUnidades} />

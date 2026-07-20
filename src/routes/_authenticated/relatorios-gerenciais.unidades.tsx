@@ -10,6 +10,7 @@ import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listUnidadesGerencial, listTiposUnidade, type UnidadePreset } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/unidades")({
   component: UnidadesGerencial,
@@ -64,6 +65,7 @@ function UnidadesGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="unidades" titulo="Unidades" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as UnidadePreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (

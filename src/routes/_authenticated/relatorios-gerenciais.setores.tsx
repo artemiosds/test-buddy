@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listSetoresGerencial, type SetorPreset } from "@/lib/relatorios-gerenciais";
 import { useUnidadesLookup } from "@/hooks/use-lookups";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/setores")({
   component: SetoresGerencial,
@@ -52,6 +53,7 @@ function SetoresGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="setores" titulo="Setores" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as SetorPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}
