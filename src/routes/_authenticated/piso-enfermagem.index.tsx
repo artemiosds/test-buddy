@@ -81,7 +81,7 @@ function PisoIndex() {
                 const ok = await confirm({
                   title: "Desfazer importação?",
                   description: `Todos os ${r.total_registros ?? 0} registros importados de "${r.nome_arquivo}" serão removidos.`,
-                  tone: "danger",
+                  tone: "destructive",
                   confirmLabel: "Desfazer",
                 });
                 if (ok) undoMut.mutate(r.id);
