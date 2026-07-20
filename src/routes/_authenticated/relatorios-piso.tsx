@@ -555,7 +555,7 @@ function RelatorioPisoPage() {
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v: number) => brl(v)} />
+                  <Tooltip formatter={(v) => brl(Number(v))} />
                   <Legend />
                   <Area type="monotone" dataKey="valor_final" name="Valor final" stroke="hsl(var(--primary))" fill="url(#pisoValFinal)" />
                   <Area type="monotone" dataKey="complementacao" name="Complementação" stroke="#22c55e" fill="url(#pisoCompl)" />
@@ -576,7 +576,7 @@ function RelatorioPisoPage() {
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis type="number" tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
                     <YAxis dataKey="cargo" type="category" tick={{ fontSize: 11 }} width={140} />
-                    <Tooltip formatter={(v: number) => brl(v)} />
+                    <Tooltip formatter={(v) => brl(Number(v))} />
                     <Bar dataKey="complementacao" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -596,7 +596,7 @@ function RelatorioPisoPage() {
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: number) => brl(v)} />
+                    <Tooltip formatter={(v) => brl(Number(v))} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -614,7 +614,7 @@ function RelatorioPisoPage() {
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis type="number" tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
                     <YAxis dataKey="unidade" type="category" tick={{ fontSize: 11 }} width={160} />
-                    <Tooltip formatter={(v: number) => brl(v)} />
+                    <Tooltip formatter={(v) => brl(Number(v))} />
                     <Bar dataKey="complementacao" fill="#22c55e" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -651,7 +651,7 @@ function RelatorioPisoPage() {
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="cargo" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={60} />
                   <YAxis tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => brl(v)} />
+                  <Tooltip formatter={(v) => brl(Number(v))} />
                   <Legend />
                   <Bar dataKey="salario_base" stackId="a" name="Salário base" fill="hsl(var(--primary))" />
                   <Bar dataKey="adicional_noturno" stackId="a" name="Adic. noturno" fill="#8b5cf6" />
