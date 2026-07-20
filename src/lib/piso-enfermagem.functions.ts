@@ -190,14 +190,14 @@ export const getHistoricoImportacao = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!hist) return { historico: null, linhas: [] as unknown[] };
+    if (!hist) return { historico: null, linhas: [] as Record<string, unknown>[] };
     const { data: linhas, error: lerr } = await context.supabase
       .from("piso_enfermagem")
       .select("*")
       .eq("historico_id", data.id)
       .order("nome", { ascending: true });
     if (lerr) throw new Error(lerr.message);
-    return { historico: hist, linhas: linhas ?? [] };
+    return { historico: hist, linhas: (linhas ?? []) as Record<string, unknown>[] };
   });
 
 // --------------------- Mapeamentos salvos ---------------------
