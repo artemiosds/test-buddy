@@ -33,12 +33,16 @@ import {
   exportarPdfMulti, exportarExcelMulti, exportarCsvMulti,
   type BlocoExport,
 } from "@/lib/relatorio-inteligente/export-multi";
+import { parecerPorBloco, type ParecerBloco } from "@/lib/relatorio-inteligente/parecer";
+import { calcularIndice, type IndiceAutomatico } from "@/lib/relatorio-inteligente/indice";
+import { exportarWord } from "@/lib/relatorio-inteligente/export-word";
+import { exportarPdfAbnt } from "@/lib/relatorio-inteligente/export-pdf-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
   component: RelatorioInteligentePage,
 });
 
-type Formato = "pdf" | "excel" | "csv";
+type Formato = "pdf" | "pdf_abnt" | "excel" | "csv" | "word";
 type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
@@ -365,6 +369,18 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
 
 function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter: string }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
+  const ger = useGerencial();
+  const indice: IndiceAutomatico | null = useMemo(() => {
+    if (!ger.data || !built.length) return null;
+    return calcularIndice({
+      aggregate: ger.data,
+      blocos: built.map((b) => ({ block: b.block, rows: b.rawRows, fields: b.cfg.fields })),
+    });
+  }, [ger.data, built]);
+  const pareceres: ParecerBloco[] = useMemo(
+    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    [built],
+  );
 
   if (loading) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando dados…</div>;
   if (error) return <EmptyState title="Falha ao carregar" description={String((error as Error)?.message ?? "")} />;
@@ -373,6 +389,7 @@ function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter:
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+      {indice && <IndiceCard indice={indice} />}
       {built.map(({ cfg, block, rows, rawRows, grupos }) => (
         <div key={cfg.blockId} className="rounded-md border">
           <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
@@ -396,6 +413,7 @@ function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter:
             </>
           )}
           <StatsBar rows={rawRows} fields={cfg.fields} block={block} />
+          <ParecerCard parecer={pareceres.find((p) => p.blockId === block.id)} />
           {cfg.charts?.length ? (
             <div className="grid gap-3 border-t bg-muted/10 p-3 sm:grid-cols-2">
               {cfg.charts.map((c) => (
@@ -408,6 +426,63 @@ function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter:
           ) : null}
         </div>
       ))}
+    </div>
+  );
+}
+
+function IndiceCard({ indice }: { indice: IndiceAutomatico }) {
+  const cor = indice.nivel === "excelente" ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+    : indice.nivel === "bom" ? "text-primary border-primary/40 bg-primary/5"
+    : indice.nivel === "regular" ? "text-amber-700 border-amber-300 bg-amber-50"
+    : "text-red-700 border-red-300 bg-red-50";
+  return (
+    <div className={"rounded-lg border-2 p-4 " + cor}>
+      <div className="flex flex-wrap items-center gap-4">
+        <div>
+          <div className="text-xs font-semibold uppercase opacity-80">Índice Automático da Gestão</div>
+          <div className="flex items-end gap-2">
+            <span className="text-4xl font-bold tabular-nums">{indice.score}</span>
+            <span className="mb-1 text-sm opacity-70">/ 100 · {indice.nivel}</span>
+          </div>
+        </div>
+        <div className="ml-auto grid gap-1 text-xs sm:grid-cols-2 lg:grid-cols-4">
+          {indice.componentes.map((c) => (
+            <div key={c.rotulo} className="rounded border bg-white/60 px-2 py-1">
+              <div className="text-[10px] uppercase opacity-70">{c.rotulo} <span className="opacity-60">({c.peso}%)</span></div>
+              <div className="font-semibold tabular-nums">{c.valor}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="mt-2 text-sm">{indice.interpretacao}</p>
+    </div>
+  );
+}
+
+function ParecerCard({ parecer }: { parecer?: ParecerBloco }) {
+  if (!parecer || !parecer.frases.length) return null;
+  return (
+    <div className="border-t bg-primary/5 p-3 text-xs">
+      <div className="mb-1 flex items-center gap-1 font-semibold uppercase text-primary">
+        <Sparkles className="h-3 w-3" /> Parecer técnico automático
+      </div>
+      <ul className="space-y-0.5">
+        {parecer.frases.map((f, i) => (
+          <li key={i} dangerouslySetInnerHTML={{ __html: "• " + f.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") }} />
+        ))}
+      </ul>
+      {parecer.destaques.length ? (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {parecer.destaques.map((d, i) => (
+            <span key={i} className={"rounded-full border px-2 py-0.5 text-[10px] " +
+              (d.tom === "critico" ? "border-red-300 bg-red-50 text-red-700"
+                : d.tom === "atencao" ? "border-amber-300 bg-amber-50 text-amber-700"
+                : "border-emerald-300 bg-emerald-50 text-emerald-700")}>
+              {d.rotulo}: <b>{d.valor}</b>
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -688,6 +763,17 @@ function StepExportar({
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
   const alertas = useMemo(() => (ger.data ? ger.data.alertas : []), [ger.data]);
+  const indice = useMemo<IndiceAutomatico | null>(() => {
+    if (!ger.data || !built.length) return null;
+    return calcularIndice({
+      aggregate: ger.data,
+      blocos: built.map((b) => ({ block: b.block, rows: b.rawRows, fields: b.cfg.fields })),
+    });
+  }, [ger.data, built]);
+  const pareceres = useMemo<ParecerBloco[]>(
+    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    [built],
+  );
 
   if (loading) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Preparando exportação…</div>;
   if (error) return <EmptyState title="Falha" description={String((error as Error)?.message ?? "")} />;
@@ -709,15 +795,25 @@ function StepExportar({
       }));
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `relatorio-${tipo}-${stamp}`;
+      const tituloRel = `Relatório Gerencial — ${labelTipo(tipo)}`;
+      const subtitulo = `Gerado em ${new Date().toLocaleString("pt-BR")} · ${blocosExp.length} bloco(s)`;
       if (formato === "pdf") {
         await exportarPdfMulti({
-          filename,
-          titulo: `Relatório Gerencial — ${labelTipo(tipo)}`,
-          subtitulo: `Gerado em ${new Date().toLocaleString("pt-BR")} · ${blocosExp.length} bloco(s)`,
-          resumo: parecer,
-          blocos: blocosExp,
+          filename, titulo: tituloRel, subtitulo, resumo: parecer, blocos: blocosExp,
         });
         toast.success("PDF institucional gerado.");
+      } else if (formato === "pdf_abnt") {
+        await exportarPdfAbnt({
+          filename: `${filename}-abnt`, titulo: tituloRel, subtitulo,
+          resumo: parecer, indice: indice ?? undefined, pareceres, blocos: blocosExp,
+        });
+        toast.success("PDF ABNT gerado.");
+      } else if (formato === "word") {
+        exportarWord({
+          filename, titulo: tituloRel, subtitulo,
+          resumo: parecer, indice: indice ?? undefined, pareceres, blocos: blocosExp,
+        });
+        toast.success("Documento Word gerado.");
       } else if (formato === "excel") {
         exportarExcelMulti({ filename, blocos: blocosExp });
         toast.success("Excel multi-aba gerado.");
@@ -735,6 +831,8 @@ function StepExportar({
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 7 · Exportar</h2>
+
+      {indice && <IndiceCard indice={indice} />}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border-l-4 border-primary/70 bg-primary/5 p-3">
@@ -777,9 +875,11 @@ function StepExportar({
 
       <div className="rounded-md border bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Formato</div>
-        <RadioGroup value={formato} onValueChange={(v) => setFormato(v as Formato)} className="grid gap-2 sm:grid-cols-3">
+        <RadioGroup value={formato} onValueChange={(v) => setFormato(v as Formato)} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { v: "pdf" as const, l: "PDF Institucional (multi-bloco com sumário)" },
+            { v: "pdf_abnt" as const, l: "PDF ABNT (capa, sumário, Times 12, 1,5)" },
+            { v: "word" as const, l: "Word (.doc — editável no MS Word)" },
             { v: "excel" as const, l: "Excel (uma aba por bloco)" },
             { v: "csv" as const, l: "CSV (um arquivo por bloco)" },
           ].map(({ v, l }) => (
