@@ -1,116 +1,102 @@
-# Piso Nacional da Enfermagem — MVP (Fase 1)
 
-Módulo isolado, sem tocar em Folha/Competência/Frequência. Frontend usa componentes shared existentes (`PageHeader`, `KpiCard`, `FilterBar`, `DataTable`, `StatusBadge`, `FormDialog`, `EmptyState`, `ConfirmDialog`).
+# Relatórios — Dois Centros
 
-## Escopo desta fase
+Reestruturar a área de Relatórios em **dois centros** distintos, sem mexer no que já funciona.
 
-Excel/CSV apenas. PDF pesquisável, fuzzy por nome, OCR e desfazer ficam para Fase 2.
+## Arquitetura
 
-## 1. Banco (uma migração)
+```text
+/relatorios (layout com 2 grupos de abas)
+├── Operacionais  (dependem de competência — INTACTO)
+│   ├── /relatorios                     Frequências
+│   ├── /relatorios-executivo           Executivo
+│   ├── /relatorios-consolidado         Consolidado
+│   ├── /relatorios-status              Status por Unidade
+│   ├── /relatorios-profissional        Por Profissional
+│   └── /relatorios-piso                Piso Enfermagem
+│
+└── Gerenciais  (NOVOS — cadastros atuais, sem competência)
+    ├── /relatorios-gerenciais/profissionais
+    ├── /relatorios-gerenciais/unidades
+    ├── /relatorios-gerenciais/setores
+    ├── /relatorios-gerenciais/cargos
+    ├── /relatorios-gerenciais/funcoes
+    ├── /relatorios-gerenciais/estrutura
+    ├── /relatorios-gerenciais/indicadores
+    ├── /relatorios-gerenciais/piso           (visão gerencial do piso)
+    └── /relatorios-gerenciais/auditoria
+```
 
-Novas tabelas em `public`:
+O componente `RelatoriosTabs` vira **duas barras**: "Operacionais" e "Gerenciais", com destaque visual do grupo ativo. Nada nas rotas antigas muda.
 
-- `piso_enfermagem` — snapshot por importação, todos os campos financeiros da spec + `historico_id`, `origem_arquivo`, `data_importacao`, `importado_por`. FK `profissional_id` para `profissionais(id)` nullable (permite registros “não localizados”).
-- `historico_importacoes` — cabeçalho da importação (modelo, arquivo, totais, `mapeamento jsonb`, `status`, `importado_por`).
-- `piso_mapeamentos_salvos` — mapeamentos reutilizáveis por modelo (nome + jsonb).
+## Novos relatórios (escopo)
 
-Padrão obrigatório do projeto: `CREATE TABLE` → `GRANT` (`authenticated`, `service_role`) → `ENABLE RLS` → policies + trigger `updated_at`.
+Cada relatório gerencial segue o mesmo esqueleto:
 
-RLS:
-- SELECT: `has_permission(auth.uid(), 'piso.visualizar')` ou `is_master`.
-- INSERT/UPDATE/DELETE em `piso_enfermagem` e `historico_importacoes`: `has_permission(auth.uid(), 'piso.importar')` ou `is_master`.
-- `piso_mapeamentos_salvos`: mesmas regras de `piso.importar`.
+- **PageHeader** (título + descrição).
+- **FilterBar** com filtros de cadastro (Secretaria/Unidade/Setor/Cargo/Função/Vínculo/Status conforme o caso). Nunca competência.
+- **KPIs** no topo (2–4 cards).
+- **Tabela** paginada + botões **Exportar CSV** e **Exportar PDF** (usando `csv-export.ts` e `pdf-institucional.ts`).
+- Filtros persistidos via search params.
 
-Índices: `piso_enfermagem(historico_id)`, `piso_enfermagem(profissional_id)`, `piso_enfermagem(competencia)`, `historico_importacoes(data_importacao DESC)`.
+### Profissionais (`/relatorios-gerenciais/profissionais`)
+Sub-abas internas (via tabs no topo do painel):
+- **Cadastro Geral** — tabela completa com todos filtros.
+- **Por Unidade / Setor / Cargo / Função / Vínculo** — agrupamentos.
+- **Status**: Ativos, Afastados, Férias, Licenciados, Inativos.
+- **Pendências cadastrais**:
+  - Sem Lotação (sem unidade), Sem Setor, Sem Cargo, Sem Função, Sem Matrícula.
+  - Dados Incompletos: CPF, Telefone, E-mail, Nascimento, Carga Horária.
 
-Permissões novas em `public.permissoes` (`ativa=true`):
-- `piso.visualizar`
-- `piso.importar`
+Cada sub-aba é uma query pré-filtrada sobre `profissionais` + joins mínimos.
 
-Vinculadas em `perfil_permissoes` para perfil MASTER. Outros perfis recebem via UI de permissões (fora do escopo desta fase).
+### Unidades (`/relatorios-gerenciais/unidades`)
+- Relação geral, por Tipo, Ativas/Inativas.
+- **Sem Diretor**, **Sem Coordenador**, **Sem Telefone**, **Sem CNES**, **Sem CNPJ**, **Sem E-mail** (queries `is null` + agregação).
+- Quantidade de servidores por unidade.
+- Lotação da Unidade (drill: servidor / cargo / função / setor / status) — acessível via botão "Ver Lotação".
 
-## 2. Menu
+### Setores (`/relatorios-gerenciais/setores`)
+Relação, por Unidade, Sem Coordenador, Sem Profissionais, Com apenas 1 servidor, Distribuição.
 
-`AppSidebar`: inserir “Piso Nacional da Enfermagem” entre “Folha Contratados” e “Pendências”, gated por `piso.visualizar`.
+### Cargos e Funções
+Relação, quantidade por cargo/função, sem profissionais, mais utilizados.
 
-## 3. Rotas (todas sob `_authenticated/`, com `PermissionGate`)
+### Estrutura Organizacional (`/relatorios-gerenciais/estrutura`)
+- Organograma Diretor → Coordenador → Profissionais (árvore hierárquica).
+- Unidades e responsáveis; Setores e responsáveis.
 
-- `piso-enfermagem.index.tsx` — lista de importações (histórico) + KPIs (total registros, última importação, divergências). `piso.visualizar`.
-- `piso-enfermagem.importar.tsx` — wizard de 3 passos. `piso.importar`.
-- `piso-enfermagem.$id.tsx` — detalhe de uma importação (linhas gravadas, filtros por vínculo/status match). `piso.visualizar`.
+### Indicadores (`/relatorios-gerenciais/indicadores`)
+Resumo executivo (totais) + distribuições (vínculo, sexo, escolaridade, idade, unidade, cargo, função, setor). Usa Recharts (BarChart + PieChart).
 
-## 4. Wizard de importação (client-side, sem upload ao Supabase Storage)
+### Piso da Enfermagem — visão gerencial
+Piso Efetivos, Piso Contratados, Comparativo entre meses, Sem cálculo, Divergências, Valores importados, Histórico de importações, Resumo financeiro, Conferência por unidade/profissional, Log de atualizações. Reaproveita queries já existentes em `piso-enfermagem.functions.ts`.
 
-Passo 1 — Configuração
-- Seletor de modelo: Efetivos / Contratados / Ministério / Personalizado.
-- Radio vínculo alvo: Efetivos / Contratados / Ambos.
-- Dropzone (`react-dropzone` já não instalado → usar input nativo + drag events, sem dep nova). Aceita `.xlsx`, `.xls`, `.csv`. Limite 50 MB verificado no client.
-
-Passo 2 — Mapeamento
-- Parse do arquivo com `xlsx` (já instalado).
-- Detecção automática: heurística por nome de header (normalizado sem acento/caixa) → sugere destino. CPF valida por regex; valores por presença de `R$`/número.
-- Grid duas colunas: coluna do arquivo → select com campos do sistema (todos os campos financeiros + identificadores).
-- Checkboxes “Atualizar campos” controlam quais campos serão persistidos (default: todos financeiros marcados; cargo/unidade/setor desmarcados).
-- Botão “Salvar mapeamento” grava em `piso_mapeamentos_salvos` (usa nome informado + modelo).
-- Botão “Carregar mapeamento” lista os salvos por modelo.
-
-Passo 3 — Revisão e gravação
-- Match executado no cliente via server function `matchProfissionaisImport({ cpfs, matriculas })` usando `requireSupabaseAuth` (RLS da tabela `profissionais` aplicada). Retorna map CPF→id, matrícula→id.
-- Ordem: CPF exato → matrícula exata → “não localizado”. (Fuzzy nome: fase 2.)
-- Tabela de preview: cada linha mostra origem, destino (nome/matrícula do profissional casado ou “não localizado”), status colorido via `StatusBadge`.
-- KPIs no topo: total lidos / a importar / divergências / não localizados.
-- Botão “Confirmar importação” chama `commitImportPiso({ historico, linhas })` (server fn, `piso.importar`).
-
-## 5. Server functions (`src/lib/piso-enfermagem.functions.ts`)
-
-Todas com `requireSupabaseAuth` + guard de permissão explícito (`has_permission`).
-
-- `matchProfissionais({ cpfs: string[], matriculas: string[] })` → busca em `profissionais` e devolve dois mapas.
-- `commitImportPiso({ modelo, nomeArquivo, tipoArquivo, competencia, mapeamento, linhas })` → cria `historico_importacoes` + `insert` batch em `piso_enfermagem`, atualiza contadores, retorna `historico_id`. Transacional via RPC SQL `piso_import_commit` (SECURITY DEFINER) para garantir atomicidade.
-- `listImportHistorico({ page, pageSize })` → paginação.
-- `listImportLinhas({ historicoId, filtros })` → detalhe.
-- `saveMapeamento({ nome, modelo, mapeamento })` / `listMapeamentos({ modelo })`.
-
-## 6. Componentes (`src/components/piso/`)
-
-- `ImportWizard.tsx` (stateful, orquestra 3 passos).
-- `MappingGrid.tsx`.
-- `PreviewTable.tsx`.
-- `HistoricoImportacoesList.tsx`.
-
-Reaproveita `PageHeader`, `KpiCard`, `DataTable`, `FilterBar`, `StatusBadge`, `FormDialog`, `EmptyState`, `useConfirm`, `logger`, `formatCurrency`, `formatCPF`, `formatDateTime`.
-
-## 7. Testes
-
-Novos testes Vitest:
-- `src/lib/piso-mapping.test.ts` — heurística de auto-mapeamento (nomes normalizados).
-- `src/lib/piso-import.test.ts` — parser de linhas + resolução de match (CPF/matrícula/não localizado) com mocks.
-
-Meta: manter 80/80 anteriores verdes + 6–10 novos (~86–90 total).
-
-## 8. Fora deste MVP (Fase 2 futura)
-
-- PDF pesquisável (via `pdfjs-dist` client-side).
-- Fuzzy nome (Levenshtein) com faixas 85%/60%.
-- Desfazer importação (`status='Desfeito'` + delete das linhas).
-- OCR — se autorizado, via Lovable AI (Gemini vision).
-- Exportação Excel de divergências.
+### Auditoria (`/relatorios-gerenciais/auditoria`)
+Consulta `audit_log` com filtros por operação/tabela/usuário/período. Views pré-configuradas: quem alterou cadastro, unidade, setor, cargo, função, usuário, importou piso, recalculou piso, excluiu.
 
 ## Detalhes técnicos
 
-- Sem alteração em tabelas existentes.
-- Sem edge functions Supabase.
-- Sem chamadas ao `supabaseAdmin` — todo o fluxo passa por `requireSupabaseAuth`+RLS.
-- Sem dependências novas: `xlsx` e `zod` já presentes.
-- Migration inclui `emit_evento` opcional? Não — o `emit_evento` guard só aceita agregados conhecidos; deixamos apenas `audit_log` via trigger `tg_audit_row` nas duas novas tabelas.
-- `PermissionGate` aplicado em cada rota nova.
-- Terminologia: rótulos “Competência” do módulo continuam “Competência” (é o rótulo real de folha, não “Período” global).
+- **Reuso**: `useUnidadesLookup`, `useSetoresLookup`, `useCargosLookup`, `useFuncoesLookup`, `useVinculosLookup`, `useUsuariosLookup` (já existem em `use-lookups.ts`).
+- **Queries novas** ficam em `src/lib/relatorios-gerenciais.ts` (client-side supabase) — só SELECTs.
+- **Layout compartilhado**: novo `src/routes/_authenticated/relatorios-gerenciais.tsx` (parent com `<Outlet />` + sidebar de sub-rotas). As rotas viram `relatorios-gerenciais.<slug>.tsx`.
+- **Duas barras de aba**: novo componente `RelatoriosCentros` que agrupa "Operacionais" vs "Gerenciais" e é renderizado em cada rota das duas famílias.
+- **Permissões**: nenhum novo `permissao.codigo`; usa RLS existente (só leitura).
+- **Zero migration**. Zero mudança em Operacionais existentes.
 
-## Checklist final da fase
+## Rollout em ondas
 
-1. Migração aprovada e executada.
-2. Tipos regenerados (`types.ts` atualiza sozinho).
-3. Sidebar + rotas gated.
-4. `bun run typecheck` limpo.
-5. Testes verdes (`bunx vitest run`).
-6. Relatório curto no fechamento.
+1. **Onda 1** — esqueleto: layout `relatorios-gerenciais`, sub-nav dos 2 centros, páginas **Profissionais** (todas sub-abas) e **Indicadores** (resumo + distribuições) + exportação CSV/PDF.
+2. **Onda 2** — **Unidades**, **Setores**, **Cargos**, **Funções**.
+3. **Onda 3** — **Estrutura Organizacional** (organograma) + **Piso Gerencial**.
+4. **Onda 4** — **Auditoria** com filtros ricos e views prontas.
+
+Cada onda é independente e commitável.
+
+## Riscos
+
+- Volume grande de queries — mitigado por lookups já cacheados e `staleTime` de 5 min.
+- Organograma pode ficar pesado com muitos nós — renderização virtualizada / colapsável por unidade.
+- Auditoria pode retornar muitos registros — paginação obrigatória + filtro de período default (últimos 30 dias).
+
+Ao aprovar, começo pela **Onda 1**.
