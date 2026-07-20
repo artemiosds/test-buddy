@@ -1214,33 +1214,50 @@ function ProfissionalFormBody({
       <TabsContent value="pessoais" className="mt-4 space-y-6">
         {/* Avatar + upload */}
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
-            {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
-            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
-              {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
+              {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
+              <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+                {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
+              </AvatarFallback>
+            </Avatar>
+            {uploadingFoto ? (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : null}
+          </div>
           <div className="flex-1 space-y-2">
             <Label className="text-xs text-muted-foreground">
-              Foto do profissional (URL)
+              Foto do profissional
             </Label>
             <div className="flex gap-2">
               <Input
                 value={form.foto_url}
                 onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
-                placeholder="https://…/foto.jpg"
+                placeholder="https://…/foto.jpg (ou envie um arquivo →)"
+                disabled={uploadingFoto}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFotoFile(f);
+                  e.target.value = "";
+                }}
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => {
-                  const url = window.prompt("URL da nova foto:", form.foto_url);
-                  if (url !== null) setForm({ ...form, foto_url: url.trim() });
-                }}
-                title="Alterar foto"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                title="Enviar nova foto"
               >
-                <Camera className="h-4 w-4" />
+                {uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </Button>
             </div>
           </div>
