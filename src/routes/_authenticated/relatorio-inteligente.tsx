@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import {
   Sparkles, Check, ChevronLeft, ChevronRight, Loader2, Download,
   ArrowUpAZ, ArrowDownAZ, AlertTriangle, CheckCircle2,
+  Layers, BarChart3, Plus, X, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +24,11 @@ import { toast } from "sonner";
 import { useGerencial } from "@/hooks/use-gerencial";
 import { useProfissionaisLista } from "@/hooks/use-profissionais-lista";
 import { CATALOG, PRESETS, defaultFields, findBlock } from "@/lib/relatorio-inteligente/catalog";
-import type { BlockConfig, Row, SortSpec } from "@/lib/relatorio-inteligente/tipos";
+import type { BlockConfig, ChartSpec, ChartTipo, Row, SortSpec } from "@/lib/relatorio-inteligente/tipos";
 import { applySort, projectFields, fmtCell } from "@/lib/relatorio-inteligente/render";
 import { statsFor, numericFields } from "@/lib/relatorio-inteligente/agregacoes";
+import { agrupar, type GroupNode } from "@/lib/relatorio-inteligente/agrupamento";
+import { BlockChart } from "@/components/relatorio-inteligente/block-chart";
 import {
   exportarPdfMulti, exportarExcelMulti, exportarCsvMulti,
   type BlocoExport,
@@ -57,7 +60,7 @@ function RelatorioInteligentePage() {
 /* ============================================================= */
 
 function Wizard() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const [tipo, setTipo] = useState<TipoRelatorio>("executivo");
   const [blocks, setBlocks] = useState<BlockConfig[]>(() =>
     PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[],
@@ -89,8 +92,9 @@ function Wizard() {
         {step === 2 && <StepCampos blocks={blocks} update={updateBlock} />}
         {step === 3 && <StepFiltros textFilter={textFilter} setTextFilter={setTextFilter} />}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
-        {step === 5 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
-        {step === 6 && (
+        {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
+        {step === 7 && (
           <StepExportar
             tipo={tipo} blocks={blocks} textFilter={textFilter}
             formato={formato} setFormato={setFormato}
@@ -100,12 +104,12 @@ function Wizard() {
       </div>
       <div className="flex justify-between">
         <Button variant="outline" disabled={step === 1}
-          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5) : s))}>
+          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6) : s))}>
           <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
         </Button>
-        {step < 6 ? (
+        {step < 7 ? (
           <Button disabled={step === 1 && blocks.length === 0}
-            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6)}>
+            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6 | 7)}>
             Avançar <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         ) : null}
@@ -121,7 +125,7 @@ function defaultBlockCfg(id: string): BlockConfig | null {
 }
 
 function Stepper({ step }: { step: number }) {
-  const rotulos = ["Conteúdo", "Campos", "Filtros", "Ordenação", "Prévia", "Exportar"];
+  const rotulos = ["Conteúdo", "Campos", "Filtros", "Ordenação", "Grupos & Gráficos", "Prévia", "Exportar"];
   return (
     <ol className="flex flex-wrap items-center gap-2 text-xs">
       {rotulos.map((r, i) => {
@@ -345,9 +349,16 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
         }
         rows = applySort(rows, cfg.sort);
         const projected = projectFields(rows, cfg.fields);
-        return { cfg, block: b, rows: projected, rawRows: rows };
+        const numFieldsIds = cfg.fields.filter((id) => b.fields.find((f) => f.id === id)?.tipo === "number");
+        const grupos = cfg.groupBy?.length
+          ? agrupar(projected, cfg.groupBy, numFieldsIds)
+          : null;
+        return { cfg, block: b, rows: projected, rawRows: rows, grupos };
       })
-      .filter(Boolean) as Array<{ cfg: BlockConfig; block: NonNullable<ReturnType<typeof findBlock>>; rows: Row[]; rawRows: Row[] }>;
+      .filter(Boolean) as Array<{
+        cfg: BlockConfig; block: NonNullable<ReturnType<typeof findBlock>>;
+        rows: Row[]; rawRows: Row[]; grupos: GroupNode[] | null;
+      }>;
   }, [ger.data, prof.data, blocks, textFilter]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
@@ -361,27 +372,239 @@ function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter:
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 5 · Prévia</h2>
-      {built.map(({ cfg, block, rows, rawRows }) => (
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+      {built.map(({ cfg, block, rows, rawRows, grupos }) => (
         <div key={cfg.blockId} className="rounded-md border">
           <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
             <div className="text-sm font-semibold">{block.label}</div>
             <div className="text-[11px] text-muted-foreground">
               {rows.length.toLocaleString("pt-BR")} linha(s)
               {cfg.sort && ` · ordenado por ${block.fields.find((f) => f.id === cfg.sort!.fieldId)?.label} ${cfg.sort.dir}`}
+              {cfg.groupBy?.length ? ` · agrupado por ${cfg.groupBy.map((g) => block.fields.find((f) => f.id === g)?.label ?? g).join(" › ")}` : ""}
             </div>
           </div>
-          <BlockTable block={block} cfg={cfg} rows={rows.slice(0, 100)} />
-          {rows.length > 100 && (
-            <div className="border-t bg-muted/20 px-3 py-1 text-[11px] text-muted-foreground">
-              Prévia limitada a 100 linhas · a exportação inclui todas as {rows.length.toLocaleString("pt-BR")}.
-            </div>
+          {grupos && grupos.length ? (
+            <GroupedPreview block={block} cfg={cfg} grupos={grupos} />
+          ) : (
+            <>
+              <BlockTable block={block} cfg={cfg} rows={rows.slice(0, 100)} />
+              {rows.length > 100 && (
+                <div className="border-t bg-muted/20 px-3 py-1 text-[11px] text-muted-foreground">
+                  Prévia limitada a 100 linhas · a exportação inclui todas as {rows.length.toLocaleString("pt-BR")}.
+                </div>
+              )}
+            </>
           )}
           <StatsBar rows={rawRows} fields={cfg.fields} block={block} />
+          {cfg.charts?.length ? (
+            <div className="grid gap-3 border-t bg-muted/10 p-3 sm:grid-cols-2">
+              {cfg.charts.map((c) => (
+                <div key={c.id} className="rounded border bg-card p-2">
+                  <div className="mb-1 text-xs font-semibold">{c.titulo ?? `${labelChart(c.tipo)}: ${labelField(block, c.yField)} por ${labelField(block, c.xField)}`}</div>
+                  <BlockChart spec={c} rows={rawRows} />
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ))}
     </div>
   );
+}
+
+function labelField(block: NonNullable<ReturnType<typeof findBlock>>, id: string): string {
+  return block.fields.find((f) => f.id === id)?.label ?? id;
+}
+function labelChart(t: ChartTipo): string {
+  return ({ barra: "Barra", pizza: "Pizza", linha: "Linha", area: "Área", rosca: "Rosca" } as Record<ChartTipo, string>)[t];
+}
+
+/* ============ Prévia agrupada (colapsável) ============ */
+function GroupedPreview({
+  block, cfg, grupos,
+}: {
+  block: NonNullable<ReturnType<typeof findBlock>>;
+  cfg: BlockConfig;
+  grupos: GroupNode[];
+}) {
+  return (
+    <div className="max-h-[520px] overflow-auto p-2">
+      {grupos.map((g, i) => (
+        <GroupNodeView key={i} block={block} cfg={cfg} node={g} />
+      ))}
+    </div>
+  );
+}
+
+function GroupNodeView({
+  block, cfg, node,
+}: {
+  block: NonNullable<ReturnType<typeof findBlock>>;
+  cfg: BlockConfig;
+  node: GroupNode;
+}) {
+  const [open, setOpen] = useState(node.nivel === 0);
+  const nome = block.fields.find((f) => f.id === cfg.groupBy?.[node.nivel])?.label ?? `Nível ${node.nivel + 1}`;
+  const numeric = cfg.fields.filter((id) => node.stats[id]);
+  return (
+    <div className="mb-1 rounded border" style={{ marginLeft: node.nivel * 12 }}>
+      <button
+        type="button" onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 bg-muted/40 px-2 py-1 text-left text-xs hover:bg-muted"
+      >
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        <span className="text-muted-foreground">{nome}:</span>
+        <span className="font-semibold">{node.label}</span>
+        <span className="ml-auto tabular-nums text-muted-foreground">{node.rows.length} linha(s)</span>
+        {numeric.slice(0, 2).map((f) => (
+          <span key={f} className="rounded bg-primary/10 px-1.5 text-[10px] text-primary">
+            Σ {labelField(block, f)}: {node.stats[f].soma.toLocaleString("pt-BR")}
+          </span>
+        ))}
+      </button>
+      {open && (
+        node.children.length ? (
+          <div className="p-1">
+            {node.children.map((c, i) => (
+              <GroupNodeView key={i} block={block} cfg={cfg} node={c} />
+            ))}
+          </div>
+        ) : (
+          <BlockTable block={block} cfg={cfg} rows={node.rows.slice(0, 50)} />
+        )
+      )}
+    </div>
+  );
+}
+
+/* ============ Etapa 5 · Grupos & Gráficos ============ */
+
+function StepGruposGraficos({
+  blocks, update,
+}: { blocks: BlockConfig[]; update: (id: string, patch: Partial<BlockConfig>) => void }) {
+  if (!blocks.length) return <EmptyState title="Nenhum bloco selecionado" description="Volte à Etapa 1." />;
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+        Etapa 5 · Agrupamentos em árvore e gráficos configuráveis
+      </h2>
+      <p className="text-xs text-muted-foreground">
+        Agrupe as linhas em até 4 níveis (ex.: Unidade → Setor → Cargo → Profissional) e
+        adicione gráficos por bloco. Subtotais aparecem em cada grupo e no PDF/Excel.
+      </p>
+      {blocks.map((cfg) => {
+        const b = findBlock(cfg.blockId);
+        if (!b) return null;
+        const gb = cfg.groupBy ?? [];
+        const charts = cfg.charts ?? [];
+        const groupables = b.fields.filter((f) => cfg.fields.includes(f.id) && f.groupable);
+        return (
+          <div key={cfg.blockId} className="rounded-md border p-3">
+            <div className="mb-2 text-sm font-semibold">{b.label}</div>
+
+            <div className="mb-3 space-y-2 rounded bg-muted/20 p-2">
+              <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                <Layers className="h-3.5 w-3.5" /> Agrupamento em árvore
+              </div>
+              {gb.length === 0 && (
+                <div className="text-[11px] text-muted-foreground">Sem agrupamento (tabela plana).</div>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {gb.map((g, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    {idx + 1}. {labelField(b, g)}
+                    <button onClick={() => update(cfg.blockId, { groupBy: gb.filter((_, i) => i !== idx) })}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                {gb.length < 4 && groupables.length > 0 && (
+                  <Select value="__add__"
+                    onValueChange={(v) => v !== "__add__" && update(cfg.blockId, { groupBy: [...gb, v] })}>
+                    <SelectTrigger className="h-7 w-52 text-xs"><SelectValue placeholder="Adicionar nível…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__add__">Adicionar nível…</SelectItem>
+                      {groupables.filter((f) => !gb.includes(f.id)).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded bg-muted/20 p-2">
+              <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                <BarChart3 className="h-3.5 w-3.5" /> Gráficos deste bloco
+              </div>
+              {charts.map((c, idx) => (
+                <div key={c.id} className="grid gap-2 rounded border bg-card p-2 sm:grid-cols-5">
+                  <Select value={c.tipo} onValueChange={(v) => atualizarChart(cfg, idx, { tipo: v as ChartTipo }, update)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["barra", "pizza", "rosca", "linha", "area"] as ChartTipo[]).map((t) => (
+                        <SelectItem key={t} value={t}>{labelChart(t)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={c.xField} onValueChange={(v) => atualizarChart(cfg, idx, { xField: v }, update)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {b.fields.filter((f) => cfg.fields.includes(f.id) && f.tipo !== "number").map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={c.yField} onValueChange={(v) => atualizarChart(cfg, idx, { yField: v }, update)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Valor" /></SelectTrigger>
+                    <SelectContent>
+                      {b.fields.filter((f) => cfg.fields.includes(f.id) && f.tipo === "number").map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input type="number" min={3} max={40} value={c.top ?? 12}
+                    onChange={(e) => atualizarChart(cfg, idx, { top: Math.max(3, Math.min(40, Number(e.target.value) || 12)) }, update)}
+                    className="h-8 text-xs" placeholder="Top N" />
+                  <Button variant="outline" size="sm" onClick={() => update(cfg.blockId, { charts: charts.filter((_, i) => i !== idx) })}>
+                    <X className="mr-1 h-3 w-3" /> Remover
+                  </Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => adicionarChart(b, cfg, update)}
+                disabled={!b.fields.some((f) => cfg.fields.includes(f.id) && f.tipo === "number")}>
+                <Plus className="mr-1 h-3 w-3" /> Adicionar gráfico
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function atualizarChart(
+  cfg: BlockConfig, idx: number, patch: Partial<ChartSpec>,
+  update: (id: string, p: Partial<BlockConfig>) => void,
+) {
+  const arr = [...(cfg.charts ?? [])];
+  arr[idx] = { ...arr[idx], ...patch };
+  update(cfg.blockId, { charts: arr });
+}
+
+function adicionarChart(
+  b: NonNullable<ReturnType<typeof findBlock>>, cfg: BlockConfig,
+  update: (id: string, p: Partial<BlockConfig>) => void,
+) {
+  const xField = b.fields.find((f) => cfg.fields.includes(f.id) && f.tipo !== "number")?.id
+    ?? b.fields.find((f) => cfg.fields.includes(f.id))?.id ?? b.fields[0].id;
+  const yField = b.fields.find((f) => cfg.fields.includes(f.id) && f.tipo === "number")?.id;
+  if (!yField) return;
+  const nova: ChartSpec = {
+    id: crypto.randomUUID(), tipo: (b.graficos?.[0] ?? "barra") as ChartTipo,
+    xField, yField, top: 12,
+  };
+  update(cfg.blockId, { charts: [...(cfg.charts ?? []), nova] });
 }
 
 function BlockTable({
@@ -473,7 +696,7 @@ function StepExportar({
     if (!built.length) { toast.error("Nenhum bloco para exportar."); return; }
     setGerando(true);
     try {
-      const blocosExp: BlocoExport[] = built.map(({ cfg, block, rows }) => ({
+      const blocosExp: BlocoExport[] = built.map(({ cfg, block, rows, grupos }) => ({
         titulo: block.label,
         descricao: block.descricao,
         colunas: cfg.fields.map((id) => {
@@ -481,6 +704,8 @@ function StepExportar({
           return { header: f?.label ?? id, key: id };
         }),
         linhas: rows,
+        grupos: grupos ?? undefined,
+        groupByLabels: cfg.groupBy?.map((id) => block.fields.find((f) => f.id === id)?.label ?? id),
       }));
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `relatorio-${tipo}-${stamp}`;
@@ -509,7 +734,7 @@ function StepExportar({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Exportar</h2>
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 7 · Exportar</h2>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border-l-4 border-primary/70 bg-primary/5 p-3">

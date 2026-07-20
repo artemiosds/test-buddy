@@ -38,12 +38,29 @@ export type BlockDef = {
 
 export type SortSpec = { fieldId: string; dir: "asc" | "desc" } | null;
 
+export type ChartTipo = "barra" | "pizza" | "linha" | "area" | "rosca";
+
+export type ChartSpec = {
+  id: string;
+  tipo: ChartTipo;
+  /** Campo categórico (eixo X ou fatias). */
+  xField: string;
+  /** Campo numérico (eixo Y ou tamanho da fatia). */
+  yField: string;
+  /** Limita para as N maiores categorias (default: 12). */
+  top?: number;
+  titulo?: string;
+};
+
 export type BlockConfig = {
   blockId: string;
   /** Ids dos campos selecionados; ordem preservada. */
   fields: string[];
   sort: SortSpec;
-  graficos?: string[];
+  /** Campos usados para agrupar em árvore (ordem = níveis). */
+  groupBy?: string[];
+  /** Gráficos configurados pelo usuário para este bloco. */
+  charts?: ChartSpec[];
 };
 
 export type ReportConfig = {
