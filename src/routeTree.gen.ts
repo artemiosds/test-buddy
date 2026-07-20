@@ -60,7 +60,6 @@ import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './
 import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
 import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
 import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
-import { Route as AuthenticatedProfissionaisImportarCerRouteImport } from './routes/_authenticated/profissionais.importar-cer'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
@@ -360,12 +359,6 @@ const AuthenticatedRelatoriosGerenciaisAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedProfissionaisImportarCerRoute =
-  AuthenticatedProfissionaisImportarCerRouteImport.update({
-    id: '/importar-cer',
-    path: '/importar-cer',
-    getParentRoute: () => AuthenticatedProfissionaisRoute,
-  } as any)
 const AuthenticatedProfissionaisIdRoute =
   AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
@@ -489,7 +482,6 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/profissionais/importar-cer': typeof AuthenticatedProfissionaisImportarCerRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
@@ -554,7 +546,6 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/profissionais/importar-cer': typeof AuthenticatedProfissionaisImportarCerRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
@@ -622,7 +613,6 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
-  '/_authenticated/profissionais/importar-cer': typeof AuthenticatedProfissionaisImportarCerRoute
   '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/_authenticated/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
@@ -690,7 +680,6 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/situacao-funcional'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
-    | '/profissionais/importar-cer'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
     | '/relatorios-gerenciais/estrutura'
@@ -755,7 +744,6 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/situacao-funcional'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
-    | '/profissionais/importar-cer'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
     | '/relatorios-gerenciais/estrutura'
@@ -822,7 +810,6 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/piso-enfermagem/importar'
     | '/_authenticated/profissionais/$id'
-    | '/_authenticated/profissionais/importar-cer'
     | '/_authenticated/relatorios-gerenciais/auditoria'
     | '/_authenticated/relatorios-gerenciais/cargos'
     | '/_authenticated/relatorios-gerenciais/estrutura'
@@ -1212,13 +1199,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
-    '/_authenticated/profissionais/importar-cer': {
-      id: '/_authenticated/profissionais/importar-cer'
-      path: '/importar-cer'
-      fullPath: '/profissionais/importar-cer'
-      preLoaderRoute: typeof AuthenticatedProfissionaisImportarCerRouteImport
-      parentRoute: typeof AuthenticatedProfissionaisRoute
-    }
     '/_authenticated/profissionais/$id': {
       id: '/_authenticated/profissionais/$id'
       path: '/$id'
@@ -1329,14 +1309,11 @@ const AuthenticatedCompetenciasRouteWithChildren =
 
 interface AuthenticatedProfissionaisRouteChildren {
   AuthenticatedProfissionaisIdRoute: typeof AuthenticatedProfissionaisIdRoute
-  AuthenticatedProfissionaisImportarCerRoute: typeof AuthenticatedProfissionaisImportarCerRoute
 }
 
 const AuthenticatedProfissionaisRouteChildren: AuthenticatedProfissionaisRouteChildren =
   {
     AuthenticatedProfissionaisIdRoute: AuthenticatedProfissionaisIdRoute,
-    AuthenticatedProfissionaisImportarCerRoute:
-      AuthenticatedProfissionaisImportarCerRoute,
   }
 
 const AuthenticatedProfissionaisRouteWithChildren =
