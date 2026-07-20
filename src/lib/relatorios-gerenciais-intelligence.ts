@@ -284,7 +284,7 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
     semProfissionais: setores.filter((s) => (profPorSetor.get(s.id) ?? 0) === 0).length,
     umServidor: setores.filter((s) => (profPorSetor.get(s.id) ?? 0) === 1).length,
   };
-  const setoresAtivos = setores.filter((s) => s.status === "ativo").length;
+  const setoresAtivos = setores.filter((s) => s.status === "ativa").length;
 
   // Distribuições
   const porUnidade = group(profs, (p) => (p.unidade_id ? mU[p.unidade_id] ?? "—" : "Sem unidade"));
