@@ -33,12 +33,16 @@ import {
   exportarPdfMulti, exportarExcelMulti, exportarCsvMulti,
   type BlocoExport,
 } from "@/lib/relatorio-inteligente/export-multi";
+import { parecerPorBloco, type ParecerBloco } from "@/lib/relatorio-inteligente/parecer";
+import { calcularIndice, type IndiceAutomatico } from "@/lib/relatorio-inteligente/indice";
+import { exportarWord } from "@/lib/relatorio-inteligente/export-word";
+import { exportarPdfAbnt } from "@/lib/relatorio-inteligente/export-pdf-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
   component: RelatorioInteligentePage,
 });
 
-type Formato = "pdf" | "excel" | "csv";
+type Formato = "pdf" | "pdf_abnt" | "excel" | "csv" | "word";
 type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
