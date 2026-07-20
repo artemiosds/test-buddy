@@ -617,6 +617,8 @@ function ProfissionaisPage() {
         (p as unknown as { gestor_imediato_id?: string | null }).gestor_imediato_id ?? "",
       situacao_funcional:
         (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
+      foto_url: (p as unknown as { foto_url?: string | null }).foto_url ?? "",
+      endereco_completo: "",
     });
     setOpen(true);
   };
