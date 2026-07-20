@@ -154,10 +154,12 @@ const HEADER_KEYWORDS = [
   "cpf", "nome", "matricula", "mat", "cargo", "funcao", "unidade", "setor",
   "vinculo", "regime", "competencia", "referencia",
   "salario", "vencimento", "base", "piso", "complementacao", "compl",
-  "insalubridade", "insalub", "gratificacao", "gratif",
-  "hora extra", "he 50", "he 100", "adicional noturno", "adic noturno",
-  "auxilio", "financ", "ferias", "1 3", "terco",
-  "inss", "irrf", "ir", "liquido", "total", "valor",
+  "insalubridade", "insalub", "gratificacao", "gratif", "grat fun",
+  "hora extra", "he 50", "he 100", "he50", "he100", "hr ex", "hr extra",
+  "adicional noturno", "adic noturno", "adn", "ad noturno",
+  "auxilio", "financ", "aux financ", "ferias", "1 3", "terco",
+  "inss", "irrf", "ir", "liquido", "total", "valor", "vale transp",
+  "tempo serv", "tempo de serv",
 ];
 
 function nonEmptyCells(row: unknown[]): number {
