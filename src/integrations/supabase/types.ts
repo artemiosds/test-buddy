@@ -2104,6 +2104,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           email: string | null
+          endereco_completo: string | null
           foto_url: string | null
           funcao_id: string | null
           gestor_imediato_id: string | null
@@ -2156,6 +2157,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           email?: string | null
+          endereco_completo?: string | null
           foto_url?: string | null
           funcao_id?: string | null
           gestor_imediato_id?: string | null
@@ -2208,6 +2210,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           email?: string | null
+          endereco_completo?: string | null
           foto_url?: string | null
           funcao_id?: string | null
           gestor_imediato_id?: string | null
