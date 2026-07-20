@@ -37,6 +37,17 @@ import { parecerPorBloco, type ParecerBloco } from "@/lib/relatorio-inteligente/
 import { calcularIndice, type IndiceAutomatico } from "@/lib/relatorio-inteligente/indice";
 import { exportarWord } from "@/lib/relatorio-inteligente/export-word";
 import { exportarPdfAbnt } from "@/lib/relatorio-inteligente/export-pdf-abnt";
+import {
+  listarModelos, salvarModelo, excluirModelo, toggleFavorito,
+  exportarModeloJson, importarModeloJson,
+  listarHistorico, registrarHistorico, limparHistorico,
+  type ModeloSalvo, type EntradaHistorico,
+} from "@/lib/relatorio-inteligente/modelos";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
   component: RelatorioInteligentePage,
@@ -72,6 +83,8 @@ function Wizard() {
   const [textFilter, setTextFilter] = useState("");
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
+  const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
+  const [modeloAtualNome, setModeloAtualNome] = useState<string>("");
 
   function escolherTipo(t: TipoRelatorio) {
     setTipo(t);
@@ -88,8 +101,23 @@ function Wizard() {
     setBlocks((prev) => prev.map((b) => (b.blockId === id ? { ...b, ...patch } : b)));
   }
 
+  function carregarModelo(m: ModeloSalvo) {
+    setTipo(m.tipo as TipoRelatorio);
+    setBlocks(m.blocks);
+    setTextFilter(m.textFilter ?? "");
+    setFormato((m.formato as Formato) ?? "pdf");
+    setModeloAtualId(m.id);
+    setModeloAtualNome(m.nome);
+    toast.success(`Modelo "${m.nome}" carregado.`);
+  }
+
   return (
     <div className="space-y-4">
+      <ModelosBar
+        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome }}
+        onLoad={carregarModelo}
+        onSaved={(m) => { setModeloAtualId(m.id); setModeloAtualNome(m.nome); }}
+      />
       <Stepper step={step} />
       <div className="rounded-lg border bg-card p-4">
         {step === 1 && <StepConteudo tipo={tipo} setTipo={escolherTipo} blocks={blocks} toggle={toggleBloco} />}
@@ -103,6 +131,7 @@ function Wizard() {
             tipo={tipo} blocks={blocks} textFilter={textFilter}
             formato={formato} setFormato={setFormato}
             gerando={gerando} setGerando={setGerando}
+            nomeAtual={modeloAtualNome}
           />
         )}
       </div>
@@ -752,11 +781,12 @@ function StatsBar({
 /* ============ Etapa 6 · Exportar ============ */
 
 function StepExportar({
-  tipo, blocks, textFilter, formato, setFormato, gerando, setGerando,
+  tipo, blocks, textFilter, formato, setFormato, gerando, setGerando, nomeAtual,
 }: {
   tipo: TipoRelatorio; blocks: BlockConfig[]; textFilter: string;
   formato: Formato; setFormato: (f: Formato) => void;
   gerando: boolean; setGerando: (b: boolean) => void;
+  nomeAtual?: string;
 }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
   const ger = useGerencial();
@@ -821,6 +851,11 @@ function StepExportar({
         exportarCsvMulti({ filenamePrefix: filename, blocos: blocosExp });
         toast.success(`${blocosExp.length} arquivo(s) CSV gerado(s).`);
       }
+      registrarHistorico({
+        nome: nomeAtual?.trim() || `Relatório ${labelTipo(tipo)}`,
+        tipo: tipo as import("@/lib/relatorio-inteligente/modelos").TipoRelatorioSalvo,
+        formato, qtdBlocos: blocosExp.length,
+      });
     } catch (e) {
       toast.error("Falha ao gerar: " + String((e as Error)?.message ?? e));
     } finally {
@@ -904,4 +939,186 @@ function StepExportar({
 
 function labelTipo(t: TipoRelatorio) {
   return ({ executivo: "Executivo", tecnico: "Técnico", administrativo: "Administrativo", rh: "RH", auditoria: "Auditoria", personalizado: "Personalizado" } as Record<TipoRelatorio, string>)[t];
+}
+
+/* ============ Onda D · Modelos Salvos / Favoritos / Histórico ============ */
+
+function ModelosBar({
+  current, onLoad, onSaved,
+}: {
+  current: { tipo: TipoRelatorio; blocks: BlockConfig[]; textFilter: string; formato: Formato; id: string | null; nome: string };
+  onLoad: (m: ModeloSalvo) => void;
+  onSaved: (m: ModeloSalvo) => void;
+}) {
+  const [modelos, setModelos] = useState<ModeloSalvo[]>(() => listarModelos());
+  const [historico, setHistorico] = useState<EntradaHistorico[]>(() => listarHistorico());
+  const [openSave, setOpenSave] = useState(false);
+  const [openList, setOpenList] = useState(false);
+  const [openHist, setOpenHist] = useState(false);
+  const [nome, setNome] = useState(current.nome ?? "");
+  const [descricao, setDescricao] = useState("");
+
+  function refresh() {
+    setModelos(listarModelos());
+    setHistorico(listarHistorico());
+  }
+
+  function salvar(comoNovo: boolean) {
+    if (!nome.trim()) { toast.error("Informe um nome para o modelo."); return; }
+    const m = salvarModelo({
+      id: comoNovo ? undefined : current.id ?? undefined,
+      nome: nome.trim(), descricao: descricao.trim() || undefined,
+      tipo: current.tipo as ModeloSalvo["tipo"],
+      blocks: current.blocks, textFilter: current.textFilter, formato: current.formato,
+    });
+    onSaved(m); refresh(); setOpenSave(false);
+    toast.success(comoNovo ? "Modelo salvo como novo." : "Modelo salvo.");
+  }
+
+  function baixarModelo(m: ModeloSalvo) {
+    const blob = new Blob([exportarModeloJson(m)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${m.nome.replace(/\s+/g, "-")}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+  async function importar(file: File) {
+    try {
+      const raw = await file.text();
+      importarModeloJson(raw);
+      refresh();
+      toast.success("Modelo importado.");
+    } catch (e) {
+      toast.error("Falha ao importar: " + String((e as Error)?.message ?? e));
+    }
+  }
+
+  const favoritos = modelos.filter((m) => m.favorito);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+      <span className="text-xs font-semibold uppercase text-muted-foreground">Modelos</span>
+      {current.nome && (
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+          Atual: {current.nome}
+        </span>
+      )}
+
+      {favoritos.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          {favoritos.slice(0, 5).map((m) => (
+            <button key={m.id} onClick={() => onLoad(m)}
+              className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-800 hover:bg-amber-100">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+              {m.nome}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Dialog open={openSave} onOpenChange={(o) => { setOpenSave(o); if (o) setNome(current.nome ?? ""); }}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline"><Save className="mr-1 h-3.5 w-3.5" /> Salvar modelo</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Salvar modelo</DialogTitle></DialogHeader>
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs">Nome</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Relatório mensal da Secretaria" />
+              </div>
+              <div>
+                <Label className="text-xs">Descrição (opcional)</Label>
+                <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {current.blocks.length} bloco(s) · tipo {labelTipo(current.tipo)} · formato {current.formato}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              {current.id && (
+                <Button variant="outline" onClick={() => salvar(false)}>Atualizar existente</Button>
+              )}
+              <Button onClick={() => salvar(true)}>Salvar como novo</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={openList} onOpenChange={(o) => { setOpenList(o); if (o) refresh(); }}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline"><FolderOpen className="mr-1 h-3.5 w-3.5" /> Meus modelos ({modelos.length})</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader><DialogTitle>Meus modelos</DialogTitle></DialogHeader>
+            <div className="mb-2 flex items-center gap-2">
+              <label className="cursor-pointer rounded-md border px-2 py-1 text-xs hover:bg-muted">
+                <Upload className="mr-1 inline h-3 w-3" /> Importar JSON
+                <input type="file" accept="application/json" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importar(f); e.currentTarget.value = ""; }} />
+              </label>
+            </div>
+            {modelos.length === 0 ? (
+              <div className="rounded border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                Nenhum modelo salvo ainda.
+              </div>
+            ) : (
+              <ul className="max-h-[50vh] space-y-1 overflow-auto">
+                {modelos.map((m) => (
+                  <li key={m.id} className="flex items-center gap-2 rounded border bg-card p-2 text-sm">
+                    <button onClick={() => { toggleFavorito(m.id); refresh(); }} title="Favoritar">
+                      {m.favorito ? <Star className="h-4 w-4 fill-amber-400 text-amber-500" /> : <StarOff className="h-4 w-4 text-muted-foreground" />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{m.nome}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {labelTipo(m.tipo as TipoRelatorio)} · {m.blocks.length} bloco(s) · atualizado {new Date(m.atualizadoEm).toLocaleString("pt-BR")}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => { onLoad(m); setOpenList(false); }}>Carregar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => baixarModelo(m)} title="Baixar JSON"><FileDown className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Excluir "${m.nome}"?`)) { excluirModelo(m.id); refresh(); } }} title="Excluir">
+                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={openHist} onOpenChange={(o) => { setOpenHist(o); if (o) refresh(); }}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline"><History className="mr-1 h-3.5 w-3.5" /> Histórico ({historico.length})</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-xl">
+            <DialogHeader><DialogTitle>Histórico de gerações</DialogTitle></DialogHeader>
+            {historico.length === 0 ? (
+              <div className="rounded border bg-muted/30 p-4 text-center text-sm text-muted-foreground">Nenhuma geração registrada.</div>
+            ) : (
+              <>
+                <ul className="max-h-[50vh] space-y-1 overflow-auto text-sm">
+                  {historico.map((h) => (
+                    <li key={h.id} className="flex items-center gap-2 rounded border bg-card p-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{h.nome}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {labelTipo(h.tipo as TipoRelatorio)} · {h.formato} · {h.qtdBlocos} bloco(s) · {new Date(h.geradoEm).toLocaleString("pt-BR")}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <DialogFooter>
+                  <Button variant="outline" size="sm" onClick={() => { limparHistorico(); refresh(); }}>
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Limpar histórico
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
 }
