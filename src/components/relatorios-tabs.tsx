@@ -20,6 +20,7 @@ const GERENCIAIS = [
   { to: "/relatorios-gerenciais/indicadores", label: "Indicadores" },
   { to: "/relatorios-gerenciais/piso", label: "Piso (gerencial)" },
   { to: "/relatorios-gerenciais/auditoria", label: "Auditoria" },
+  { to: "/relatorio-inteligente", label: "⭐ Relatório Geral Inteligente" },
 ] as const;
 
 function Row({ tabs, activeGroup, currentPath }: { tabs: ReadonlyArray<{ to: string; label: string }>; activeGroup: boolean; currentPath: string }) {
@@ -53,7 +54,9 @@ function Row({ tabs, activeGroup, currentPath }: { tabs: ReadonlyArray<{ to: str
 
 export function RelatoriosTabs() {
   const { pathname } = useLocation();
-  const isGerencial = pathname.startsWith("/relatorios-gerenciais");
+  const isGerencial =
+    pathname.startsWith("/relatorios-gerenciais") ||
+    pathname.startsWith("/relatorio-inteligente");
   return (
     <div className="space-y-2">
       <div>
