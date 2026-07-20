@@ -14,6 +14,7 @@ const TIPO_ARQ = z.enum(["PDF", "Excel", "CSV"]);
 const MatchInput = z.object({
   cpfs: z.array(z.string()).default([]),
   matriculas: z.array(z.string()).default([]),
+  nomes: z.array(z.string()).default([]),
 });
 
 export const matchProfissionaisImport = createServerFn({ method: "POST" })
@@ -24,9 +25,13 @@ export const matchProfissionaisImport = createServerFn({ method: "POST" })
     const { supabase } = context;
     const cpfs = Array.from(new Set(data.cpfs.filter(Boolean)));
     const mats = Array.from(new Set(data.matriculas.filter(Boolean)));
+    const nomes = Array.from(new Set(data.nomes.filter(Boolean))).slice(0, 5000);
 
     const byCpf: Record<string, string> = {};
     const byMatricula: Record<string, string> = {};
+    // Amostra de candidatos para fuzzy: retorna todos os profissionais com nome
+    // (limite defensivo). O cliente calcula similaridade localmente.
+    let candidatos: { id: string; nome: string }[] = [];
 
     if (cpfs.length > 0) {
       const { data: rows, error } = await supabase
@@ -48,7 +53,37 @@ export const matchProfissionaisImport = createServerFn({ method: "POST" })
         if (r.matricula) byMatricula[r.matricula] = r.id;
       }
     }
-    return { byCpf, byMatricula };
+    if (nomes.length > 0) {
+      const { data: rows, error } = await supabase
+        .from("profissionais")
+        .select("id, nome_completo")
+        .not("nome_completo", "is", null)
+        .limit(10000);
+      if (error) throw new Error(error.message);
+      candidatos = (rows ?? []).map((r) => ({ id: r.id, nome: r.nome_completo as string }));
+    }
+    return { byCpf, byMatricula, candidatos };
+  });
+
+// --------------------- Desfazer importação ---------------------
+
+export const desfazerImportacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.importar");
+    const { supabase } = context;
+    const { error: delErr } = await supabase
+      .from("piso_enfermagem")
+      .delete()
+      .eq("historico_id", data.id);
+    if (delErr) throw new Error(delErr.message);
+    const { error: updErr } = await supabase
+      .from("historico_importacoes")
+      .update({ status: "Desfeito" })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+    return { ok: true };
   });
 
 // --------------------- Commit da importação ---------------------

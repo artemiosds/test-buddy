@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Upload, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/formatters";
-import { listHistoricoImportacoes } from "@/lib/piso-enfermagem.functions";
+import { listHistoricoImportacoes, desfazerImportacao } from "@/lib/piso-enfermagem.functions";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
   component: () => (
@@ -31,9 +33,19 @@ type Row = {
 };
 
 function PisoIndex() {
+  const qc = useQueryClient();
+  const confirm = useConfirm();
   const { data, isLoading } = useQuery({
     queryKey: ["piso", "historico", 1],
     queryFn: () => listHistoricoImportacoes({ data: { page: 1, pageSize: 50 } }),
+  });
+  const undoMut = useMutation({
+    mutationFn: (id: string) => desfazerImportacao({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Importação desfeita.");
+      void qc.invalidateQueries({ queryKey: ["piso", "historico"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao desfazer"),
   });
 
   const cols: DataTableColumn<Row>[] = [
@@ -53,6 +65,32 @@ function PisoIndex() {
           {r.status}
         </Badge>
       ),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      cell: (r) =>
+        r.status === "Desfeito" ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
+          <PermissionGate permission="piso.importar">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                const ok = await confirm({
+                  title: "Desfazer importação?",
+                  description: `Todos os ${r.total_registros ?? 0} registros importados de "${r.nome_arquivo}" serão removidos.`,
+                  tone: "destructive",
+                  confirmLabel: "Desfazer",
+                });
+                if (ok) undoMut.mutate(r.id);
+              }}
+            >
+              <Undo2 className="mr-1 h-3 w-3" /> Desfazer
+            </Button>
+          </PermissionGate>
+        ),
     },
   ];
 
