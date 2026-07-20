@@ -9,7 +9,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Download, FileSpreadsheet, FileText, TrendingUp, Users, DollarSign, Award, PiggyBank, BadgePercent } from "lucide-react";
-import { KpiCard, PermissionGate } from "@/components/shared";
+import { KpiCard } from "@/components/shared";
+import { PermissionGate } from "@/components/permission-gate";
 import { formatNumber } from "@/lib/formatters";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -157,6 +158,14 @@ function RelatorioPisoPage() {
   );
 
   // KPIs
+  function trendOf(a: number, b: number | null | undefined) {
+    if (b == null || b === 0) return undefined;
+    const delta = ((a - b) / b) * 100;
+    const direction: "up" | "down" | "flat" = delta > 0.5 ? "up" : delta < -0.5 ? "down" : "flat";
+    const sign = delta > 0 ? "+" : "";
+    return { direction, label: `${sign}${delta.toFixed(1)}% vs anterior` };
+  }
+
   const kpi = useMemo(() => {
     const sum = (rows: Row[], k: keyof Row) =>
       rows.reduce((a, r) => a + Number((r[k] as number | null) ?? 0), 0);
@@ -166,16 +175,15 @@ function RelatorioPisoPage() {
     const finalAnt = sum(anteriorRows, "valor_final");
     const benAtual = atualRows.filter((r) => Number(r.piso_complementacao ?? 0) > 0).length;
     const benAnt = anteriorRows.filter((r) => Number(r.piso_complementacao ?? 0) > 0).length;
-    const trend = (a: number, b: number) => (b === 0 ? null : ((a - b) / b) * 100);
     return {
       profissionais: atualRows.length,
-      profissionaisTrend: trend(atualRows.length, anteriorRows.length),
+      profissionaisTrend: anteriorRows.length,
       valorFinal: finalAtual,
-      valorFinalTrend: trend(finalAtual, finalAnt),
+      valorFinalTrend: finalAnt,
       complementacao: complAtual,
-      complementacaoTrend: trend(complAtual, complAnt),
+      complementacaoTrend: complAnt,
       beneficiados: benAtual,
-      beneficiadosTrend: trend(benAtual, benAnt),
+      beneficiadosTrend: benAnt,
       ticketMedio: benAtual ? complAtual / benAtual : 0,
       cobertura: atualRows.length ? (benAtual / atualRows.length) * 100 : 0,
     };
@@ -369,10 +377,11 @@ function RelatorioPisoPage() {
     if (!atualRows.length) return toast.error("Nada para exportar.");
     const doc = new jsPDF({ orientation: "landscape" });
     const info = await loadMunicipioInfo();
-    const startY = await drawInstitutionalHeader(doc, info, {
-      title: "Relatório do Piso Nacional da Enfermagem",
-      subtitle: `Competência: ${fmtCompetencia(competenciaAtual)}`,
-    });
+    const startY = drawInstitutionalHeader(
+      doc,
+      info,
+      `Relatório — Piso Nacional da Enfermagem — ${fmtCompetencia(competenciaAtual)}`,
+    );
 
     autoTable(doc, {
       startY: startY + 4,
@@ -508,16 +517,16 @@ function RelatorioPisoPage() {
 
         {/* KPIs */}
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <KpiCard icon={Users} label="Profissionais" value={formatNumber(kpi.profissionais)}
-            trend={kpi.profissionaisTrend != null ? { value: kpi.profissionaisTrend, label: "vs anterior" } : undefined} />
-          <KpiCard icon={DollarSign} label="Valor final total" value={brl(kpi.valorFinal)}
-            trend={kpi.valorFinalTrend != null ? { value: kpi.valorFinalTrend, label: "vs anterior" } : undefined} />
-          <KpiCard icon={PiggyBank} label="Complementação piso" value={brl(kpi.complementacao)}
-            trend={kpi.complementacaoTrend != null ? { value: kpi.complementacaoTrend, label: "vs anterior" } : undefined} />
-          <KpiCard icon={Award} label="Beneficiados" value={formatNumber(kpi.beneficiados)}
-            trend={kpi.beneficiadosTrend != null ? { value: kpi.beneficiadosTrend, label: "vs anterior" } : undefined} />
-          <KpiCard icon={BadgePercent} label="Cobertura" value={`${kpi.cobertura.toFixed(1)}%`} />
-          <KpiCard icon={DollarSign} label="Ticket médio" value={brl(kpi.ticketMedio)} />
+          <KpiCard icon={<Users className="h-4 w-4" />} label="Profissionais" value={formatNumber(kpi.profissionais)}
+            trend={trendOf(kpi.profissionais, kpi.profissionaisTrend)} />
+          <KpiCard icon={<DollarSign className="h-4 w-4" />} label="Valor final total" value={brl(kpi.valorFinal)}
+            trend={trendOf(kpi.valorFinal, kpi.valorFinalTrend)} />
+          <KpiCard icon={<PiggyBank className="h-4 w-4" />} label="Complementação piso" value={brl(kpi.complementacao)}
+            trend={trendOf(kpi.complementacao, kpi.complementacaoTrend)} />
+          <KpiCard icon={<Award className="h-4 w-4" />} label="Beneficiados" value={formatNumber(kpi.beneficiados)}
+            trend={trendOf(kpi.beneficiados, kpi.beneficiadosTrend)} />
+          <KpiCard icon={<BadgePercent className="h-4 w-4" />} label="Cobertura" value={`${kpi.cobertura.toFixed(1)}%`} />
+          <KpiCard icon={<DollarSign className="h-4 w-4" />} label="Ticket médio" value={brl(kpi.ticketMedio)} />
         </div>
 
         {/* Evolução mensal */}
