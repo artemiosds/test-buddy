@@ -1,59 +1,116 @@
+# Piso Nacional da Enfermagem — MVP (Fase 1)
 
-# Dossiê Funcional do Profissional
+Módulo isolado, sem tocar em Folha/Competência/Frequência. Frontend usa componentes shared existentes (`PageHeader`, `KpiCard`, `FilterBar`, `DataTable`, `StatusBadge`, `FormDialog`, `EmptyState`, `ConfirmDialog`).
 
-Transformar `/profissionais/$id` em um dossiê completo, **sem** criar migrações, alterar APIs, cálculos, permissões ou funcionalidades atuais. Toda a informação vem de tabelas/hooks já existentes (`profissionais`, `profissional_historico_funcional`, `frequencia_profissional`, `frequencias`, `pendencias`, `audit_log`, `use-analytics`, `use-lookups`).
+## Escopo desta fase
 
-## Escopo (o que existe hoje x o que falta)
+Excel/CSV apenas. PDF pesquisável, fuzzy por nome, OCR e desfazer ficam para Fase 2.
 
-A rota já tem 926 linhas com abas Dados, Timeline (histórico funcional), Pendências, Estatísticas. Vamos **reorganizar e enriquecer** — não reescrever do zero — mantendo mutações e RLS atuais.
+## 1. Banco (uma migração)
 
-## Sublotes
+Novas tabelas em `public`:
 
-### 13A — Cabeçalho Executivo + Resumo
-- Novo componente `ProfissionalHeader` (`src/components/profissionais/dossie/`) exibindo: foto (avatar fallback), nome, matrícula, CPF, cargo/função atual, unidade/setor, vínculo, status, data admissão, **tempo de serviço calculado** (`formatters.ts::formatTempoServico`, novo helper puro).
-- `ResumoExecutivoCard`: derivado dos dados já consultados (contagens de unidades/setores/cargos/funções distintos no histórico funcional, competências processadas via `frequencia_profissional`, pendências abertas, % frequências aprovadas, dias desde última movimentação).
+- `piso_enfermagem` — snapshot por importação, todos os campos financeiros da spec + `historico_id`, `origem_arquivo`, `data_importacao`, `importado_por`. FK `profissional_id` para `profissionais(id)` nullable (permite registros “não localizados”).
+- `historico_importacoes` — cabeçalho da importação (modelo, arquivo, totais, `mapeamento jsonb`, `status`, `importado_por`).
+- `piso_mapeamentos_salvos` — mapeamentos reutilizáveis por modelo (nome + jsonb).
 
-### 13B — Reorganização em abas (Tabs shadcn existente)
-Ordem final: **Visão Geral · Linha do Tempo · Lotações · Competências · Movimentações · Documentos · Observações**.
-- Aba "Dados" atual vira "Visão Geral" (mantém formulário de edição intacto).
-- Aba "Histórico" atual é dividida em "Linha do Tempo" (vertical) + "Movimentações" (tabela filtrada por tipos de mudança).
+Padrão obrigatório do projeto: `CREATE TABLE` → `GRANT` (`authenticated`, `service_role`) → `ENABLE RLS` → policies + trigger `updated_at`.
 
-### 13C — Linha do Tempo funcional
-- Componente `TimelineFuncional` renderizando eventos de `profissional_historico_funcional` já carregados + eventos derivados (competências enviadas/aprovadas de `frequencia_profissional` do profissional, licenças/afastamentos do próprio histórico).
-- Sem nova query: reutiliza `historico` e adiciona um `useQuery` leve para últimas competências (já disponível via `useAnalytics`/`frequencia_profissional`).
+RLS:
+- SELECT: `has_permission(auth.uid(), 'piso.visualizar')` ou `is_master`.
+- INSERT/UPDATE/DELETE em `piso_enfermagem` e `historico_importacoes`: `has_permission(auth.uid(), 'piso.importar')` ou `is_master`.
+- `piso_mapeamentos_salvos`: mesmas regras de `piso.importar`.
 
-### 13D — Histórico de Lotações
-- Tabela `LotacoesTable` (DataTable existente) derivada de `profissional_historico_funcional` filtrando eventos com `unidade_destino_id`/`setor_destino_id`, ordenada por período, com colunas Unidade, Setor, Cargo, Função, Início, Fim (próximo evento), Motivo, Situação.
+Índices: `piso_enfermagem(historico_id)`, `piso_enfermagem(profissional_id)`, `piso_enfermagem(competencia)`, `historico_importacoes(data_importacao DESC)`.
 
-### 13E — Histórico de Competências + Indicadores Individuais
-- Nova query dedicada `frequencia_profissional` por `profissional_id` (já permitida pela RLS existente) trazendo competência, unidade, situação, horas extras, faltas, pendências relacionadas.
-- Filtros por Ano/Competência/Unidade via `FilterBar` compartilhado.
-- Cards de indicadores (total competências, frequências, HE, faltas, pendências abertas/resolvidas, tempo na unidade/setor/serviço).
+Permissões novas em `public.permissoes` (`ativa=true`):
+- `piso.visualizar`
+- `piso.importar`
 
-### 13F — Evolução Funcional + Situação Funcional
-- Painel "antes → depois" para cargo/função/última movimentação/última atualização cadastral (usa `audit_log` já existente, filtrado por `entity_id = profissional`).
-- Bloco Situação Funcional com badge atual + histórico de mudanças de `situacao_funcional` do `audit_log`.
+Vinculadas em `perfil_permissoes` para perfil MASTER. Outros perfis recebem via UI de permissões (fora do escopo desta fase).
 
-### 13G — Documentos + Observações Administrativas
-- Aba **Documentos**: usa `documentos_assinados` (já existente) filtrado por profissional; se vazio, `EmptyState` preparado para futura expansão.
-- Aba **Observações**: campo `observacoes` do profissional + últimas 10 entradas de `audit_log` que tocam o registro, com responsável e data.
+## 2. Menu
 
-### 13H — Pesquisa + Exportação
-- Input de busca global dentro do dossiê que filtra timeline/lotações/competências/movimentações client-side.
-- Botão "Exportar dossiê" gera CSV (helper existente em `src/lib/csv.ts` se houver, senão adicionar utilitário puro sem dep externa) consolidando dados já carregados. **Nenhuma nova API.**
+`AppSidebar`: inserir “Piso Nacional da Enfermagem” entre “Folha Contratados” e “Pendências”, gated por `piso.visualizar`.
 
-### 13I — Performance & Testes
-- Todas as consultas via React Query com `queryKey` estável e `staleTime` alinhado ao `QueryClient` global.
-- `useMemo` para derivações (contagem distinta, agrupamentos).
-- Testes: adicionar `dossie.test.ts` cobrindo `formatTempoServico`, agregador de resumo executivo e filtro de lotações a partir do histórico funcional. Alvo: suíte cresce de 72 → ~78 verdes.
+## 3. Rotas (todas sob `_authenticated/`, com `PermissionGate`)
 
-## Regras invariantes
-- Sem migração, sem alteração de schema, RLS, permissões ou mutações existentes.
-- Reuso obrigatório: `PageHeader`, `DataTable`, `EmptyState`, `FilterBar`, `StatusBadge`, `KpiCard`, `Tabs`, `useAnalytics`, `use-permissions`, `formatters`.
-- Rota permanece protegida pelo `_authenticated` + `PermissionGate` atual (`profissional.visualizar`).
-- Nenhum recálculo de folha/frequência: apenas leitura e apresentação.
+- `piso-enfermagem.index.tsx` — lista de importações (histórico) + KPIs (total registros, última importação, divergências). `piso.visualizar`.
+- `piso-enfermagem.importar.tsx` — wizard de 3 passos. `piso.importar`.
+- `piso-enfermagem.$id.tsx` — detalhe de uma importação (linhas gravadas, filtros por vínculo/status match). `piso.visualizar`.
 
-## Entrega por sublote
-Cada sublote fecha com: arquivos alterados, contagem de testes verdes da suíte inteira, e confirmação de que nenhuma lógica de negócio mudou.
+## 4. Wizard de importação (client-side, sem upload ao Supabase Storage)
 
-Começo por **13A + 13B** (base estrutural) assim que aprovado.
+Passo 1 — Configuração
+- Seletor de modelo: Efetivos / Contratados / Ministério / Personalizado.
+- Radio vínculo alvo: Efetivos / Contratados / Ambos.
+- Dropzone (`react-dropzone` já não instalado → usar input nativo + drag events, sem dep nova). Aceita `.xlsx`, `.xls`, `.csv`. Limite 50 MB verificado no client.
+
+Passo 2 — Mapeamento
+- Parse do arquivo com `xlsx` (já instalado).
+- Detecção automática: heurística por nome de header (normalizado sem acento/caixa) → sugere destino. CPF valida por regex; valores por presença de `R$`/número.
+- Grid duas colunas: coluna do arquivo → select com campos do sistema (todos os campos financeiros + identificadores).
+- Checkboxes “Atualizar campos” controlam quais campos serão persistidos (default: todos financeiros marcados; cargo/unidade/setor desmarcados).
+- Botão “Salvar mapeamento” grava em `piso_mapeamentos_salvos` (usa nome informado + modelo).
+- Botão “Carregar mapeamento” lista os salvos por modelo.
+
+Passo 3 — Revisão e gravação
+- Match executado no cliente via server function `matchProfissionaisImport({ cpfs, matriculas })` usando `requireSupabaseAuth` (RLS da tabela `profissionais` aplicada). Retorna map CPF→id, matrícula→id.
+- Ordem: CPF exato → matrícula exata → “não localizado”. (Fuzzy nome: fase 2.)
+- Tabela de preview: cada linha mostra origem, destino (nome/matrícula do profissional casado ou “não localizado”), status colorido via `StatusBadge`.
+- KPIs no topo: total lidos / a importar / divergências / não localizados.
+- Botão “Confirmar importação” chama `commitImportPiso({ historico, linhas })` (server fn, `piso.importar`).
+
+## 5. Server functions (`src/lib/piso-enfermagem.functions.ts`)
+
+Todas com `requireSupabaseAuth` + guard de permissão explícito (`has_permission`).
+
+- `matchProfissionais({ cpfs: string[], matriculas: string[] })` → busca em `profissionais` e devolve dois mapas.
+- `commitImportPiso({ modelo, nomeArquivo, tipoArquivo, competencia, mapeamento, linhas })` → cria `historico_importacoes` + `insert` batch em `piso_enfermagem`, atualiza contadores, retorna `historico_id`. Transacional via RPC SQL `piso_import_commit` (SECURITY DEFINER) para garantir atomicidade.
+- `listImportHistorico({ page, pageSize })` → paginação.
+- `listImportLinhas({ historicoId, filtros })` → detalhe.
+- `saveMapeamento({ nome, modelo, mapeamento })` / `listMapeamentos({ modelo })`.
+
+## 6. Componentes (`src/components/piso/`)
+
+- `ImportWizard.tsx` (stateful, orquestra 3 passos).
+- `MappingGrid.tsx`.
+- `PreviewTable.tsx`.
+- `HistoricoImportacoesList.tsx`.
+
+Reaproveita `PageHeader`, `KpiCard`, `DataTable`, `FilterBar`, `StatusBadge`, `FormDialog`, `EmptyState`, `useConfirm`, `logger`, `formatCurrency`, `formatCPF`, `formatDateTime`.
+
+## 7. Testes
+
+Novos testes Vitest:
+- `src/lib/piso-mapping.test.ts` — heurística de auto-mapeamento (nomes normalizados).
+- `src/lib/piso-import.test.ts` — parser de linhas + resolução de match (CPF/matrícula/não localizado) com mocks.
+
+Meta: manter 80/80 anteriores verdes + 6–10 novos (~86–90 total).
+
+## 8. Fora deste MVP (Fase 2 futura)
+
+- PDF pesquisável (via `pdfjs-dist` client-side).
+- Fuzzy nome (Levenshtein) com faixas 85%/60%.
+- Desfazer importação (`status='Desfeito'` + delete das linhas).
+- OCR — se autorizado, via Lovable AI (Gemini vision).
+- Exportação Excel de divergências.
+
+## Detalhes técnicos
+
+- Sem alteração em tabelas existentes.
+- Sem edge functions Supabase.
+- Sem chamadas ao `supabaseAdmin` — todo o fluxo passa por `requireSupabaseAuth`+RLS.
+- Sem dependências novas: `xlsx` e `zod` já presentes.
+- Migration inclui `emit_evento` opcional? Não — o `emit_evento` guard só aceita agregados conhecidos; deixamos apenas `audit_log` via trigger `tg_audit_row` nas duas novas tabelas.
+- `PermissionGate` aplicado em cada rota nova.
+- Terminologia: rótulos “Competência” do módulo continuam “Competência” (é o rótulo real de folha, não “Período” global).
+
+## Checklist final da fase
+
+1. Migração aprovada e executada.
+2. Tipos regenerados (`types.ts` atualiza sozinho).
+3. Sidebar + rotas gated.
+4. `bun run typecheck` limpo.
+5. Testes verdes (`bunx vitest run`).
+6. Relatório curto no fechamento.
