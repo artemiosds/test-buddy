@@ -61,24 +61,24 @@ export type ProfRow = {
 const PROF_SELECT =
   "id, nome_completo, cpf, matricula, telefone, email, data_nascimento, carga_horaria_semanal, status, situacao_funcional, secretaria_id, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id";
 
-function applyPreset(query: ReturnType<typeof supabase.from>, preset?: ProfViewFilters["preset"]) {
+function applyPreset<Q extends { is: Function; or: Function; eq: Function; in: Function }>(query: Q, preset?: ProfViewFilters["preset"]): Q {
   if (!preset || preset === "todos") return query;
   switch (preset) {
-    case "sem_unidade": return query.is("unidade_id", null);
-    case "sem_setor": return query.is("setor_id", null);
-    case "sem_cargo": return query.is("cargo_id", null);
-    case "sem_funcao": return query.is("funcao_id", null);
-    case "sem_matricula": return query.or("matricula.is.null,matricula.eq.");
-    case "sem_cpf": return query.or("cpf.is.null,cpf.eq.");
-    case "sem_telefone": return query.or("telefone.is.null,telefone.eq.");
-    case "sem_email": return query.or("email.is.null,email.eq.");
-    case "sem_nascimento": return query.is("data_nascimento", null);
-    case "sem_carga_horaria": return query.or("carga_horaria_semanal.is.null,carga_horaria_semanal.eq.0");
-    case "ativos": return query.eq("status", "ativo" as never);
-    case "afastados": return query.eq("status", "afastado" as never);
-    case "ferias": return query.eq("status", "ferias" as never);
-    case "licenciados": return query.eq("status", "licenciado" as never);
-    case "inativos": return query.in("status", ["inativo", "desligado"] as never);
+    case "sem_unidade": return query.is("unidade_id", null) as Q;
+    case "sem_setor": return query.is("setor_id", null) as Q;
+    case "sem_cargo": return query.is("cargo_id", null) as Q;
+    case "sem_funcao": return query.is("funcao_id", null) as Q;
+    case "sem_matricula": return query.or("matricula.is.null,matricula.eq.") as Q;
+    case "sem_cpf": return query.or("cpf.is.null,cpf.eq.") as Q;
+    case "sem_telefone": return query.or("telefone.is.null,telefone.eq.") as Q;
+    case "sem_email": return query.or("email.is.null,email.eq.") as Q;
+    case "sem_nascimento": return query.is("data_nascimento", null) as Q;
+    case "sem_carga_horaria": return query.or("carga_horaria_semanal.is.null,carga_horaria_semanal.eq.0") as Q;
+    case "ativos": return query.eq("status", "ativo") as Q;
+    case "afastados": return query.eq("status", "afastado") as Q;
+    case "ferias": return query.eq("status", "ferias") as Q;
+    case "licenciados": return query.eq("status", "licenciado") as Q;
+    case "inativos": return query.in("status", ["inativo", "desligado"]) as Q;
   }
   return query;
 }
@@ -87,9 +87,8 @@ export async function listProfissionais(filters: ProfViewFilters, page = 1, page
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let query = supabase.from("profissionais").select(PROF_SELECT, { count: "exact" }).is("deleted_at", null);
-
-  query = applyPreset(query, filters.preset);
+  const base = supabase.from("profissionais").select(PROF_SELECT, { count: "exact" }).is("deleted_at", null);
+  let query = applyPreset(base, filters.preset);
 
   if (filters.q) {
     const like = `%${filters.q.trim()}%`;
