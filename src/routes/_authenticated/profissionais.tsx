@@ -312,7 +312,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,foto_url,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
         .is("deleted_at", null);
