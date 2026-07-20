@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { UploadCloud, Lightbulb, CheckCircle2 } from "lucide-react";
+import { UploadCloud, Lightbulb, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
@@ -19,9 +19,14 @@ import {
 } from "@/components/ui/select";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   autoMap,
   CAMPOS_SISTEMA,
+  CAMPOS_CALCULADOS,
+  CAMPOS_UPDATE_DEFAULT,
+  detectCalculatedColumns,
   type PisoDestino,
 } from "@/lib/piso-mapping";
 import {
@@ -42,7 +47,9 @@ import {
   type ResolvedRow,
 } from "@/lib/piso-import";
 import {
-  commitImportPiso,
+  startImportPiso,
+  appendPisoLinhas,
+  finalizeImportPiso,
   matchProfissionaisImport,
   listMapeamentos,
   saveMapeamento,
@@ -92,6 +99,16 @@ function ImportarPage() {
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
   const [preview5, setPreview5] = useState<RawRow[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [camposAtualizar, setCamposAtualizar] = useState<Set<PisoDestino>>(
+    () => new Set(CAMPOS_UPDATE_DEFAULT),
+  );
+  const [progresso, setProgresso] = useState<{
+    ativo: boolean;
+    total: number;
+    feito: number;
+    inicio: number;
+  }>({ ativo: false, total: 0, feito: 0, inicio: 0 });
+  const cancelRef = useRef(false);
   const dropRef = useRef<HTMLDivElement | null>(null);
 
   const tipoArquivo: "PDF" | "Excel" | "CSV" = useMemo(() => {
@@ -220,24 +237,74 @@ function ImportarPage() {
 
   const commitMut = useMutation({
     mutationFn: async () => {
-      const res = await commitImportPiso({
+      cancelRef.current = false;
+      const nomeArquivo = file?.name ?? "sem-nome";
+      const compet = competencia || null;
+      const camposList = Array.from(camposAtualizar);
+      const { historico_id } = await startImportPiso({
         data: {
           modelo,
-          nome_arquivo: file?.name ?? "sem-nome",
+          nome_arquivo: nomeArquivo,
           tipo_arquivo: tipoArquivo,
-          competencia: competencia || null,
+          competencia: compet,
           mapeamento: mapeamento as Record<string, string | null>,
-          linhas: resolved,
+          total: resolved.length,
         },
       });
-      toast.success(`Importação concluída: ${res.stats.importados}/${res.stats.total}`);
+      setProgresso({ ativo: true, total: resolved.length, feito: 0, inicio: Date.now() });
+      const CHUNK = 100;
+      let feito = 0;
+      for (let i = 0; i < resolved.length; i += CHUNK) {
+        if (cancelRef.current) {
+          await finalizeImportPiso({
+            data: { historico_id, importados: 0, divergentes: 0, naoLocalizados: 0, cancelado: true },
+          });
+          throw new Error("Importação cancelada.");
+        }
+        const chunk = resolved.slice(i, i + CHUNK);
+        await appendPisoLinhas({
+          data: {
+            historico_id,
+            nome_arquivo: nomeArquivo,
+            competencia: compet,
+            linhas: chunk,
+            camposAtualizar: camposList as never,
+          },
+        });
+        feito += chunk.length;
+        setProgresso((p) => ({ ...p, feito }));
+      }
+      await finalizeImportPiso({
+        data: {
+          historico_id,
+          importados: stats.importados,
+          divergentes: stats.divergentes,
+          naoLocalizados: stats.nao_localizados,
+          cancelado: false,
+        },
+      });
+      setProgresso((p) => ({ ...p, ativo: false }));
+      toast.success(`Importação concluída: ${stats.importados}/${stats.total}`);
       navigate({ to: "/piso-enfermagem" });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao gravar importação"),
+    onError: (e: unknown) => {
+      setProgresso((p) => ({ ...p, ativo: false }));
+      toast.error(e instanceof Error ? e.message : "Falha ao gravar importação");
+    },
   });
+
+  function toggleCampo(k: PisoDestino) {
+    setCamposAtualizar((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }
 
   const stats = useMemo(() => statsFrom(resolved), [resolved]);
   const quality = useMemo(() => computeQuality(rawRows, mapeamento), [rawRows, mapeamento]);
+  const calculatedCols = useMemo(() => detectCalculatedColumns(headers), [headers]);
 
   const savedQ = useQuery({
     queryKey: ["piso", "mapeamentos", modelo],
@@ -366,6 +433,22 @@ function ImportarPage() {
 
           <QualityCard q={quality} />
 
+          {calculatedCols.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4" />
+              <div className="space-y-1">
+                <p className="font-medium">Colunas calculadas detectadas — não serão importadas:</p>
+                <ul className="list-disc pl-5">
+                  {calculatedCols.map((c) => (
+                    <li key={c.header}>
+                      <span className="font-mono">{c.header}</span> — o sistema recalcula {c.destino.replace("_", " ")} automaticamente.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-end gap-2">
             <p className="mr-auto text-sm text-muted-foreground">
               Sistema sugere o mapeamento pelo nome da coluna. Ajuste conforme necessário.
@@ -442,6 +525,34 @@ function ImportarPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="rounded-md border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium">Campos a atualizar no cadastro</p>
+              <p className="text-xs text-muted-foreground">
+                Financeiros marcados por padrão. Marque cadastrais somente se a folha deve sobrescrevê-los.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+              {CAMPOS_SISTEMA.filter(
+                (c) => c.key !== "cpf" && c.key !== "nome" && c.key !== "matricula" &&
+                       c.key !== "competencia" && !CAMPOS_CALCULADOS.has(c.key),
+              ).map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={camposAtualizar.has(c.key)}
+                    onCheckedChange={() => toggleCampo(c.key)}
+                  />
+                  <span>
+                    {c.label}
+                    {!c.financeiro && (
+                      <span className="ml-1 text-xs text-muted-foreground">(cadastral)</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPasso(1)}>Voltar</Button>
             <Button onClick={() => matchMut.mutate()} disabled={matchMut.isPending}>
@@ -460,6 +571,31 @@ function ImportarPage() {
             <StatCard label="Não localizados" value={stats.nao_localizados} tone="danger" />
           </div>
           <PreviewTable rows={resolved.slice(0, 100)} />
+          {progresso.ativo && (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">
+                  Processando {progresso.feito}/{progresso.total} registros…
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {(() => {
+                    const pct = progresso.total > 0 ? progresso.feito / progresso.total : 0;
+                    const elapsed = (Date.now() - progresso.inicio) / 1000;
+                    const eta = pct > 0.05 ? Math.max(0, Math.round(elapsed / pct - elapsed)) : null;
+                    return eta != null ? `Tempo estimado: ${eta}s` : "Estimando…";
+                  })()}
+                </span>
+              </div>
+              <Progress
+                value={progresso.total > 0 ? (progresso.feito / progresso.total) * 100 : 0}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" variant="destructive" onClick={() => { cancelRef.current = true; }}>
+                  Cancelar importação
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPasso(2)}>Voltar</Button>
             <Button onClick={() => commitMut.mutate()} disabled={commitMut.isPending}>

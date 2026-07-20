@@ -124,12 +124,36 @@ const CommitInput = z.object({
   linhas: z.array(LinhaSchema).max(20000),
 });
 
+// Campos que o usuário pode desmarcar na tela de importação.
+const CAMPOS_ATUALIZAVEIS = [
+  "cargo","unidade","setor","vinculo",
+  "salario_base","piso_complementacao","insalubridade","gratificacao",
+  "hora_extra_50","hora_extra_100","adicional_noturno","auxilio_financeiro",
+  "ferias_1_3","ferias","inss","irrf",
+] as const;
+type CampoAtualizavel = (typeof CAMPOS_ATUALIZAVEIS)[number];
+const CamposAtualizarSchema = z.array(z.enum(CAMPOS_ATUALIZAVEIS)).default([...CAMPOS_ATUALIZAVEIS]);
+
+function filtraCampos<T extends Record<string, unknown>>(
+  row: T,
+  camposPermitidos: Set<string>,
+): T {
+  const out = { ...row } as Record<string, unknown>;
+  for (const k of CAMPOS_ATUALIZAVEIS) {
+    if (!camposPermitidos.has(k)) out[k] = null;
+  }
+  return out as T;
+}
+
 export const commitImportPiso = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => CommitInput.parse(d))
+  .inputValidator((d: unknown) =>
+    CommitInput.extend({ camposAtualizar: CamposAtualizarSchema.optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await ensurePermission(context.supabase, context.userId, "piso.importar");
     const { supabase, userId } = context;
+    const camposSet = new Set<string>(data.camposAtualizar ?? [...CAMPOS_ATUALIZAVEIS]);
 
     let importados = 0, divergentes = 0, naoLocalizados = 0;
     for (const l of data.linhas) {
@@ -158,7 +182,7 @@ export const commitImportPiso = createServerFn({ method: "POST" })
     if (histErr || !hist) throw new Error(histErr?.message ?? "Falha ao criar histórico");
 
     if (data.linhas.length > 0) {
-      const rows = data.linhas.map((l) => ({
+      const rows = data.linhas.map((l) => filtraCampos({
         historico_id: hist.id,
         profissional_id: l.profissional_id ?? null,
         cpf: l.cpf ?? null,
@@ -186,7 +210,7 @@ export const commitImportPiso = createServerFn({ method: "POST" })
         origem_arquivo: data.nome_arquivo,
         importado_por: userId,
         status_match: l.status_match,
-      }));
+      }, camposSet));
 
       // Batches de 500 para evitar payload muito grande
       for (let i = 0; i < rows.length; i += 500) {
@@ -197,6 +221,172 @@ export const commitImportPiso = createServerFn({ method: "POST" })
     }
 
     return { historico_id: hist.id, stats: { total: data.linhas.length, importados, divergentes, naoLocalizados } };
+  });
+
+// --------------------- Commit em chunks (com barra de progresso) ---------------------
+
+const StartInput = z.object({
+  modelo: MODELO,
+  nome_arquivo: z.string().min(1),
+  tipo_arquivo: TIPO_ARQ,
+  competencia: z.string().nullable().optional(),
+  mapeamento: z.record(z.string(), z.string().nullable()).default({}),
+  total: z.number().int().nonnegative(),
+});
+
+export const startImportPiso = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => StartInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.importar");
+    const { data: hist, error } = await context.supabase
+      .from("historico_importacoes")
+      .insert({
+        modelo: data.modelo,
+        nome_arquivo: data.nome_arquivo,
+        tipo_arquivo: data.tipo_arquivo,
+        competencia: data.competencia ?? null,
+        mapeamento: data.mapeamento,
+        total_registros: data.total,
+        registros_importados: 0,
+        registros_divergentes: 0,
+        registros_nao_encontrados: 0,
+        importado_por: context.userId,
+        status: "Em andamento",
+      })
+      .select("id")
+      .single();
+    if (error || !hist) throw new Error(error?.message ?? "Falha ao iniciar importação");
+    return { historico_id: hist.id };
+  });
+
+const AppendInput = z.object({
+  historico_id: z.string().uuid(),
+  nome_arquivo: z.string().min(1),
+  competencia: z.string().nullable().optional(),
+  linhas: z.array(LinhaSchema).max(500),
+  camposAtualizar: CamposAtualizarSchema.optional(),
+});
+
+export const appendPisoLinhas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => AppendInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.importar");
+    if (data.linhas.length === 0) return { inserted: 0 };
+    const camposSet = new Set<string>(data.camposAtualizar ?? [...CAMPOS_ATUALIZAVEIS]);
+    const rows = data.linhas.map((l) => filtraCampos({
+      historico_id: data.historico_id,
+      profissional_id: l.profissional_id ?? null,
+      cpf: l.cpf ?? null,
+      nome: l.nome ?? null,
+      matricula: l.matricula ?? null,
+      cargo: l.cargo ?? null,
+      unidade: l.unidade ?? null,
+      setor: l.setor ?? null,
+      vinculo: l.vinculo ?? null,
+      salario_base: l.salario_base ?? null,
+      piso_complementacao: l.piso_complementacao ?? null,
+      insalubridade: l.insalubridade ?? null,
+      gratificacao: l.gratificacao ?? null,
+      hora_extra_50: l.hora_extra_50 ?? null,
+      hora_extra_100: l.hora_extra_100 ?? null,
+      adicional_noturno: l.adicional_noturno ?? null,
+      auxilio_financeiro: l.auxilio_financeiro ?? null,
+      ferias_1_3: l.ferias_1_3 ?? null,
+      ferias: l.ferias ?? null,
+      inss: l.inss ?? null,
+      irrf: l.irrf ?? null,
+      valor_liquido: l.valor_liquido ?? null,
+      valor_final: l.valor_final ?? null,
+      competencia: l.competencia ?? data.competencia ?? null,
+      origem_arquivo: data.nome_arquivo,
+      importado_por: context.userId,
+      status_match: l.status_match,
+    }, camposSet));
+    const { error } = await context.supabase.from("piso_enfermagem").insert(rows);
+    if (error) throw new Error(error.message);
+    return { inserted: rows.length };
+  });
+
+const FinalizeInput = z.object({
+  historico_id: z.string().uuid(),
+  importados: z.number().int().nonnegative(),
+  divergentes: z.number().int().nonnegative(),
+  naoLocalizados: z.number().int().nonnegative(),
+  cancelado: z.boolean().default(false),
+});
+
+export const finalizeImportPiso = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => FinalizeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.importar");
+    if (data.cancelado) {
+      // Cancelamento: remove linhas parciais + marca desfeito
+      await context.supabase.from("piso_enfermagem").delete().eq("historico_id", data.historico_id);
+      const { error } = await context.supabase
+        .from("historico_importacoes")
+        .update({ status: "Cancelado" })
+        .eq("id", data.historico_id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+    const status = data.naoLocalizados > 0 || data.divergentes > 0 ? "Com erros" : "Concluído";
+    const { error } = await context.supabase
+      .from("historico_importacoes")
+      .update({
+        registros_importados: data.importados,
+        registros_divergentes: data.divergentes,
+        registros_nao_encontrados: data.naoLocalizados,
+        status,
+      })
+      .eq("id", data.historico_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// --------------------- Distribuições (dashboard) ---------------------
+
+export const getPisoDistribuicao = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ competencia: z.string().nullable().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    if (!data.competencia) {
+      return { porUnidade: [], porCargo: [], naoLocalizados: [] };
+    }
+    const { data: rows, error } = await context.supabase
+      .from("piso_enfermagem")
+      .select("unidade, cargo, nome, cpf, matricula, piso_complementacao, status_match")
+      .eq("competencia", data.competencia)
+      .limit(20000);
+    if (error) throw new Error(error.message);
+    const uMap = new Map<string, { total: number; valor: number }>();
+    const cMap = new Map<string, { total: number; valor: number }>();
+    const naoLocalizados: { nome: string | null; cpf: string | null; matricula: string | null }[] = [];
+    for (const r of rows ?? []) {
+      const uKey = r.unidade ?? "—";
+      const cKey = r.cargo ?? "—";
+      const val = r.piso_complementacao ?? 0;
+      const u = uMap.get(uKey) ?? { total: 0, valor: 0 };
+      u.total += 1; u.valor += val; uMap.set(uKey, u);
+      const c = cMap.get(cKey) ?? { total: 0, valor: 0 };
+      c.total += 1; c.valor += val; cMap.set(cKey, c);
+      if (r.status_match === "nao_localizado") {
+        naoLocalizados.push({ nome: r.nome ?? null, cpf: r.cpf ?? null, matricula: r.matricula ?? null });
+      }
+    }
+    const porUnidade = Array.from(uMap.entries())
+      .map(([k, v]) => ({ label: k, total: v.total, valor: v.valor }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 12);
+    const porCargo = Array.from(cMap.entries())
+      .map(([k, v]) => ({ label: k, total: v.total, valor: v.valor }))
+      .sort((a, b) => b.total - a.total);
+    return { porUnidade, porCargo, naoLocalizados: naoLocalizados.slice(0, 50) };
   });
 
 // --------------------- Listagens ---------------------
