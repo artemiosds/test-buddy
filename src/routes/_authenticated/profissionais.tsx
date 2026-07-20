@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { statusOptions } from "@/lib/status";
@@ -38,6 +41,8 @@ import {
   UserCheck,
   LayoutGrid,
   List as ListIcon,
+  User as UserIcon,
+  Camera,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
@@ -130,6 +135,9 @@ type FormState = {
   conselho_validade: string;
   gestor_imediato_id: string;
   situacao_funcional: string;
+  foto_url: string;
+  /** Endereço por extenso — front-end apenas (não há coluna no banco ainda). */
+  endereco_completo: string;
 };
 
 const EMPTY: FormState = {
@@ -164,6 +172,8 @@ const EMPTY: FormState = {
   conselho_validade: "",
   gestor_imediato_id: "",
   situacao_funcional: "",
+  foto_url: "",
+  endereco_completo: "",
 };
 
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
