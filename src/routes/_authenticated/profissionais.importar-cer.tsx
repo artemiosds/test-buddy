@@ -293,8 +293,7 @@ function ImportarCerPage() {
     <div className="space-y-4 p-4 md:p-6">
       <PageHeader
         title="Importar profissionais — CER (Folha)"
-        subtitle="Aceita planilhas do CER (Centro Especializado em Reabilitação). Os valores de folha (BASE, BRUTO, ISS, etc.) são ignorados."
-        icon={<Upload />}
+        description="Aceita planilhas do CER (Centro Especializado em Reabilitação). Os valores de folha (BASE, BRUTO, ISS, etc.) são ignorados."
         actions={
           <Button asChild variant="outline" size="sm">
             <Link to="/profissionais">
