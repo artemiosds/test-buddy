@@ -853,7 +853,8 @@ function StepExportar({
       }
       registrarHistorico({
         nome: nomeAtual?.trim() || `Relatório ${labelTipo(tipo)}`,
-        tipo, formato, qtdBlocos: blocosExp.length,
+        tipo: tipo as import("@/lib/relatorio-inteligente/modelos").TipoRelatorioSalvo,
+        formato, qtdBlocos: blocosExp.length,
       });
     } catch (e) {
       toast.error("Falha ao gerar: " + String((e as Error)?.message ?? e));
