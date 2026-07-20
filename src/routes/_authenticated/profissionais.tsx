@@ -312,7 +312,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,foto_url,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,foto_url,endereco_completo,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
         .is("deleted_at", null);
@@ -538,6 +538,7 @@ function ProfissionaisPage() {
         gestor_imediato_id: f.gestor_imediato_id || null,
         situacao_funcional: (f.situacao_funcional || null) as SituacaoFuncional | null,
         foto_url: f.foto_url.trim() || null,
+        endereco_completo: f.endereco_completo.trim() || null,
       };
       if (f.id) {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
@@ -619,7 +620,8 @@ function ProfissionaisPage() {
       situacao_funcional:
         (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
       foto_url: (p as unknown as { foto_url?: string | null }).foto_url ?? "",
-      endereco_completo: "",
+      endereco_completo:
+        (p as unknown as { endereco_completo?: string | null }).endereco_completo ?? "",
     });
     setOpen(true);
   };
