@@ -1170,6 +1170,37 @@ function ProfissionalFormBody({
   const isEfetivo = nat === "efetivo" || nat === "comissionado";
   const isContratado = !!nat && !isEfetivo;
   const displayName = form.nome_social?.trim() || form.nome_completo?.trim() || "";
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+
+  async function handleFotoFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem válido");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máximo 5MB)");
+      return;
+    }
+    setUploadingFoto(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const owner = form.id || `novo-${Date.now()}`;
+      const path = `profissionais/${owner}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setForm({ ...form, foto_url: data.publicUrl });
+      toast.success("Foto atualizada");
+    } catch (err) {
+      console.error("[upload avatar]", err);
+      toast.error("Erro ao fazer upload da imagem, tente novamente");
+    } finally {
+      setUploadingFoto(false);
+    }
+  }
 
   return (
     <Tabs defaultValue="pessoais" className="w-full">
