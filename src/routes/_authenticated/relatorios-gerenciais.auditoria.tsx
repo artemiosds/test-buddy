@@ -15,6 +15,7 @@ import { Pagination } from "@/components/shared/Pagination";
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/auditoria")({
   component: AuditoriaGerencial,

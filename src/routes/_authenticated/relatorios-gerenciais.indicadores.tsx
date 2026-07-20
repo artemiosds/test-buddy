@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { getIndicadoresResumo } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/indicadores")({
   component: IndicadoresPage,

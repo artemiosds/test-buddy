@@ -10,6 +10,7 @@ import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listUnidadesGerencial, listTiposUnidade, type UnidadePreset } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/unidades")({
   component: UnidadesGerencial,

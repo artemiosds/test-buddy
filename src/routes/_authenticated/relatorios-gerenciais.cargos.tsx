@@ -8,6 +8,7 @@ import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listCargosGerencial, type CargoPreset } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/cargos")({
   component: CargosGerencial,
@@ -47,6 +48,7 @@ function CargosGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="cargos" titulo="Cargos" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as CargoPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}

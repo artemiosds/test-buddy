@@ -16,6 +16,7 @@ import {
   listPisoDivergencias,
   listPisoHistorico,
 } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/piso")({
   component: PisoGerencial,

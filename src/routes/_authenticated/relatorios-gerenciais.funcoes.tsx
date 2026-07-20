@@ -8,6 +8,7 @@ import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listFuncoesGerencial, type FuncaoPreset } from "@/lib/relatorios-gerenciais";
+import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/funcoes")({
   component: FuncoesGerencial,
@@ -46,6 +47,7 @@ function FuncoesGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="funcoes" titulo="Funções" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as FuncaoPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}
