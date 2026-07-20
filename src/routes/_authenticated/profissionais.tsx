@@ -44,6 +44,7 @@ import {
   User as UserIcon,
   Camera,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
@@ -506,7 +507,8 @@ function ProfissionaisPage() {
       if (!f.nome_completo.trim()) throw new Error("Nome é obrigatório");
       if (!f.secretaria_id) throw new Error("Secretaria é obrigatória");
 
-      const payload = {
+      const canSeeBanco = hasPermission("profissional.dados_bancarios");
+      const payload: Record<string, unknown> = {
         nome_completo: f.nome_completo.trim(),
         nome_social: f.nome_social.trim() || null,
         cpf: cpfDigits,
@@ -525,9 +527,6 @@ function ProfissionaisPage() {
         cargo_id: f.cargo_id || null,
         funcao_id: f.funcao_id || null,
         vinculo_id: f.vinculo_id || null,
-        banco: f.banco.trim() || null,
-        agencia: f.agencia.trim() || null,
-        conta_corrente: f.conta_corrente.trim() || null,
         proj: f.proj ? Number(f.proj) : null,
         h_p: f.h_p ? Number(f.h_p) : null,
         c_h: f.c_h ? Number(f.c_h) : null,
@@ -541,14 +540,25 @@ function ProfissionaisPage() {
         foto_url: f.foto_url.trim() || null,
         endereco_completo: f.endereco_completo.trim() || null,
       };
+      // Só grava dados bancários quando o usuário tem a permissão específica.
+      // Sem a permissão os campos nem foram renderizados; omitir do payload evita
+      // que um update remova valores válidos já salvos por outro usuário.
+      if (canSeeBanco) {
+        payload.banco = f.banco.trim() || null;
+        payload.agencia = f.agencia.trim() || null;
+        payload.conta_corrente = f.conta_corrente.trim() || null;
+      }
       if (f.id) {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
           throw new Error("Profissional não pode ser gestor imediato de si mesmo.");
         }
-        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
+        const { error } = await supabase
+          .from("profissionais")
+          .update(payload as never)
+          .eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("profissionais").insert(payload);
+        const { error } = await supabase.from("profissionais").insert(payload as never);
         if (error) throw error;
       }
     },
@@ -794,6 +804,11 @@ function ProfissionaisPage() {
           canCreate ? (
             <>
               <ImportProfissionaisDialog />
+              <Button asChild variant="outline">
+                <Link to="/profissionais/importar-cer">
+                  <Upload className="mr-2 h-4 w-4" /> Importar CER
+                </Link>
+              </Button>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={openNew}>
@@ -817,6 +832,7 @@ function ProfissionaisPage() {
                     vinculos={vinculos}
                     gestoresOpt={gestoresOpt}
                     canEditAgili={hasPermission("profissional.editar_dados_agili")}
+                    canSeeBanco={hasPermission("profissional.dados_bancarios")}
                   />
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>
@@ -1155,6 +1171,7 @@ function ProfissionalFormBody({
   vinculos,
   gestoresOpt,
   canEditAgili,
+  canSeeBanco,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
@@ -1166,6 +1183,7 @@ function ProfissionalFormBody({
   vinculos: VinculoLookup[] | undefined;
   gestoresOpt: GestorOpt[] | undefined;
   canEditAgili: boolean;
+  canSeeBanco: boolean;
 }) {
   const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
   const isEfetivo = nat === "efetivo" || nat === "comissionado";
@@ -1622,7 +1640,7 @@ function ProfissionalFormBody({
         ) : null}
 
         {/* Dados bancários (Contratados) */}
-        {isContratado ? (
+        {isContratado && canSeeBanco ? (
           <Card className="bg-muted/40 p-4">
             <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
               Dados bancários (folha de pagamento — Contratados)
