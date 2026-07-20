@@ -817,6 +817,7 @@ function ProfissionaisPage() {
                     vinculos={vinculos}
                     gestoresOpt={gestoresOpt}
                     canEditAgili={hasPermission("profissional.editar_dados_agili")}
+                    canSeeBanco={hasPermission("profissional.dados_bancarios")}
                   />
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>
