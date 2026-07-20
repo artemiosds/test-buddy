@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import {
   autoMap,
   CAMPOS_SISTEMA,
@@ -277,15 +277,15 @@ function PreviewTable({ rows }: { rows: ResolvedRow[] }) {
       key: "match",
       header: "Match",
       cell: (r) => (
-        <StatusBadge
-          tone={
-            r.status_match === "cpf" ? "success" :
-            r.status_match === "matricula" ? "info" :
-            r.status_match === "nome" ? "warning" : "danger"
+        <Badge
+          variant={
+            r.status_match === "cpf" ? "default" :
+            r.status_match === "matricula" ? "secondary" :
+            r.status_match === "nome" ? "outline" : "destructive"
           }
         >
           {r.status_match === "nao_localizado" ? "Não localizado" : r.status_match.toUpperCase()}
-        </StatusBadge>
+        </Badge>
       ),
     },
     { key: "cpf", header: "CPF", cell: (r) => r.cpf ?? "—" },

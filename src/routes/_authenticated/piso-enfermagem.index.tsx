@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Upload } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/formatters";
@@ -49,9 +49,9 @@ function PisoIndex() {
       key: "status",
       header: "Status",
       cell: (r) => (
-        <StatusBadge tone={r.status === "Concluído" ? "success" : r.status === "Com erros" ? "warning" : "muted"}>
+        <Badge variant={r.status === "Concluído" ? "default" : r.status === "Com erros" ? "secondary" : "outline"}>
           {r.status}
-        </StatusBadge>
+        </Badge>
       ),
     },
   ];
