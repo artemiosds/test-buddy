@@ -44,11 +44,21 @@ import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
+import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './routes/_authenticated/relatorios-gerenciais.index'
 import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
+import { Route as AuthenticatedRelatoriosGerenciaisUnidadesRouteImport } from './routes/_authenticated/relatorios-gerenciais.unidades'
+import { Route as AuthenticatedRelatoriosGerenciaisSetoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.setores'
+import { Route as AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport } from './routes/_authenticated/relatorios-gerenciais.profissionais'
+import { Route as AuthenticatedRelatoriosGerenciaisPisoRouteImport } from './routes/_authenticated/relatorios-gerenciais.piso'
+import { Route as AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.indicadores'
+import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './routes/_authenticated/relatorios-gerenciais.funcoes'
+import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
+import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
+import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
@@ -255,6 +265,12 @@ const AuthenticatedUnidadesIndexRoute =
     path: '/unidades/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRelatoriosGerenciaisIndexRoute =
+  AuthenticatedRelatoriosGerenciaisIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
 const AuthenticatedPisoEnfermagemIndexRoute =
   AuthenticatedPisoEnfermagemIndexRouteImport.update({
     id: '/piso-enfermagem/',
@@ -282,6 +298,60 @@ const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedSetoresRoute,
 } as any)
+const AuthenticatedRelatoriosGerenciaisUnidadesRoute =
+  AuthenticatedRelatoriosGerenciaisUnidadesRouteImport.update({
+    id: '/unidades',
+    path: '/unidades',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisSetoresRoute =
+  AuthenticatedRelatoriosGerenciaisSetoresRouteImport.update({
+    id: '/setores',
+    path: '/setores',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisProfissionaisRoute =
+  AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport.update({
+    id: '/profissionais',
+    path: '/profissionais',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisPisoRoute =
+  AuthenticatedRelatoriosGerenciaisPisoRouteImport.update({
+    id: '/piso',
+    path: '/piso',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisIndicadoresRoute =
+  AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport.update({
+    id: '/indicadores',
+    path: '/indicadores',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisFuncoesRoute =
+  AuthenticatedRelatoriosGerenciaisFuncoesRouteImport.update({
+    id: '/funcoes',
+    path: '/funcoes',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisEstruturaRoute =
+  AuthenticatedRelatoriosGerenciaisEstruturaRouteImport.update({
+    id: '/estrutura',
+    path: '/estrutura',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisCargosRoute =
+  AuthenticatedRelatoriosGerenciaisCargosRouteImport.update({
+    id: '/cargos',
+    path: '/cargos',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisAuditoriaRoute =
+  AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
 const AuthenticatedProfissionaisIdRoute =
   AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
@@ -382,7 +452,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
-  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
+  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
   '/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -404,11 +474,21 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
+  '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
+  '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
+  '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
+  '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
+  '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
+  '/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
+  '/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -435,7 +515,6 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
-  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
   '/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -458,11 +537,21 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
+  '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
+  '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
+  '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
+  '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
+  '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
+  '/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
+  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -491,7 +580,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/_authenticated/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
-  '/_authenticated/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
+  '/_authenticated/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
   '/_authenticated/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -514,11 +603,21 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
+  '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
+  '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/_authenticated/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
+  '/_authenticated/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
+  '/_authenticated/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/_authenticated/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
+  '/_authenticated/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
+  '/_authenticated/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
+  '/_authenticated/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
+  '/_authenticated/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -570,11 +669,21 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/situacao-funcional'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
+    | '/relatorios-gerenciais/auditoria'
+    | '/relatorios-gerenciais/cargos'
+    | '/relatorios-gerenciais/estrutura'
+    | '/relatorios-gerenciais/funcoes'
+    | '/relatorios-gerenciais/indicadores'
+    | '/relatorios-gerenciais/piso'
+    | '/relatorios-gerenciais/profissionais'
+    | '/relatorios-gerenciais/setores'
+    | '/relatorios-gerenciais/unidades'
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
+    | '/relatorios-gerenciais/'
     | '/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -601,7 +710,6 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/relatorios-consolidado'
     | '/relatorios-executivo'
-    | '/relatorios-gerenciais'
     | '/relatorios-piso'
     | '/relatorios-profissional'
     | '/relatorios-status'
@@ -624,11 +732,21 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/situacao-funcional'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
+    | '/relatorios-gerenciais/auditoria'
+    | '/relatorios-gerenciais/cargos'
+    | '/relatorios-gerenciais/estrutura'
+    | '/relatorios-gerenciais/funcoes'
+    | '/relatorios-gerenciais/indicadores'
+    | '/relatorios-gerenciais/piso'
+    | '/relatorios-gerenciais/profissionais'
+    | '/relatorios-gerenciais/setores'
+    | '/relatorios-gerenciais/unidades'
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
+    | '/relatorios-gerenciais'
     | '/unidades'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -679,11 +797,21 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/piso-enfermagem/importar'
     | '/_authenticated/profissionais/$id'
+    | '/_authenticated/relatorios-gerenciais/auditoria'
+    | '/_authenticated/relatorios-gerenciais/cargos'
+    | '/_authenticated/relatorios-gerenciais/estrutura'
+    | '/_authenticated/relatorios-gerenciais/funcoes'
+    | '/_authenticated/relatorios-gerenciais/indicadores'
+    | '/_authenticated/relatorios-gerenciais/piso'
+    | '/_authenticated/relatorios-gerenciais/profissionais'
+    | '/_authenticated/relatorios-gerenciais/setores'
+    | '/_authenticated/relatorios-gerenciais/unidades'
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
+    | '/_authenticated/relatorios-gerenciais/'
     | '/_authenticated/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -946,6 +1074,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/relatorios-gerenciais/': {
+      id: '/_authenticated/relatorios-gerenciais/'
+      path: '/'
+      fullPath: '/relatorios-gerenciais/'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisIndexRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
     '/_authenticated/piso-enfermagem/': {
       id: '/_authenticated/piso-enfermagem/'
       path: '/piso-enfermagem'
@@ -980,6 +1115,69 @@ declare module '@tanstack/react-router' {
       fullPath: '/setores/$id'
       preLoaderRoute: typeof AuthenticatedSetoresIdRouteImport
       parentRoute: typeof AuthenticatedSetoresRoute
+    }
+    '/_authenticated/relatorios-gerenciais/unidades': {
+      id: '/_authenticated/relatorios-gerenciais/unidades'
+      path: '/unidades'
+      fullPath: '/relatorios-gerenciais/unidades'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisUnidadesRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/setores': {
+      id: '/_authenticated/relatorios-gerenciais/setores'
+      path: '/setores'
+      fullPath: '/relatorios-gerenciais/setores'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisSetoresRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/profissionais': {
+      id: '/_authenticated/relatorios-gerenciais/profissionais'
+      path: '/profissionais'
+      fullPath: '/relatorios-gerenciais/profissionais'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/piso': {
+      id: '/_authenticated/relatorios-gerenciais/piso'
+      path: '/piso'
+      fullPath: '/relatorios-gerenciais/piso'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/indicadores': {
+      id: '/_authenticated/relatorios-gerenciais/indicadores'
+      path: '/indicadores'
+      fullPath: '/relatorios-gerenciais/indicadores'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/funcoes': {
+      id: '/_authenticated/relatorios-gerenciais/funcoes'
+      path: '/funcoes'
+      fullPath: '/relatorios-gerenciais/funcoes'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/estrutura': {
+      id: '/_authenticated/relatorios-gerenciais/estrutura'
+      path: '/estrutura'
+      fullPath: '/relatorios-gerenciais/estrutura'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/cargos': {
+      id: '/_authenticated/relatorios-gerenciais/cargos'
+      path: '/cargos'
+      fullPath: '/relatorios-gerenciais/cargos'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/auditoria': {
+      id: '/_authenticated/relatorios-gerenciais/auditoria'
+      path: '/auditoria'
+      fullPath: '/relatorios-gerenciais/auditoria'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
     '/_authenticated/profissionais/$id': {
       id: '/_authenticated/profissionais/$id'
@@ -1103,6 +1301,48 @@ const AuthenticatedProfissionaisRouteWithChildren =
     AuthenticatedProfissionaisRouteChildren,
   )
 
+interface AuthenticatedRelatoriosGerenciaisRouteChildren {
+  AuthenticatedRelatoriosGerenciaisAuditoriaRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
+  AuthenticatedRelatoriosGerenciaisCargosRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  AuthenticatedRelatoriosGerenciaisEstruturaRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
+  AuthenticatedRelatoriosGerenciaisFuncoesRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
+  AuthenticatedRelatoriosGerenciaisIndicadoresRoute: typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  AuthenticatedRelatoriosGerenciaisPisoRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRoute
+  AuthenticatedRelatoriosGerenciaisProfissionaisRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
+  AuthenticatedRelatoriosGerenciaisSetoresRoute: typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
+  AuthenticatedRelatoriosGerenciaisUnidadesRoute: typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
+  AuthenticatedRelatoriosGerenciaisIndexRoute: typeof AuthenticatedRelatoriosGerenciaisIndexRoute
+}
+
+const AuthenticatedRelatoriosGerenciaisRouteChildren: AuthenticatedRelatoriosGerenciaisRouteChildren =
+  {
+    AuthenticatedRelatoriosGerenciaisAuditoriaRoute:
+      AuthenticatedRelatoriosGerenciaisAuditoriaRoute,
+    AuthenticatedRelatoriosGerenciaisCargosRoute:
+      AuthenticatedRelatoriosGerenciaisCargosRoute,
+    AuthenticatedRelatoriosGerenciaisEstruturaRoute:
+      AuthenticatedRelatoriosGerenciaisEstruturaRoute,
+    AuthenticatedRelatoriosGerenciaisFuncoesRoute:
+      AuthenticatedRelatoriosGerenciaisFuncoesRoute,
+    AuthenticatedRelatoriosGerenciaisIndicadoresRoute:
+      AuthenticatedRelatoriosGerenciaisIndicadoresRoute,
+    AuthenticatedRelatoriosGerenciaisPisoRoute:
+      AuthenticatedRelatoriosGerenciaisPisoRoute,
+    AuthenticatedRelatoriosGerenciaisProfissionaisRoute:
+      AuthenticatedRelatoriosGerenciaisProfissionaisRoute,
+    AuthenticatedRelatoriosGerenciaisSetoresRoute:
+      AuthenticatedRelatoriosGerenciaisSetoresRoute,
+    AuthenticatedRelatoriosGerenciaisUnidadesRoute:
+      AuthenticatedRelatoriosGerenciaisUnidadesRoute,
+    AuthenticatedRelatoriosGerenciaisIndexRoute:
+      AuthenticatedRelatoriosGerenciaisIndexRoute,
+  }
+
+const AuthenticatedRelatoriosGerenciaisRouteWithChildren =
+  AuthenticatedRelatoriosGerenciaisRoute._addFileChildren(
+    AuthenticatedRelatoriosGerenciaisRouteChildren,
+  )
+
 interface AuthenticatedSetoresRouteChildren {
   AuthenticatedSetoresIdRoute: typeof AuthenticatedSetoresIdRoute
 }
@@ -1146,7 +1386,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRelatoriosConsolidadoRoute: typeof AuthenticatedRelatoriosConsolidadoRoute
   AuthenticatedRelatoriosExecutivoRoute: typeof AuthenticatedRelatoriosExecutivoRoute
-  AuthenticatedRelatoriosGerenciaisRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+  AuthenticatedRelatoriosGerenciaisRoute: typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
   AuthenticatedRelatoriosPisoRoute: typeof AuthenticatedRelatoriosPisoRoute
   AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
   AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
@@ -1194,7 +1434,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedRelatoriosConsolidadoRoute,
   AuthenticatedRelatoriosExecutivoRoute: AuthenticatedRelatoriosExecutivoRoute,
   AuthenticatedRelatoriosGerenciaisRoute:
-    AuthenticatedRelatoriosGerenciaisRoute,
+    AuthenticatedRelatoriosGerenciaisRouteWithChildren,
   AuthenticatedRelatoriosPisoRoute: AuthenticatedRelatoriosPisoRoute,
   AuthenticatedRelatoriosProfissionalRoute:
     AuthenticatedRelatoriosProfissionalRoute,
