@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, FileSpreadsheet, ShieldAlert } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import { usePermissions } from "@/hooks/use-permissions";
 import { formatCPF } from "@/lib/formatters";
@@ -26,7 +26,6 @@ import {
   fuzzyMatchUnidade,
   fuzzyMatchCargo,
   resolveDuplicate,
-  cpfDigits,
   type CerRowRaw,
   type ContaParsed,
   type MatchResult,
