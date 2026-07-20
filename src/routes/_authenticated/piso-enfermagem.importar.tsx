@@ -433,6 +433,22 @@ function ImportarPage() {
 
           <QualityCard q={quality} />
 
+          {calculatedCols.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4" />
+              <div className="space-y-1">
+                <p className="font-medium">Colunas calculadas detectadas — não serão importadas:</p>
+                <ul className="list-disc pl-5">
+                  {calculatedCols.map((c) => (
+                    <li key={c.header}>
+                      <span className="font-mono">{c.header}</span> — o sistema recalcula {c.destino.replace("_", " ")} automaticamente.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-end gap-2">
             <p className="mr-auto text-sm text-muted-foreground">
               Sistema sugere o mapeamento pelo nome da coluna. Ajuste conforme necessário.
@@ -509,6 +525,34 @@ function ImportarPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="rounded-md border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium">Campos a atualizar no cadastro</p>
+              <p className="text-xs text-muted-foreground">
+                Financeiros marcados por padrão. Marque cadastrais somente se a folha deve sobrescrevê-los.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+              {CAMPOS_SISTEMA.filter(
+                (c) => c.key !== "cpf" && c.key !== "nome" && c.key !== "matricula" &&
+                       c.key !== "competencia" && !CAMPOS_CALCULADOS.has(c.key),
+              ).map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={camposAtualizar.has(c.key)}
+                    onCheckedChange={() => toggleCampo(c.key)}
+                  />
+                  <span>
+                    {c.label}
+                    {!c.financeiro && (
+                      <span className="ml-1 text-xs text-muted-foreground">(cadastral)</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPasso(1)}>Voltar</Button>
             <Button onClick={() => matchMut.mutate()} disabled={matchMut.isPending}>
@@ -527,6 +571,31 @@ function ImportarPage() {
             <StatCard label="Não localizados" value={stats.nao_localizados} tone="danger" />
           </div>
           <PreviewTable rows={resolved.slice(0, 100)} />
+          {progresso.ativo && (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">
+                  Processando {progresso.feito}/{progresso.total} registros…
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {(() => {
+                    const pct = progresso.total > 0 ? progresso.feito / progresso.total : 0;
+                    const elapsed = (Date.now() - progresso.inicio) / 1000;
+                    const eta = pct > 0.05 ? Math.max(0, Math.round(elapsed / pct - elapsed)) : null;
+                    return eta != null ? `Tempo estimado: ${eta}s` : "Estimando…";
+                  })()}
+                </span>
+              </div>
+              <Progress
+                value={progresso.total > 0 ? (progresso.feito / progresso.total) * 100 : 0}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" variant="destructive" onClick={() => { cancelRef.current = true; }}>
+                  Cancelar importação
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPasso(2)}>Voltar</Button>
             <Button onClick={() => commitMut.mutate()} disabled={commitMut.isPending}>
