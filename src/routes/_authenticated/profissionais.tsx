@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { statusOptions } from "@/lib/status";
@@ -38,6 +41,8 @@ import {
   UserCheck,
   LayoutGrid,
   List as ListIcon,
+  User as UserIcon,
+  Camera,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
@@ -130,6 +135,9 @@ type FormState = {
   conselho_validade: string;
   gestor_imediato_id: string;
   situacao_funcional: string;
+  foto_url: string;
+  /** Endereço por extenso — front-end apenas (não há coluna no banco ainda). */
+  endereco_completo: string;
 };
 
 const EMPTY: FormState = {
@@ -164,6 +172,8 @@ const EMPTY: FormState = {
   conselho_validade: "",
   gestor_imediato_id: "",
   situacao_funcional: "",
+  foto_url: "",
+  endereco_completo: "",
 };
 
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
@@ -302,7 +312,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,foto_url,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
         .is("deleted_at", null);
@@ -527,6 +537,7 @@ function ProfissionaisPage() {
         conselho_validade: f.conselho_validade || null,
         gestor_imediato_id: f.gestor_imediato_id || null,
         situacao_funcional: (f.situacao_funcional || null) as SituacaoFuncional | null,
+        foto_url: f.foto_url.trim() || null,
       };
       if (f.id) {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
@@ -607,6 +618,8 @@ function ProfissionaisPage() {
         (p as unknown as { gestor_imediato_id?: string | null }).gestor_imediato_id ?? "",
       situacao_funcional:
         (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
+      foto_url: (p as unknown as { foto_url?: string | null }).foto_url ?? "",
+      endereco_completo: "",
     });
     setOpen(true);
   };
@@ -790,439 +803,18 @@ function ProfissionaisPage() {
                       {form.id ? "Editar profissional" : "Novo profissional"}
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
-                      <Label>Nome completo *</Label>
-                      <Input
-                        value={form.nome_completo}
-                        onChange={(e) => setForm({ ...form, nome_completo: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Nome social</Label>
-                      <Input
-                        value={form.nome_social}
-                        onChange={(e) => setForm({ ...form, nome_social: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>CPF *</Label>
-                      <Input
-                        value={formatCPF(form.cpf)}
-                        onChange={(e) =>
-                          setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })
-                        }
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                    <div>
-                      <Label>Matrícula</Label>
-                      <Input
-                        value={form.matricula}
-                        onChange={(e) => setForm({ ...form, matricula: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Data de nascimento</Label>
-                      <Input
-                        type="date"
-                        value={form.data_nascimento}
-                        onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Sexo</Label>
-                      <Select
-                        value={form.sexo || undefined}
-                        onValueChange={(v) => setForm({ ...form, sexo: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="M">Masculino</SelectItem>
-                          <SelectItem value="F">Feminino</SelectItem>
-                          <SelectItem value="O">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>E-mail</Label>
-                      <Input
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Telefone</Label>
-                      <Input
-                        value={form.telefone}
-                        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Secretaria *</Label>
-                      <Select
-                        value={form.secretaria_id || undefined}
-                        onValueChange={(v) =>
-                          setForm({ ...form, secretaria_id: v, unidade_id: "", setor_id: "" })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {secretarias?.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.sigla ? `${s.sigla} - ` : ""}
-                              {s.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Unidade</Label>
-                      <Select
-                        value={form.unidade_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
-                        disabled={!form.secretaria_id}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unidades?.map((u) => (
-                            <SelectItem key={u.id} value={u.id}>
-                              {u.sigla ? `${u.sigla} - ` : ""}
-                              {u.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Setor</Label>
-                      <Select
-                        value={form.setor_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, setor_id: v })}
-                        disabled={!form.unidade_id}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {setores?.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Cargo</Label>
-                      <Select
-                        value={form.cargo_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, cargo_id: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cargos?.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Função</Label>
-                      <Select
-                        value={form.funcao_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, funcao_id: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {funcoes?.map((f) => (
-                            <SelectItem key={f.id} value={f.id}>
-                              {f.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Vínculo</Label>
-                      <Select
-                        value={form.vinculo_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, vinculo_id: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vinculos?.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                              {getVinculoLabel(v)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Data de admissão</Label>
-                      <Input
-                        type="date"
-                        value={form.data_admissao}
-                        onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Carga horária semanal</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={44}
-                        value={form.carga_horaria_semanal}
-                        onChange={(e) =>
-                          setForm({ ...form, carga_horaria_semanal: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Status</Label>
-                      <Select
-                        value={form.status}
-                        onValueChange={(v: StatusProf) => setForm({ ...form, status: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions("profissional").map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {(() => {
-                      const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
-                      const isEfetivo = nat === "efetivo" || nat === "comissionado";
-                      const isContratado = !!nat && !isEfetivo;
-                      const canEditAgili = hasPermission("profissional.editar_dados_agili");
-                      if (isContratado) {
-                        return (
-                          <>
-                            <div className="md:col-span-2 border-t pt-3 mt-1">
-                              <h3 className="text-sm font-semibold text-muted-foreground">
-                                Dados bancários (folha de pagamento — Contratados)
-                              </h3>
-                            </div>
-                            <div>
-                              <Label>Banco</Label>
-                              <Input
-                                value={form.banco}
-                                onChange={(e) => setForm({ ...form, banco: e.target.value })}
-                                placeholder="Ex.: BANPARÁ"
-                                readOnly={!canEditAgili}
-                                disabled={!canEditAgili}
-                              />
-                            </div>
-                            <div>
-                              <Label>Agência</Label>
-                              <Input
-                                value={form.agencia}
-                                onChange={(e) => setForm({ ...form, agencia: e.target.value })}
-                                placeholder="Ex.: 0077"
-                                readOnly={!canEditAgili}
-                                disabled={!canEditAgili}
-                              />
-                            </div>
-                            <div>
-                              <Label>Conta corrente</Label>
-                              <Input
-                                value={form.conta_corrente}
-                                onChange={(e) =>
-                                  setForm({ ...form, conta_corrente: e.target.value })
-                                }
-                                placeholder="Ex.: 640272-0"
-                                readOnly={!canEditAgili}
-                                disabled={!canEditAgili}
-                              />
-                            </div>
-                          </>
-                        );
-                      }
-                      if (!isEfetivo) return null;
-                      return (
-                        <>
-                          <div className="md:col-span-2 border-t pt-3 mt-1">
-                            <h3 className="text-sm font-semibold text-muted-foreground">
-                              Configuração de vínculo (Efetivos — modelo AGILIBlue)
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              Exibidos como somente leitura na folha de Efetivos.
-                              {!canEditAgili &&
-                                " Somente Master/Gestor podem preencher estes campos."}
-                            </p>
-                          </div>
-                          <div>
-                            <Label>Projeto (Proj)</Label>
-                            <Input
-                              type="number"
-                              step="1"
-                              value={form.proj}
-                              onChange={(e) => setForm({ ...form, proj: e.target.value })}
-                              placeholder="Ex.: 1"
-                              readOnly={!canEditAgili}
-                              disabled={!canEditAgili}
-                            />
-                          </div>
-                          <div>
-                            <Label>Horas previstas (H.P)</Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.5"
-                              value={form.h_p}
-                              onChange={(e) => setForm({ ...form, h_p: e.target.value })}
-                              placeholder="Ex.: 160"
-                              readOnly={!canEditAgili}
-                              disabled={!canEditAgili}
-                            />
-                          </div>
-                          <div>
-                            <Label>Carga horária mensal (C.H)</Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.5"
-                              value={form.c_h}
-                              onChange={(e) => setForm({ ...form, c_h: e.target.value })}
-                              placeholder="Ex.: 160"
-                              readOnly={!canEditAgili}
-                              disabled={!canEditAgili}
-                            />
-                          </div>
-                          <div>
-                            <Label>Jornada (Jorn)</Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="1"
-                              value={form.jorn}
-                              onChange={(e) => setForm({ ...form, jorn: e.target.value })}
-                              placeholder="Ex.: 30"
-                              readOnly={!canEditAgili}
-                              disabled={!canEditAgili}
-                            />
-                          </div>
-                        </>
-                      );
-                    })()}
-                    <div className="md:col-span-2 border-t pt-3 mt-1">
-                      <h3 className="text-sm font-semibold text-muted-foreground">
-                        Dados Funcionais
-                      </h3>
-                    </div>
-                    <div>
-                      <Label>Situação funcional</Label>
-                      <Select
-                        value={form.situacao_funcional || undefined}
-                        onValueChange={(v) => setForm({ ...form, situacao_funcional: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(SITUACAO_FUNCIONAL_LABEL).map(([v, l]) => (
-                            <SelectItem key={v} value={v}>
-                              {l}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Gestor imediato</Label>
-                      <Select
-                        value={form.gestor_imediato_id || undefined}
-                        onValueChange={(v) => setForm({ ...form, gestor_imediato_id: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {gestoresOpt
-                            ?.filter((g) => g.id !== form.id)
-                            .map((g) => (
-                              <SelectItem key={g.id} value={g.id}>
-                                {g.matricula ? `${g.matricula} - ` : ""}
-                                {g.nome_completo}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Conselho de classe</Label>
-                      <Input
-                        value={form.conselho_classe}
-                        onChange={(e) => setForm({ ...form, conselho_classe: e.target.value })}
-                        placeholder="Ex.: COREN, CRM, CRO"
-                      />
-                    </div>
-                    <div>
-                      <Label>Número do conselho</Label>
-                      <Input
-                        value={form.conselho_numero}
-                        onChange={(e) => setForm({ ...form, conselho_numero: e.target.value })}
-                        placeholder="Ex.: 123456"
-                      />
-                    </div>
-                    <div>
-                      <Label>UF do conselho</Label>
-                      <Select
-                        value={form.conselho_uf || undefined}
-                        onValueChange={(v) => setForm({ ...form, conselho_uf: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="UF" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {UF_LIST.map((uf) => (
-                            <SelectItem key={uf} value={uf}>
-                              {uf}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Validade do conselho</Label>
-                      <Input
-                        type="date"
-                        value={form.conselho_validade}
-                        onChange={(e) => setForm({ ...form, conselho_validade: e.target.value })}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Observações</Label>
-                      <Textarea
-                        value={form.observacoes}
-                        onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                        rows={2}
-                      />
-                    </div>
-                  </div>
+                  <ProfissionalFormBody
+                    form={form}
+                    setForm={setForm}
+                    secretarias={secretarias}
+                    unidades={unidades}
+                    setores={setores}
+                    cargos={cargos}
+                    funcoes={funcoes}
+                    vinculos={vinculos}
+                    gestoresOpt={gestoresOpt}
+                    canEditAgili={hasPermission("profissional.editar_dados_agili")}
+                  />
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>
                       Cancelar
@@ -1539,5 +1131,542 @@ function ProfissionalCards({
         </Link>
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProfissionalFormBody — formulário de criação/edição em abas
+// ---------------------------------------------------------------------------
+type LookupItem = { id: string; nome: string; sigla?: string | null };
+type VinculoLookup = { id: string; nome: string; natureza: NaturezaVinculo | null };
+type GestorOpt = { id: string; nome_completo: string; matricula: string | null };
+
+function ProfissionalFormBody({
+  form,
+  setForm,
+  secretarias,
+  unidades,
+  setores,
+  cargos,
+  funcoes,
+  vinculos,
+  gestoresOpt,
+  canEditAgili,
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  secretarias: LookupItem[] | undefined;
+  unidades: LookupItem[] | undefined;
+  setores: LookupItem[] | undefined;
+  cargos: LookupItem[] | undefined;
+  funcoes: LookupItem[] | undefined;
+  vinculos: VinculoLookup[] | undefined;
+  gestoresOpt: GestorOpt[] | undefined;
+  canEditAgili: boolean;
+}) {
+  const nat = vinculos?.find((v) => v.id === form.vinculo_id)?.natureza;
+  const isEfetivo = nat === "efetivo" || nat === "comissionado";
+  const isContratado = !!nat && !isEfetivo;
+  const displayName = form.nome_social?.trim() || form.nome_completo?.trim() || "";
+
+  return (
+    <Tabs defaultValue="pessoais" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="pessoais">📑 Dados Pessoais &amp; Endereço</TabsTrigger>
+        <TabsTrigger value="vinculo">🏢 Vínculo &amp; Lotação</TabsTrigger>
+        <TabsTrigger value="profissional">🩺 Profissionais &amp; Conselhos</TabsTrigger>
+      </TabsList>
+
+      {/* ---------------- Tab 1: Dados Pessoais & Endereço ---------------- */}
+      <TabsContent value="pessoais" className="mt-4 space-y-6">
+        {/* Avatar + upload */}
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
+          <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
+            {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
+            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+              {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              Foto do profissional (URL)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={form.foto_url}
+                onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
+                placeholder="https://…/foto.jpg"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  const url = window.prompt("URL da nova foto:", form.foto_url);
+                  if (url !== null) setForm({ ...form, foto_url: url.trim() });
+                }}
+                title="Alterar foto"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Dados básicos */}
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Dados básicos</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="md:col-span-3">
+              <Label>Nome completo *</Label>
+              <Input
+                value={form.nome_completo}
+                onChange={(e) => setForm({ ...form, nome_completo: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Nome social</Label>
+              <Input
+                value={form.nome_social}
+                onChange={(e) => setForm({ ...form, nome_social: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>CPF *</Label>
+              <Input
+                value={formatCPF(form.cpf)}
+                onChange={(e) =>
+                  setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })
+                }
+                placeholder="000.000.000-00"
+              />
+            </div>
+            <div>
+              <Label>Data de nascimento</Label>
+              <Input
+                type="date"
+                value={form.data_nascimento}
+                onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Sexo</Label>
+              <Select
+                value={form.sexo || undefined}
+                onValueChange={(v) => setForm({ ...form, sexo: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Feminino</SelectItem>
+                  <SelectItem value="O">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input
+                value={form.telefone}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Endereço */}
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+            Endereço residencial
+          </h3>
+          <Label>Endereço completo (por extenso)</Label>
+          <Textarea
+            value={form.endereco_completo}
+            onChange={(e) => setForm({ ...form, endereco_completo: e.target.value })}
+            rows={4}
+            placeholder="Rua, número, complemento, bairro, cidade, UF, CEP e pontos de referência."
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Campo livre — ainda não é gravado no banco (ver relatório).
+          </p>
+        </div>
+      </TabsContent>
+
+      {/* ---------------- Tab 2: Vínculo & Lotação ---------------- */}
+      <TabsContent value="vinculo" className="mt-4 space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <Label>Matrícula</Label>
+            <Input
+              value={form.matricula}
+              onChange={(e) => setForm({ ...form, matricula: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Secretaria *</Label>
+            <Select
+              value={form.secretaria_id || undefined}
+              onValueChange={(v) =>
+                setForm({ ...form, secretaria_id: v, unidade_id: "", setor_id: "" })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {secretarias?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.sigla ? `${s.sigla} - ` : ""}
+                    {s.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Unidade</Label>
+            <Select
+              value={form.unidade_id || undefined}
+              onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
+              disabled={!form.secretaria_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {unidades?.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} - ` : ""}
+                    {u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Setor</Label>
+            <Select
+              value={form.setor_id || undefined}
+              onValueChange={(v) => setForm({ ...form, setor_id: v })}
+              disabled={!form.unidade_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {setores?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Cargo</Label>
+            <Select
+              value={form.cargo_id || undefined}
+              onValueChange={(v) => setForm({ ...form, cargo_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {cargos?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Função</Label>
+            <Select
+              value={form.funcao_id || undefined}
+              onValueChange={(v) => setForm({ ...form, funcao_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {funcoes?.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Vínculo</Label>
+            <Select
+              value={form.vinculo_id || undefined}
+              onValueChange={(v) => setForm({ ...form, vinculo_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {vinculos?.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {getVinculoLabel(v)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v: StatusProf) => setForm({ ...form, status: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions("profissional").map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Situação funcional</Label>
+            <Select
+              value={form.situacao_funcional || undefined}
+              onValueChange={(v) => setForm({ ...form, situacao_funcional: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SITUACAO_FUNCIONAL_LABEL).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>
+                    {l}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Gestor imediato</Label>
+            <Select
+              value={form.gestor_imediato_id || undefined}
+              onValueChange={(v) => setForm({ ...form, gestor_imediato_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {gestoresOpt
+                  ?.filter((g) => g.id !== form.id)
+                  .map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.matricula ? `${g.matricula} - ` : ""}
+                      {g.nome_completo}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Data de admissão</Label>
+            <Input
+              type="date"
+              value={form.data_admissao}
+              onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Carga horária semanal</Label>
+            <Input
+              type="number"
+              min={0}
+              max={44}
+              value={form.carga_horaria_semanal}
+              onChange={(e) => setForm({ ...form, carga_horaria_semanal: e.target.value })}
+            />
+          </div>
+        </div>
+
+        {/* AGILIBlue (Efetivo) */}
+        {isEfetivo ? (
+          <Card className="border-primary/30 bg-primary/5 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold">
+                Configuração de vínculo (Efetivos — modelo AGILIBlue)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Exibidos como somente leitura na folha de Efetivos.
+                {!canEditAgili && " Somente Master/Gestor podem preencher estes campos."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <Label>Projeto (Proj)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.proj}
+                  onChange={(e) => setForm({ ...form, proj: e.target.value })}
+                  placeholder="Ex.: 1"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+              <div>
+                <Label>Horas previstas (H.P)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={form.h_p}
+                  onChange={(e) => setForm({ ...form, h_p: e.target.value })}
+                  placeholder="Ex.: 160"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+              <div>
+                <Label>Carga horária mensal (C.H)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={form.c_h}
+                  onChange={(e) => setForm({ ...form, c_h: e.target.value })}
+                  placeholder="Ex.: 160"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+              <div>
+                <Label>Jornada (Jorn)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={form.jorn}
+                  onChange={(e) => setForm({ ...form, jorn: e.target.value })}
+                  placeholder="Ex.: 30"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
+        {/* Dados bancários (Contratados) */}
+        {isContratado ? (
+          <Card className="bg-muted/40 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+              Dados bancários (folha de pagamento — Contratados)
+            </h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div>
+                <Label>Banco</Label>
+                <Input
+                  value={form.banco}
+                  onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                  placeholder="Ex.: BANPARÁ"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+              <div>
+                <Label>Agência</Label>
+                <Input
+                  value={form.agencia}
+                  onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                  placeholder="Ex.: 0077"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+              <div>
+                <Label>Conta corrente</Label>
+                <Input
+                  value={form.conta_corrente}
+                  onChange={(e) => setForm({ ...form, conta_corrente: e.target.value })}
+                  placeholder="Ex.: 640272-0"
+                  readOnly={!canEditAgili}
+                  disabled={!canEditAgili}
+                />
+              </div>
+            </div>
+          </Card>
+        ) : null}
+      </TabsContent>
+
+      {/* ---------------- Tab 3: Profissionais & Conselhos ---------------- */}
+      <TabsContent value="profissional" className="mt-4 space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <Label>Conselho de classe</Label>
+            <Input
+              value={form.conselho_classe}
+              onChange={(e) => setForm({ ...form, conselho_classe: e.target.value })}
+              placeholder="Ex.: COREN, CRM, CRO"
+            />
+          </div>
+          <div>
+            <Label>Número do conselho</Label>
+            <Input
+              value={form.conselho_numero}
+              onChange={(e) => setForm({ ...form, conselho_numero: e.target.value })}
+              placeholder="Ex.: 123456"
+            />
+          </div>
+          <div>
+            <Label>UF do conselho</Label>
+            <Select
+              value={form.conselho_uf || undefined}
+              onValueChange={(v) => setForm({ ...form, conselho_uf: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="UF" />
+              </SelectTrigger>
+              <SelectContent>
+                {UF_LIST.map((uf) => (
+                  <SelectItem key={uf} value={uf}>
+                    {uf}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Validade do conselho</Label>
+            <Input
+              type="date"
+              value={form.conselho_validade}
+              onChange={(e) => setForm({ ...form, conselho_validade: e.target.value })}
+            />
+          </div>
+          <div className="md:col-span-3">
+            <Label>Observações</Label>
+            <Textarea
+              value={form.observacoes}
+              onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+              rows={3}
+            />
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }
