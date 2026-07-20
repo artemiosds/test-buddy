@@ -322,6 +322,28 @@ function ImportarPage() {
 
       {passo === 2 && (
         <div className="space-y-3 rounded-md border p-4">
+          {aoa.length > 0 && (
+            <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Linha do cabeçalho</Label>
+                <Select
+                  value={String(headerRowIndex)}
+                  onValueChange={(v) => changeHeaderRow(Number(v))}
+                >
+                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: Math.min(aoa.length, 10) }).map((_, i) => (
+                      <SelectItem key={i} value={String(i)}>Linha {i + 1}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Detectado automaticamente na <strong>linha {headerRowIndex + 1}</strong>.
+                Ajuste se as colunas abaixo estiverem incorretas.
+              </p>
+            </div>
+          )}
           {preview5.length > 0 && (
             <details className="rounded-md border bg-muted/30 p-2 text-xs">
               <summary className="cursor-pointer font-medium">Pré-visualização (5 primeiras linhas)</summary>
