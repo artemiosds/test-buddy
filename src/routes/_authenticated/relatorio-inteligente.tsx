@@ -851,6 +851,10 @@ function StepExportar({
         exportarCsvMulti({ filenamePrefix: filename, blocos: blocosExp });
         toast.success(`${blocosExp.length} arquivo(s) CSV gerado(s).`);
       }
+      registrarHistorico({
+        nome: nomeAtual?.trim() || `Relatório ${labelTipo(tipo)}`,
+        tipo, formato, qtdBlocos: blocosExp.length,
+      });
     } catch (e) {
       toast.error("Falha ao gerar: " + String((e as Error)?.message ?? e));
     } finally {
