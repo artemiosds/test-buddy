@@ -60,7 +60,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     const { data: profs, error: pErr } = await supabase
       .from("profissionais")
       .select(`
-        id, matricula, nome_completo, nome_social,
+        id, matricula, nome_completo, nome_social, cpf,
         banco, agencia, conta_corrente,
         cargo_id, funcao_id, setor_id,
         cargos ( nome ),
@@ -95,6 +95,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         id: p.id,
         matricula: p.matricula,
         nome: p.nome_social || p.nome_completo,
+        cpf: p.cpf ?? null,
         cargo: p.cargos?.nome ?? null,
         funcao: p.funcoes?.nome ?? null,
         setor: p.setores?.nome ?? null,
