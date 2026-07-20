@@ -803,6 +803,11 @@ function ProfissionaisPage() {
           canCreate ? (
             <>
               <ImportProfissionaisDialog />
+              <Button asChild variant="outline">
+                <Link to="/profissionais/importar-cer">
+                  <Upload className="mr-2 h-4 w-4" /> Importar CER
+                </Link>
+              </Button>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={openNew}>
