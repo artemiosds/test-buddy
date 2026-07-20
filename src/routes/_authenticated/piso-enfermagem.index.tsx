@@ -23,7 +23,12 @@ import {
   listPisoLinhas,
   listPisoCompetencias,
   getPisoCompetenciaResumo,
+  getPisoDistribuicao,
 } from "@/lib/piso-enfermagem.functions";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { competenciaAtual } from "@/lib/piso-heuristics";
 
@@ -84,6 +89,12 @@ function PisoIndex() {
     queryKey: ["piso", "resumo", competenciaAtiva],
     queryFn: () => getPisoCompetenciaResumo({ data: { competencia: competenciaAtiva } }),
     enabled: !compQ.isLoading,
+  });
+
+  const distQ = useQuery({
+    queryKey: ["piso", "dist", competenciaAtiva],
+    queryFn: () => getPisoDistribuicao({ data: { competencia: competenciaAtiva } }),
+    enabled: !!competenciaAtiva,
   });
 
   // Linhas paginadas com filtros
