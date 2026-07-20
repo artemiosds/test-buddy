@@ -781,11 +781,12 @@ function StatsBar({
 /* ============ Etapa 6 · Exportar ============ */
 
 function StepExportar({
-  tipo, blocks, textFilter, formato, setFormato, gerando, setGerando,
+  tipo, blocks, textFilter, formato, setFormato, gerando, setGerando, nomeAtual,
 }: {
   tipo: TipoRelatorio; blocks: BlockConfig[]; textFilter: string;
   formato: Formato; setFormato: (f: Formato) => void;
   gerando: boolean; setGerando: (b: boolean) => void;
+  nomeAtual?: string;
 }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
   const ger = useGerencial();
