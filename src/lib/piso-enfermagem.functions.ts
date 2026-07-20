@@ -343,3 +343,122 @@ export const getDashboardPiso = createServerFn({ method: "GET" })
       top5,
     };
   });
+
+// --------------------- Listagem completa (por competência) ---------------------
+
+const ListInput = z.object({
+  competencia: z.string().nullable().optional(),
+  vinculo: z.string().nullable().optional(),
+  cargo: z.string().nullable().optional(),
+  busca: z.string().nullable().optional(),
+  page: z.number().default(1),
+  pageSize: z.number().default(20),
+});
+
+export const listPisoLinhas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ListInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    const from = (data.page - 1) * data.pageSize;
+    const to = from + data.pageSize - 1;
+    let q = context.supabase
+      .from("piso_enfermagem")
+      .select(
+        "id, nome, cpf, matricula, cargo, vinculo, competencia, salario_base, piso_complementacao, valor_final, valor_liquido",
+        { count: "exact" },
+      )
+      .order("nome", { ascending: true });
+    if (data.competencia) q = q.eq("competencia", data.competencia);
+    if (data.vinculo) q = q.eq("vinculo", data.vinculo);
+    if (data.cargo) q = q.ilike("cargo", `%${data.cargo}%`);
+    if (data.busca && data.busca.trim()) {
+      const s = data.busca.trim().replace(/[%,()]/g, "");
+      q = q.or(`nome.ilike.%${s}%,cpf.ilike.%${s}%`);
+    }
+    const { data: rows, count, error } = await q.range(from, to);
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [], count: count ?? 0 };
+  });
+
+export const listPisoCompetencias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(() => ({}))
+  .handler(async ({ context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    const { data, error } = await context.supabase
+      .from("piso_enfermagem")
+      .select("competencia")
+      .not("competencia", "is", null)
+      .limit(10000);
+    if (error) throw new Error(error.message);
+    const set = new Set<string>();
+    for (const r of data ?? []) if (r.competencia) set.add(r.competencia);
+    return { competencias: Array.from(set).sort().reverse() };
+  });
+
+export const getPisoCompetenciaResumo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ competencia: z.string().nullable().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    const { supabase } = context;
+
+    // Descobre atual + anterior a partir da lista de competências
+    let atual = data.competencia ?? null;
+    let anterior: string | null = null;
+    const { data: allComp, error: cErr } = await supabase
+      .from("piso_enfermagem")
+      .select("competencia")
+      .not("competencia", "is", null)
+      .limit(10000);
+    if (cErr) throw new Error(cErr.message);
+    const uniq = Array.from(new Set((allComp ?? []).map((r) => r.competencia as string))).sort().reverse();
+    if (!atual) atual = uniq[0] ?? null;
+    if (atual) {
+      const idx = uniq.indexOf(atual);
+      anterior = idx >= 0 ? uniq[idx + 1] ?? null : null;
+    }
+
+    async function resumoFor(comp: string | null) {
+      if (!comp) {
+        return { total: 0, valorFinal: 0, complementacao: 0, beneficiados: 0, top5: [] as { nome: string; valor: number }[] };
+      }
+      const { data: rows, error } = await supabase
+        .from("piso_enfermagem")
+        .select("nome, valor_final, piso_complementacao")
+        .eq("competencia", comp)
+        .limit(20000);
+      if (error) throw new Error(error.message);
+      const list = rows ?? [];
+      let valorFinal = 0, complementacao = 0, beneficiados = 0;
+      const porNome = new Map<string, number>();
+      for (const r of list) {
+        valorFinal += r.valor_final ?? 0;
+        const comp = r.piso_complementacao ?? 0;
+        complementacao += comp;
+        if (comp > 0) beneficiados++;
+        const nome = r.nome ?? "—";
+        porNome.set(nome, (porNome.get(nome) ?? 0) + comp);
+      }
+      const top5 = Array.from(porNome.entries())
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([nome, valor]) => ({ nome, valor }));
+      return { total: list.length, valorFinal, complementacao, beneficiados, top5 };
+    }
+
+    const atualR = await resumoFor(atual);
+    const anteriorR = await resumoFor(anterior);
+
+    return {
+      competenciaAtual: atual,
+      competenciaAnterior: anterior,
+      todasCompetencias: uniq,
+      atual: atualR,
+      anterior: anteriorR,
+    };
+  });
