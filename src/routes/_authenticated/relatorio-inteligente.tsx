@@ -696,7 +696,7 @@ function StepExportar({
     if (!built.length) { toast.error("Nenhum bloco para exportar."); return; }
     setGerando(true);
     try {
-      const blocosExp: BlocoExport[] = built.map(({ cfg, block, rows }) => ({
+      const blocosExp: BlocoExport[] = built.map(({ cfg, block, rows, grupos }) => ({
         titulo: block.label,
         descricao: block.descricao,
         colunas: cfg.fields.map((id) => {
@@ -704,6 +704,8 @@ function StepExportar({
           return { header: f?.label ?? id, key: id };
         }),
         linhas: rows,
+        grupos: grupos ?? undefined,
+        groupByLabels: cfg.groupBy?.map((id) => block.fields.find((f) => f.id === id)?.label ?? id),
       }));
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `relatorio-${tipo}-${stamp}`;
@@ -732,7 +734,7 @@ function StepExportar({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Exportar</h2>
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 7 · Exportar</h2>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border-l-4 border-primary/70 bg-primary/5 p-3">
