@@ -1,0 +1,1 @@
+ALTER TABLE public.profissionais ADD COLUMN IF NOT EXISTS endereco_completo text;
