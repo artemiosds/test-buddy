@@ -1300,6 +1300,60 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_importacoes: {
+        Row: {
+          competencia: string | null
+          created_at: string
+          data_importacao: string
+          id: string
+          importado_por: string | null
+          mapeamento: Json
+          modelo: string
+          nome_arquivo: string
+          registros_divergentes: number
+          registros_importados: number
+          registros_nao_encontrados: number
+          status: string
+          tipo_arquivo: string
+          total_registros: number
+          updated_at: string
+        }
+        Insert: {
+          competencia?: string | null
+          created_at?: string
+          data_importacao?: string
+          id?: string
+          importado_por?: string | null
+          mapeamento?: Json
+          modelo: string
+          nome_arquivo: string
+          registros_divergentes?: number
+          registros_importados?: number
+          registros_nao_encontrados?: number
+          status?: string
+          tipo_arquivo: string
+          total_registros?: number
+          updated_at?: string
+        }
+        Update: {
+          competencia?: string | null
+          created_at?: string
+          data_importacao?: string
+          id?: string
+          importado_por?: string | null
+          mapeamento?: Json
+          modelo?: string
+          nome_arquivo?: string
+          registros_divergentes?: number
+          registros_importados?: number
+          registros_nao_encontrados?: number
+          status?: string
+          tipo_arquivo?: string
+          total_registros?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       municipio_config: {
         Row: {
           brasao_url: string | null
@@ -1878,6 +1932,153 @@ export type Database = {
           nome?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      piso_enfermagem: {
+        Row: {
+          adicional_noturno: number | null
+          auxilio_financeiro: number | null
+          cargo: string | null
+          competencia: string | null
+          cpf: string | null
+          created_at: string
+          data_importacao: string
+          ferias: number | null
+          ferias_1_3: number | null
+          gratificacao: number | null
+          historico_id: string
+          hora_extra_100: number | null
+          hora_extra_50: number | null
+          id: string
+          importado_por: string | null
+          insalubridade: number | null
+          inss: number | null
+          irrf: number | null
+          matricula: string | null
+          nome: string | null
+          origem_arquivo: string | null
+          piso_complementacao: number | null
+          profissional_id: string | null
+          salario_base: number | null
+          setor: string | null
+          status_match: string
+          unidade: string | null
+          updated_at: string
+          valor_final: number | null
+          valor_liquido: number | null
+          vinculo: string | null
+        }
+        Insert: {
+          adicional_noturno?: number | null
+          auxilio_financeiro?: number | null
+          cargo?: string | null
+          competencia?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_importacao?: string
+          ferias?: number | null
+          ferias_1_3?: number | null
+          gratificacao?: number | null
+          historico_id: string
+          hora_extra_100?: number | null
+          hora_extra_50?: number | null
+          id?: string
+          importado_por?: string | null
+          insalubridade?: number | null
+          inss?: number | null
+          irrf?: number | null
+          matricula?: string | null
+          nome?: string | null
+          origem_arquivo?: string | null
+          piso_complementacao?: number | null
+          profissional_id?: string | null
+          salario_base?: number | null
+          setor?: string | null
+          status_match?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_final?: number | null
+          valor_liquido?: number | null
+          vinculo?: string | null
+        }
+        Update: {
+          adicional_noturno?: number | null
+          auxilio_financeiro?: number | null
+          cargo?: string | null
+          competencia?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_importacao?: string
+          ferias?: number | null
+          ferias_1_3?: number | null
+          gratificacao?: number | null
+          historico_id?: string
+          hora_extra_100?: number | null
+          hora_extra_50?: number | null
+          id?: string
+          importado_por?: string | null
+          insalubridade?: number | null
+          inss?: number | null
+          irrf?: number | null
+          matricula?: string | null
+          nome?: string | null
+          origem_arquivo?: string | null
+          piso_complementacao?: number | null
+          profissional_id?: string | null
+          salario_base?: number | null
+          setor?: string | null
+          status_match?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_final?: number | null
+          valor_liquido?: number | null
+          vinculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_enfermagem_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piso_enfermagem_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piso_mapeamentos_salvos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          mapeamento: Json
+          modelo: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mapeamento?: Json
+          modelo: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mapeamento?: Json
+          modelo?: string
+          nome?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3137,6 +3338,7 @@ export type Database = {
         | "permissao"
         | "sistema"
         | "pendencia"
+        | "piso"
       natureza_vinculo:
         | "efetivo"
         | "celetista"
@@ -3417,6 +3619,7 @@ export const Constants = {
         "permissao",
         "sistema",
         "pendencia",
+        "piso",
       ],
       natureza_vinculo: [
         "efetivo",
