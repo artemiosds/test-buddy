@@ -8,7 +8,7 @@ import { PermissionGate } from "@/components/permission-gate";
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-funcional")({
   head: () => ({
     meta: [
-      { title: "Situação Funcional — Gestão de Pessoas" },
+      { title: "Situação Funcional — Gestão da Saúde" },
       { name: "description", content: "Distribuição dos profissionais por situação funcional." },
     ],
   }),

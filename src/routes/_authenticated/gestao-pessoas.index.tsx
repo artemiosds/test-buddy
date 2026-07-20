@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   head: () => ({
     meta: [
-      { title: "Dashboard Executivo — Gestão de Pessoas" },
+      { title: "Dashboard Executivo — Gestão da Saúde" },
       { name: "description", content: "Visão executiva consolidada de pessoas, estrutura e operação." },
     ],
   }),

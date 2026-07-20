@@ -8,7 +8,7 @@ import { PermissionGate } from "@/components/permission-gate";
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuicao-setor")({
   head: () => ({
     meta: [
-      { title: "Distribuição por Setor — Gestão de Pessoas" },
+      { title: "Distribuição por Setor — Gestão da Saúde" },
       { name: "description", content: "Distribuição de profissionais por setor." },
     ],
   }),
