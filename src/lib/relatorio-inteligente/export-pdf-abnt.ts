@@ -23,9 +23,13 @@ export async function exportarPdfAbnt(opts: {
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
+  const uf = info.data?.uf ?? "";
+  const municipio = info.data?.nome_municipio ?? "";
+  const secretaria = info.data?.razao_social ?? "";
+
   // Capa ABNT.
   doc.setFont("times", "bold").setFontSize(14);
-  doc.text([info.estado ?? "", info.municipio ?? "", info.secretaria ?? ""].filter(Boolean).map((s) => String(s).toUpperCase()), w / 2, 40, { align: "center" });
+  doc.text([uf, municipio, secretaria].filter(Boolean).map((s) => s.toUpperCase()), w / 2, 40, { align: "center" });
   doc.setFontSize(16);
   doc.text(opts.titulo.toUpperCase(), w / 2, h / 2, { align: "center", maxWidth: w - 40 });
   if (opts.subtitulo) {
@@ -33,7 +37,7 @@ export async function exportarPdfAbnt(opts: {
     doc.text(opts.subtitulo, w / 2, h / 2 + 12, { align: "center", maxWidth: w - 40 });
   }
   doc.setFont("times", "normal").setFontSize(12);
-  doc.text([info.municipio ?? "", new Date().toLocaleDateString("pt-BR")].filter(Boolean).map(String), w / 2, h - 30, { align: "center" });
+  doc.text([municipio, new Date().toLocaleDateString("pt-BR")].filter(Boolean), w / 2, h - 30, { align: "center" });
 
   doc.addPage();
   let y = 30;
