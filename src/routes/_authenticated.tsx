@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon, Sparkles } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,6 +118,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { to: "/relatorios", label: "Visão geral", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
       { to: "/relatorios-gerenciais", label: "Gerenciais (Secretaria)", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
+      { to: "/relatorio-inteligente", label: "⭐ Relatório Geral Inteligente", icon: Sparkles, perm: ["relatorio.visualizar", "relatorio.exportar"] },
     ],
   },
   {
