@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { UploadCloud, Lightbulb, CheckCircle2 } from "lucide-react";
+import { UploadCloud, Lightbulb, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
@@ -19,9 +19,14 @@ import {
 } from "@/components/ui/select";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   autoMap,
   CAMPOS_SISTEMA,
+  CAMPOS_CALCULADOS,
+  CAMPOS_UPDATE_DEFAULT,
+  detectCalculatedColumns,
   type PisoDestino,
 } from "@/lib/piso-mapping";
 import {
@@ -42,7 +47,9 @@ import {
   type ResolvedRow,
 } from "@/lib/piso-import";
 import {
-  commitImportPiso,
+  startImportPiso,
+  appendPisoLinhas,
+  finalizeImportPiso,
   matchProfissionaisImport,
   listMapeamentos,
   saveMapeamento,
@@ -92,6 +99,16 @@ function ImportarPage() {
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
   const [preview5, setPreview5] = useState<RawRow[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [camposAtualizar, setCamposAtualizar] = useState<Set<PisoDestino>>(
+    () => new Set(CAMPOS_UPDATE_DEFAULT),
+  );
+  const [progresso, setProgresso] = useState<{
+    ativo: boolean;
+    total: number;
+    feito: number;
+    inicio: number;
+  }>({ ativo: false, total: 0, feito: 0, inicio: 0 });
+  const cancelRef = useRef(false);
   const dropRef = useRef<HTMLDivElement | null>(null);
 
   const tipoArquivo: "PDF" | "Excel" | "CSV" = useMemo(() => {
@@ -220,24 +237,74 @@ function ImportarPage() {
 
   const commitMut = useMutation({
     mutationFn: async () => {
-      const res = await commitImportPiso({
+      cancelRef.current = false;
+      const nomeArquivo = file?.name ?? "sem-nome";
+      const compet = competencia || null;
+      const camposList = Array.from(camposAtualizar);
+      const { historico_id } = await startImportPiso({
         data: {
           modelo,
-          nome_arquivo: file?.name ?? "sem-nome",
+          nome_arquivo: nomeArquivo,
           tipo_arquivo: tipoArquivo,
-          competencia: competencia || null,
+          competencia: compet,
           mapeamento: mapeamento as Record<string, string | null>,
-          linhas: resolved,
+          total: resolved.length,
         },
       });
-      toast.success(`Importação concluída: ${res.stats.importados}/${res.stats.total}`);
+      setProgresso({ ativo: true, total: resolved.length, feito: 0, inicio: Date.now() });
+      const CHUNK = 100;
+      let feito = 0;
+      for (let i = 0; i < resolved.length; i += CHUNK) {
+        if (cancelRef.current) {
+          await finalizeImportPiso({
+            data: { historico_id, importados: 0, divergentes: 0, naoLocalizados: 0, cancelado: true },
+          });
+          throw new Error("Importação cancelada.");
+        }
+        const chunk = resolved.slice(i, i + CHUNK);
+        await appendPisoLinhas({
+          data: {
+            historico_id,
+            nome_arquivo: nomeArquivo,
+            competencia: compet,
+            linhas: chunk,
+            camposAtualizar: camposList as never,
+          },
+        });
+        feito += chunk.length;
+        setProgresso((p) => ({ ...p, feito }));
+      }
+      await finalizeImportPiso({
+        data: {
+          historico_id,
+          importados: stats.importados,
+          divergentes: stats.divergentes,
+          naoLocalizados: stats.nao_localizados,
+          cancelado: false,
+        },
+      });
+      setProgresso((p) => ({ ...p, ativo: false }));
+      toast.success(`Importação concluída: ${stats.importados}/${stats.total}`);
       navigate({ to: "/piso-enfermagem" });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao gravar importação"),
+    onError: (e: unknown) => {
+      setProgresso((p) => ({ ...p, ativo: false }));
+      toast.error(e instanceof Error ? e.message : "Falha ao gravar importação");
+    },
   });
+
+  function toggleCampo(k: PisoDestino) {
+    setCamposAtualizar((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }
 
   const stats = useMemo(() => statsFrom(resolved), [resolved]);
   const quality = useMemo(() => computeQuality(rawRows, mapeamento), [rawRows, mapeamento]);
+  const calculatedCols = useMemo(() => detectCalculatedColumns(headers), [headers]);
 
   const savedQ = useQuery({
     queryKey: ["piso", "mapeamentos", modelo],
