@@ -448,3 +448,223 @@ export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Prom
   if (preset === "com_profissionais") rows = rows.filter((r) => r.qtd_profissionais > 0);
   return rows;
 }
+
+// ==================== ONDA 3 ====================
+
+// -------- Estrutura Organizacional --------
+
+export type OrgProf = {
+  id: string;
+  nome_completo: string;
+  cargo_nome: string | null;
+  funcao_nome: string | null;
+  status: string | null;
+};
+
+export type OrgSetor = {
+  id: string;
+  nome: string;
+  coordenador: string | null;
+  profissionais: OrgProf[];
+};
+
+export type OrgUnidade = {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  diretor: string | null;
+  setores: OrgSetor[];
+  sem_setor: OrgProf[];
+};
+
+export async function getOrganograma(unidadeId?: string | null): Promise<OrgUnidade[]> {
+  const [uRes, sRes, pRes, cRes, fRes] = await Promise.all([
+    (unidadeId
+      ? supabase.from("unidades").select("id, nome, sigla, responsavel_nome").eq("id", unidadeId).is("deleted_at", null)
+      : supabase.from("unidades").select("id, nome, sigla, responsavel_nome").is("deleted_at", null).order("nome")),
+    supabase.from("setores").select("id, nome, unidade_id, responsavel_nome").is("deleted_at", null).order("nome"),
+    supabase.from("profissionais").select("id, nome_completo, unidade_id, setor_id, cargo_id, funcao_id, status").is("deleted_at", null).order("nome_completo"),
+    supabase.from("cargos").select("id, nome").is("deleted_at", null),
+    supabase.from("funcoes").select("id, nome").is("deleted_at", null),
+  ]);
+  if (uRes.error) throw uRes.error;
+  if (sRes.error) throw sRes.error;
+  if (pRes.error) throw pRes.error;
+
+  const mCargo = (cRes.data ?? []).reduce<Record<string, string>>((a, r) => ((a[r.id] = r.nome), a), {});
+  const mFunc = (fRes.data ?? []).reduce<Record<string, string>>((a, r) => ((a[r.id] = r.nome), a), {});
+
+  const setoresByUnidade = new Map<string, OrgSetor[]>();
+  for (const s of sRes.data ?? []) {
+    if (!setoresByUnidade.has(s.unidade_id)) setoresByUnidade.set(s.unidade_id, []);
+    setoresByUnidade.get(s.unidade_id)!.push({
+      id: s.id, nome: s.nome, coordenador: s.responsavel_nome, profissionais: [],
+    });
+  }
+
+  const setorIndex = new Map<string, OrgSetor>();
+  for (const arr of setoresByUnidade.values()) for (const s of arr) setorIndex.set(s.id, s);
+
+  const semSetorByUnidade = new Map<string, OrgProf[]>();
+  for (const p of pRes.data ?? []) {
+    const prof: OrgProf = {
+      id: p.id,
+      nome_completo: p.nome_completo,
+      cargo_nome: p.cargo_id ? mCargo[p.cargo_id] ?? null : null,
+      funcao_nome: p.funcao_id ? mFunc[p.funcao_id] ?? null : null,
+      status: p.status,
+    };
+    if (p.setor_id && setorIndex.has(p.setor_id)) {
+      setorIndex.get(p.setor_id)!.profissionais.push(prof);
+    } else if (p.unidade_id) {
+      if (!semSetorByUnidade.has(p.unidade_id)) semSetorByUnidade.set(p.unidade_id, []);
+      semSetorByUnidade.get(p.unidade_id)!.push(prof);
+    }
+  }
+
+  return (uRes.data ?? []).map((u) => ({
+    id: u.id,
+    nome: u.nome,
+    sigla: u.sigla,
+    diretor: u.responsavel_nome,
+    setores: setoresByUnidade.get(u.id) ?? [],
+    sem_setor: semSetorByUnidade.get(u.id) ?? [],
+  }));
+}
+
+// -------- Piso Gerencial (competências, comparativo, divergências, log) --------
+
+export async function listPisoCompetencias(): Promise<string[]> {
+  const { data, error } = await supabase.from("piso_enfermagem").select("competencia").not("competencia", "is", null);
+  if (error) throw error;
+  const set = new Set<string>();
+  for (const r of data ?? []) if (r.competencia) set.add(r.competencia);
+  return Array.from(set).sort().reverse();
+}
+
+export type PisoResumo = {
+  competencia: string;
+  totalRegistros: number;
+  totalMatch: number;
+  totalDivergentes: number;
+  totalNaoEncontrados: number;
+  somaFinal: number;
+  somaLiquido: number;
+  somaPisoComplementacao: number;
+};
+
+export async function getPisoResumo(competencia: string): Promise<PisoResumo> {
+  const { data, error } = await supabase
+    .from("piso_enfermagem")
+    .select("status_match, valor_final, valor_liquido, piso_complementacao")
+    .eq("competencia", competencia);
+  if (error) throw error;
+  const rows = data ?? [];
+  const somaFinal = rows.reduce((a, r) => a + Number(r.valor_final ?? 0), 0);
+  const somaLiquido = rows.reduce((a, r) => a + Number(r.valor_liquido ?? 0), 0);
+  const somaPiso = rows.reduce((a, r) => a + Number(r.piso_complementacao ?? 0), 0);
+  return {
+    competencia,
+    totalRegistros: rows.length,
+    totalMatch: rows.filter((r) => r.status_match === "ok" || r.status_match === "matched").length,
+    totalDivergentes: rows.filter((r) => r.status_match === "divergente" || r.status_match === "divergent").length,
+    totalNaoEncontrados: rows.filter((r) => r.status_match === "nao_encontrado" || r.status_match === "not_found").length,
+    somaFinal, somaLiquido, somaPisoComplementacao: somaPiso,
+  };
+}
+
+export type PisoComparRow = {
+  cpf: string;
+  nome: string | null;
+  unidade: string | null;
+  cargo: string | null;
+  valorA: number;
+  valorB: number;
+  diff: number;
+  diffPct: number | null;
+};
+
+export async function comparePisoCompetencias(compA: string, compB: string): Promise<PisoComparRow[]> {
+  const [aRes, bRes] = await Promise.all([
+    supabase.from("piso_enfermagem").select("cpf, nome, unidade, cargo, valor_final").eq("competencia", compA),
+    supabase.from("piso_enfermagem").select("cpf, nome, unidade, cargo, valor_final").eq("competencia", compB),
+  ]);
+  if (aRes.error) throw aRes.error;
+  if (bRes.error) throw bRes.error;
+
+  type Rec = { cpf: string; nome: string | null; unidade: string | null; cargo: string | null; valor: number };
+  const norm = (rows: typeof aRes.data): Rec[] => (rows ?? [])
+    .filter((r) => r.cpf)
+    .map((r) => ({ cpf: r.cpf as string, nome: r.nome, unidade: r.unidade, cargo: r.cargo, valor: Number(r.valor_final ?? 0) }));
+  const A = norm(aRes.data);
+  const B = norm(bRes.data);
+  const mA = new Map(A.map((r) => [r.cpf, r] as const));
+  const mB = new Map(B.map((r) => [r.cpf, r] as const));
+  const cpfs = new Set<string>([...mA.keys(), ...mB.keys()]);
+
+  const out: PisoComparRow[] = [];
+  for (const cpf of cpfs) {
+    const a = mA.get(cpf); const b = mB.get(cpf);
+    const valorA = a?.valor ?? 0;
+    const valorB = b?.valor ?? 0;
+    const diff = valorB - valorA;
+    out.push({
+      cpf,
+      nome: b?.nome ?? a?.nome ?? null,
+      unidade: b?.unidade ?? a?.unidade ?? null,
+      cargo: b?.cargo ?? a?.cargo ?? null,
+      valorA, valorB, diff,
+      diffPct: valorA > 0 ? (diff / valorA) * 100 : null,
+    });
+  }
+  return out.sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff));
+}
+
+export type PisoDivergencia = {
+  id: string;
+  cpf: string | null;
+  nome: string | null;
+  matricula: string | null;
+  unidade: string | null;
+  cargo: string | null;
+  status_match: string;
+  valor_final: number | null;
+};
+
+export async function listPisoDivergencias(competencia: string, tipo: "divergentes" | "nao_encontrados" | "todos" = "todos"): Promise<PisoDivergencia[]> {
+  let q = supabase
+    .from("piso_enfermagem")
+    .select("id, cpf, nome, matricula, unidade, cargo, status_match, valor_final")
+    .eq("competencia", competencia);
+  if (tipo === "divergentes") q = q.in("status_match", ["divergente", "divergent"]);
+  else if (tipo === "nao_encontrados") q = q.in("status_match", ["nao_encontrado", "not_found"]);
+  else q = q.not("status_match", "in", "(ok,matched)");
+  const { data, error } = await q.order("nome");
+  if (error) throw error;
+  return (data ?? []) as PisoDivergencia[];
+}
+
+export type PisoHistoricoRow = {
+  id: string;
+  nome_arquivo: string;
+  competencia: string | null;
+  data_importacao: string;
+  importado_por: string | null;
+  status: string;
+  total_registros: number;
+  registros_importados: number;
+  registros_divergentes: number;
+  registros_nao_encontrados: number;
+  modelo: string;
+};
+
+export async function listPisoHistorico(limit = 50): Promise<PisoHistoricoRow[]> {
+  const { data, error } = await supabase
+    .from("historico_importacoes")
+    .select("id, nome_arquivo, competencia, data_importacao, importado_por, status, total_registros, registros_importados, registros_divergentes, registros_nao_encontrados, modelo")
+    .eq("tipo_arquivo", "piso_enfermagem")
+    .order("data_importacao", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as PisoHistoricoRow[];
+}
