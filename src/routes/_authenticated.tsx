@@ -88,7 +88,7 @@ const GROUPS: NavGroup[] = [
   },
   {
     id: "gestao_pessoas",
-    label: "Gestão de Pessoas",
+    label: "Gestão da Saúde",
     icon: Users,
     items: [
       // 📊 Visão Executiva

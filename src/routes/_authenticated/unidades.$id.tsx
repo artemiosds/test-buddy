@@ -188,7 +188,7 @@ function UnidadePainelPage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão de Pessoas</Link></BreadcrumbLink>
+            <BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão da Saúde</Link></BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

@@ -94,7 +94,7 @@ function CargoPainelContent() {
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão de Pessoas</Link></BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão da Saúde</Link></BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cargos-funcoes" hash="cargos">Cargos</Link></BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />

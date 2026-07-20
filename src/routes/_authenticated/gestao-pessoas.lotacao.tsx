@@ -16,7 +16,7 @@ import {
 export const Route = createFileRoute("/_authenticated/gestao-pessoas/lotacao")({
   head: () => ({
     meta: [
-      { title: "Quadro de Lotação — Gestão de Pessoas" },
+      { title: "Quadro de Lotação — Gestão da Saúde" },
       { name: "description", content: "Quadro consolidado por Unidade, Setor, Cargo e Função." },
     ],
   }),
