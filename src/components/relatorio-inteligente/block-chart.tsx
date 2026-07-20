@@ -59,7 +59,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
             <Legend />
           </PieChart>
         );
@@ -69,7 +69,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={10} />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
             <Line type="monotone" dataKey="value" stroke={PALETTE[0]} strokeWidth={2} />
           </LineChart>
         );
@@ -79,7 +79,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={10} />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
             <Area type="monotone" dataKey="value" stroke={PALETTE[0]} fill={PALETTE[2]} />
           </AreaChart>
         );
@@ -89,7 +89,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
             <Bar dataKey="value" fill={PALETTE[0]} />
           </BarChart>
         );
