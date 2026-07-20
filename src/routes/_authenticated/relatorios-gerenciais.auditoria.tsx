@@ -93,31 +93,25 @@ function AuditoriaGerencial() {
     return d.toISOString();
   }, [dias]);
 
-  const applyFilters = (
-    q: ReturnType<typeof supabase.from<"audit_log", never>>["select"] extends (...a: never[]) => infer R ? R : never,
-  ) => {
-    let query = q as unknown as ReturnType<ReturnType<typeof supabase.from<"audit_log", never>>["select"]>;
-    query = query.gte("ocorrido_em", desde);
-    if (cfg.tabelas?.length) query = query.in("tabela", cfg.tabelas);
-    if (cfg.operacoes?.length) query = query.in("operacao", cfg.operacoes);
-    if (operacao !== "todas") query = query.eq("operacao", operacao);
-    if (tabela !== "todas") query = query.eq("tabela", tabela);
-    if (usuario.trim()) query = query.ilike("usuario_email", `%${usuario.trim()}%`);
-    if (busca.trim()) {
-      const b = busca.trim();
-      query = query.or(`registro_id.ilike.%${b}%,tabela.ilike.%${b}%,usuario_email.ilike.%${b}%`);
-    }
-    return query;
-  };
-
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["rel-gerenciais-auditoria", { preset, operacao, tabela, usuario, busca, desde, page, pageSize }],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-      const base = supabase.from("audit_log").select("*", { count: "exact" }).order("ocorrido_em", { ascending: false });
-      const { data, count, error } = await applyFilters(base).range(from, to);
+      let q = supabase.from("audit_log").select("*", { count: "exact" })
+        .gte("ocorrido_em", desde)
+        .order("ocorrido_em", { ascending: false });
+      if (cfg.tabelas?.length) q = q.in("tabela", cfg.tabelas);
+      if (cfg.operacoes?.length) q = q.in("operacao", cfg.operacoes);
+      if (operacao !== "todas") q = q.eq("operacao", operacao);
+      if (tabela !== "todas") q = q.eq("tabela", tabela);
+      if (usuario.trim()) q = q.ilike("usuario_email", `%${usuario.trim()}%`);
+      if (busca.trim()) {
+        const b = busca.trim();
+        q = q.or(`registro_id.ilike.%${b}%,tabela.ilike.%${b}%,usuario_email.ilike.%${b}%`);
+      }
+      const { data, count, error } = await q.range(from, to);
       if (error) throw error;
       return { rows: (data ?? []) as AuditRow[], count: count ?? 0 };
     },
@@ -144,8 +138,20 @@ function AuditoriaGerencial() {
 
   const exportarCsv = async () => {
     if (!total) { toast.error("Nada para exportar"); return; }
-    const base = supabase.from("audit_log").select("*").order("ocorrido_em", { ascending: false }).limit(5000);
-    const { data: exportRows, error } = await applyFilters(base);
+    let q = supabase.from("audit_log").select("*")
+      .gte("ocorrido_em", desde)
+      .order("ocorrido_em", { ascending: false })
+      .limit(5000);
+    if (cfg.tabelas?.length) q = q.in("tabela", cfg.tabelas);
+    if (cfg.operacoes?.length) q = q.in("operacao", cfg.operacoes);
+    if (operacao !== "todas") q = q.eq("operacao", operacao);
+    if (tabela !== "todas") q = q.eq("tabela", tabela);
+    if (usuario.trim()) q = q.ilike("usuario_email", `%${usuario.trim()}%`);
+    if (busca.trim()) {
+      const b = busca.trim();
+      q = q.or(`registro_id.ilike.%${b}%,tabela.ilike.%${b}%,usuario_email.ilike.%${b}%`);
+    }
+    const { data: exportRows, error } = await q;
     if (error || !exportRows?.length) { toast.error("Falha ao preparar exportação"); return; }
     if (total > 5000) toast.warning(`Exportação limitada a 5000 registros (total filtrado: ${total}).`);
     const header = ["ocorrido_em", "operacao", "tabela", "registro_id", "usuario_email", "ip"];
