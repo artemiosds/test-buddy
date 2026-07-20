@@ -10,6 +10,8 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+// TEMP: diagnóstico de configuração Supabase em runtime (remover após auditoria).
+import "../lib/supabase-diagnostics";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { installBrowserErrorHandlers, logger } from "../lib/logger";
 import { Toaster } from "@/components/ui/sonner";
