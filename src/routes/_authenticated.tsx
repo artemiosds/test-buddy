@@ -79,6 +79,7 @@ const GROUPS: NavGroup[] = [
       { to: "/frequencias", label: "Frequências (mensal)", icon: ClipboardList, perm: "frequencia.visualizar" },
       { to: "/frequencia/contratados", label: "Folha — Contratados", icon: ClipboardList, perm: "frequencia.visualizar" },
       { to: "/frequencia/efetivos", label: "Folha — Efetivos", icon: ClipboardList, perm: "frequencia.visualizar" },
+      { to: "/piso-enfermagem", label: "Piso Nacional da Enfermagem", icon: ClipboardList, perm: "piso.visualizar" },
       { to: "/pendencias", label: "Pendências", icon: AlertCircle, perm: "pendencia.gerenciar" },
       { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2, perm: "frequencia.aprovar" },
       { to: "/assinaturas", label: "Assinaturas", icon: Signature, perm: ["assinatura.gerenciar", "assinatura.aplicar"] },
