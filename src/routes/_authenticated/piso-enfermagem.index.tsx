@@ -326,7 +326,7 @@ function PisoIndex() {
                         dataKey="total"
                         nameKey="label"
                         outerRadius={80}
-                        label={(e: { label?: string; total?: number }) => `${e.label ?? ""}: ${e.total ?? 0}`}
+                        label={({ name, value }) => `${name}: ${value}`}
                       >
                         {distQ.data.porCargo.map((_, i) => (
                           <Cell key={i} fill={["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2"][i % 6]} />
