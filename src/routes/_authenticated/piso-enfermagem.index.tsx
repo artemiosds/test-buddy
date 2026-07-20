@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Upload, Download, AlertTriangle, TrendingUp, TrendingDown, History } from "lucide-react";
+import { Upload, Download, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
@@ -181,11 +181,6 @@ function PisoIndex() {
         description="Profissionais beneficiados e complementação salarial por competência."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link to="/piso-enfermagem/importar" search={{ tab: "historico" as never }} params={{}}>
-                <History className="mr-2 h-4 w-4" /> Histórico
-              </Link>
-            </Button>
             <Button variant="outline" onClick={handleExportar} disabled={!linhasQ.data?.rows?.length}>
               <Download className="mr-2 h-4 w-4" /> Exportar Excel
             </Button>
