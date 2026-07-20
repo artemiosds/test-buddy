@@ -65,6 +65,7 @@ function UnidadesGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="unidades" titulo="Unidades" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as UnidadePreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (

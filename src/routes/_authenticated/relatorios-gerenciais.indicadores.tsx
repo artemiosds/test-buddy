@@ -33,6 +33,7 @@ function IndicadoresPage() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="geral" titulo="Indicadores Gerais" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard label="Profissionais" value={data.totalProfissionais} />
         <KpiCard label="Unidades" value={data.totalUnidades} />

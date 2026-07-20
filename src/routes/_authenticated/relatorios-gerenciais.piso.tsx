@@ -31,6 +31,7 @@ function PisoGerencial() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="piso" titulo="Piso da Enfermagem" />
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
         <TabsList>
           <TabsTrigger value="comparativo"><GitCompare className="mr-1 h-4 w-4" /> Comparativo</TabsTrigger>

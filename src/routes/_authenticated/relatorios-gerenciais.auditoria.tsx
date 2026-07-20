@@ -175,6 +175,7 @@ function AuditoriaGerencial() {
   return (
     <PermissionGate permission="auditoria.visualizar">
       <div className="space-y-4">
+        <IntelligencePanel foco="auditoria" titulo="Auditoria Gerencial" />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">

@@ -89,6 +89,7 @@ function EstruturaOrganizacional() {
 
   return (
     <div className="space-y-4">
+      <IntelligencePanel foco="estrutura" titulo="Estrutura Organizacional" />
       <FilterBar
         actions={
           <div className="flex gap-2">
