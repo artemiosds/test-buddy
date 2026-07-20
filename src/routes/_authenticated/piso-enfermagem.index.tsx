@@ -300,6 +300,77 @@ function PisoIndex() {
             </div>
           )}
 
+          {/* Distribuição por unidade / cargo */}
+          {distQ.data && (distQ.data.porUnidade.length > 0 || distQ.data.porCargo.length > 0) && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border p-4">
+                <div className="mb-2 text-sm font-medium">Distribuição por unidade</div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={distQ.data.porUnidade}>
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div className="rounded-md border p-4">
+                <div className="mb-2 text-sm font-medium">Distribuição por cargo</div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={distQ.data.porCargo}
+                        dataKey="total"
+                        nameKey="label"
+                        outerRadius={80}
+                        label={(e: { label?: string; total?: number }) => `${e.label ?? ""}: ${e.total ?? 0}`}
+                      >
+                        {distQ.data.porCargo.map((_, i) => (
+                          <Cell key={i} fill={["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2"][i % 6]} />
+                        ))}
+                      </Pie>
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Não localizados na última importação (competência atual) */}
+          {distQ.data && distQ.data.naoLocalizados.length > 0 && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                Profissionais não localizados nesta competência ({distQ.data.naoLocalizados.length})
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-left text-muted-foreground">
+                    <tr>
+                      <th className="px-2 py-1">Nome</th>
+                      <th className="px-2 py-1">CPF</th>
+                      <th className="px-2 py-1">Matrícula</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {distQ.data.naoLocalizados.map((r, i) => (
+                      <tr key={i} className="border-t">
+                        <td className="px-2 py-1">{r.nome ?? "—"}</td>
+                        <td className="px-2 py-1 font-mono">{r.cpf ?? "—"}</td>
+                        <td className="px-2 py-1 font-mono">{r.matricula ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Filtros */}
           <FilterBar>
             <FilterBar.Field label="Competência">
