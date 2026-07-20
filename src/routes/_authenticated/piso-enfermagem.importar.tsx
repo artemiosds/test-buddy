@@ -30,6 +30,8 @@ import {
   headerConfidence,
   computeQuality,
   fingerprint,
+  detectHeaderRow,
+  buildRowsFromAoa,
   type ConfidenceTone,
 } from "@/lib/piso-heuristics";
 import {
@@ -84,6 +86,8 @@ function ImportarPage() {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<RawRow[]>([]);
+  const [aoa, setAoa] = useState<unknown[][]>([]);
+  const [headerRowIndex, setHeaderRowIndex] = useState<number>(0);
   const [mapeamento, setMapeamento] = useState<Mapeamento>({});
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
   const [preview5, setPreview5] = useState<RawRow[]>([]);
@@ -118,17 +122,22 @@ function ImportarPage() {
     const buf = await f.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
-    if (json.length === 0) {
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+    if (matrix.length === 0) {
       toast.error("Arquivo sem linhas.");
       return;
     }
-    const hs = Object.keys(json[0]);
+    const detectedIdx = detectHeaderRow(matrix);
+    const { headers: hs, rows: json } = buildRowsFromAoa(matrix, detectedIdx);
+    setAoa(matrix);
+    setHeaderRowIndex(detectedIdx);
     setHeaders(hs);
     setRawRows(json);
     setPreview5(json.slice(0, 5));
-    const map = autoMap(hs);
-    setMapeamento(map);
+    setMapeamento(autoMap(hs));
+    if (detectedIdx > 0) {
+      toast.success(`Cabeçalho detectado na linha ${detectedIdx + 1}.`);
+    }
 
     // Modo rápido: mesmo formato do último arquivo importado?
     try {
@@ -150,6 +159,17 @@ function ImportarPage() {
       // localStorage indisponível — ignora
     }
     setPasso(2);
+  }
+
+  // Ao usuário ajustar manualmente a linha de cabeçalho, reprocessa AOA.
+  function changeHeaderRow(newIdx: number) {
+    if (aoa.length === 0) return;
+    const { headers: hs, rows } = buildRowsFromAoa(aoa, newIdx);
+    setHeaderRowIndex(newIdx);
+    setHeaders(hs);
+    setRawRows(rows);
+    setPreview5(rows.slice(0, 5));
+    setMapeamento(autoMap(hs));
   }
 
   // Drag & drop handlers
@@ -302,6 +322,28 @@ function ImportarPage() {
 
       {passo === 2 && (
         <div className="space-y-3 rounded-md border p-4">
+          {aoa.length > 0 && (
+            <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Linha do cabeçalho</Label>
+                <Select
+                  value={String(headerRowIndex)}
+                  onValueChange={(v) => changeHeaderRow(Number(v))}
+                >
+                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: Math.min(aoa.length, 10) }).map((_, i) => (
+                      <SelectItem key={i} value={String(i)}>Linha {i + 1}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Detectado automaticamente na <strong>linha {headerRowIndex + 1}</strong>.
+                Ajuste se as colunas abaixo estiverem incorretas.
+              </p>
+            </div>
+          )}
           {preview5.length > 0 && (
             <details className="rounded-md border bg-muted/30 p-2 text-xs">
               <summary className="cursor-pointer font-medium">Pré-visualização (5 primeiras linhas)</summary>
