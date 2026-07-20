@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ import {
   List as ListIcon,
   User as UserIcon,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
@@ -1170,6 +1171,37 @@ function ProfissionalFormBody({
   const isEfetivo = nat === "efetivo" || nat === "comissionado";
   const isContratado = !!nat && !isEfetivo;
   const displayName = form.nome_social?.trim() || form.nome_completo?.trim() || "";
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+
+  async function handleFotoFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem válido");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máximo 5MB)");
+      return;
+    }
+    setUploadingFoto(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const owner = form.id || `novo-${Date.now()}`;
+      const path = `profissionais/${owner}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setForm({ ...form, foto_url: data.publicUrl });
+      toast.success("Foto atualizada");
+    } catch (err) {
+      console.error("[upload avatar]", err);
+      toast.error("Erro ao fazer upload da imagem, tente novamente");
+    } finally {
+      setUploadingFoto(false);
+    }
+  }
 
   return (
     <Tabs defaultValue="pessoais" className="w-full">
@@ -1183,33 +1215,50 @@ function ProfissionalFormBody({
       <TabsContent value="pessoais" className="mt-4 space-y-6">
         {/* Avatar + upload */}
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
-            {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
-            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
-              {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
+              {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
+              <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+                {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
+              </AvatarFallback>
+            </Avatar>
+            {uploadingFoto ? (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : null}
+          </div>
           <div className="flex-1 space-y-2">
             <Label className="text-xs text-muted-foreground">
-              Foto do profissional (URL)
+              Foto do profissional
             </Label>
             <div className="flex gap-2">
               <Input
                 value={form.foto_url}
                 onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
-                placeholder="https://…/foto.jpg"
+                placeholder="https://…/foto.jpg (ou envie um arquivo →)"
+                disabled={uploadingFoto}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFotoFile(f);
+                  e.target.value = "";
+                }}
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => {
-                  const url = window.prompt("URL da nova foto:", form.foto_url);
-                  if (url !== null) setForm({ ...form, foto_url: url.trim() });
-                }}
-                title="Alterar foto"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                title="Enviar nova foto"
               >
-                <Camera className="h-4 w-4" />
+                {uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </Button>
             </div>
           </div>
