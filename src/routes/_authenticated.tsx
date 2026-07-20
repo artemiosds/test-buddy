@@ -117,6 +117,7 @@ const GROUPS: NavGroup[] = [
     icon: FileBarChart,
     items: [
       { to: "/relatorios", label: "Visão geral", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
+      { to: "/relatorios-gerenciais", label: "Gerenciais (Secretaria)", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
     ],
   },
   {
