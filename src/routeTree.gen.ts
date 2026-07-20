@@ -24,6 +24,7 @@ import { Route as AuthenticatedSalaSituacaoRouteImport } from './routes/_authent
 import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
 import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
 import { Route as AuthenticatedRelatoriosPisoRouteImport } from './routes/_authenticated/relatorios-piso'
+import { Route as AuthenticatedRelatoriosGerenciaisRouteImport } from './routes/_authenticated/relatorios-gerenciais'
 import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
 import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
@@ -139,6 +140,12 @@ const AuthenticatedRelatoriosPisoRoute =
   AuthenticatedRelatoriosPisoRouteImport.update({
     id: '/relatorios-piso',
     path: '/relatorios-piso',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisRoute =
+  AuthenticatedRelatoriosGerenciaisRouteImport.update({
+    id: '/relatorios-gerenciais',
+    path: '/relatorios-gerenciais',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedRelatoriosExecutivoRoute =
@@ -375,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
   '/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -427,6 +435,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
   '/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -482,6 +491,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/_authenticated/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
+  '/_authenticated/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRoute
   '/_authenticated/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
   '/_authenticated/relatorios-profissional': typeof AuthenticatedRelatoriosProfissionalRoute
   '/_authenticated/relatorios-status': typeof AuthenticatedRelatoriosStatusRoute
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/relatorios-consolidado'
     | '/relatorios-executivo'
+    | '/relatorios-gerenciais'
     | '/relatorios-piso'
     | '/relatorios-profissional'
     | '/relatorios-status'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/relatorios-consolidado'
     | '/relatorios-executivo'
+    | '/relatorios-gerenciais'
     | '/relatorios-piso'
     | '/relatorios-profissional'
     | '/relatorios-status'
@@ -644,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios'
     | '/_authenticated/relatorios-consolidado'
     | '/_authenticated/relatorios-executivo'
+    | '/_authenticated/relatorios-gerenciais'
     | '/_authenticated/relatorios-piso'
     | '/_authenticated/relatorios-profissional'
     | '/_authenticated/relatorios-status'
@@ -791,6 +804,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios-piso'
       fullPath: '/relatorios-piso'
       preLoaderRoute: typeof AuthenticatedRelatoriosPisoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-gerenciais': {
+      id: '/_authenticated/relatorios-gerenciais'
+      path: '/relatorios-gerenciais'
+      fullPath: '/relatorios-gerenciais'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/relatorios-executivo': {
@@ -1126,6 +1146,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRelatoriosConsolidadoRoute: typeof AuthenticatedRelatoriosConsolidadoRoute
   AuthenticatedRelatoriosExecutivoRoute: typeof AuthenticatedRelatoriosExecutivoRoute
+  AuthenticatedRelatoriosGerenciaisRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
   AuthenticatedRelatoriosPisoRoute: typeof AuthenticatedRelatoriosPisoRoute
   AuthenticatedRelatoriosProfissionalRoute: typeof AuthenticatedRelatoriosProfissionalRoute
   AuthenticatedRelatoriosStatusRoute: typeof AuthenticatedRelatoriosStatusRoute
@@ -1172,6 +1193,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRelatoriosConsolidadoRoute:
     AuthenticatedRelatoriosConsolidadoRoute,
   AuthenticatedRelatoriosExecutivoRoute: AuthenticatedRelatoriosExecutivoRoute,
+  AuthenticatedRelatoriosGerenciaisRoute:
+    AuthenticatedRelatoriosGerenciaisRoute,
   AuthenticatedRelatoriosPisoRoute: AuthenticatedRelatoriosPisoRoute,
   AuthenticatedRelatoriosProfissionalRoute:
     AuthenticatedRelatoriosProfissionalRoute,
