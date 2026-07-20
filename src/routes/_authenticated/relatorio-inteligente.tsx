@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import {
   Sparkles, Check, ChevronLeft, ChevronRight, Loader2, Download,
   ArrowUpAZ, ArrowDownAZ, AlertTriangle, CheckCircle2,
+  Layers, BarChart3, Plus, X, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +24,11 @@ import { toast } from "sonner";
 import { useGerencial } from "@/hooks/use-gerencial";
 import { useProfissionaisLista } from "@/hooks/use-profissionais-lista";
 import { CATALOG, PRESETS, defaultFields, findBlock } from "@/lib/relatorio-inteligente/catalog";
-import type { BlockConfig, Row, SortSpec } from "@/lib/relatorio-inteligente/tipos";
+import type { BlockConfig, ChartSpec, ChartTipo, Row, SortSpec } from "@/lib/relatorio-inteligente/tipos";
 import { applySort, projectFields, fmtCell } from "@/lib/relatorio-inteligente/render";
 import { statsFor, numericFields } from "@/lib/relatorio-inteligente/agregacoes";
+import { agrupar, type GroupNode } from "@/lib/relatorio-inteligente/agrupamento";
+import { BlockChart } from "@/components/relatorio-inteligente/block-chart";
 import {
   exportarPdfMulti, exportarExcelMulti, exportarCsvMulti,
   type BlocoExport,
@@ -57,7 +60,7 @@ function RelatorioInteligentePage() {
 /* ============================================================= */
 
 function Wizard() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const [tipo, setTipo] = useState<TipoRelatorio>("executivo");
   const [blocks, setBlocks] = useState<BlockConfig[]>(() =>
     PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[],
@@ -89,8 +92,9 @@ function Wizard() {
         {step === 2 && <StepCampos blocks={blocks} update={updateBlock} />}
         {step === 3 && <StepFiltros textFilter={textFilter} setTextFilter={setTextFilter} />}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
-        {step === 5 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
-        {step === 6 && (
+        {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
+        {step === 7 && (
           <StepExportar
             tipo={tipo} blocks={blocks} textFilter={textFilter}
             formato={formato} setFormato={setFormato}
@@ -100,12 +104,12 @@ function Wizard() {
       </div>
       <div className="flex justify-between">
         <Button variant="outline" disabled={step === 1}
-          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5) : s))}>
+          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6) : s))}>
           <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
         </Button>
-        {step < 6 ? (
+        {step < 7 ? (
           <Button disabled={step === 1 && blocks.length === 0}
-            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6)}>
+            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6 | 7)}>
             Avançar <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         ) : null}
@@ -121,7 +125,7 @@ function defaultBlockCfg(id: string): BlockConfig | null {
 }
 
 function Stepper({ step }: { step: number }) {
-  const rotulos = ["Conteúdo", "Campos", "Filtros", "Ordenação", "Prévia", "Exportar"];
+  const rotulos = ["Conteúdo", "Campos", "Filtros", "Ordenação", "Grupos & Gráficos", "Prévia", "Exportar"];
   return (
     <ol className="flex flex-wrap items-center gap-2 text-xs">
       {rotulos.map((r, i) => {
