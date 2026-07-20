@@ -506,7 +506,8 @@ function ProfissionaisPage() {
       if (!f.nome_completo.trim()) throw new Error("Nome é obrigatório");
       if (!f.secretaria_id) throw new Error("Secretaria é obrigatória");
 
-      const payload = {
+      const canSeeBanco = hasPermission("profissional.dados_bancarios");
+      const payload: Record<string, unknown> = {
         nome_completo: f.nome_completo.trim(),
         nome_social: f.nome_social.trim() || null,
         cpf: cpfDigits,
@@ -525,9 +526,6 @@ function ProfissionaisPage() {
         cargo_id: f.cargo_id || null,
         funcao_id: f.funcao_id || null,
         vinculo_id: f.vinculo_id || null,
-        banco: f.banco.trim() || null,
-        agencia: f.agencia.trim() || null,
-        conta_corrente: f.conta_corrente.trim() || null,
         proj: f.proj ? Number(f.proj) : null,
         h_p: f.h_p ? Number(f.h_p) : null,
         c_h: f.c_h ? Number(f.c_h) : null,
@@ -541,14 +539,25 @@ function ProfissionaisPage() {
         foto_url: f.foto_url.trim() || null,
         endereco_completo: f.endereco_completo.trim() || null,
       };
+      // Só grava dados bancários quando o usuário tem a permissão específica.
+      // Sem a permissão os campos nem foram renderizados; omitir do payload evita
+      // que um update remova valores válidos já salvos por outro usuário.
+      if (canSeeBanco) {
+        payload.banco = f.banco.trim() || null;
+        payload.agencia = f.agencia.trim() || null;
+        payload.conta_corrente = f.conta_corrente.trim() || null;
+      }
       if (f.id) {
         if (f.gestor_imediato_id && f.gestor_imediato_id === f.id) {
           throw new Error("Profissional não pode ser gestor imediato de si mesmo.");
         }
-        const { error } = await supabase.from("profissionais").update(payload).eq("id", f.id);
+        const { error } = await supabase
+          .from("profissionais")
+          .update(payload as never)
+          .eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("profissionais").insert(payload);
+        const { error } = await supabase.from("profissionais").insert(payload as never);
         if (error) throw error;
       }
     },
