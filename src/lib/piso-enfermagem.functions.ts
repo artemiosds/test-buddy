@@ -277,3 +277,69 @@ export const listMapeamentos = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return { rows: rows ?? [] };
   });
+
+// --------------------- Dashboard: métricas comparativas ---------------------
+
+type PisoLinhaLite = {
+  nome: string | null;
+  competencia: string | null;
+  piso_complementacao: number | null;
+};
+
+export const getDashboardPiso = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(() => ({}))
+  .handler(async ({ context }) => {
+    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("piso_enfermagem")
+      .select("nome, competencia, piso_complementacao")
+      .not("competencia", "is", null)
+      .order("competencia", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+
+    const linhas = (rows ?? []) as PisoLinhaLite[];
+    const porCompetencia = new Map<string, PisoLinhaLite[]>();
+    for (const l of linhas) {
+      const key = l.competencia ?? "";
+      if (!key) continue;
+      const arr = porCompetencia.get(key) ?? [];
+      arr.push(l);
+      porCompetencia.set(key, arr);
+    }
+    const competencias = Array.from(porCompetencia.keys());
+    const atual = competencias[0] ?? null;
+    const anterior = competencias[1] ?? null;
+
+    const somaPiso = (arr: PisoLinhaLite[]) =>
+      arr.reduce((acc, r) => acc + (r.piso_complementacao ?? 0), 0);
+
+    const totalAtual = atual ? somaPiso(porCompetencia.get(atual) ?? []) : 0;
+    const totalAnterior = anterior ? somaPiso(porCompetencia.get(anterior) ?? []) : 0;
+    const registrosAtual = atual ? (porCompetencia.get(atual)?.length ?? 0) : 0;
+    const registrosAnterior = anterior ? (porCompetencia.get(anterior)?.length ?? 0) : 0;
+
+    // Top 5 profissionais com maior complementação na competência atual
+    const top5 = atual
+      ? Array.from(
+          (porCompetencia.get(atual) ?? []).reduce((map, r) => {
+            const nome = r.nome ?? "—";
+            map.set(nome, (map.get(nome) ?? 0) + (r.piso_complementacao ?? 0));
+            return map;
+          }, new Map<string, number>()),
+        )
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([nome, valor]) => ({ nome, valor }))
+      : [];
+
+    return {
+      competenciaAtual: atual,
+      competenciaAnterior: anterior,
+      totalAtual, totalAnterior,
+      registrosAtual, registrosAnterior,
+      top5,
+    };
+  });
