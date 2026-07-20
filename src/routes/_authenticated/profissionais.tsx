@@ -44,6 +44,7 @@ import {
   User as UserIcon,
   Camera,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
