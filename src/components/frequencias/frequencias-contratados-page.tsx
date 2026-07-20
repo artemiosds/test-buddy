@@ -16,10 +16,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Send, Search, FileSpreadsheet } from "lucide-react";
+import { Save, Send, Search, FileSpreadsheet, FileDown, Download } from "lucide-react";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
+import { gerarExcelFolhaContratados, type ItemContratado } from "@/lib/excel-folha-contratados";
+import { gerarFolhaContratadosOficial } from "@/lib/pdf-folha-contratados-oficial";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -145,6 +148,7 @@ export function FrequenciasContratadosPage() {
   }, [isGestor, unidades, minhasUnidades, unidadeId]);
 
   const unidadesVisiveis = isGestor ? (unidades ?? []) : (minhasUnidades ?? []);
+  const unidadeSel = (unidadesVisiveis as any[]).find((u) => u.id === unidadeId);
 
   // Folha
   const carregar = useServerFn(listarFolhaContratados);
@@ -265,6 +269,55 @@ export function FrequenciasContratadosPage() {
     onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar."),
   });
 
+  // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
+  const folhaAprovada = useMemo(() => {
+    if (!folha?.length) return false;
+    return folha.every((it: any) => it.linha?.status === "aprovada");
+  }, [folha]);
+
+  function mapExportItens(): ItemContratado[] {
+    return (folha ?? []).map((it: any) => ({
+      profissional: {
+        matricula: it.profissional.matricula,
+        nome: it.profissional.nome,
+        cpf: it.profissional.cpf ?? null,
+        cargo: it.profissional.cargo,
+        setor: it.profissional.setor,
+        banco: it.profissional.banco,
+        agencia: it.profissional.agencia,
+        conta_corrente: it.profissional.conta_corrente,
+      },
+      linha: it.linha,
+    }));
+  }
+
+  async function handleExportarExcel() {
+    if (!compSel) return;
+    try {
+      await gerarExcelFolhaContratados({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar Excel.");
+    }
+  }
+
+  async function handleExportarPdf() {
+    if (!compSel) return;
+    try {
+      await gerarFolhaContratadosOficial({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+        emitidoPor: me?.nome_completo ?? me?.email ?? "—",
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar PDF.");
+    }
+  }
+
   const filtradas = useMemo(() => {
     if (!folha) return [];
     const q = busca.trim().toLowerCase();
@@ -315,6 +368,40 @@ export function FrequenciasContratadosPage() {
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
           </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="secondary"
+                    onClick={handleExportarPdf}
+                    disabled={!folhaAprovada}
+                  >
+                    <FileDown className="mr-1.5 h-4 w-4" /> PDF Oficial
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!folhaAprovada && (
+                <TooltipContent>Disponível somente após aprovação</TooltipContent>
+              )}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportarExcel}
+                    disabled={!folhaAprovada}
+                  >
+                    <Download className="mr-1.5 h-4 w-4" /> Exportar Excel
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!folhaAprovada && (
+                <TooltipContent>Disponível somente após aprovação</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </header>
 
