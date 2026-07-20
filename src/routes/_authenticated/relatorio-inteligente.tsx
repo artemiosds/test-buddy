@@ -37,6 +37,17 @@ import { parecerPorBloco, type ParecerBloco } from "@/lib/relatorio-inteligente/
 import { calcularIndice, type IndiceAutomatico } from "@/lib/relatorio-inteligente/indice";
 import { exportarWord } from "@/lib/relatorio-inteligente/export-word";
 import { exportarPdfAbnt } from "@/lib/relatorio-inteligente/export-pdf-abnt";
+import {
+  listarModelos, salvarModelo, excluirModelo, toggleFavorito,
+  exportarModeloJson, importarModeloJson,
+  listarHistorico, registrarHistorico, limparHistorico,
+  type ModeloSalvo, type EntradaHistorico,
+} from "@/lib/relatorio-inteligente/modelos";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
   component: RelatorioInteligentePage,
@@ -72,6 +83,8 @@ function Wizard() {
   const [textFilter, setTextFilter] = useState("");
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
+  const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
+  const [modeloAtualNome, setModeloAtualNome] = useState<string>("");
 
   function escolherTipo(t: TipoRelatorio) {
     setTipo(t);
@@ -88,8 +101,23 @@ function Wizard() {
     setBlocks((prev) => prev.map((b) => (b.blockId === id ? { ...b, ...patch } : b)));
   }
 
+  function carregarModelo(m: ModeloSalvo) {
+    setTipo(m.tipo as TipoRelatorio);
+    setBlocks(m.blocks);
+    setTextFilter(m.textFilter ?? "");
+    setFormato((m.formato as Formato) ?? "pdf");
+    setModeloAtualId(m.id);
+    setModeloAtualNome(m.nome);
+    toast.success(`Modelo "${m.nome}" carregado.`);
+  }
+
   return (
     <div className="space-y-4">
+      <ModelosBar
+        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome }}
+        onLoad={carregarModelo}
+        onSaved={(m) => { setModeloAtualId(m.id); setModeloAtualNome(m.nome); }}
+      />
       <Stepper step={step} />
       <div className="rounded-lg border bg-card p-4">
         {step === 1 && <StepConteudo tipo={tipo} setTipo={escolherTipo} blocks={blocks} toggle={toggleBloco} />}
@@ -103,6 +131,7 @@ function Wizard() {
             tipo={tipo} blocks={blocks} textFilter={textFilter}
             formato={formato} setFormato={setFormato}
             gerando={gerando} setGerando={setGerando}
+            nomeAtual={modeloAtualNome}
           />
         )}
       </div>
