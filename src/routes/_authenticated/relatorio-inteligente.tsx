@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PermissionGate } from "@/components/permission-gate";
+import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { toast } from "sonner";
 
 import { useGerencial } from "@/hooks/use-gerencial";
@@ -66,6 +67,7 @@ function RelatorioInteligentePage() {
           title="⭐ Gerador Corporativo de Relatórios Gerenciais"
           description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
         />
+        <RelatoriosTabs />
         <Wizard />
       </div>
     </PermissionGate>
