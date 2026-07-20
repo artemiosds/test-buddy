@@ -234,3 +234,217 @@ export async function getIndicadoresResumo(): Promise<IndicadoresResumo> {
     porSetor: group(profs, (p) => (p.setor_id ? mS[p.setor_id] ?? "—" : "Sem setor")).slice(0, 20),
   };
 }
+
+// ==================== ONDA 2 ====================
+// Relatórios gerenciais de Unidades, Setores, Cargos e Funções.
+// Todas as queries são client-side (RLS). Contagens de profissionais
+// são feitas em memória a partir de um SELECT enxuto de profissionais.
+
+type ProfMini = {
+  id: string;
+  unidade_id: string | null;
+  setor_id: string | null;
+  cargo_id: string | null;
+  funcao_id: string | null;
+  status: string | null;
+};
+
+async function loadProfissionaisMini(): Promise<ProfMini[]> {
+  const { data, error } = await supabase
+    .from("profissionais")
+    .select("id, unidade_id, setor_id, cargo_id, funcao_id, status")
+    .is("deleted_at", null);
+  if (error) throw error;
+  return (data ?? []) as ProfMini[];
+}
+
+function countBy<T, K extends string>(rows: T[], keyFn: (r: T) => K | null | undefined) {
+  const m = new Map<K, number>();
+  for (const r of rows) {
+    const k = keyFn(r);
+    if (k == null) continue;
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return m;
+}
+
+// -------- Unidades --------
+
+export type UnidadeRow = {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  tipo_unidade: string | null;
+  status: string;
+  cnes: string | null;
+  cnpj: string | null;
+  telefone: string | null;
+  email_institucional: string | null;
+  responsavel_nome: string | null;
+  distrito: string | null;
+  municipio: string | null;
+  qtd_profissionais: number;
+  qtd_ativos: number;
+};
+
+export type UnidadePreset =
+  | "todas"
+  | "ativas"
+  | "inativas"
+  | "sem_diretor"
+  | "sem_telefone"
+  | "sem_cnes"
+  | "sem_cnpj"
+  | "sem_email"
+  | "sem_tipo";
+
+export async function listUnidadesGerencial(preset: UnidadePreset = "todas", tipo?: string | null): Promise<UnidadeRow[]> {
+  const { data, error } = await supabase
+    .from("unidades")
+    .select("id, nome, sigla, tipo_unidade, status, cnes, cnpj, telefone, email_institucional, responsavel_nome, distrito, municipio")
+    .is("deleted_at", null)
+    .order("nome");
+  if (error) throw error;
+  const profs = await loadProfissionaisMini();
+  const totalMap = countBy(profs, (p) => p.unidade_id);
+  const ativoMap = countBy(profs.filter((p) => p.status === "ativo"), (p) => p.unidade_id);
+
+  let rows = (data ?? []).map((u): UnidadeRow => ({
+    ...u,
+    qtd_profissionais: totalMap.get(u.id) ?? 0,
+    qtd_ativos: ativoMap.get(u.id) ?? 0,
+  }));
+  if (tipo) rows = rows.filter((r) => (r.tipo_unidade ?? "").toLowerCase() === tipo.toLowerCase());
+  switch (preset) {
+    case "ativas": rows = rows.filter((r) => r.status === "ativa"); break;
+    case "inativas": rows = rows.filter((r) => r.status !== "ativa"); break;
+    case "sem_diretor": rows = rows.filter((r) => !r.responsavel_nome); break;
+    case "sem_telefone": rows = rows.filter((r) => !r.telefone); break;
+    case "sem_cnes": rows = rows.filter((r) => !r.cnes); break;
+    case "sem_cnpj": rows = rows.filter((r) => !r.cnpj); break;
+    case "sem_email": rows = rows.filter((r) => !r.email_institucional); break;
+    case "sem_tipo": rows = rows.filter((r) => !r.tipo_unidade); break;
+  }
+  return rows;
+}
+
+export async function listTiposUnidade(): Promise<string[]> {
+  const { data, error } = await supabase.from("unidades").select("tipo_unidade").is("deleted_at", null);
+  if (error) throw error;
+  const set = new Set<string>();
+  for (const r of data ?? []) if (r.tipo_unidade) set.add(r.tipo_unidade);
+  return Array.from(set).sort();
+}
+
+// -------- Setores --------
+
+export type SetorRow = {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  unidade_id: string;
+  unidade_nome: string | null;
+  status: string;
+  responsavel_nome: string | null;
+  qtd_profissionais: number;
+};
+
+export type SetorPreset = "todos" | "sem_coordenador" | "sem_profissionais" | "um_servidor";
+
+export async function listSetoresGerencial(preset: SetorPreset = "todos", unidadeId?: string | null): Promise<SetorRow[]> {
+  let q = supabase
+    .from("setores")
+    .select("id, nome, sigla, unidade_id, status, responsavel_nome")
+    .is("deleted_at", null)
+    .order("nome");
+  if (unidadeId) q = q.eq("unidade_id", unidadeId);
+  const { data, error } = await q;
+  if (error) throw error;
+
+  const setores = data ?? [];
+  const unidadeIds = Array.from(new Set(setores.map((s) => s.unidade_id)));
+  const [uRes, profs] = await Promise.all([
+    unidadeIds.length
+      ? supabase.from("unidades").select("id, nome").in("id", unidadeIds)
+      : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null as never }),
+    loadProfissionaisMini(),
+  ]);
+  const mU = (uRes.data ?? []).reduce<Record<string, string>>((a, r) => ((a[r.id] = r.nome), a), {});
+  const countMap = countBy(profs, (p) => p.setor_id);
+
+  let rows: SetorRow[] = setores.map((s) => ({
+    ...s,
+    unidade_nome: mU[s.unidade_id] ?? null,
+    qtd_profissionais: countMap.get(s.id) ?? 0,
+  }));
+  switch (preset) {
+    case "sem_coordenador": rows = rows.filter((r) => !r.responsavel_nome); break;
+    case "sem_profissionais": rows = rows.filter((r) => r.qtd_profissionais === 0); break;
+    case "um_servidor": rows = rows.filter((r) => r.qtd_profissionais === 1); break;
+  }
+  return rows;
+}
+
+// -------- Cargos --------
+
+export type CargoRow = {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  cbo: string | null;
+  nivel: string | null;
+  status: string;
+  qtd_profissionais: number;
+};
+
+export type CargoPreset = "todos" | "sem_profissionais" | "com_profissionais";
+
+export async function listCargosGerencial(preset: CargoPreset = "todos"): Promise<CargoRow[]> {
+  const { data, error } = await supabase
+    .from("cargos")
+    .select("id, nome, codigo, cbo, nivel, status")
+    .is("deleted_at", null)
+    .order("nome");
+  if (error) throw error;
+  const profs = await loadProfissionaisMini();
+  const countMap = countBy(profs, (p) => p.cargo_id);
+  let rows: CargoRow[] = (data ?? []).map((c) => ({
+    ...c,
+    nivel: (c.nivel as string | null) ?? null,
+    qtd_profissionais: countMap.get(c.id) ?? 0,
+  }));
+  if (preset === "sem_profissionais") rows = rows.filter((r) => r.qtd_profissionais === 0);
+  if (preset === "com_profissionais") rows = rows.filter((r) => r.qtd_profissionais > 0);
+  return rows;
+}
+
+// -------- Funções --------
+
+export type FuncaoRow = {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  gratificacao_percentual: number | null;
+  status: string;
+  qtd_profissionais: number;
+};
+
+export type FuncaoPreset = "todas" | "sem_profissionais" | "com_profissionais";
+
+export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Promise<FuncaoRow[]> {
+  const { data, error } = await supabase
+    .from("funcoes")
+    .select("id, nome, codigo, gratificacao_percentual, status")
+    .is("deleted_at", null)
+    .order("nome");
+  if (error) throw error;
+  const profs = await loadProfissionaisMini();
+  const countMap = countBy(profs, (p) => p.funcao_id);
+  let rows: FuncaoRow[] = (data ?? []).map((f) => ({
+    ...f,
+    qtd_profissionais: countMap.get(f.id) ?? 0,
+  }));
+  if (preset === "sem_profissionais") rows = rows.filter((r) => r.qtd_profissionais === 0);
+  if (preset === "com_profissionais") rows = rows.filter((r) => r.qtd_profissionais > 0);
+  return rows;
+}
