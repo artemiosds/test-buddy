@@ -53,8 +53,10 @@ import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authentica
 import { Route as AuthenticatedRelatoriosGerenciaisUnidadesRouteImport } from './routes/_authenticated/relatorios-gerenciais.unidades'
 import { Route as AuthenticatedRelatoriosGerenciaisSetoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.setores'
 import { Route as AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport } from './routes/_authenticated/relatorios-gerenciais.profissionais'
+import { Route as AuthenticatedRelatoriosGerenciaisPisoRouteImport } from './routes/_authenticated/relatorios-gerenciais.piso'
 import { Route as AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.indicadores'
 import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './routes/_authenticated/relatorios-gerenciais.funcoes'
+import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
 import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
 import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
@@ -314,6 +316,12 @@ const AuthenticatedRelatoriosGerenciaisProfissionaisRoute =
     path: '/profissionais',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
+const AuthenticatedRelatoriosGerenciaisPisoRoute =
+  AuthenticatedRelatoriosGerenciaisPisoRouteImport.update({
+    id: '/piso',
+    path: '/piso',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
 const AuthenticatedRelatoriosGerenciaisIndicadoresRoute =
   AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport.update({
     id: '/indicadores',
@@ -324,6 +332,12 @@ const AuthenticatedRelatoriosGerenciaisFuncoesRoute =
   AuthenticatedRelatoriosGerenciaisFuncoesRouteImport.update({
     id: '/funcoes',
     path: '/funcoes',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisEstruturaRoute =
+  AuthenticatedRelatoriosGerenciaisEstruturaRouteImport.update({
+    id: '/estrutura',
+    path: '/estrutura',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
 const AuthenticatedRelatoriosGerenciaisCargosRoute =
@@ -462,8 +476,10 @@ export interface FileRoutesByFullPath {
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
   '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
   '/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
@@ -523,8 +539,10 @@ export interface FileRoutesByTo {
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
   '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
   '/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
@@ -587,8 +605,10 @@ export interface FileRoutesById {
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  '/_authenticated/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/_authenticated/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
   '/_authenticated/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  '/_authenticated/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/_authenticated/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/_authenticated/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
   '/_authenticated/relatorios-gerenciais/unidades': typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
@@ -651,8 +671,10 @@ export interface FileRouteTypes {
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
+    | '/relatorios-gerenciais/estrutura'
     | '/relatorios-gerenciais/funcoes'
     | '/relatorios-gerenciais/indicadores'
+    | '/relatorios-gerenciais/piso'
     | '/relatorios-gerenciais/profissionais'
     | '/relatorios-gerenciais/setores'
     | '/relatorios-gerenciais/unidades'
@@ -712,8 +734,10 @@ export interface FileRouteTypes {
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
+    | '/relatorios-gerenciais/estrutura'
     | '/relatorios-gerenciais/funcoes'
     | '/relatorios-gerenciais/indicadores'
+    | '/relatorios-gerenciais/piso'
     | '/relatorios-gerenciais/profissionais'
     | '/relatorios-gerenciais/setores'
     | '/relatorios-gerenciais/unidades'
@@ -775,8 +799,10 @@ export interface FileRouteTypes {
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/relatorios-gerenciais/auditoria'
     | '/_authenticated/relatorios-gerenciais/cargos'
+    | '/_authenticated/relatorios-gerenciais/estrutura'
     | '/_authenticated/relatorios-gerenciais/funcoes'
     | '/_authenticated/relatorios-gerenciais/indicadores'
+    | '/_authenticated/relatorios-gerenciais/piso'
     | '/_authenticated/relatorios-gerenciais/profissionais'
     | '/_authenticated/relatorios-gerenciais/setores'
     | '/_authenticated/relatorios-gerenciais/unidades'
@@ -1111,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
+    '/_authenticated/relatorios-gerenciais/piso': {
+      id: '/_authenticated/relatorios-gerenciais/piso'
+      path: '/piso'
+      fullPath: '/relatorios-gerenciais/piso'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
     '/_authenticated/relatorios-gerenciais/indicadores': {
       id: '/_authenticated/relatorios-gerenciais/indicadores'
       path: '/indicadores'
@@ -1123,6 +1156,13 @@ declare module '@tanstack/react-router' {
       path: '/funcoes'
       fullPath: '/relatorios-gerenciais/funcoes'
       preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/estrutura': {
+      id: '/_authenticated/relatorios-gerenciais/estrutura'
+      path: '/estrutura'
+      fullPath: '/relatorios-gerenciais/estrutura'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
     '/_authenticated/relatorios-gerenciais/cargos': {
@@ -1264,8 +1304,10 @@ const AuthenticatedProfissionaisRouteWithChildren =
 interface AuthenticatedRelatoriosGerenciaisRouteChildren {
   AuthenticatedRelatoriosGerenciaisAuditoriaRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   AuthenticatedRelatoriosGerenciaisCargosRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRoute
+  AuthenticatedRelatoriosGerenciaisEstruturaRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   AuthenticatedRelatoriosGerenciaisFuncoesRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
   AuthenticatedRelatoriosGerenciaisIndicadoresRoute: typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
+  AuthenticatedRelatoriosGerenciaisPisoRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   AuthenticatedRelatoriosGerenciaisProfissionaisRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   AuthenticatedRelatoriosGerenciaisSetoresRoute: typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
   AuthenticatedRelatoriosGerenciaisUnidadesRoute: typeof AuthenticatedRelatoriosGerenciaisUnidadesRoute
@@ -1278,10 +1320,14 @@ const AuthenticatedRelatoriosGerenciaisRouteChildren: AuthenticatedRelatoriosGer
       AuthenticatedRelatoriosGerenciaisAuditoriaRoute,
     AuthenticatedRelatoriosGerenciaisCargosRoute:
       AuthenticatedRelatoriosGerenciaisCargosRoute,
+    AuthenticatedRelatoriosGerenciaisEstruturaRoute:
+      AuthenticatedRelatoriosGerenciaisEstruturaRoute,
     AuthenticatedRelatoriosGerenciaisFuncoesRoute:
       AuthenticatedRelatoriosGerenciaisFuncoesRoute,
     AuthenticatedRelatoriosGerenciaisIndicadoresRoute:
       AuthenticatedRelatoriosGerenciaisIndicadoresRoute,
+    AuthenticatedRelatoriosGerenciaisPisoRoute:
+      AuthenticatedRelatoriosGerenciaisPisoRoute,
     AuthenticatedRelatoriosGerenciaisProfissionaisRoute:
       AuthenticatedRelatoriosGerenciaisProfissionaisRoute,
     AuthenticatedRelatoriosGerenciaisSetoresRoute:
