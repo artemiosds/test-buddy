@@ -33,7 +33,11 @@ import {
 import {
   commitImportPiso,
   matchProfissionaisImport,
+  listMapeamentos,
+  saveMapeamento,
 } from "@/lib/piso-enfermagem.functions";
+import { bestFuzzy } from "@/lib/piso-fuzzy";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/piso-enfermagem/importar")({
   component: () => (
@@ -103,11 +107,20 @@ function ImportarPage() {
     mutationFn: async () => {
       const cpfCol = Object.entries(mapeamento).find(([, d]) => d === "cpf")?.[0];
       const matCol = Object.entries(mapeamento).find(([, d]) => d === "matricula")?.[0];
+      const nomeCol = Object.entries(mapeamento).find(([, d]) => d === "nome")?.[0];
       const cpfs = cpfCol ? rawRows.map((r) => String(r[cpfCol] ?? "").replace(/\D+/g, "")).filter(Boolean) : [];
       const mats = matCol ? rawRows.map((r) => String(r[matCol] ?? "").trim()).filter(Boolean) : [];
-      const maps = await matchProfissionaisImport({ data: { cpfs, matriculas: mats } });
-      const rows = resolveRows(rawRows, mapeamento, maps);
-      setResolved(rows);
+      const nomes = nomeCol ? rawRows.map((r) => String(r[nomeCol] ?? "").trim()).filter(Boolean) : [];
+      const maps = await matchProfissionaisImport({ data: { cpfs, matriculas: mats, nomes } });
+      const rows = resolveRows(rawRows, mapeamento, { byCpf: maps.byCpf, byMatricula: maps.byMatricula });
+      // Fase 2: complementa com fuzzy por nome quando não localizado por CPF/matrícula
+      const candidatos = maps.candidatos ?? [];
+      const enriched = rows.map((r) => {
+        if (r.status_match !== "nao_localizado" || !r.nome) return r;
+        const hit = bestFuzzy(r.nome, candidatos, 0.85);
+        return hit ? { ...r, profissional_id: hit.id, status_match: "nome" as const } : r;
+      });
+      setResolved(enriched);
       setPasso(3);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao consultar profissionais"),
@@ -132,6 +145,22 @@ function ImportarPage() {
   });
 
   const stats = useMemo(() => statsFrom(resolved), [resolved]);
+
+  const savedQ = useQuery({
+    queryKey: ["piso", "mapeamentos", modelo],
+    queryFn: () => listMapeamentos({ data: { modelo } }),
+  });
+
+  const saveMap = useMutation({
+    mutationFn: async (nome: string) => {
+      await saveMapeamento({
+        data: { nome, modelo, mapeamento: mapeamento as Record<string, string | null> },
+      });
+      toast.success("Modelo salvo.");
+      void savedQ.refetch();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao salvar modelo"),
+  });
 
   return (
     <div className="space-y-4 p-4 md:p-6">
@@ -194,9 +223,36 @@ function ImportarPage() {
 
       {passo === 2 && (
         <div className="space-y-3 rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">
-            Sistema sugere o mapeamento pelo nome da coluna. Ajuste conforme necessário.
-          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <p className="mr-auto text-sm text-muted-foreground">
+              Sistema sugere o mapeamento pelo nome da coluna. Ajuste conforme necessário.
+            </p>
+            <div className="min-w-56 space-y-1">
+              <Label className="text-xs">Modelos salvos</Label>
+              <Select
+                onValueChange={(id) => {
+                  const item = savedQ.data?.rows.find((r) => r.id === id);
+                  if (item) setMapeamento(item.mapeamento as Mapeamento);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Carregar modelo…" /></SelectTrigger>
+                <SelectContent>
+                  {(savedQ.data?.rows ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const nome = window.prompt("Nome do modelo:");
+                if (nome && nome.trim()) saveMap.mutate(nome.trim());
+              }}
+            >
+              Salvar modelo
+            </Button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left">
