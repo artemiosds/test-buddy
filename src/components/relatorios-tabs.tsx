@@ -7,6 +7,7 @@ const TABS = [
   { to: "/relatorios-consolidado", label: "Consolidado" },
   { to: "/relatorios-status", label: "Status por Unidade" },
   { to: "/relatorios-profissional", label: "Por Profissional" },
+  { to: "/relatorios-piso", label: "Piso Enfermagem" },
 ] as const;
 
 export function RelatoriosTabs() {
