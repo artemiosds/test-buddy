@@ -763,6 +763,17 @@ function StepExportar({
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
   const alertas = useMemo(() => (ger.data ? ger.data.alertas : []), [ger.data]);
+  const indice = useMemo<IndiceAutomatico | null>(() => {
+    if (!ger.data || !built.length) return null;
+    return calcularIndice({
+      aggregate: ger.data,
+      blocos: built.map((b) => ({ block: b.block, rows: b.rawRows, fields: b.cfg.fields })),
+    });
+  }, [ger.data, built]);
+  const pareceres = useMemo<ParecerBloco[]>(
+    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    [built],
+  );
 
   if (loading) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Preparando exportação…</div>;
   if (error) return <EmptyState title="Falha" description={String((error as Error)?.message ?? "")} />;
@@ -784,15 +795,25 @@ function StepExportar({
       }));
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `relatorio-${tipo}-${stamp}`;
+      const tituloRel = `Relatório Gerencial — ${labelTipo(tipo)}`;
+      const subtitulo = `Gerado em ${new Date().toLocaleString("pt-BR")} · ${blocosExp.length} bloco(s)`;
       if (formato === "pdf") {
         await exportarPdfMulti({
-          filename,
-          titulo: `Relatório Gerencial — ${labelTipo(tipo)}`,
-          subtitulo: `Gerado em ${new Date().toLocaleString("pt-BR")} · ${blocosExp.length} bloco(s)`,
-          resumo: parecer,
-          blocos: blocosExp,
+          filename, titulo: tituloRel, subtitulo, resumo: parecer, blocos: blocosExp,
         });
         toast.success("PDF institucional gerado.");
+      } else if (formato === "pdf_abnt") {
+        await exportarPdfAbnt({
+          filename: `${filename}-abnt`, titulo: tituloRel, subtitulo,
+          resumo: parecer, indice: indice ?? undefined, pareceres, blocos: blocosExp,
+        });
+        toast.success("PDF ABNT gerado.");
+      } else if (formato === "word") {
+        exportarWord({
+          filename, titulo: tituloRel, subtitulo,
+          resumo: parecer, indice: indice ?? undefined, pareceres, blocos: blocosExp,
+        });
+        toast.success("Documento Word gerado.");
       } else if (formato === "excel") {
         exportarExcelMulti({ filename, blocos: blocosExp });
         toast.success("Excel multi-aba gerado.");
@@ -810,6 +831,8 @@ function StepExportar({
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 7 · Exportar</h2>
+
+      {indice && <IndiceCard indice={indice} />}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border-l-4 border-primary/70 bg-primary/5 p-3">
@@ -852,9 +875,11 @@ function StepExportar({
 
       <div className="rounded-md border bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Formato</div>
-        <RadioGroup value={formato} onValueChange={(v) => setFormato(v as Formato)} className="grid gap-2 sm:grid-cols-3">
+        <RadioGroup value={formato} onValueChange={(v) => setFormato(v as Formato)} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { v: "pdf" as const, l: "PDF Institucional (multi-bloco com sumário)" },
+            { v: "pdf_abnt" as const, l: "PDF ABNT (capa, sumário, Times 12, 1,5)" },
+            { v: "word" as const, l: "Word (.doc — editável no MS Word)" },
             { v: "excel" as const, l: "Excel (uma aba por bloco)" },
             { v: "csv" as const, l: "CSV (um arquivo por bloco)" },
           ].map(({ v, l }) => (
