@@ -42,7 +42,6 @@ import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
-import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
@@ -241,12 +240,6 @@ const AuthenticatedUnidadesIndexRoute =
     path: '/unidades/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemIndexRoute =
-  AuthenticatedPisoEnfermagemIndexRouteImport.update({
-    id: '/piso-enfermagem/',
-    path: '/piso-enfermagem/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedGestaoPessoasIndexRoute =
   AuthenticatedGestaoPessoasIndexRouteImport.update({
     id: '/gestao-pessoas/',
@@ -392,7 +385,6 @@ export interface FileRoutesByFullPath {
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
-  '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -444,7 +436,6 @@ export interface FileRoutesByTo {
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
-  '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -498,7 +489,6 @@ export interface FileRoutesById {
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
-  '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
@@ -552,7 +542,6 @@ export interface FileRouteTypes {
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas/'
-    | '/piso-enfermagem/'
     | '/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -604,7 +593,6 @@ export interface FileRouteTypes {
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/gestao-pessoas'
-    | '/piso-enfermagem'
     | '/unidades'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -657,7 +645,6 @@ export interface FileRouteTypes {
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/_authenticated/gestao-pessoas/'
-    | '/_authenticated/piso-enfermagem/'
     | '/_authenticated/unidades/'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
@@ -906,13 +893,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/piso-enfermagem/': {
-      id: '/_authenticated/piso-enfermagem/'
-      path: '/piso-enfermagem'
-      fullPath: '/piso-enfermagem/'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/gestao-pessoas/': {
       id: '/_authenticated/gestao-pessoas/'
       path: '/gestao-pessoas'
@@ -1126,7 +1106,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPisoEnfermagemImportarRoute: typeof AuthenticatedPisoEnfermagemImportarRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
-  AuthenticatedPisoEnfermagemIndexRoute: typeof AuthenticatedPisoEnfermagemIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
 }
 
@@ -1177,7 +1156,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedPisoEnfermagemImportarRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
-  AuthenticatedPisoEnfermagemIndexRoute: AuthenticatedPisoEnfermagemIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,
 }
 
