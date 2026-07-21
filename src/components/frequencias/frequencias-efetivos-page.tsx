@@ -21,6 +21,12 @@ import { gerarFolhaEfetivosOficial, type UnidadeFolha } from "@/lib/pdf-folha-ef
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
+import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
+import {
+  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
+  AlertasBotao, DossieDrawer, type SituacaoFilterValue,
+} from "@/components/shared/gerencial";
+import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -86,6 +92,9 @@ export function FrequenciasEfetivosPage() {
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
   const [setorFilter, setSetorFilter] = useState<string>("todos");
+  const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
+  const [dossieOpen, setDossieOpen] = useState(false);
 
   const { data: cargosOpts } = useQuery({
     queryKey: ["cargos-filter"],
@@ -298,6 +307,42 @@ export function FrequenciasEfetivosPage() {
     });
   }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
 
+  // Enriquecimento gerencial (UI-only): usa dados já cadastrados nos
+  // profissionais para derivar situação, alertas e elegibilidade.
+  const idsPagina = useMemo(
+    () => filtradas.map((it: any) => it.profissional.id as string),
+    [filtradas],
+  );
+  const { data: confMap } = useConferenciaProfissionais(idsPagina);
+
+  const linhasConferencia: Array<{ it: any; conf: ProfConferencia }> = useMemo(() => {
+    return filtradas.map((it: any) => {
+      const base: ProfConferencia = {
+        id: it.profissional.id,
+        nome: it.profissional.nome,
+        matricula: it.profissional.matricula ?? null,
+        cargo: it.profissional.cargo ?? null,
+        funcao: it.profissional.funcao ?? null,
+        setor: it.profissional.setor ?? null,
+        cargo_id: it.profissional.cargo_id ?? null,
+        funcao_id: it.profissional.funcao_id ?? null,
+        setor_id: it.profissional.setor_id ?? null,
+        vinculo: "Efetivo",
+      };
+      return { it, conf: mergeConferencia(base, confMap) };
+    });
+  }, [filtradas, confMap]);
+
+  const linhasFinais = useMemo(
+    () =>
+      situacaoFilter === "todas"
+        ? linhasConferencia
+        : linhasConferencia.filter((x) => derivarSituacao(x.conf) === situacaoFilter),
+    [linhasConferencia, situacaoFilter],
+  );
+
+  const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
+
   if (!has("frequencia.visualizar")) {
     return (
       <div className="p-6">
@@ -307,7 +352,12 @@ export function FrequenciasEfetivosPage() {
     );
   }
 
-  const totalCols = 6 /* ref */ + CAMPOS_OFICIAIS.length + 1 /* divisor */ + CAMPOS_SMS.length + 1 /* obs */ + 1 /* status */;
+  const totalCols = 6 /* ref */ + 1 /* situacao */ + CAMPOS_OFICIAIS.length + CAMPOS_SMS.length + 1 /* obs */ + 1 /* status */;
+
+  function openDossie(p: ProfConferencia) {
+    setDossieProf(p);
+    setDossieOpen(true);
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -481,12 +531,22 @@ export function FrequenciasEfetivosPage() {
         </div>
       )}
 
+      {/* Painel gerencial (UI-only) */}
+      <div className="space-y-2 rounded-lg border bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <SituacaoResumo rows={rowsConf} />
+          <AlertasBotao rows={rowsConf} onSelectProfissional={openDossie} />
+        </div>
+        <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
+      </div>
+
       <div className="rounded-md border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase tracking-wide">
             <tr>
               <th className="text-left px-2 py-2 whitespace-nowrap" rowSpan={2}>Matrícula</th>
               <th className="text-left px-2 py-2 min-w-[180px]" rowSpan={2}>Nome</th>
+              <th className="text-left px-2 py-2 whitespace-nowrap" rowSpan={2}>Situação</th>
               <th className="text-right px-2 py-2" rowSpan={2}>Proj</th>
               <th className="text-right px-2 py-2" rowSpan={2}>H.P</th>
               <th className="text-right px-2 py-2" rowSpan={2}>C.H</th>
@@ -529,12 +589,12 @@ export function FrequenciasEfetivosPage() {
             {isFetching && (
               <tr><td colSpan={totalCols} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
             )}
-            {!isFetching && filtradas.length === 0 && (
+            {!isFetching && linhasFinais.length === 0 && (
               <tr><td colSpan={totalCols} className="px-3 py-6 text-center text-muted-foreground">
                 Nenhum servidor efetivo nesta unidade.
               </td></tr>
             )}
-            {filtradas.map((it: any) => {
+            {linhasFinais.map(({ it, conf }) => {
               const p = it.profissional;
               const l = linhas[p.id];
               const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
@@ -542,7 +602,14 @@ export function FrequenciasEfetivosPage() {
               return (
                 <tr key={p.id} className="border-t align-top hover:bg-muted/20">
                   <td className="px-2 py-1.5 font-mono text-xs">{p.matricula ?? "-"}</td>
-                  <td className="px-2 py-1.5">{p.nome}</td>
+                  <td className="px-2 py-1.5">
+                    <ProfissionalNomeCell
+                      prof={conf}
+                      onOpenDossie={openDossie}
+                      secondary={p.cargo}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5"><SituacaoBadge prof={conf} /></td>
                   <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.proj ?? "-"}</td>
                   <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.h_p ?? "-"}</td>
                   <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.c_h ?? "-"}</td>
@@ -595,6 +662,8 @@ export function FrequenciasEfetivosPage() {
         vêm do cadastro do profissional. Os campos em amarelo (<em>Férias indicativo</em>, <em>Licença-Prêmio</em>)
         são controles internos da SMS e não fazem parte do modelo oficial da Prefeitura.
       </p>
+
+      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
     </div>
   );
 }
