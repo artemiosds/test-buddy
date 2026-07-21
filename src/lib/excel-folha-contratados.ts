@@ -126,9 +126,9 @@ export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): 
   ];
 
   ws["!cols"] = [
-    { wch: 4 }, { wch: 34 }, { wch: 16 }, { wch: 24 }, { wch: 22 },
-    { wch: 6 }, { wch: 7 }, { wch: 6 }, { wch: 9 }, { wch: 9 }, { wch: 6 },
-    { wch: 10 }, { wch: 12 }, { wch: 11 }, { wch: 34 },
+    { wch: 4 }, { wch: 36 }, { wch: 16 }, { wch: 26 }, { wch: 26 },
+    { wch: 7 }, { wch: 7 }, { wch: 7 }, { wch: 10 }, { wch: 10 }, { wch: 7 },
+    { wch: 12 }, { wch: 14 }, { wch: 13 }, { wch: 44 },
   ];
 
   const wb = XLSX.utils.book_new();
