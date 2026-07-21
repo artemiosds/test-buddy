@@ -419,6 +419,19 @@ export function FrequenciasContratadosPage() {
     [linhasConferencia, situacaoFilter],
   );
 
+  // Lotação = nome da unidade selecionada, exceto quando a unidade for do
+  // tipo UBS ("Atenção Básica") — nesse caso mostramos o setor do
+  // profissional. Regra pedida pela SMS: só a Atenção Básica é
+  // gerenciada por setor; nas demais a lotação é a própria unidade.
+  const tipoUnidade = String((unidadeSel as any)?.tipo_unidade ?? "").toUpperCase();
+  const isAtencaoBasica =
+    tipoUnidade === "UBS" ||
+    tipoUnidade.includes("ATEN") /* ATENÇÃO BÁSICA / ATENCAO BASICA */;
+  const lotacaoDe = (conf: ProfConferencia): string | null => {
+    if (isAtencaoBasica) return conf.setor ?? null;
+    return (unidadeSel as any)?.nome ?? conf.setor ?? null;
+  };
+
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
 
   function openDossie(p: ProfConferencia) {
