@@ -398,9 +398,9 @@
 /* ---------- Cards ---------- */
 [data-slot="card"] {
   border-radius: 18px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #E2E8F0;
   background: var(--color-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   padding: 0;
   transition: transform var(--dur-base) var(--ease-enterprise),
               box-shadow var(--dur-base) var(--ease-enterprise),
@@ -408,7 +408,7 @@
 }
 [data-slot="card"]:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 14px 32px -8px rgba(15, 23, 42, 0.14);
 }
 [data-slot="card-header"],
 [data-slot="card-content"],
@@ -423,7 +423,8 @@
 /* ---------- Sidebar ---------- */
 [data-slot="sidebar-container"],
 [data-sidebar="sidebar"] {
-  --sidebar-width: 260px;
+  --sidebar-width: 280px;
+  box-shadow: 6px 0 18px rgba(15, 23, 42, 0.12);
 }
 [data-sidebar="group"] { padding: 12px 12px; }
 [data-sidebar="group"] + [data-sidebar="group"] { margin-top: 8px; }
@@ -444,18 +445,23 @@
               transform var(--dur-fast) var(--ease-enterprise);
 }
 [data-sidebar="menu-button"]:hover {
-  background: #334155 !important;
-  color: #fff !important;
+  background: #163B6D !important;
+  color: #F8FAFC !important;
 }
 [data-sidebar="menu-button"][data-active="true"] {
-  background: #0F766E !important;
-  color: #fff !important;
+  background: #1E4E8C !important;
+  color: #F8FAFC !important;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.35);
+  box-shadow: 0 1px 2px rgba(30, 78, 140, 0.4);
 }
 [data-sidebar="menu-button"] svg {
-  width: 20px; height: 20px;
+  width: 22px; height: 22px;
   stroke-width: 1.75;
+  color: #CBD5E1;
+}
+[data-sidebar="menu-button"][data-active="true"] svg,
+[data-sidebar="menu-button"]:hover svg {
+  color: #F8FAFC;
 }
 [data-sidebar="menu"] { gap: 2px; }
 
@@ -502,8 +508,8 @@ header[data-slot="topbar"],
 [data-slot="input"]:focus-visible,
 [data-slot="select-trigger"]:focus-visible,
 [data-slot="textarea"]:focus-visible {
-  border-color: #0F766E !important;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15) !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
   outline: none !important;
 }
 [data-slot="input"]::placeholder,
@@ -531,7 +537,7 @@ header[data-slot="topbar"],
 }
 [data-slot="table-row"]:hover,
 [data-slot="table"] tbody tr:hover {
-  background: #F1F5F9;
+  background: #EEF4FF;
 }
 
 /* ---------- Badges ---------- */
