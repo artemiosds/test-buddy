@@ -31,6 +31,7 @@ import {
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -118,6 +119,7 @@ function toKey(ano: number, mes: number): number {
 function RelatorioProfissionalPage() {
   const { has, isLoading: permLoading } = usePermissions();
   const { data: me } = useCurrentUser();
+  const pedirTermo = useTermoAceite();
   const isMaster = !!me?.is_master;
   const canView = isMaster || has("relatorio.visualizar");
   const canExport = isMaster || has("relatorio.exportar");
@@ -279,6 +281,12 @@ function RelatorioProfissionalPage() {
       toast.error("Nada para exportar.");
       return;
     }
+    const ok = await pedirTermo({
+      nome: me?.nome_completo,
+      cargo: me?.perfil_nome,
+      documento: `Histórico do Profissional — ${profSelecionado?.nome_completo ?? ""}`,
+    });
+    if (!ok) return;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const info = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(
@@ -328,6 +336,7 @@ function RelatorioProfissionalPage() {
           tipo,
           linhas: linhasFiltradas.length,
         },
+        termoAceite: true,
       });
       drawSignatureStamp(doc, sig);
       _sigProf = sig;
