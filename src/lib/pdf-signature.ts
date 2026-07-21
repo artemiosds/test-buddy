@@ -1,5 +1,6 @@
 import type jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
+import { capturarMetadadosDocumento } from "./documento-metadata.functions";
 
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -14,6 +15,7 @@ export type SignInput = {
   referencia_id?: string | null;
   descricao: string;
   dados: Record<string, unknown>;
+  termoAceite?: boolean;
 };
 
 export type SignResult = {
@@ -23,6 +25,8 @@ export type SignResult = {
   qrDataUrl: string;
   assinadoEm: string;
   assinadoPorNome: string | null;
+  timestampConfiavel?: string;
+  timestampFonte?: string;
 };
 
 async function createQrDataUrl(text: string): Promise<string> {
@@ -41,13 +45,26 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
   const user = userData.user;
   if (!user) throw new Error("Não autenticado");
 
+  if (input.termoAceite === false) {
+    throw new Error("É necessário aceitar o termo de assinatura eletrônica");
+  }
+
   const { data: perfil } = await supabase
     .from("usuarios")
     .select("nome_completo")
     .eq("id", user.id)
     .maybeSingle();
 
-  const assinadoEm = new Date().toISOString();
+  // Metadados: IP + timestamp confiável (NTP com fallback)
+  let meta = { ip: null as string | null, timestampConfiavel: new Date().toISOString(), timestampFonte: "servidor" };
+  try {
+    meta = await capturarMetadadosDocumento();
+  } catch {
+    /* fallback silencioso */
+  }
+  const assinadoEm = meta.timestampConfiavel;
+  const userAgent = typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 512) : null;
+
   const payload = JSON.stringify({
     tipo: input.tipo,
     referencia_id: input.referencia_id ?? null,
@@ -69,6 +86,11 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
       assinado_por: user.id,
       assinado_por_nome: perfil?.nome_completo ?? user.email ?? null,
       assinado_em: assinadoEm,
+      ip_origem: meta.ip,
+      user_agent: userAgent,
+      termo_aceite: input.termoAceite ?? true,
+      timestamp_confiavel: meta.timestampConfiavel,
+      timestamp_fonte: meta.timestampFonte,
     })
     .select("id, assinado_em, assinado_por_nome")
     .single();
@@ -85,7 +107,33 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
     qrDataUrl,
     assinadoEm: data.assinado_em,
     assinadoPorNome: data.assinado_por_nome,
+    timestampConfiavel: meta.timestampConfiavel,
+    timestampFonte: meta.timestampFonte,
   };
+}
+
+/**
+ * Faz upload do PDF gerado ao bucket privado `documentos-assinados` e
+ * grava o caminho em `pdf_storage_path` para reemissão fiel.
+ * Falhas de upload não invalidam a assinatura (best effort).
+ */
+export async function armazenarPdfAssinado(sig: SignResult, blob: Blob): Promise<void> {
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const path = `${uid}/${sig.id}.pdf`;
+    const up = await supabase.storage
+      .from("documentos-assinados")
+      .upload(path, blob, { contentType: "application/pdf", upsert: true });
+    if (up.error) return;
+    await supabase
+      .from("documentos_assinados")
+      .update({ pdf_storage_path: path })
+      .eq("id", sig.id);
+  } catch {
+    /* best effort */
+  }
 }
 
 /**
