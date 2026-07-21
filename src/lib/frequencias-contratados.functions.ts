@@ -13,6 +13,7 @@ const NUM = z.number().nonnegative();
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
+  dias_trabalhados: NUM.default(0),
   dias_falta: NUM.default(0),
   atestado: NUM.default(0),
   he_50: NUM.default(0),
@@ -36,7 +37,7 @@ const EnviarSchema = z.object({
 });
 
 const PAYLOAD_FIELDS = [
-  "dias_falta","atestado","he_50","he_100","adn",
+  "dias_trabalhados","dias_falta","atestado","he_50","he_100","adn",
   "plantoes","sobreaviso","incentivo","observacoes",
 ] as const;
 
