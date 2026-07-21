@@ -749,8 +749,15 @@ function ProfissionaisPage() {
     },
     {
       key: "status",
-      header: "Status",
-      cell: (p) => <StatusBadge domain="profissional" value={p.status} />,
+      header: "Situação",
+      cell: (p) => {
+        // Prioriza a "Situação funcional" (Férias / Licença / Afastado / Cedido /
+        // Desligado / Inativo) definida no cadastro; cai para o status geral.
+        const situ =
+          (p as unknown as { situacao_funcional?: string | null })
+            .situacao_funcional || p.status;
+        return <StatusBadge domain="profissional" value={situ} />;
+      },
     },
     {
       key: "acoes",
