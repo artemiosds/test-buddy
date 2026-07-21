@@ -87,6 +87,7 @@ export type Database = {
       }
       assinaturas_institucionais: {
         Row: {
+          alinhamento: string
           ativa: boolean
           created_at: string
           created_by: string | null
@@ -96,11 +97,16 @@ export type Database = {
           is_pessoal: boolean
           metadata: Json
           mime_type: string | null
+          mostrar_cargo: boolean
+          mostrar_nome: boolean
           obrigatoria: boolean
           ordem: number
           perfil_id: string | null
+          posicao_x: number | null
+          posicao_y: number | null
           secretaria_id: string | null
           storage_path: string
+          tamanho_percentual: number
           tipo: Database["public"]["Enums"]["tipo_assinatura"]
           tipos_documento: string[]
           titular_cargo: string | null
@@ -113,6 +119,7 @@ export type Database = {
           vigencia_inicio: string | null
         }
         Insert: {
+          alinhamento?: string
           ativa?: boolean
           created_at?: string
           created_by?: string | null
@@ -122,11 +129,16 @@ export type Database = {
           is_pessoal?: boolean
           metadata?: Json
           mime_type?: string | null
+          mostrar_cargo?: boolean
+          mostrar_nome?: boolean
           obrigatoria?: boolean
           ordem?: number
           perfil_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
           secretaria_id?: string | null
           storage_path: string
+          tamanho_percentual?: number
           tipo?: Database["public"]["Enums"]["tipo_assinatura"]
           tipos_documento?: string[]
           titular_cargo?: string | null
@@ -139,6 +151,7 @@ export type Database = {
           vigencia_inicio?: string | null
         }
         Update: {
+          alinhamento?: string
           ativa?: boolean
           created_at?: string
           created_by?: string | null
@@ -148,11 +161,16 @@ export type Database = {
           is_pessoal?: boolean
           metadata?: Json
           mime_type?: string | null
+          mostrar_cargo?: boolean
+          mostrar_nome?: boolean
           obrigatoria?: boolean
           ordem?: number
           perfil_id?: string | null
+          posicao_x?: number | null
+          posicao_y?: number | null
           secretaria_id?: string | null
           storage_path?: string
+          tamanho_percentual?: number
           tipo?: Database["public"]["Enums"]["tipo_assinatura"]
           tipos_documento?: string[]
           titular_cargo?: string | null

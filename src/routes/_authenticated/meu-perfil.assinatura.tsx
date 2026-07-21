@@ -13,6 +13,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
+import {
+  SignatureEditor,
+  DEFAULT_POSITION,
+  type SignaturePosition,
+} from "@/components/assinaturas/signature-editor";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({
   component: MinhaAssinaturaPage,
@@ -33,6 +38,12 @@ type Assinatura = {
   vigencia_inicio: string | null;
   vigencia_fim: string | null;
   created_at: string;
+  posicao_x: number | null;
+  posicao_y: number | null;
+  tamanho_percentual: number | null;
+  alinhamento: string | null;
+  mostrar_nome: boolean | null;
+  mostrar_cargo: boolean | null;
 };
 
 function MinhaAssinaturaPage() {
@@ -67,7 +78,7 @@ function MinhaAssinaturaPage() {
     queryFn: async (): Promise<Assinatura[]> => {
       const { data, error } = await supabase
         .from("assinaturas_institucionais")
-        .select("id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at")
+        .select("id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo")
         .eq("usuario_id", me!.id)
         .eq("is_pessoal", true)
         .is("deleted_at", null)
@@ -201,6 +212,7 @@ function UploadForm({
   const [unidadeId, setUnidadeId] = useState<string>(unidades[0]?.id ?? "__todas__");
   const [vigenciaFim, setVigenciaFim] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pos, setPos] = useState<SignaturePosition>(DEFAULT_POSITION);
 
   useEffect(() => {
     if (!file) { setPreview(null); return; }
@@ -244,6 +256,12 @@ function UploadForm({
         tipos_documento: [],
         vigencia_fim: vigenciaFim || null,
         created_by: me.id,
+        posicao_x: pos.posicao_x,
+        posicao_y: pos.posicao_y,
+        tamanho_percentual: pos.tamanho_percentual,
+        alinhamento: pos.alinhamento,
+        mostrar_nome: pos.mostrar_nome,
+        mostrar_cargo: pos.mostrar_cargo,
       });
       if (ins.error) {
         await supabase.storage.from(BUCKET).remove([path]);
@@ -253,6 +271,7 @@ function UploadForm({
       setFile(null);
       setTitularCargo("");
       setVigenciaFim("");
+      setPos(DEFAULT_POSITION);
       onSaved();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
@@ -314,16 +333,15 @@ function UploadForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Pré-visualização</Label>
-        <div className="border rounded-lg p-4 bg-muted/30 min-h-[220px] flex items-center justify-center">
-          {preview ? (
-            <img src={preview} alt="Preview" className="max-h-[200px] object-contain" />
-          ) : (
-            <span className="text-sm text-muted-foreground">Selecione um arquivo para visualizar</span>
-          )}
-        </div>
+        <SignatureEditor
+          imageUrl={preview}
+          value={pos}
+          onChange={setPos}
+          titularNome={titularNome}
+          titularCargo={titularCargo}
+        />
         <p className="text-xs text-muted-foreground">
-          Dica: fotografe a assinatura em papel branco e remova o fundo para PNG transparente.
+          Arraste a assinatura para posicioná-la. Use os sliders ou os botões de alinhamento rápido.
         </p>
       </div>
     </div>
@@ -339,6 +357,16 @@ function AssinaturaCard({
   onDelete: () => void;
 }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [pos, setPos] = useState<SignaturePosition>({
+    posicao_x: row.posicao_x,
+    posicao_y: row.posicao_y,
+    tamanho_percentual: row.tamanho_percentual ?? 80,
+    alinhamento: (row.alinhamento as SignaturePosition["alinhamento"]) ?? "direita",
+    mostrar_nome: row.mostrar_nome ?? true,
+    mostrar_cargo: row.mostrar_cargo ?? true,
+  });
+  const [savingPos, setSavingPos] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -354,6 +382,30 @@ function AssinaturaCard({
     : "Todas as unidades";
 
   const vencida = row.vigencia_fim && new Date(row.vigencia_fim) < new Date();
+
+  async function salvarPosicao() {
+    setSavingPos(true);
+    try {
+      const { error } = await supabase
+        .from("assinaturas_institucionais")
+        .update({
+          posicao_x: pos.posicao_x,
+          posicao_y: pos.posicao_y,
+          tamanho_percentual: pos.tamanho_percentual,
+          alinhamento: pos.alinhamento,
+          mostrar_nome: pos.mostrar_nome,
+          mostrar_cargo: pos.mostrar_cargo,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Posição salva");
+      setEditing(false);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSavingPos(false);
+    }
+  }
 
   return (
     <div className="border rounded-lg p-4 space-y-3 bg-card">
@@ -398,6 +450,36 @@ function AssinaturaCard({
           Vigente até: {new Date(row.vigencia_fim).toLocaleDateString("pt-BR")}
         </div>
       )}
+
+      <div className="pt-2 border-t">
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={() => setEditing((v) => !v)}
+        >
+          {editing ? "Fechar editor" : "Editar posicionamento"}
+        </Button>
+        {editing && (
+          <div className="mt-3 space-y-3">
+            <SignatureEditor
+              imageUrl={signedUrl}
+              value={pos}
+              onChange={setPos}
+              titularNome={row.titular_nome}
+              titularCargo={row.titular_cargo ?? undefined}
+            />
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={salvarPosicao}
+              disabled={savingPos}
+            >
+              {savingPos ? "Salvando…" : "Salvar posicionamento"}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
