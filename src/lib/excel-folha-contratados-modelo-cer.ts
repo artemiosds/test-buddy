@@ -93,13 +93,13 @@ export async function gerarExcelFolhaContratadosModeloCer(
     });
   }
 
-  // Cabeçalho da tabela (linha 6)
   const headers = [
     "Nº","NOME","C.P.F.","CARGO","LOTAÇÃO",
     "DIAS","FALTA","ATT","H.E 50%","H.E 100%","ADN",
     "PLANTÕES","SOBRE-AVISOS","INCENTIVO","CONTA",
   ];
-  const headerRow = ws.getRow(6);
+  // Cabeçalho da tabela (linha 7)
+  const headerRow = ws.getRow(7);
   headerRow.height = 26;
   headers.forEach((h, i) => {
     const c = headerRow.getCell(i + 1);
@@ -114,11 +114,11 @@ export async function gerarExcelFolhaContratadosModeloCer(
   });
 
   // Filtro automático
-  ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: headers.length } };
+  ws.autoFilter = { from: { row: 7, column: 1 }, to: { row: 7, column: headers.length } };
 
   // Dados
   input.itens.forEach((it, i) => {
-    const rowIdx = 7 + i;
+    const rowIdx = 8 + i;
     const p = it.profissional;
     const l = it.linha ?? {};
     const values: Array<string | number> = [
