@@ -1183,6 +1183,9 @@ main > * {
   position: sticky;
   top: 0;
   z-index: 20;
+  background: oklch(0.22 0.03 250); /* slate-900 fallback */
+  color: #fff;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 11px;
