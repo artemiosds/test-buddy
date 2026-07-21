@@ -774,6 +774,8 @@ export function FrequenciasContratadosPage() {
                 const ro = readonlyLinha(l);
                 const situ = derivarSituacao(conf);
                 const semConta = !p.banco || !p.agencia || !p.conta_corrente;
+                const semContaConf =
+                  !conf.banco || !conf.agencia || !conf.conta_corrente;
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
