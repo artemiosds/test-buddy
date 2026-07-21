@@ -841,14 +841,13 @@ export function FrequenciasContratadosPage() {
                       const isDias  = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
                       const isHora  = c === "he_50" || c === "he_100" || c === "adn";
-                      const isInc   = c === "incentivo";
                       return (
                         <td key={c} className="text-center font-mono">
                           <NumberCell
                             rowId={p.id} colKey={c}
                             value={(() => { const v = Number((l as any)[c] ?? 0); return Number.isFinite(v) ? v : 0; })()}
                             disabled={ro}
-                            decimals={isInc ? 2 : 0}
+                            decimals={0}
                             validate={isDias ? validateFalta : isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
                             onChange={(v) => updateCampo(p.id, c, v)}
                           />
@@ -888,9 +887,7 @@ export function FrequenciasContratadosPage() {
                 <td colSpan={3}></td>
                 {CAMPOS_NUM.map((c) => (
                   <td key={c} className="text-center font-mono">
-                    {c === "incentivo"
-                      ? (totCampo[c] ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : (totCampo[c] ?? 0).toLocaleString("pt-BR")}
+                    {(totCampo[c] ?? 0).toLocaleString("pt-BR")}
                   </td>
                 ))}
                 <td></td>
@@ -928,7 +925,7 @@ export function FrequenciasContratadosPage() {
           { key: "adn", label: "Adic. Noturno" },
           { key: "plantoes", label: "Plantões" },
           { key: "sobreaviso", label: "Sobreaviso" },
-          { key: "incentivo", label: "Incentivo", decimals: 2 },
+          { key: "incentivo", label: "Incentivo" },
         ]}
         onChangeCampo={(campo, valor) => {
           if (!dossieProf) return;
