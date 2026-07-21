@@ -1774,3 +1774,65 @@ main,
   background-color: #1E293B;
   border-color: #334155;
 }
+
+/* =========================================================
+   SIDEBAR SLATE CLEAN (Fundo acinzentado/frio com contraste)
+   ========================================================= */
+.sidebar-container,
+.enterprise-sidebar {
+  background-color: #F8FAFC;
+  border-right: 1px solid #E2E8F0;
+}
+.sidebar-search-input {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+}
+.sidebar-nav-item,
+.enterprise-sidebar a {
+  color: #334155;
+  background-color: transparent;
+}
+.sidebar-nav-item:hover,
+.enterprise-sidebar a:hover {
+  background-color: #E2E8F0;
+  color: #0F172A;
+}
+.sidebar-nav-item.active,
+.enterprise-sidebar a.active {
+  background-color: #FFFFFF;
+  color: #2563EB;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  border-left: 3px solid #2563EB;
+}
+.sidebar-footer {
+  background-color: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+}
+
+.dark .sidebar-container,
+.dark .enterprise-sidebar,
+.dark .sidebar-footer {
+  background-color: #0F172A;
+  border-color: #1E293B;
+}
+.dark .sidebar-search-input {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+.dark .sidebar-nav-item,
+.dark .enterprise-sidebar a {
+  color: #CBD5E1;
+}
+.dark .sidebar-nav-item:hover,
+.dark .enterprise-sidebar a:hover {
+  background-color: #1E293B;
+  color: #F8FAFC;
+}
+.dark .sidebar-nav-item.active,
+.dark .enterprise-sidebar a.active {
+  background-color: #1E293B;
+  color: #60A5FA;
+  border-left-color: #60A5FA;
+}
