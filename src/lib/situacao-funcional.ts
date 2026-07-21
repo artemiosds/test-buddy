@@ -26,6 +26,7 @@ export type ProfConferencia = {
   cargo?: string | null;
   funcao?: string | null;
   setor?: string | null;
+  setor_sigla?: string | null;
   banco?: string | null;
   agencia?: string | null;
   conta_corrente?: string | null;
