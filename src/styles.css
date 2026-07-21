@@ -2613,3 +2613,91 @@ input, select, textarea, .input, .select-trigger,
 .dark table tbody tr:nth-child(even) td { background-color: #0F2537; }
 .dark table tbody tr:hover td { background-color: #143653 !important; }
 .dark table td[data-col="nome"], .dark .prof-name-link { color: #93C5FD !important; }
+
+/* =========================================================
+   EMERGENCY CONTRASTE PATCH — RESTAURAÇÃO DE VISIBILIDADE
+   ========================================================= */
+
+/* 1. TEXTOS DO MENU LATERAL */
+.sidebar-container,
+.enterprise-sidebar,
+aside { opacity: 1 !important; }
+
+.sidebar-container a,
+.sidebar-container button,
+.sidebar-container span,
+.enterprise-sidebar a,
+.enterprise-sidebar button,
+.enterprise-sidebar span {
+  color: #1E293B !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-group-title,
+.enterprise-sidebar .group-title {
+  color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* 2. TABELA */
+table th {
+  color: #0F172A !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+  background-color: #E2E8F0 !important;
+}
+
+table td,
+table td span,
+table td p {
+  color: #0F172A !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* 3. BORDAS */
+table,
+table th,
+table td {
+  border: 1px solid #94A3B8 !important;
+  border-collapse: collapse !important;
+}
+
+table tbody tr:nth-child(even) { background-color: #F8FAFC !important; }
+table tbody tr:nth-child(odd)  { background-color: #FFFFFF !important; }
+
+/* 4. RÓTULOS / BREADCRUMBS */
+label,
+.text-muted,
+.breadcrumb,
+span {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+/* 5. HEADER / BRAND */
+.sidebar-header,
+.sidebar-brand {
+  color: #0F172A !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* Dark mode: não deixa o patch vazar */
+.dark .sidebar-container a,
+.dark .sidebar-container button,
+.dark .sidebar-container span,
+.dark .enterprise-sidebar a,
+.dark .enterprise-sidebar button,
+.dark .enterprise-sidebar span { color: #E2E8F0 !important; }
+.dark .sidebar-group-title,
+.dark .enterprise-sidebar .group-title { color: #94A3B8 !important; }
+.dark table th { color: #E2E8F0 !important; background-color: #0F2537 !important; }
+.dark table td, .dark table td span, .dark table td p { color: #E2E8F0 !important; }
+.dark table, .dark table th, .dark table td { border-color: #1E3A55 !important; }
+.dark table tbody tr:nth-child(even) { background-color: #0F2537 !important; }
+.dark table tbody tr:nth-child(odd)  { background-color: #0B2033 !important; }
+.dark label, .dark .text-muted, .dark .breadcrumb, .dark span { color: #CBD5E1 !important; }
+.dark .sidebar-header, .dark .sidebar-brand { color: #F8FAFC !important; }
