@@ -284,19 +284,33 @@ function UnidadesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Unidades</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-6">
+      {/* Header: título + busca + Nova Unidade na mesma linha */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Unidades</h1>
+          <p className="text-sm text-slate-500">
             Cadastro de unidades de saúde vinculadas às secretarias.
           </p>
         </div>
-        {canCreate && (
+        <div className="flex flex-1 items-center gap-3 lg:max-w-xl lg:justify-end">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Buscar por nome, sigla ou CNES"
+              className="h-11 rounded-xl border-slate-200 bg-white pl-9 shadow-sm transition focus-visible:ring-2 focus-visible:ring-teal-500/30"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          {canCreate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openNew}>
-                <Plus className="mr-1 h-4 w-4" /> Nova Unidade
+              <Button
+                onClick={openNew}
+                className="h-11 shrink-0 rounded-xl bg-emerald-500 px-5 font-medium text-white shadow-sm shadow-emerald-500/20 transition hover:-translate-y-px hover:bg-emerald-600 hover:shadow-md hover:shadow-emerald-500/25 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              >
+                <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.25} /> Nova Unidade
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -504,103 +518,121 @@ function UnidadesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )}
+        </div>
+      </div>
+
+      {/* Cabeçalho de colunas (desktop) */}
+      <div className="hidden rounded-xl bg-slate-50/70 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_240px] lg:gap-4">
+        <span>Nome</span>
+        <span>Sigla</span>
+        <span>CNES</span>
+        <span>Secretaria</span>
+        <span>Status</span>
+        <span className="text-right">Ações</span>
+      </div>
+
+      {/* Lista de cards */}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+            Carregando...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+            Nenhuma unidade cadastrada.
+          </div>
+        ) : (
+          filtered.map((u) => (
+            <div
+              key={u.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate({ to: "/unidades/$id", params: { id: u.id } })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate({ to: "/unidades/$id", params: { id: u.id } });
+                }
+              }}
+              className="group grid cursor-pointer grid-cols-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_-1px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-[0_8px_24px_-8px_rgba(15,118,110,0.18),0_4px_10px_-6px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_240px] lg:gap-4"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-semibold text-slate-800 transition group-hover:text-teal-700">
+                  {u.nome}
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400 lg:hidden">
+                  {u.sigla ?? "—"} · CNES {u.cnes ?? "—"}
+                </div>
+              </div>
+              <div className="hidden truncate text-sm text-slate-500 lg:block">{u.sigla ?? "—"}</div>
+              <div className="hidden truncate text-sm text-slate-500 lg:block">{u.cnes ?? "—"}</div>
+              <div className="hidden truncate text-sm text-slate-500 lg:block">
+                {u.secretaria?.sigla ?? u.secretaria?.nome ?? "—"}
+              </div>
+              <div className="flex lg:block">
+                <StatusPill status={u.status} />
+              </div>
+              <div
+                className="flex items-center justify-start gap-2 lg:justify-end"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  asChild
+                  title="Painel da unidade"
+                  className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-slate-600 shadow-none transition hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 hover:shadow-sm"
+                >
+                  <Link to="/unidades/$id" params={{ id: u.id }}>
+                    <LayoutDashboard className="h-4 w-4" strokeWidth={1.75} />
+                  </Link>
+                </Button>
+                {canEdit && (
+                  <Button
+                    onClick={() => openEdit(u)}
+                    className="h-9 rounded-xl bg-sky-500 px-3.5 text-white shadow-sm shadow-sky-500/20 transition hover:-translate-y-px hover:bg-sky-600 hover:shadow-md hover:shadow-sky-500/25"
+                  >
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} /> Editar
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    onClick={() => {
+                      void (async () => {
+                        const ok = await askConfirm({
+                          title: `Arquivar unidade "${u.nome}"?`,
+                          description: "A unidade deixará de aparecer nas listagens ativas.",
+                          tone: "destructive",
+                          confirmLabel: "Arquivar",
+                        });
+                        if (ok) softDelete.mutate(u.id);
+                      })();
+                    }}
+                    className="h-9 rounded-xl border border-rose-100 bg-rose-50 px-3.5 text-rose-600 shadow-none transition hover:-translate-y-px hover:border-rose-200 hover:bg-rose-100 hover:text-rose-700 hover:shadow-sm"
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} /> Excluir
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
         )}
       </div>
-
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, sigla ou CNES"
-          className="pl-8"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-      </div>
-
-      <div className="overflow-hidden rounded-md border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2">Nome</th>
-              <th className="px-4 py-2">Sigla</th>
-              <th className="px-4 py-2">CNES</th>
-              <th className="px-4 py-2">Secretaria</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  Carregando...
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  Nenhuma unidade cadastrada.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-t cursor-pointer transition hover:bg-accent/40"
-                  onClick={() => navigate({ to: "/unidades/$id", params: { id: u.id } })}
-                >
-                  <td className="px-4 py-2 font-medium">{u.nome}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{u.sigla ?? "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{u.cnes ?? "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {u.secretaria?.sigla ?? u.secretaria?.nome ?? "—"}
-                  </td>
-                  <td className="px-4 py-2">
-                    <StatusBadge domain="unidade" value={u.status} />
-                  </td>
-                  <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" asChild title="Painel da unidade">
-                        <Link to="/unidades/$id" params={{ id: u.id }}>
-                          <LayoutDashboard className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEdit(u)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            void (async () => {
-                              const ok = await askConfirm({
-                                title: `Arquivar unidade "${u.nome}"?`,
-                                description: "A unidade deixará de aparecer nas listagens ativas.",
-                                tone: "destructive",
-                                confirmLabel: "Arquivar",
-                              });
-                              if (ok) softDelete.mutate(u.id);
-                            })();
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: StatusEnt }) {
+  const map: Record<StatusEnt, { label: string; cls: string; dot: string }> = {
+    ativa:     { label: "Ativa",     cls: "bg-emerald-50 text-emerald-700 ring-emerald-100",  dot: "bg-emerald-500" },
+    inativa:   { label: "Inativa",   cls: "bg-slate-100 text-slate-600 ring-slate-200",       dot: "bg-slate-400" },
+    suspensa:  { label: "Suspensa",  cls: "bg-amber-50 text-amber-700 ring-amber-100",        dot: "bg-amber-500" },
+    arquivada: { label: "Arquivada", cls: "bg-rose-50 text-rose-700 ring-rose-100",           dot: "bg-rose-500" },
+  };
+  const s = map[status] ?? map.inativa;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${s.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+      {s.label}
+    </span>
   );
 }
