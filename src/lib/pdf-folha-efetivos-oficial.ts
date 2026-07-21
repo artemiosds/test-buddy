@@ -125,7 +125,7 @@ function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; lo
   const x = MARGEM;
   const y = 8;
   const w = pageWidth - MARGEM * 2;
-  const h = 20;
+  const h = 22;
 
   doc.setDrawColor(...COR_BORDA);
   doc.setLineWidth(0.3);
@@ -133,7 +133,7 @@ function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; lo
 
   if (info.logoData) {
     try {
-      doc.addImage(info.logoData, "PNG", x + 2, y + 1, 18, 18);
+      doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18);
     } catch { /* ignore */ }
   }
 
@@ -143,10 +143,13 @@ function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; lo
   doc.setTextColor(...COR_TEXTO);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : (uf ?? "")}`, x + 24, y + 8);
+  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : (uf ?? "")}`, x + 24, y + 6);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(`PREFEITURA MUNICIPAL DE ${nome.toUpperCase()}`, x + 24, y + 14);
+  doc.text(`PREFEITURA MUNICIPAL DE ${nome.toUpperCase()}`, x + 24, y + 12);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("SECRETARIA MUNICIPAL DE SAÚDE", x + 24, y + 17);
 }
 
 function drawHierBar(
