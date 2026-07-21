@@ -135,44 +135,48 @@
 
 :root {
   --radius: 0.75rem;
-  /* Fundo geral #F5F7FB */
-  --background: oklch(0.976 0.005 250);
+  /* Fundo geral #F4F7FB */
+  --background: oklch(0.972 0.007 250);
   --foreground: oklch(0.22 0.03 250);
   /* Cards brancos */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.22 0.03 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.03 250);
-  /* Primária teal #0F766E */
-  --primary: oklch(0.52 0.09 180);
-  --primary-foreground: oklch(0.985 0.005 180);
+  /* Primária navy #0B1F3A */
+  --primary: oklch(0.23 0.05 258);
+  --primary-foreground: oklch(0.985 0.005 250);
   --secondary: oklch(0.965 0.008 250);
   --secondary-foreground: oklch(0.22 0.03 250);
   --muted: oklch(0.965 0.008 250);
   --muted-foreground: oklch(0.5 0.02 250);
-  --accent: oklch(0.955 0.02 180);
-  --accent-foreground: oklch(0.35 0.08 180);
+  /* Destaque azul elegante #2563EB */
+  --accent: oklch(0.95 0.03 260);
+  --accent-foreground: oklch(0.35 0.18 260);
   /* Erro #EF4444 */
   --destructive: oklch(0.63 0.22 27);
   --destructive-foreground: oklch(0.985 0.005 27);
   /* Bordas #E5E7EB */
   --border: oklch(0.92 0.006 250);
   --input: oklch(0.88 0.008 250);
-  --ring: oklch(0.52 0.09 180);
-  --chart-1: oklch(0.52 0.09 180);
-  --chart-2: oklch(0.68 0.14 185);
+  /* Ring foco #2563EB */
+  --ring: oklch(0.55 0.2 260);
+  --chart-1: oklch(0.55 0.2 260);
+  --chart-2: oklch(0.62 0.15 180);
   --chart-3: oklch(0.62 0.16 240);
   --chart-4: oklch(0.78 0.16 75);
   --chart-5: oklch(0.63 0.22 27);
-  /* Sidebar escura #1E293B */
-  --sidebar: oklch(0.29 0.04 258);
+  /* Sidebar navy #0B1F3A */
+  --sidebar: oklch(0.23 0.05 258);
   --sidebar-foreground: oklch(0.975 0.005 250);
-  --sidebar-primary: oklch(0.52 0.09 180);
-  --sidebar-primary-foreground: oklch(0.985 0.005 180);
-  --sidebar-accent: oklch(0.38 0.04 258);
+  /* Menu ativo #1E4E8C */
+  --sidebar-primary: oklch(0.44 0.15 258);
+  --sidebar-primary-foreground: oklch(0.985 0.005 250);
+  /* Hover #163B6D */
+  --sidebar-accent: oklch(0.34 0.11 258);
   --sidebar-accent-foreground: oklch(0.975 0.005 250);
-  --sidebar-border: oklch(0.36 0.04 258);
-  --sidebar-ring: oklch(0.52 0.09 180);
+  --sidebar-border: oklch(0.32 0.07 258);
+  --sidebar-ring: oklch(0.55 0.2 260);
 
   /* Superfícies */
   --surface: var(--background);
@@ -212,8 +216,8 @@
   --info-soft: oklch(0.965 0.04 240);
   --info-soft-foreground: oklch(0.4 0.15 240);
 
-  /* Marca — hover #115E59 */
-  --brand-hover: oklch(0.44 0.08 180);
+  /* Marca — hover #163B6D (navy claro) */
+  --brand-hover: oklch(0.34 0.11 258);
 }
 
 .dark {
