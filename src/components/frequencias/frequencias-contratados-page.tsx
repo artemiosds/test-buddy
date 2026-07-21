@@ -25,6 +25,8 @@ import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
 import { gerarExcelFolhaContratados, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { gerarFolhaContratadosOficial } from "@/lib/pdf-folha-contratados-oficial";
+import { gerarFolhaContratadosModeloCer } from "@/lib/pdf-folha-contratados-modelo-cer";
+import { gerarExcelFolhaContratadosModeloCer } from "@/lib/excel-folha-contratados-modelo-cer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
