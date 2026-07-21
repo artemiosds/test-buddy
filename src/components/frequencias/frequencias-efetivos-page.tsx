@@ -23,7 +23,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
   SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  DossieDrawer, type SituacaoFilterValue,
+  ProfissionalEdicaoModal, type EdicaoCampo, type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
 import {
   contarSituacoes, derivarSituacao, type ProfConferencia,
