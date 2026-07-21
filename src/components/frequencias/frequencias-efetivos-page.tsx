@@ -643,24 +643,24 @@ export function FrequenciasEfetivosPage() {
           <table>
             <thead>
               <tr>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Matrícula</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Profissional</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Situação</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Proj</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Jorn</th>
-                <th className="bg-teal-900 text-teal-100 font-bold text-xs uppercase tracking-wider border-x border-teal-700" colSpan={CAMPOS_OFICIAIS.length} style={{ textAlign: "center" }}>Lançamentos — Modelo Oficial</th>
-                <th className="bg-amber-900 text-amber-100 font-bold text-xs uppercase tracking-wider border-x border-amber-700" colSpan={CAMPOS_SMS.length} style={{ textAlign: "center" }}>Controles SMS</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider border-x border-slate-700" rowSpan={2} style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
-                <th className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider" rowSpan={2} style={{ textAlign: "center" }}>Status</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Matrícula</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Profissional</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Situação</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Proj</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Jorn</th>
+                <th className="bg-teal-900! text-teal-100! font-bold text-xs uppercase tracking-wider border-x border-teal-700" colSpan={CAMPOS_OFICIAIS.length} style={{ textAlign: "center" }}>Lançamentos — Modelo Oficial</th>
+                <th className="bg-amber-900! text-amber-100! font-bold text-xs uppercase tracking-wider border-x border-amber-700" colSpan={CAMPOS_SMS.length} style={{ textAlign: "center" }}>Controles SMS</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-x border-slate-700" rowSpan={2} style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
+                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider" rowSpan={2} style={{ textAlign: "center" }}>Status</th>
               </tr>
               <tr>
                 {CAMPOS_OFICIAIS.map((c) => (
-                  <th key={c.key} className="bg-teal-800 text-white font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
+                  <th key={c.key} className="bg-teal-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
                 ))}
                 {CAMPOS_SMS.map((c) => (
-                  <th key={c.key} className="bg-amber-800 text-white font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
+                  <th key={c.key} className="bg-amber-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
                 ))}
               </tr>
             </thead>
