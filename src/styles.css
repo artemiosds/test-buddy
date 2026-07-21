@@ -3330,3 +3330,41 @@ input[type="number"] {
   -moz-appearance: textfield !important;
   appearance: textfield !important;
 }
+
+/* =========================================================
+   FIX RECOLHER MENU — largura real da sidebar
+   Mantém o tema atual e sobrescreve apenas travas antigas de width.
+   ========================================================= */
+aside.enterprise-sidebar.is-expanded {
+  width: 288px !important;
+  min-width: 288px !important;
+  max-width: 288px !important;
+  flex-basis: 288px !important;
+}
+
+aside.enterprise-sidebar.is-collapsed {
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  flex-basis: 64px !important;
+}
+
+aside.enterprise-sidebar.is-collapsed .sb-logo {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  align-items: center !important;
+}
+
+aside.enterprise-sidebar.is-collapsed .sb-collapse-btn,
+aside.enterprise-sidebar.is-collapsed .sb-signout,
+aside.enterprise-sidebar.is-collapsed .sb-item-compact {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+aside.enterprise-sidebar.is-collapsed .sb-section,
+aside.enterprise-sidebar.is-collapsed .sb-group-label,
+aside.enterprise-sidebar.is-collapsed .sb-search-wrap,
+aside.enterprise-sidebar.is-collapsed .sb-user-card {
+  display: none !important;
+}

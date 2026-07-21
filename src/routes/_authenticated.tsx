@@ -492,7 +492,13 @@ function AuthenticatedLayout() {
   return (
     <div className="flex min-h-screen w-full bg-muted/20">
       {/* Desktop sidebar */}
-      <aside className={"enterprise-sidebar hidden flex-col transition-[width] md:flex " + (collapsed ? "w-16" : "w-72")}>
+      <aside
+        data-collapsed={collapsed ? "true" : "false"}
+        className={
+          "enterprise-sidebar hidden flex-col transition-[width] md:flex " +
+          (collapsed ? "is-collapsed w-16" : "is-expanded w-72")
+        }
+      >
         {sidebarInner(collapsed)}
       </aside>
 
