@@ -782,7 +782,7 @@ export function FrequenciasContratadosPage() {
                     </td>
                     <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
-                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.setor ?? undefined}>{p.setor ?? "—"}</td>
+                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={lotacaoDe(conf) ?? undefined}>{lotacaoDe(conf) ?? "—"}</td>
                     {CAMPOS_NUM.map((c) => {
                       const isDias  = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
@@ -804,11 +804,11 @@ export function FrequenciasContratadosPage() {
                     <td
                       className={cn(
                         "whitespace-nowrap text-[12px]",
-                        semConta ? "text-destructive" : "text-slate-700",
+                        semContaConf ? "text-destructive" : "text-slate-700",
                       )}
-                      title={semConta ? undefined : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
+                      title={semContaConf ? undefined : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
                     >
-                      {semConta ? "—" : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
+                      {semContaConf ? "—" : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
                     </td>
                     <td className="text-center">
                       <TextCell
