@@ -1836,3 +1836,83 @@ main,
   color: #60A5FA;
   border-left-color: #60A5FA;
 }
+
+/* =========================================================
+   TIPOGRAFIA & MENU — refinamento premium (v5)
+   ========================================================= */
+
+.enterprise-sidebar .sb-logo {
+  min-height: 68px;
+  height: 68px;
+  padding: 0 20px;
+}
+.enterprise-sidebar .sb-logo h2 {
+  color: #0F172A;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+.enterprise-sidebar .sb-logo p {
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.dark .enterprise-sidebar .sb-logo h2 { color: #F8FAFC; }
+.dark .enterprise-sidebar .sb-logo p  { color: #94A3B8; }
+
+.enterprise-sidebar .sb-group-label {
+  color: #1E293B !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  padding: 10px 14px 6px !important;
+}
+.enterprise-sidebar .sb-group-label svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #475569;
+  stroke-width: 2 !important;
+}
+.dark .enterprise-sidebar .sb-group-label { color: #E2E8F0 !important; }
+.dark .enterprise-sidebar .sb-group-label svg { color: #94A3B8; }
+
+.enterprise-sidebar .sb-item {
+  min-height: 40px;
+  padding: 12px 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #1E293B !important;
+  gap: 14px !important;
+  letter-spacing: 0.01em;
+}
+.enterprise-sidebar .sb-item svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2 !important;
+  color: #475569;
+}
+.enterprise-sidebar .sb-item:hover svg,
+.enterprise-sidebar .sb-item.sb-item-active svg { stroke-width: 2.25 !important; }
+.dark .enterprise-sidebar .sb-item { color: #E2E8F0 !important; }
+.dark .enterprise-sidebar .sb-item svg { color: #94A3B8; }
+
+.enterprise-sidebar .sb-section {
+  font-size: 10.5px !important;
+  letter-spacing: 0.5px !important;
+  color: #64748B !important;
+  padding: 10px 14px 4px !important;
+}
+
+.enterprise-sidebar .sb-collapse-btn svg { stroke-width: 2 !important; width: 18px; height: 18px; }
+.enterprise-sidebar .sb-item.sb-item-compact svg { width: 20px !important; height: 20px !important; }
+
+.enterprise-sidebar .sb-user-name { font-size: 13.5px; font-weight: 700; }
+.enterprise-sidebar .sb-user-role { font-size: 11px; letter-spacing: 0.02em; }
+
+/* Topbar — traço 2 nos ícones para leitura consistente */
+header .lucide,
+header svg { stroke-width: 2; }
