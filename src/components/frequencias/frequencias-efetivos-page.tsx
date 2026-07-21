@@ -398,10 +398,10 @@ export function FrequenciasEfetivosPage() {
     const sit = contarSituacoes(rowsConf);
     return {
       total: rowsConf.length,
-      ativos: sit.ativo,
+      ativos: sit.ativos,
       ferias: sit.ferias,
       licenca: sit.licenca,
-      afastados: sit.afastado + sit.cedido,
+      afastados: sit.afastados,
       pendencias: sit.pendencias,
       naoElegiveis: sit.nao_elegiveis ?? 0,
       totalHE50: totCampo.he_50 ?? 0,
