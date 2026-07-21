@@ -13,6 +13,9 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo,
   useRef, useState, type ReactNode,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ClipboardEvent as ReactClipboardEvent,
+  type HTMLAttributes,
 } from "react";
 import { AlertTriangle, ClipboardList, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,10 +37,10 @@ type Ctx = {
   register: (rowId: string, colKey: string, el: HTMLInputElement | null) => void;
   focusCell: (rowId: string, colKey: string) => void;
   onCellKeyDown: (
-    rowId: string, colKey: string, e: React.KeyboardEvent<HTMLInputElement>,
+    rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>,
   ) => void;
   onCellPaste: (
-    rowId: string, colKey: string, e: React.ClipboardEvent<HTMLInputElement>,
+    rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>,
   ) => void;
   setActiveRow: (rowId: string | null) => void;
   bindTbody: (el: HTMLTableSectionElement | null) => void;
@@ -99,7 +102,7 @@ export function ErpGridProvider({
   }, [focusCell]);
 
   const onCellKeyDown = useCallback((
-    rowId: string, colKey: string, e: React.KeyboardEvent<HTMLInputElement>,
+    rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.altKey || e.metaKey) return;
     if (e.key === "Enter") { e.preventDefault(); move(rowId, colKey, 1, 0); return; }
@@ -122,7 +125,7 @@ export function ErpGridProvider({
   }, [move]);
 
   const onCellPaste = useCallback((
-    rowId: string, colKey: string, e: React.ClipboardEvent<HTMLInputElement>,
+    rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>,
   ) => {
     const text = e.clipboardData.getData("text");
     if (!text) return;
@@ -283,7 +286,7 @@ export function TextCell({
  * ErpTbody — encapsula o bind do <tbody> no contexto para permitir
  * o destaque da linha em edição via atributo `data-active-row`.
  * ----------------------------------------------------------------------- */
-export function ErpTbody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
+export function ErpTbody(props: HTMLAttributes<HTMLTableSectionElement>) {
   const ctx = useErp();
   return <tbody ref={ctx.bindTbody} {...props} />;
 }
