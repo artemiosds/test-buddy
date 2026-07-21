@@ -1102,3 +1102,42 @@ main > * {
 .enterprise-table tr:hover td {
   background-color: #F8FAFC !important;
 }
+
+/* =========================================================
+   CORREÇÃO DE CONTRASTE E ORGANIZAÇÃO DA SIDEBAR
+   ========================================================= */
+.sidebar-nav-item,
+.enterprise-sidebar a,
+.enterprise-sidebar button {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+.sidebar-nav-item svg,
+.enterprise-sidebar svg {
+  color: #64748B !important;
+}
+.sidebar-subgroup-title,
+.enterprise-sidebar .sub-header {
+  color: #475569 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  margin-top: 14px !important;
+  margin-bottom: 4px !important;
+  padding: 4px 12px !important;
+  border-left: 2px solid #CBD5E1 !important;
+}
+.sidebar-group-content .sidebar-nav-item,
+.enterprise-sidebar .group-items a {
+  padding-left: 20px !important;
+  font-size: 12.5px !important;
+}
+.sidebar-nav-item:hover,
+.enterprise-sidebar a:hover {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+.sidebar-nav-item:hover svg {
+  color: #2563EB !important;
+}
