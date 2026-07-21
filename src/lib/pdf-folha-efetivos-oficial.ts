@@ -15,6 +15,10 @@
  */
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
+import {
+  resolverAssinaturasDocumento,
+  drawAssinaturasBlock,
+} from "@/lib/pdf-assinaturas";
 
 export type ProfissionalFolha = {
   id: string;
@@ -67,6 +71,8 @@ export type FolhaOficialInput = {
   competencia: { mes: number; ano: number };
   unidades: UnidadeFolha[];
   emitidoPor: string;
+  secretariaId?: string | null;
+  unidadeId?: string | null;
 };
 
 /* ------------------------- Cores ------------------------- */
@@ -350,6 +356,11 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
 
+  const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
+    secretariaId: input.secretariaId ?? null,
+    unidadeId: input.unidadeId ?? null,
+  });
+
   const pageHeight = doc.internal.pageSize.getHeight();
   const rodapeReserva = 18;
   const limiteBaixo = pageHeight - rodapeReserva;
@@ -405,6 +416,14 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
         y = drawProfissionalRow(doc, y, item);
       }
     }
+  }
+
+  // Bloco de assinaturas (Diretor + Gestor + Logo por padrão)
+  if (assinaturas.length > 0) {
+    drawAssinaturasBlock(doc, assinaturas, {
+      startY: pageHeight - 60,
+      marginX: MARGEM,
+    });
   }
 
   drawFooter(doc, input.emitidoPor, emissaoStr);

@@ -312,6 +312,8 @@ export function FrequenciasContratadosPage() {
         unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
         itens: mapExportItens(),
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
+        unidadeId: unidadeSel?.id ?? null,
+        secretariaId: me?.secretaria_id ?? null,
       });
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar PDF.");

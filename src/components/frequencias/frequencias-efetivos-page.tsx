@@ -381,6 +381,8 @@ export function FrequenciasEfetivosPage() {
                   competencia: { mes: compSel?.mes ?? 1, ano: compSel?.ano ?? new Date().getFullYear() },
                   unidades: unidadesInput,
                   emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
+                  unidadeId: unidadeId ?? null,
+                  secretariaId: me?.secretaria_id ?? null,
                 });
               } catch (e: any) {
                 toast.error(e?.message ?? "Falha ao gerar PDF.");

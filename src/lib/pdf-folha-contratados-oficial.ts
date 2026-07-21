@@ -8,12 +8,18 @@
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
+import {
+  resolverAssinaturasDocumento,
+  drawAssinaturasBlock,
+} from "@/lib/pdf-assinaturas";
 
 export type PdfContratadosInput = {
   competencia: { mes: number; ano: number };
   unidadeNome: string;
   itens: ItemContratado[];
   emitidoPor: string;
+  secretariaId?: string | null;
+  unidadeId?: string | null;
 };
 
 const MARGEM = 10;
@@ -189,6 +195,11 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
 
+  const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
+    secretariaId: input.secretariaId ?? null,
+    unidadeId: input.unidadeId ?? null,
+  });
+
   const pageHeight = doc.internal.pageSize.getHeight();
   const rodapeReserva = 18;
   const limiteBaixo = pageHeight - rodapeReserva;
@@ -221,6 +232,13 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       y = drawTopo(true);
     }
     y = drawRow(doc, y, idx++, item);
+  }
+
+  if (assinaturas.length > 0) {
+    drawAssinaturasBlock(doc, assinaturas, {
+      startY: pageHeight - 60,
+      marginX: MARGEM,
+    });
   }
 
   drawFooter(doc, input.emitidoPor, emissaoStr);

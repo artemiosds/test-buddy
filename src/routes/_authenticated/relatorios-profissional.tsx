@@ -30,6 +30,7 @@ import {
 } from "recharts";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -310,6 +311,10 @@ function RelatorioProfissionalPage() {
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}`, 14, pageHeight - 8);
+    const assinProf = await resolverAssinaturasDocumento("relatorio");
+    if (assinProf.length > 0) {
+      drawAssinaturasBlock(doc, assinProf, { startY: pageHeight - 60 });
+    }
     try {
       const sig = await registrarDocumentoAssinado({
         tipo: "relatorio_profissional",

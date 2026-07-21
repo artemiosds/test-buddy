@@ -12,6 +12,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -226,6 +227,10 @@ function RelatorioConsolidadoPage() {
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}`, 14, pageHeight - 8);
+    const assin = await resolverAssinaturasDocumento("relatorio");
+    if (assin.length > 0) {
+      drawAssinaturasBlock(doc, assin, { startY: pageHeight - 60 });
+    }
     try {
       const sig = await registrarDocumentoAssinado({
         tipo: "relatorio_consolidado",

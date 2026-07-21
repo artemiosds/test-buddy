@@ -14,6 +14,7 @@ import { PermissionGate } from "@/components/permission-gate";
 import { formatNumber } from "@/lib/formatters";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { toast } from "sonner";
@@ -419,6 +420,13 @@ function RelatorioPisoPage() {
       styles: { fontSize: 9 },
       headStyles: { fillColor: [30, 64, 175] },
     });
+
+    const assin = await resolverAssinaturasDocumento("piso");
+    if (assin.length > 0) {
+      drawAssinaturasBlock(doc, assin, {
+        startY: doc.internal.pageSize.getHeight() - 60,
+      });
+    }
 
     doc.save(`piso_enfermagem_${competenciaAtual ?? "todas"}.pdf`);
     toast.success("PDF gerado.");
