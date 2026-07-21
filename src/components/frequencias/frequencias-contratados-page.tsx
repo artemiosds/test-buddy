@@ -38,6 +38,9 @@ import {
   ErpGridProvider, ErpTbody, NumberCell, TextCell,
   KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
 } from "@/components/erp-grid";
+import {
+  FolhaBreadcrumb, ResumoDiasFaltasAtt, useSelectedErpRow,
+} from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -542,6 +545,8 @@ export function FrequenciasContratadosPage() {
     tr?.scrollIntoView({ block: "center", behavior: "smooth" });
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
+
+  const [selectedRowId] = useSelectedErpRow();
 
   /** Ícone antes do nome conforme situação funcional. */
   function IconeSituacao({ situ }: { situ: string }) {
