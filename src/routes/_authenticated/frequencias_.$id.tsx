@@ -742,6 +742,7 @@ function FrequenciaDetalhe() {
     doc.setFontSize(8);
     doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}`, 14, pageHeight - 8);
 
+    let _sigFreq: Awaited<ReturnType<typeof registrarDocumentoAssinado>> | null = null;
     try {
       const sig = await registrarDocumentoAssinado({
         tipo: "frequencia",
@@ -756,8 +757,12 @@ function FrequenciaDetalhe() {
         },
       });
       drawSignatureStamp(doc, sig);
+      _sigFreq = sig;
     } catch (err) {
       logger.error("frequencia.signature_failed", { error: err });
+    }
+    if (_sigFreq) {
+      try { await armazenarPdfAssinado(_sigFreq, doc.output("blob")); } catch { /* best effort */ }
     }
 
     doc.save(`frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`);
