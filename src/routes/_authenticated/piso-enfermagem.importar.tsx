@@ -422,7 +422,7 @@ function ImportarPage() {
                   <tbody>
                     {preview5.map((r, i) => (
                       <tr key={i} className="border-t">
-                        {headers.map((h) => <td key={h} className="px-2 py-1">{String(r[h] ?? "—")}</td>)}
+                        {headers.map((h) => <td key={h} className="px-2 py-1 tabular-nums">{fmtPreviewCell(r[h], mapeamento[h])}</td>)}
                       </tr>
                     ))}
                   </tbody>
