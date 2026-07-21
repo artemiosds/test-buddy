@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon, Hospital } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -441,11 +441,20 @@ function AuthenticatedLayout() {
   const sidebarInner = (compact: boolean) => (
     <>
       <div className={"sb-logo flex items-center gap-2 " + (compact ? "justify-center px-2" : "justify-between")}>
-        {!compact && (
-          <div className="min-w-0">
-            <h2 className="truncate">ORIXIMINÁ · SMS</h2>
-            <p className="truncate">Gestão da Saúde</p>
+        {!compact ? (
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="sb-logo-mark">
+              <Hospital className="h-5 w-5" strokeWidth={2} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate">ORIXIMINÁ · SMS</h2>
+              <p className="truncate">Gestão da Saúde</p>
+            </div>
           </div>
+        ) : (
+          <span className="sb-logo-mark">
+            <Hospital className="h-5 w-5" strokeWidth={2} />
+          </span>
         )}
         <button
           type="button"
