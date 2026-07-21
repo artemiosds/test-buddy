@@ -799,7 +799,32 @@ export function FrequenciasEfetivosPage() {
         são controles internos da SMS e não fazem parte do modelo oficial da Prefeitura.
       </p>
 
-      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
+      <ProfissionalEdicaoModal
+        prof={dossieProf}
+        linha={dossieProf ? linhas[dossieProf.id] : undefined}
+        open={dossieOpen}
+        onOpenChange={setDossieOpen}
+        canEdit={canEdit}
+        campos={[
+          ...CAMPOS_OFICIAIS.map((c) => ({
+            key: c.key, label: c.label,
+            decimals: c.key === "incentivo" ? 2 : 0,
+            group: "oficial" as const,
+          })),
+          ...CAMPOS_SMS.map((c) => ({
+            key: c.key, label: c.label, decimals: 0, group: "sms" as const,
+          })),
+        ]}
+        onChangeCampo={(campo, valor) => {
+          if (!dossieProf) return;
+          updateCampo(dossieProf.id, campo as keyof LinhaState, valor);
+        }}
+        onSave={async () => {
+          await mSalvar.mutateAsync();
+          setDossieOpen(false);
+        }}
+        saving={mSalvar.isPending}
+      />
     </div>
   );
 }
