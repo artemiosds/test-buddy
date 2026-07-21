@@ -1183,7 +1183,6 @@ main > * {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: oklch(0.22 0.03 250); /* fallback slate-900; utilities override per-cell */
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 11px;
