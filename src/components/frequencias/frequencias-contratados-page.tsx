@@ -658,6 +658,32 @@ export function FrequenciasContratadosPage() {
                 <TooltipContent>Disponível somente após aprovação</TooltipContent>
               )}
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="secondary"
+                    onClick={handleExportarPdfModeloCer}
+                  >
+                    <FileDown className="mr-1.5 h-4 w-4" /> PDF Modelo CER
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Réplica do modelo oficial da SMS (com brasões)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportarExcelModeloCer}
+                  >
+                    <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Excel Modelo CER
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Réplica do modelo oficial da SMS (com brasões)</TooltipContent>
+            </Tooltip>
           </TooltipProvider>
         </div>
       </header>
