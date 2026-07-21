@@ -41,7 +41,7 @@ export async function gerarExcelFolhaContratadosModeloCer(
   wb.created = new Date();
   const ws = wb.addWorksheet("Frequência", {
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
-    views: [{ state: "frozen", ySplit: 6 }],
+    views: [{ state: "frozen", ySplit: 7 }],
   });
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
