@@ -44,6 +44,7 @@ function ValidarPage() {
                   revogado_em: string | null;
                   motivo_revogacao: string | null;
                   timestamp_confiavel: string | null;
+                  termo_aceite: boolean | null;
                 } | null;
                 error: Error | null;
               }>;
@@ -52,7 +53,7 @@ function ValidarPage() {
         };
       })
         .from("documentos_assinados_publico")
-        .select("id, tipo, descricao, hash_conteudo, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, timestamp_confiavel")
+        .select("id, tipo, descricao, hash_conteudo, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, timestamp_confiavel, termo_aceite")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
