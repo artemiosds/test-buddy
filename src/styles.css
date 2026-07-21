@@ -1235,6 +1235,37 @@ main > * {
   box-shadow: 6px 0 6px -6px oklch(0 0 0 / 0.15);
 }
 
+/* Gridlines verticais em todas as células — aparência de planilha. */
+.erp-grid thead th,
+.erp-grid tbody td,
+.erp-grid tfoot td {
+  border-right: 1px solid var(--border-subtle);
+}
+.erp-grid thead th:last-child,
+.erp-grid tbody td:last-child,
+.erp-grid tfoot td:last-child {
+  border-right: none;
+}
+
+/* Tint horizontal da linha inteira conforme situação funcional. */
+.erp-grid tbody tr[data-situacao="ferias"] td {
+  background: color-mix(in oklab, var(--info, oklch(0.7 0.16 235)) 7%, var(--card));
+}
+.erp-grid tbody tr[data-situacao="licenca"] td {
+  background: color-mix(in oklab, var(--warning) 10%, var(--card));
+}
+.erp-grid tbody tr[data-situacao="afastado"] td,
+.erp-grid tbody tr[data-situacao="cedido"] td {
+  background: color-mix(in oklab, var(--danger, oklch(0.6 0.22 27)) 8%, var(--card));
+}
+.erp-grid tbody tr[data-situacao="desligado"] td,
+.erp-grid tbody tr[data-situacao="inativo"] td {
+  background: color-mix(in oklab, var(--muted-foreground) 6%, var(--card));
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+}
+
 /* Linha em edição — destaque completo (sem re-render em massa,
    basta um atributo no <tbody>). */
 .erp-grid tbody[data-active-row] tr[data-row-id] td {

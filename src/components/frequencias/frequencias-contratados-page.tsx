@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import {
   listarFolhaContratados,
   salvarFolhaContratados,
@@ -15,7 +16,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Send, Search, FileSpreadsheet, FileDown, Download } from "lucide-react";
+import {
+  Save, Send, Search, FileSpreadsheet, FileDown, Download,
+  Palmtree, HeartPulse, AlertOctagon, Ban, ArrowRightLeft, Filter as FilterIcon,
+} from "lucide-react";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
@@ -72,6 +76,9 @@ export function FrequenciasContratadosPage() {
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
   const [setorFilter, setSetorFilter] = useState<string>("todos");
   const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [pendFilter, setPendFilter] = useState<
+    "todos" | "sem_conta" | "sem_cargo" | "sem_lotacao" | "sem_matricula" | "sem_cpf"
+  >("todos");
   const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
   const [dossieOpen, setDossieOpen] = useState(false);
 
@@ -342,12 +349,21 @@ export function FrequenciasContratadosPage() {
       if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
       if (setorFilter !== "todos" && p.setor_id !== setorFilter) return false;
+      if (pendFilter !== "todos") {
+        const semConta = !p.banco || !p.agencia || !p.conta_corrente;
+        if (pendFilter === "sem_conta"     && !semConta)      return false;
+        if (pendFilter === "sem_cargo"     && p.cargo)        return false;
+        if (pendFilter === "sem_lotacao"   && p.setor)        return false;
+        if (pendFilter === "sem_matricula" && p.matricula)    return false;
+        if (pendFilter === "sem_cpf"       && p.cpf)          return false;
+      }
       if (!q) return true;
       return p.nome.toLowerCase().includes(q)
         || (p.matricula ?? "").toLowerCase().includes(q)
+        || (p.cpf ?? "").toLowerCase().includes(q)
         || (p.cargo ?? "").toLowerCase().includes(q);
     });
-  }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
+  }, [folha, busca, cargoFilter, funcaoFilter, setorFilter, pendFilter]);
 
   const idsPagina = useMemo(
     () => filtradas.map((it: any) => it.profissional.id as string),
@@ -404,9 +420,9 @@ export function FrequenciasContratadosPage() {
 
   /* ------- ERP grid derivados de UI ------- */
   const FROZEN: FrozenCol[] = [
-    { key: "matricula", label: "Matrícula",    width: 100 },
+    { key: "num",       label: "Nº",           width: 48  },
+    { key: "matricula", label: "Matrícula",    width: 96  },
     { key: "nome",      label: "Profissional", width: 240 },
-    { key: "situacao",  label: "Situação",     width: 130 },
   ];
   const L = frozenLeftMap(FROZEN);
   const colKeysAll = useMemo(() => [...CAMPOS_NUM] as string[], []);
@@ -414,8 +430,15 @@ export function FrequenciasContratadosPage() {
     () => linhasFinais.map((x: any) => x.it.profissional.id as string),
     [linhasFinais],
   );
-  // 3 frozen + Cargo/Banco/AG/CC (4) + CAMPOS_NUM + Obs + Status
-  const colCount = 3 + 4 + CAMPOS_NUM.length + 2;
+  // 3 frozen (Nº/Matrícula/Nome) + CPF + Cargo + Lotação + Dias
+  // + CAMPOS_NUM (8) + Conta + Observações + Status
+  const colCount = 3 + 4 + CAMPOS_NUM.length + 3;
+
+  // Quantidade de dias da competência (para calcular "Dias trabalhados").
+  const diasMes = useMemo(() => {
+    if (!compSel?.ano || !compSel?.mes) return 30;
+    return new Date(compSel.ano as number, compSel.mes as number, 0).getDate();
+  }, [compSel]);
 
   const totCampo = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -486,6 +509,27 @@ export function FrequenciasContratadosPage() {
     tr?.scrollIntoView({ block: "center", behavior: "smooth" });
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
+
+  /** Ícone antes do nome conforme situação funcional. */
+  function IconeSituacao({ situ }: { situ: string }) {
+    const cls = "h-3.5 w-3.5 shrink-0";
+    if (situ === "ferias")    return <Palmtree     className={cn(cls, "text-info")} />;
+    if (situ === "licenca")   return <HeartPulse   className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "afastado")  return <AlertOctagon className={cn(cls, "text-destructive")} />;
+    if (situ === "cedido")    return <ArrowRightLeft className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "desligado" || situ === "inativo")
+      return <Ban className={cn(cls, "text-muted-foreground")} />;
+    return null;
+  }
+
+  const PEND_OPTS: Array<{ id: typeof pendFilter; label: string }> = [
+    { id: "todos",         label: "Sem pendências" },
+    { id: "sem_conta",     label: "Sem conta bancária" },
+    { id: "sem_cargo",     label: "Sem cargo" },
+    { id: "sem_lotacao",   label: "Sem lotação" },
+    { id: "sem_matricula", label: "Sem matrícula" },
+    { id: "sem_cpf",       label: "Sem CPF" },
+  ];
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -644,6 +688,24 @@ export function FrequenciasContratadosPage() {
           <InconsistenciasPanel rows={rowsConf} onGoto={focarLinha} />
         </div>
         <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterIcon className="mr-0.5 h-3.5 w-3.5 text-muted-foreground" />
+          {PEND_OPTS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setPendFilter(o.id)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-xs ring-1 transition",
+                pendFilter === o.id
+                  ? "bg-primary text-primary-foreground ring-primary"
+                  : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="erp-grid">
@@ -651,23 +713,24 @@ export function FrequenciasContratadosPage() {
           <table>
             <thead>
               <tr>
+                <th className="erp-sticky" style={{ left: L.num, width: 48, textAlign: "center" }}>Nº</th>
                 <th className="erp-sticky" style={{ left: L.matricula, textAlign: "left" }}>Matrícula</th>
-                <th className="erp-sticky" style={{ left: L.nome, textAlign: "left" }}>Profissional</th>
-                <th className="erp-sticky erp-sticky-last" style={{ left: L.situacao, textAlign: "left" }}>Situação</th>
-                <th className="erp-group-prof" style={{ textAlign: "left" }}>Cargo</th>
-                <th className="erp-group-bank" style={{ textAlign: "left" }}>Banco</th>
-                <th className="erp-group-bank" style={{ textAlign: "left" }}>AG</th>
-                <th className="erp-group-bank" style={{ textAlign: "left" }}>CC</th>
+                <th className="erp-sticky erp-sticky-last" style={{ left: L.nome, textAlign: "left" }}>Nome</th>
+                <th style={{ textAlign: "left", minWidth: 128 }}>CPF</th>
+                <th className="erp-group-prof" style={{ textAlign: "left", minWidth: 140 }}>Cargo</th>
+                <th className="erp-group-prof" style={{ textAlign: "left", minWidth: 140 }}>Lotação</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right", width: 64 }}>Dias</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>Faltas</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>ATT</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 50%</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 100%</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>ADN</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>Plantões</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Sobreaviso</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Sobreavisos</th>
                 <th className="erp-group-lanc" style={{ textAlign: "right" }}>Incentivo</th>
+                <th className="erp-group-bank" style={{ textAlign: "left", minWidth: 140 }}>Conta</th>
                 <th className="erp-group-obs" style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
-                <th style={{ textAlign: "center" }}>Status</th>
+                <th style={{ textAlign: "center", width: 110 }}>Status</th>
               </tr>
             </thead>
             <ErpTbody>
@@ -679,27 +742,42 @@ export function FrequenciasContratadosPage() {
                   Nenhum profissional contratado nesta unidade.
                 </td></tr>
               )}
-              {linhasFinais.map(({ it, conf }) => {
+              {linhasFinais.map(({ it, conf }, idx) => {
                 const p = it.profissional;
                 const l = linhas[p.id];
                 if (!l) return null;
                 const ro = readonlyLinha(l);
                 const situ = derivarSituacao(conf);
+                const semConta = !p.banco || !p.agencia || !p.conta_corrente;
+                const diasTrab = Math.max(0, diasMes - Number(l.dias_falta ?? 0));
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
+                    <td
+                      className="erp-sticky text-center text-muted-foreground tabular-nums"
+                      style={{ left: L.num, fontSize: 11 }}
+                    >
+                      {idx + 1}
+                    </td>
                     <td className="erp-sticky" style={{ left: L.matricula, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="erp-sticky" style={{ left: L.nome }}>
-                      <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cpf} />
+                    <td className="erp-sticky erp-sticky-last" style={{ left: L.nome }}>
+                      <div className="flex items-center gap-1.5">
+                        <IconeSituacao situ={situ} />
+                        <div className="min-w-0 flex-1">
+                          <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} />
+                        </div>
+                      </div>
                     </td>
-                    <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}>
-                      <SituacaoBadge prof={conf} />
-                    </td>
+                    <td className="text-muted-foreground font-mono" style={{ fontSize: 11 }}>{p.cpf ?? "—"}</td>
                     <td className="erp-group-prof text-muted-foreground">{p.cargo ?? "-"}</td>
-                    <td className="erp-group-bank text-muted-foreground">{p.banco ?? "—"}</td>
-                    <td className="erp-group-bank text-muted-foreground font-mono">{p.agencia ?? "—"}</td>
-                    <td className="erp-group-bank text-muted-foreground font-mono">{p.conta_corrente ?? "—"}</td>
+                    <td className="erp-group-prof text-muted-foreground">{p.setor ?? "—"}</td>
+                    <td
+                      className="erp-group-lanc text-right tabular-nums text-muted-foreground"
+                      title={`Dias do mês (${diasMes}) − Faltas (${l.dias_falta ?? 0})`}
+                    >
+                      {diasTrab}
+                    </td>
                     {CAMPOS_NUM.map((c) => {
                       const isFalta = c === "dias_falta";
                       const isHora  = c === "he_50" || c === "he_100" || c === "adn";
@@ -717,6 +795,16 @@ export function FrequenciasContratadosPage() {
                         </td>
                       );
                     })}
+                    <td
+                      className={cn(
+                        "erp-group-bank text-[11px] leading-tight whitespace-pre-line",
+                        semConta ? "text-destructive" : "text-muted-foreground",
+                      )}
+                    >
+                      {semConta
+                        ? "—"
+                        : `${p.banco}\nAG ${p.agencia}\nCC ${p.conta_corrente}`}
+                    </td>
                     <td className="erp-group-obs">
                       <TextCell
                         rowId={p.id}
@@ -735,10 +823,11 @@ export function FrequenciasContratadosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
+                <td className="erp-sticky" style={{ left: L.num }}></td>
                 <td className="erp-sticky" style={{ left: L.matricula }}></td>
-                <td className="erp-sticky" style={{ left: L.nome }}>Totais</td>
-                <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}></td>
-                <td colSpan={4}></td>
+                <td className="erp-sticky erp-sticky-last" style={{ left: L.nome }}>Totais</td>
+                <td colSpan={3}></td>
+                <td className="erp-group-lanc"></td>
                 {CAMPOS_NUM.map((c) => (
                   <td key={c} className="erp-group-lanc" style={{ textAlign: "right" }}>
                     {c === "incentivo"
@@ -748,6 +837,7 @@ export function FrequenciasContratadosPage() {
                 ))}
                 <td></td>
                 <td></td>
+                <td></td>
               </tr>
             </tfoot>
           </table>
@@ -755,8 +845,9 @@ export function FrequenciasContratadosPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Os campos <strong>Banco</strong>, <strong>Agência</strong> e <strong>Conta Corrente</strong> são somente leitura aqui —
-        são atualizados no cadastro do profissional.
+        A coluna <strong>Conta</strong> (Banco / AG / CC) e <strong>CPF</strong> são somente leitura —
+        são atualizados no cadastro do profissional. A coluna <strong>Dias</strong> é calculada
+        automaticamente ({diasMes} dias do mês − faltas).
       </p>
 
       <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
