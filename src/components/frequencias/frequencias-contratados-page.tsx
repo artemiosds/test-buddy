@@ -63,6 +63,19 @@ type LinhaState = {
 
 const CAMPOS_NUM = ["dias_falta","atestado","he_50","he_100","adn","plantoes","sobreaviso","incentivo"] as const;
 
+/** Formata dados bancários em uma única linha limpa, sem prefixos duplicados. */
+function formatContaBancaria(
+  banco?: string | null,
+  agencia?: string | null,
+  conta?: string | null,
+): string {
+  const parts: string[] = [];
+  if (banco) parts.push(String(banco).trim());
+  if (agencia) parts.push(`AG: ${String(agencia).replace(/^\s*AG[:\s]*/i, "").trim()}`);
+  if (conta) parts.push(`CC: ${String(conta).replace(/^\s*CC[:\s]*/i, "").trim()}`);
+  return parts.length ? parts.join(" | ") : "—";
+}
+
 export function FrequenciasContratadosPage() {
   const qc = useQueryClient();
   const { has } = usePermissions();
