@@ -405,7 +405,7 @@ function AuthenticatedLayout() {
                       }
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                      {!compact && <span className="flex-1 truncate">{item.label}</span>}
+                      {!compact && <span className="flex-1 leading-tight">{item.label}</span>}
                       {showBadge && (
                         <span className={
                           (compact ? "absolute -right-0.5 -top-0.5 " : "ml-auto ") +
@@ -492,7 +492,7 @@ function AuthenticatedLayout() {
   return (
     <div className="flex min-h-screen w-full bg-muted/20">
       {/* Desktop sidebar */}
-      <aside className={"enterprise-sidebar hidden flex-col transition-[width] md:flex " + (collapsed ? "w-16" : "w-64")}>
+      <aside className={"enterprise-sidebar hidden flex-col transition-[width] md:flex " + (collapsed ? "w-16" : "w-72")}>
         {sidebarInner(collapsed)}
       </aside>
 
@@ -500,7 +500,7 @@ function AuthenticatedLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="enterprise-sidebar absolute left-0 top-0 flex h-full w-64 flex-col shadow-xl">
+          <aside className="enterprise-sidebar absolute left-0 top-0 flex h-full w-72 flex-col shadow-xl">
             {sidebarInner(false)}
           </aside>
         </div>
