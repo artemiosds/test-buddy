@@ -2701,3 +2701,253 @@ span {
 .dark table tbody tr:nth-child(odd)  { background-color: #0B2033 !important; }
 .dark label, .dark .text-muted, .dark .breadcrumb, .dark span { color: #CBD5E1 !important; }
 .dark .sidebar-header, .dark .sidebar-brand { color: #F8FAFC !important; }
+
+/* =========================================================
+   HOSPITAL CLEAN THEME v12 — Somente cores/estilo (final).
+   Sobrescreve o EMERGENCY PATCH acima onde necessário.
+   ========================================================= */
+
+/* 1. Fundo geral */
+html, body, #root { background-color: #f5f7fa !important; }
+main, .main-content, .page-canvas { background-color: #f5f7fa !important; }
+
+/* 2. Cards / tabelas / filtros — brancos com sombra suave */
+.card, .kpi-card, .table-container, .filter-bar,
+.rounded-lg.border.bg-card, [data-slot="card"] {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04),
+              0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+/* 3. Sidebar — Azul Petróleo Profundo, sem caixas brancas */
+.sidebar-container,
+.enterprise-sidebar,
+aside[data-sidebar],
+aside.sidebar,
+[data-slot="sidebar"] {
+  background-color: #0f172a !important;
+  border-right: 1px solid #0b1220 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Sobrescreve o EMERGENCY PATCH que forçava texto escuro na sidebar */
+.sidebar-container a,
+.sidebar-container button,
+.sidebar-container span,
+.sidebar-container p,
+.enterprise-sidebar a,
+.enterprise-sidebar button,
+.enterprise-sidebar span,
+.enterprise-sidebar p,
+aside[data-sidebar] a,
+aside[data-sidebar] button,
+aside[data-sidebar] span,
+[data-slot="sidebar-menu-button"],
+[data-slot="sidebar-menu-button"] span {
+  color: #cbd5e1 !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+  opacity: 1 !important;
+}
+
+/* Títulos de grupo do menu */
+.sidebar-group-title,
+.enterprise-sidebar .group-title,
+[data-slot="sidebar-group-label"] {
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-size: 11px !important;
+  background: transparent !important;
+}
+
+/* Marca / topo da sidebar */
+.sidebar-header, .sidebar-brand,
+[data-slot="sidebar-header"], [data-slot="sidebar-header"] * {
+  color: #f8fafc !important;
+  background: transparent !important;
+}
+
+/* Hover leve nos itens */
+.sidebar-container a:hover,
+.sidebar-container button:hover,
+.enterprise-sidebar a:hover,
+.enterprise-sidebar button:hover,
+[data-slot="sidebar-menu-button"]:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Item ativo — azul mais claro, texto branco, sem barra lateral */
+[data-slot="sidebar-menu-button"][data-active="true"],
+.sidebar-container a.active,
+.sidebar-container [aria-current="page"],
+.enterprise-sidebar a.active,
+.enterprise-sidebar [aria-current="page"] {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-left: none !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+[data-slot="sidebar-menu-button"][data-active="true"] span,
+[data-slot="sidebar-menu-button"][data-active="true"] svg,
+.sidebar-container a.active *,
+.sidebar-container [aria-current="page"] * { color: #ffffff !important; }
+
+/* 4. Tabela — cabeçalho claro, sem colunas verticais */
+table {
+  background-color: #ffffff !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+table thead th,
+table th {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  font-size: 11px !important;
+}
+table tbody td,
+table td {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  font-weight: 500 !important;
+}
+table tbody tr:hover td { background-color: #f8fafc !important; }
+table tbody tr:nth-child(odd) td,
+table tbody tr:nth-child(even) td { background-color: transparent !important; }
+table tbody tr:last-child td { border-bottom: none !important; }
+
+/* Link do nome do profissional (mantém azul underline) */
+.prof-name-link,
+table td a { color: #2563eb !important; font-weight: 600 !important; }
+
+/* 5. Inputs / selects / busca — borda cinza clara */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select,
+[data-slot="input"],
+[data-slot="select-trigger"] {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+}
+input:focus, textarea:focus, select:focus,
+[data-slot="input"]:focus, [data-slot="select-trigger"]:focus {
+  border-color: #2563eb !important;
+  outline: 2px solid rgba(37, 99, 235, 0.15) !important;
+  outline-offset: 0 !important;
+}
+
+/* 6. Botões primários */
+button[data-variant="default"],
+.btn-primary,
+button.bg-primary,
+[data-slot="button"][data-variant="default"] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(37,99,235,0.20) !important;
+  font-weight: 600 !important;
+}
+button[data-variant="default"]:hover,
+.btn-primary:hover,
+button.bg-primary:hover { background-color: #1d4ed8 !important; }
+
+/* 7. Pílulas de status — pastel com texto escuro */
+.badge, [data-slot="badge"], .status-badge, .alert-pill, .kpi-chip,
+.pill, .pill-ok, .pill-warn, .pill-danger, .pill-info {
+  border-radius: 999px !important;
+  padding: 2px 10px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  color: #334155 !important;
+  border: 1px solid transparent !important;
+  background-color: #e2e8f0 !important;
+}
+/* Verde menta — Ativos / Total positivo */
+[data-tone="ok"], .pill-ok,
+.badge.badge-success, .status-badge[data-status="ativo"],
+.bg-emerald-50, .bg-green-50 {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+/* Amarelo pastel — Férias / avisos */
+[data-tone="warn"], .pill-warn,
+.badge.badge-warning, .status-badge[data-status="ferias"],
+.bg-amber-50, .bg-yellow-50 {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+/* Vermelho suave — Licenças / afastados / críticos */
+[data-tone="danger"], .pill-danger,
+.badge.badge-destructive,
+.status-badge[data-status="licenca"], .status-badge[data-status="afastado"],
+.bg-red-50, .bg-rose-50 {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}
+/* Azul claro — Informativo */
+[data-tone="info"], .pill-info,
+.badge.badge-info, .bg-sky-50, .bg-blue-50 {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+  border-color: #bfdbfe !important;
+}
+/* Neutro */
+[data-tone="muted"], .badge.badge-secondary, .bg-slate-50, .bg-gray-50 {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* 8. Neutraliza o EMERGENCY PATCH nas tabelas (bordas escuras + zebra) */
+table, table th, table td { border-color: #e5e7eb !important; }
+table th { background-color: #f1f5f9 !important; }
+
+/* 9. Dark mode — mantém sidebar já escura, ajusta canvas e cards */
+.dark html, .dark body, .dark #root,
+.dark main, .dark .main-content, .dark .page-canvas {
+  background-color: #0b1220 !important;
+}
+.dark .card, .dark [data-slot="card"], .dark .kpi-card,
+.dark .table-container, .dark .filter-bar {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+.dark table thead th, .dark table th {
+  background-color: #1e293b !important; color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+.dark table tbody td, .dark table td {
+  background-color: #0f172a !important; color: #e2e8f0 !important;
+  border-bottom-color: #1e293b !important;
+}
+.dark table tbody tr:hover td { background-color: #172033 !important; }
+.dark input, .dark textarea, .dark select,
+.dark [data-slot="input"], .dark [data-slot="select-trigger"] {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
