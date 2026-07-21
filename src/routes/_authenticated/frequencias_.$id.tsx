@@ -40,6 +40,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, drawSignatureFooter, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
+import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
@@ -688,6 +689,15 @@ function FrequenciaDetalhe() {
 
   const exportarPDF = async () => {
     if (!frequencia) return;
+    const unidadeNome0 = cu?.unidades?.nome ?? "—";
+    const compLabel0 = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
+    const ok = await pedirTermoDoc({
+      nome: me?.nome_completo,
+      cargo: me?.perfil_nome,
+      unidade: unidadeNome0,
+      documento: `Folha de Frequência ${frequencia.tipo.toUpperCase()} — ${unidadeNome0} — ${compLabel0}`,
+    });
+    if (!ok) return;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const unidade = cu?.unidades?.nome ?? "—";
     const compLabel = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
@@ -755,6 +765,7 @@ function FrequenciaDetalhe() {
           tipo: frequencia.tipo,
           total_linhas: linhas.length,
         },
+        termoAceite: true,
       });
       drawSignatureStamp(doc, sig);
       _sigFreq = sig;
