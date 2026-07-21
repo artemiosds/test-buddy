@@ -1404,31 +1404,35 @@ main > * {
  * nenhum componente de rota específica.
  * ============================================================= */
 
-/* Tokens do sidebar (light + dark) — navy sério */
+/* Tokens do sidebar — LIGHT/CLEAN (Stripe/Tailwind UI). Dark mode via .dark override */
 :root {
-  --sidebar: oklch(0.19 0.045 258);           /* #0F172A slate-900 */
-  --sidebar-foreground: oklch(0.88 0.02 250); /* slate-200 */
-  --sidebar-primary: oklch(0.55 0.2 262);     /* blue-500 accent */
-  --sidebar-primary-foreground: oklch(0.985 0.005 250);
-  --sidebar-accent: oklch(0.26 0.05 258);     /* hover slate-800 */
-  --sidebar-accent-foreground: oklch(0.985 0.005 250);
-  --sidebar-border: oklch(0.28 0.045 258);    /* slate-700 */
-  --sidebar-ring: oklch(0.55 0.2 262);
-  --sidebar-muted: oklch(0.63 0.03 258);      /* labels/ícones apagados */
-  --sidebar-active-bg: oklch(0.55 0.2 262 / 18%);
-  --sidebar-active-fg: oklch(0.82 0.14 255);
+  --sidebar: #FFFFFF;                    /* fundo branco puro */
+  --sidebar-foreground: #334155;         /* slate-700 texto inativo */
+  --sidebar-primary: #2563EB;            /* barra ativa azul royal */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;             /* hover slate-100 */
+  --sidebar-accent-foreground: #0F172A;  /* hover text slate-900 */
+  --sidebar-border: #E2E8F0;             /* borda direita slate-200 */
+  --sidebar-ring: #2563EB;
+  --sidebar-muted: #64748B;              /* group labels slate-500 */
+  --sidebar-active-bg: #EFF6FF;          /* azul suave */
+  --sidebar-active-fg: #2563EB;          /* azul royal */
 }
 .dark {
   --sidebar: oklch(0.15 0.04 258);
   --sidebar-foreground: oklch(0.9 0.02 250);
+  --sidebar-primary: oklch(0.55 0.2 262);
+  --sidebar-primary-foreground: oklch(0.985 0.005 250);
   --sidebar-accent: oklch(0.22 0.05 258);
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: oklch(0.26 0.05 258);
+  --sidebar-ring: oklch(0.55 0.2 262);
   --sidebar-muted: oklch(0.62 0.03 258);
   --sidebar-active-bg: oklch(0.55 0.2 262 / 22%);
   --sidebar-active-fg: oklch(0.85 0.13 255);
 }
 
-/* Container do sidebar — flip para navy escuro (override do bloco branco) */
+/* Container do sidebar — light/clean, invertido automaticamente em .dark via tokens */
 [data-slot="sidebar-container"],
 [data-sidebar="sidebar"],
 .enterprise-sidebar,
@@ -1450,7 +1454,7 @@ main > * {
 /* Título/subtítulo do topo do sidebar */
 .enterprise-sidebar .sb-logo h2,
 .sidebar-user-name {
-  color: oklch(0.98 0.005 250) !important;
+  color: #0F172A !important;
 }
 .enterprise-sidebar .sb-logo p,
 .sidebar-user-role {
@@ -1465,23 +1469,23 @@ main > * {
 }
 .enterprise-sidebar .sb-collapse-btn:hover {
   background: var(--sidebar-accent) !important;
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 .enterprise-sidebar .sb-signout:hover,
 .sidebar-logout-btn:hover {
-  background: rgba(239, 68, 68, 0.14) !important;
-  color: #fca5a5 !important;
+  background: #FEE2E2 !important;
+  color: #B91C1C !important;
 }
 .enterprise-sidebar .sb-signout:hover svg,
 .sidebar-logout-btn:hover svg {
-  color: #fca5a5 !important;
+  color: #B91C1C !important;
 }
 
 /* Busca do sidebar */
 .enterprise-sidebar .sb-search,
 .sidebar-search-input {
-  background: oklch(1 0 0 / 6%) !important;
-  color: oklch(0.98 0.005 250) !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
   border: 1px solid transparent !important;
 }
 .enterprise-sidebar .sb-search::placeholder,
@@ -1490,7 +1494,7 @@ main > * {
 }
 .enterprise-sidebar .sb-search:focus,
 .sidebar-search-input:focus {
-  background: oklch(1 0 0 / 10%) !important;
+  background: #FFFFFF !important;
   border-color: var(--sidebar-ring) !important;
   box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 25%) !important;
 }
@@ -1508,7 +1512,7 @@ main > * {
   background: transparent !important;
 }
 .enterprise-sidebar .sb-group-label:hover {
-  color: oklch(0.85 0.02 250) !important;
+  color: var(--sidebar-accent-foreground) !important;
   background: transparent !important;
 }
 .enterprise-sidebar .sb-group-label svg,
@@ -1538,12 +1542,12 @@ main > * {
 .sidebar-nav-item:hover,
 .enterprise-sidebar a:hover {
   background: var(--sidebar-accent) !important;
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 [data-sidebar="menu-button"]:hover svg,
 .enterprise-sidebar .sb-item:hover svg,
 .sidebar-nav-item:hover svg {
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 
 /* Ativo: fundo blue/15%, texto blue-300, barra 3px azul */
@@ -1569,15 +1573,15 @@ main > * {
 .enterprise-sidebar .sb-user-card:hover {
   background: var(--sidebar-accent) !important;
 }
-.enterprise-sidebar .sb-user-name { color: #fff !important; }
+.enterprise-sidebar .sb-user-name { color: var(--sidebar-accent-foreground) !important; }
 .enterprise-sidebar .sb-user-role { color: var(--sidebar-muted) !important; }
 
 /* Scrollbar sobre navy */
 .enterprise-sidebar nav::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 12%) !important;
+  background: #CBD5E1 !important;
 }
 .enterprise-sidebar nav::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 22%) !important;
+  background: #94A3B8 !important;
 }
 
 /* Empty state */
