@@ -1064,3 +1064,42 @@ main > * {
   color: #EF4444 !important;
 }
 .sidebar-logout-btn:hover svg { color: #EF4444 !important; }
+
+/* =========================================================
+   CONTEÚDO PRINCIPAL & TABELAS (ENTERPRISE DENSITY)
+   ========================================================= */
+
+.content-filter-input,
+.content-filter-select {
+  border-radius: 6px !important;
+  border: 1px solid #E2E8F0 !important;
+  background-color: #FFFFFF !important;
+  font-size: 13px !important;
+  transition: all 150ms ease !important;
+}
+.content-filter-input:focus,
+.content-filter-select:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
+}
+
+.enterprise-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+.enterprise-table th {
+  background-color: #F8FAFC !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+}
+.enterprise-table tr:hover td {
+  background-color: #F8FAFC !important;
+}
