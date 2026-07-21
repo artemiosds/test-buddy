@@ -280,6 +280,15 @@ export function TextCell({
 }
 
 /* -----------------------------------------------------------------------
+ * ErpTbody — encapsula o bind do <tbody> no contexto para permitir
+ * o destaque da linha em edição via atributo `data-active-row`.
+ * ----------------------------------------------------------------------- */
+export function ErpTbody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
+  const ctx = useErp();
+  return <tbody ref={ctx.bindTbody} {...props} />;
+}
+
+/* -----------------------------------------------------------------------
  * Helpers de colunas congeladas — calculam `left` acumulado
  * ----------------------------------------------------------------------- */
 export type FrozenCol = { key: string; label: string; width: number };
