@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getWebRequest } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 
 export type DocMetadata = {
   ip: string | null;
@@ -13,7 +13,7 @@ export type DocMetadata = {
  */
 export const capturarMetadadosDocumento = createServerFn({ method: "GET" }).handler(
   async (): Promise<DocMetadata> => {
-    const req = getWebRequest();
+    const req = getRequest();
     const h = req?.headers;
     const ip =
       h?.get("cf-connecting-ip") ??
