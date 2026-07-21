@@ -427,9 +427,17 @@ export function FrequenciasContratadosPage() {
   const isAtencaoBasica =
     tipoUnidade === "UBS" ||
     tipoUnidade.includes("ATEN") /* ATENÇÃO BÁSICA / ATENCAO BASICA */;
-  const lotacaoDe = (conf: ProfConferencia): string | null => {
-    if (isAtencaoBasica) return conf.setor ?? null;
-    return (unidadeSel as any)?.nome ?? conf.setor ?? null;
+  const lotacaoDe = (conf: ProfConferencia): { label: string; full: string } | null => {
+    if (isAtencaoBasica) {
+      const full = conf.setor ?? null;
+      if (!full) return null;
+      const sigla = (conf as any).setor_sigla ?? null;
+      return { label: sigla || full, full };
+    }
+    const uNome = (unidadeSel as any)?.nome ?? conf.setor ?? null;
+    if (!uNome) return null;
+    const uSigla = (unidadeSel as any)?.sigla ?? null;
+    return { label: uSigla || uNome, full: uNome };
   };
 
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
@@ -797,7 +805,12 @@ export function FrequenciasContratadosPage() {
                     </td>
                     <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
-                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={lotacaoDe(conf) ?? undefined}>{lotacaoDe(conf) ?? "—"}</td>
+                    {(() => {
+                      const lot = lotacaoDe(conf);
+                      return (
+                        <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={lot?.full ?? undefined}>{lot?.label ?? "—"}</td>
+                      );
+                    })()}
                     {CAMPOS_NUM.map((c) => {
                       const isDias  = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
