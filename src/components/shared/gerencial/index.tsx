@@ -11,6 +11,12 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { StatusBadge } from "@/components/shared";
@@ -173,12 +179,20 @@ export function ProfissionalNomeCell({
             type="button"
             onClick={() => onOpenDossie?.(prof)}
             className="text-left"
+            style={{
+              color: "#2563EB",
+              fontWeight: 600,
+              cursor: "pointer",
+              textDecoration: "underline",
+              background: "transparent",
+              padding: 0,
+            }}
           >
-            <div className="font-medium text-slate-900 hover:text-primary">
+            <div style={{ color: "#2563EB", fontWeight: 600, textDecoration: "underline" }}>
               {prof.nome ?? "—"}
             </div>
             {secondary && (
-              <div className="text-[11px] text-muted-foreground">{secondary}</div>
+              <div className="text-[11px]" style={{ color: "#475569", textDecoration: "none", fontWeight: 500 }}>{secondary}</div>
             )}
             {alertas.length > 0 && (
               <div className="mt-1 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
