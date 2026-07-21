@@ -639,9 +639,9 @@ export function FrequenciasEfetivosPage() {
           <table>
             <thead>
               <tr>
-                <th className="erp-sticky" style={{ left: L.matricula, textAlign: "left" }} rowSpan={2}>Matrícula</th>
-                <th className="erp-sticky" style={{ left: L.nome, textAlign: "left" }} rowSpan={2}>Profissional</th>
-                <th className="erp-sticky erp-sticky-last" style={{ left: L.situacao, textAlign: "left" }} rowSpan={2}>Situação</th>
+                <th style={{ textAlign: "left" }} rowSpan={2}>Matrícula</th>
+                <th style={{ textAlign: "left" }} rowSpan={2}>Profissional</th>
+                <th style={{ textAlign: "left" }} rowSpan={2}>Situação</th>
                 <th style={{ textAlign: "right" }} rowSpan={2}>Proj</th>
                 <th style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
                 <th style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
@@ -678,13 +678,13 @@ export function FrequenciasEfetivosPage() {
                 const situ = derivarSituacao(conf);
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
-                    <td className="erp-sticky" style={{ left: L.matricula, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
+                    <td style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="erp-sticky" style={{ left: L.nome }}>
+                    <td>
                       <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cargo} />
                     </td>
-                    <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}>
+                    <td>
                       <SituacaoBadge prof={conf} />
                     </td>
                     <td className="text-right text-muted-foreground tabular-nums">{p.proj ?? "-"}</td>
@@ -739,9 +739,9 @@ export function FrequenciasEfetivosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
-                <td className="erp-sticky" style={{ left: L.matricula }}></td>
-                <td className="erp-sticky" style={{ left: L.nome }}>Totais</td>
-                <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}></td>
+                <td></td>
+                <td>Totais</td>
+                <td></td>
                 <td colSpan={4}></td>
                 {CAMPOS_OFICIAIS.map((c) => (
                   <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>
