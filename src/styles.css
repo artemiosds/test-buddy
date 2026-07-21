@@ -2018,3 +2018,79 @@ main,
 .enterprise-sidebar .sb-signout svg { color: #94A3B8 !important; }
 .enterprise-sidebar .sb-signout:hover { background: rgba(239,68,68,0.12) !important; color: #FCA5A5 !important; }
 .enterprise-sidebar .sb-signout:hover svg { color: #FCA5A5 !important; }
+
+/* =========================================================
+   V7 — ERP DASH POLISH (sidebar flat + tabelas suaves)
+   ========================================================= */
+
+/* Sidebar: itens sem caixinhas/margens laterais, tipo Dash */
+.enterprise-sidebar .sb-item {
+  margin: 1px 0 !important;
+  border-radius: 0 !important;
+  padding: 11px 20px !important;
+  color: #94A3B8 !important;
+  background: transparent !important;
+  border: 0 !important;
+  position: relative;
+}
+.enterprise-sidebar .sb-item svg { color: #94A3B8 !important; }
+
+.enterprise-sidebar .sb-item:hover {
+  background: rgba(148,163,184,0.06) !important;
+  color: #E2E8F0 !important;
+}
+.enterprise-sidebar .sb-item:hover svg { color: #E2E8F0 !important; }
+
+.enterprise-sidebar .sb-item.sb-item-active {
+  background: #1E293B !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+.enterprise-sidebar .sb-item.sb-item-active svg { color: #FFFFFF !important; }
+.enterprise-sidebar .sb-item.sb-item-active::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 3px;
+  background: #34D399 !important;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Cabeçalho de tabelas — Cinza Suave, texto Cinza Escuro */
+table thead,
+table thead tr,
+table thead th,
+[data-slot="table-header"],
+[data-slot="table-header"] tr,
+[data-slot="table-header"] th,
+.erp-table thead th {
+  background-color: #F1F5F9 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+}
+.dark table thead th,
+.dark [data-slot="table-header"] th { background-color: #1E293B !important; color: #E2E8F0 !important; border-bottom-color: #334155 !important; }
+
+/* Linhas — divisória sutil, radius interno, hover cinza muito claro */
+table tbody tr,
+[data-slot="table-body"] tr {
+  border-bottom: 1px solid #F1F5F9 !important;
+  transition: background-color 120ms ease;
+}
+table tbody tr:hover,
+[data-slot="table-body"] tr:hover {
+  background-color: #F8FAFC !important;
+}
+table tbody td,
+[data-slot="table-body"] td {
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  border: 0 !important;
+}
+.dark table tbody tr:hover,
+.dark [data-slot="table-body"] tr:hover { background-color: rgba(148,163,184,0.06) !important; }
