@@ -333,11 +333,19 @@ function drawProfissionalRow(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
       const nome = item.profissional.nome ?? "";
-      doc.text(nome, xCursor + c.w / 2, y + halfH - 1.5, { align: "center", maxWidth: c.w - 2 });
+      const nomeLinhas = doc.splitTextToSize(nome, c.w - 2) as string[];
+      const nomeShow = nomeLinhas.length > 1
+        ? (nomeLinhas[0].trimEnd() + "…")
+        : nomeLinhas[0] ?? "";
+      doc.text(nomeShow, xCursor + c.w / 2, y + halfH - 1.5, { align: "center" });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       const cargo = item.profissional.cargo ?? "";
-      doc.text(cargo, xCursor + c.w / 2, y + halfH + 4, { align: "center", maxWidth: c.w - 2 });
+      const cargoLinhas = doc.splitTextToSize(cargo, c.w - 2) as string[];
+      const cargoShow = cargoLinhas.length > 1
+        ? (cargoLinhas[0].trimEnd() + "…")
+        : cargoLinhas[0] ?? "";
+      doc.text(cargoShow, xCursor + c.w / 2, y + halfH + 4, { align: "center" });
     } else {
       // valor numérico centralizado verticalmente na célula
       doc.setFont("helvetica", "normal");
