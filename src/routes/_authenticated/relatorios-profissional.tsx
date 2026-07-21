@@ -29,7 +29,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
@@ -315,6 +315,7 @@ function RelatorioProfissionalPage() {
     if (assinProf.length > 0) {
       drawAssinaturasBlock(doc, assinProf, { startY: pageHeight - 60 });
     }
+    let _sigProf: Awaited<ReturnType<typeof registrarDocumentoAssinado>> | null = null;
     try {
       const sig = await registrarDocumentoAssinado({
         tipo: "relatorio_profissional",
@@ -329,8 +330,12 @@ function RelatorioProfissionalPage() {
         },
       });
       drawSignatureStamp(doc, sig);
+      _sigProf = sig;
     } catch (err) {
       logger.error("relatorios_profissional.signature_failed", { error: err });
+    }
+    if (_sigProf) {
+      try { await armazenarPdfAssinado(_sigProf, doc.output("blob")); } catch { /* best effort */ }
     }
     doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {

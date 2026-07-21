@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, XCircle, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/validar/$id")({
   head: () => ({
@@ -38,6 +38,10 @@ function ValidarPage() {
                   hash_conteudo: string;
                   assinado_por_nome: string | null;
                   assinado_em: string;
+                  status: string | null;
+                  revogado_em: string | null;
+                  motivo_revogacao: string | null;
+                  timestamp_confiavel: string | null;
                 } | null;
                 error: Error | null;
               }>;
@@ -46,7 +50,7 @@ function ValidarPage() {
         };
       })
         .from("documentos_assinados_publico")
-        .select("id, tipo, descricao, hash_conteudo, assinado_por_nome, assinado_em")
+        .select("id, tipo, descricao, hash_conteudo, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, timestamp_confiavel")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -81,6 +85,18 @@ function ValidarPage() {
             </div>
           ) : (
             <>
+              {data.status === "revogado" ? (
+                <div className="flex items-start gap-3 rounded-md bg-danger-soft border border-destructive/30 p-4">
+                  <AlertTriangle className="h-6 w-6 text-destructive shrink-0" />
+                  <div>
+                    <p className="font-semibold text-danger-soft-foreground">Documento REVOGADO</p>
+                    <p className="text-sm text-danger-soft-foreground">
+                      Revogado em {data.revogado_em ? new Date(data.revogado_em).toLocaleString("pt-BR") : "—"}.
+                      {data.motivo_revogacao ? ` Motivo: ${data.motivo_revogacao}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ) : (
               <div className="flex items-start gap-3 rounded-md bg-success-soft border border-success/30 p-4">
                 <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
                 <div>
@@ -90,6 +106,7 @@ function ValidarPage() {
                   </p>
                 </div>
               </div>
+              )}
 
               <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
                 <dt className="font-medium text-muted-foreground">Tipo</dt>
@@ -103,7 +120,10 @@ function ValidarPage() {
 
                 <dt className="font-medium text-muted-foreground">Emitido em</dt>
                 <dd className="sm:col-span-2 text-foreground">
-                  {new Date(data.assinado_em).toLocaleString("pt-BR")}
+                  {new Date(data.timestamp_confiavel ?? data.assinado_em).toLocaleString("pt-BR")}
+                  {data.timestamp_confiavel ? (
+                    <span className="ml-2 text-xs text-muted-foreground">(timestamp confiável)</span>
+                  ) : null}
                 </dd>
 
                 <dt className="font-medium text-muted-foreground">Identificador</dt>

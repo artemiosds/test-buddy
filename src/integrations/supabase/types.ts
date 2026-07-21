@@ -691,8 +691,18 @@ export type Database = {
           descricao: string
           hash_conteudo: string
           id: string
+          ip_origem: unknown
+          motivo_revogacao: string | null
+          pdf_storage_path: string | null
           referencia_id: string | null
+          revogado_em: string | null
+          revogado_por: string | null
+          status: string
+          termo_aceite: boolean
+          timestamp_confiavel: string | null
+          timestamp_fonte: string | null
           tipo: string
+          user_agent: string | null
         }
         Insert: {
           assinado_em?: string
@@ -703,8 +713,18 @@ export type Database = {
           descricao: string
           hash_conteudo: string
           id?: string
+          ip_origem?: unknown
+          motivo_revogacao?: string | null
+          pdf_storage_path?: string | null
           referencia_id?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          status?: string
+          termo_aceite?: boolean
+          timestamp_confiavel?: string | null
+          timestamp_fonte?: string | null
           tipo: string
+          user_agent?: string | null
         }
         Update: {
           assinado_em?: string
@@ -715,13 +735,30 @@ export type Database = {
           descricao?: string
           hash_conteudo?: string
           id?: string
+          ip_origem?: unknown
+          motivo_revogacao?: string | null
+          pdf_storage_path?: string | null
           referencia_id?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          status?: string
+          termo_aceite?: boolean
+          timestamp_confiavel?: string | null
+          timestamp_fonte?: string | null
           tipo?: string
+          user_agent?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "documentos_assinados_assinado_por_fkey"
             columns: ["assinado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_assinados_revogado_por_fkey"
+            columns: ["revogado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -3273,6 +3310,10 @@ export type Database = {
           descricao: string | null
           hash_conteudo: string | null
           id: string | null
+          motivo_revogacao: string | null
+          revogado_em: string | null
+          status: string | null
+          timestamp_confiavel: string | null
           tipo: string | null
         }
         Insert: {
@@ -3281,6 +3322,10 @@ export type Database = {
           descricao?: string | null
           hash_conteudo?: string | null
           id?: string | null
+          motivo_revogacao?: string | null
+          revogado_em?: string | null
+          status?: string | null
+          timestamp_confiavel?: string | null
           tipo?: string | null
         }
         Update: {
@@ -3289,6 +3334,10 @@ export type Database = {
           descricao?: string | null
           hash_conteudo?: string | null
           id?: string | null
+          motivo_revogacao?: string | null
+          revogado_em?: string | null
+          status?: string | null
+          timestamp_confiavel?: string | null
           tipo?: string | null
         }
         Relationships: []
@@ -3430,6 +3479,10 @@ export type Database = {
         Returns: string
       }
       reprocessar_evento_dominio: { Args: { _id: string }; Returns: undefined }
+      revogar_documento_assinado: {
+        Args: { _id: string; _motivo: string }
+        Returns: undefined
+      }
       sla_pendencias_processar: {
         Args: never
         Returns: {
