@@ -62,6 +62,7 @@ import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './r
 import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
 import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
+import { Route as AuthenticatedMeuPerfilAssinaturaRouteImport } from './routes/_authenticated/meu-perfil.assinatura'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
 import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
 import { Route as AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport } from './routes/_authenticated/gestao-pessoas.distribuicao-setor'
@@ -371,6 +372,12 @@ const AuthenticatedPisoEnfermagemImportarRoute =
     path: '/piso-enfermagem/importar',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMeuPerfilAssinaturaRoute =
+  AuthenticatedMeuPerfilAssinaturaRouteImport.update({
+    id: '/meu-perfil/assinatura',
+    path: '/meu-perfil/assinatura',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedGestaoPessoasSituacaoFuncionalRoute =
   AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport.update({
     id: '/gestao-pessoas/situacao-funcional',
@@ -480,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
+  '/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
@@ -544,6 +552,7 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
+  '/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
@@ -611,6 +620,7 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/distribuicao-setor': typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
+  '/_authenticated/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
   '/_authenticated/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/distribuicao-setor'
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
+    | '/meu-perfil/assinatura'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
@@ -742,6 +753,7 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/distribuicao-setor'
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
+    | '/meu-perfil/assinatura'
     | '/piso-enfermagem/importar'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
@@ -808,6 +820,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/distribuicao-setor'
     | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
+    | '/_authenticated/meu-perfil/assinatura'
     | '/_authenticated/piso-enfermagem/importar'
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/relatorios-gerenciais/auditoria'
@@ -1213,6 +1226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/meu-perfil/assinatura': {
+      id: '/_authenticated/meu-perfil/assinatura'
+      path: '/meu-perfil/assinatura'
+      fullPath: '/meu-perfil/assinatura'
+      preLoaderRoute: typeof AuthenticatedMeuPerfilAssinaturaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/gestao-pessoas/situacao-funcional': {
       id: '/_authenticated/gestao-pessoas/situacao-funcional'
       path: '/gestao-pessoas/situacao-funcional'
@@ -1426,6 +1446,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedGestaoPessoasDistribuicaoSetorRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRoute
   AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
+  AuthenticatedMeuPerfilAssinaturaRoute: typeof AuthenticatedMeuPerfilAssinaturaRoute
   AuthenticatedPisoEnfermagemImportarRoute: typeof AuthenticatedPisoEnfermagemImportarRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
@@ -1481,6 +1502,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedGestaoPessoasLotacaoRoute,
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
     AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
+  AuthenticatedMeuPerfilAssinaturaRoute: AuthenticatedMeuPerfilAssinaturaRoute,
   AuthenticatedPisoEnfermagemImportarRoute:
     AuthenticatedPisoEnfermagemImportarRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
