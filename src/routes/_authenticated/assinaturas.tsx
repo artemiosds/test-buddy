@@ -17,9 +17,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, Plus, Power, PowerOff, Signature, Stamp, Image as ImageIcon, Trash2, Settings2, ShieldCheck, BellRing, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, Plus, Power, PowerOff, Signature, Stamp, Image as ImageIcon, Trash2, Settings2, ShieldCheck, BellRing, AlertCircle, CheckCircle2, PenLine } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
+import { MinhaAssinaturaPage } from "@/routes/_authenticated/meu-perfil.assinatura";
+
+const PERFIS_ELEGIVEIS_PESSOAL = ["MASTER", "GESTOR", "GESTAO", "DIRETOR", "DIRETOR_UNIDADE", "COORDENADOR"];
 
 export const Route = createFileRoute("/_authenticated/assinaturas")({
   component: AssinaturasPage,
@@ -63,6 +66,9 @@ function AssinaturasPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const isMaster = !!me?.is_master;
+  const elegivelPessoal = !!me && PERFIS_ELEGIVEIS_PESSOAL.includes((me.perfil_codigo || "").toUpperCase());
+  const podeGerenciar = isMaster || has("assinatura.gerenciar");
+  const defaultTab = elegivelPessoal ? "minha" : "cadastro";
 
   return (
     <div className="space-y-6">
@@ -73,30 +79,45 @@ function AssinaturasPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="cadastro" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="cadastro">
+          {elegivelPessoal && (
+            <TabsTrigger value="minha">
+              <PenLine className="mr-2 h-4 w-4" />
+              Minha assinatura
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="cadastro" disabled={!podeGerenciar}>
             <Signature className="mr-2 h-4 w-4" />
-            Cadastro
+            Institucionais
           </TabsTrigger>
           <TabsTrigger value="regras" disabled={!isMaster}>
             <Settings2 className="mr-2 h-4 w-4" />
             Regras por documento
           </TabsTrigger>
-          <TabsTrigger value="pendentes" disabled={!isMaster && !has("assinatura.gerenciar")}>
+          <TabsTrigger value="pendentes" disabled={!podeGerenciar}>
             <BellRing className="mr-2 h-4 w-4" />
             Pendentes
           </TabsTrigger>
         </TabsList>
 
+        {elegivelPessoal && (
+          <TabsContent value="minha">
+            <MinhaAssinaturaPage />
+          </TabsContent>
+        )}
         <TabsContent value="cadastro">
-          <CadastroTab canGerenciar={has("assinatura.gerenciar")} me={me} />
+          {podeGerenciar ? (
+            <CadastroTab canGerenciar={has("assinatura.gerenciar")} me={me} />
+          ) : (
+            <div className="text-sm text-muted-foreground">Sem permissão.</div>
+          )}
         </TabsContent>
         <TabsContent value="regras">
           {isMaster ? <RegrasTab /> : <div className="text-sm text-muted-foreground">Apenas usuários Master.</div>}
         </TabsContent>
         <TabsContent value="pendentes">
-          {(isMaster || has("assinatura.gerenciar")) ? <PendentesTab /> : (
+          {podeGerenciar ? <PendentesTab /> : (
             <div className="text-sm text-muted-foreground">Sem permissão.</div>
           )}
         </TabsContent>
