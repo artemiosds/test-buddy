@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  AlertTriangle, CheckCircle2, MinusCircle, XCircle, Info, Users, User,
+  AlertTriangle, CheckCircle2, MinusCircle, XCircle, Info as InfoIcon, Users, User,
   ExternalLink, Filter as FilterIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -280,7 +280,7 @@ export function DossieDrawer({
 
           {eleg === "revisar" && (
             <div className="rounded-md border border-sky-300/60 bg-sky-50 p-3 text-xs text-sky-800">
-              <Info className="mr-1 inline h-3 w-3" />
+              <InfoIcon className="mr-1 inline h-3 w-3" />
               Cargo elegível ao Piso da Enfermagem, mas requer conferência antes do repasse.
             </div>
           )}
