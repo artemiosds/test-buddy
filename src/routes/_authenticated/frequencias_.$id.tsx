@@ -39,7 +39,7 @@ import { ArrowLeft, Send, CheckCircle2, XCircle, Save, Plus, Trash2, FileDown, P
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, drawSignatureFooter, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";

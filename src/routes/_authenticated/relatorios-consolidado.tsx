@@ -11,7 +11,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";

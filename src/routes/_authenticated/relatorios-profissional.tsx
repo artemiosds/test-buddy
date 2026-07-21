@@ -29,7 +29,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
