@@ -307,7 +307,7 @@ function UnidadesPage() {
             <DialogTrigger asChild>
               <Button
                 onClick={openNew}
-                className="h-11 shrink-0 rounded-xl bg-emerald-500 px-5 font-medium text-white shadow-sm shadow-emerald-500/20 transition hover:-translate-y-px hover:bg-emerald-600 hover:shadow-md hover:shadow-emerald-500/25 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                className="h-11 shrink-0 rounded-xl bg-slate-900 px-5 font-medium text-white shadow-sm shadow-slate-900/20 transition hover:-translate-y-px hover:bg-slate-800 hover:shadow-md hover:shadow-slate-900/25 focus-visible:ring-2 focus-visible:ring-slate-900/40"
               >
                 <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.25} /> Nova Unidade
               </Button>
