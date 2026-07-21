@@ -658,7 +658,6 @@ export function FrequenciasEfetivosPage() {
       />
       <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <SituacaoResumo rows={rowsConf} />
           <InconsistenciasPanel rows={rowsConf} onGoto={focarLinha} />
         </div>
         <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
