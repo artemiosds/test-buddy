@@ -181,7 +181,7 @@ export function ProfissionalNomeCell({
               <div className="text-[11px] text-muted-foreground">{secondary}</div>
             )}
             {alertas.length > 0 && (
-              <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-amber-700">
+              <div className="mt-1 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                 <AlertTriangle className="h-3 w-3" />
                 {alertas.length} pendência{alertas.length > 1 ? "s" : ""} cadastral{alertas.length > 1 ? "is" : ""}
               </div>
