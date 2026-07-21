@@ -447,15 +447,10 @@ export function FrequenciasContratadosPage() {
     () => linhasFinais.map((x: any) => x.it.profissional.id as string),
     [linhasFinais],
   );
-  // 3 frozen (Nº/Matrícula/Nome) + CPF + Cargo + Lotação + Dias
-  // + CAMPOS_NUM (8) + Conta + Observações + Status
-  const colCount = 3 + 4 + CAMPOS_NUM.length + 3;
-
-  // Quantidade de dias da competência (para calcular "Dias trabalhados").
-  const diasMes = useMemo(() => {
-    if (!compSel?.ano || !compSel?.mes) return 30;
-    return new Date(compSel.ano as number, compSel.mes as number, 0).getDate();
-  }, [compSel]);
+  // 3 (Nº/Matrícula/Nome) + CPF + Cargo + Lotação
+  // + CAMPOS_NUM (Dias, Faltas, ATT, HE50, HE100, ADN, Plantões, Sobreavisos, Incentivo)
+  // + Conta + Observações + Status
+  const colCount = 3 + 3 + CAMPOS_NUM.length + 3;
 
   const totCampo = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -766,7 +761,6 @@ export function FrequenciasContratadosPage() {
                 const ro = readonlyLinha(l);
                 const situ = derivarSituacao(conf);
                 const semConta = !p.banco || !p.agencia || !p.conta_corrente;
-                const diasTrab = Math.max(0, diasMes - Number(l.dias_falta ?? 0));
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
@@ -789,13 +783,8 @@ export function FrequenciasContratadosPage() {
                     <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.setor ?? undefined}>{p.setor ?? "—"}</td>
-                    <td
-                      className="text-center font-mono tabular-nums text-muted-foreground"
-                      title={`Dias do mês (${diasMes}) − Faltas (${l.dias_falta ?? 0})`}
-                    >
-                      {diasTrab}
-                    </td>
                     {CAMPOS_NUM.map((c) => {
+                      const isDias  = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
                       const isHora  = c === "he_50" || c === "he_100" || c === "adn";
                       const isInc   = c === "incentivo";
@@ -806,7 +795,7 @@ export function FrequenciasContratadosPage() {
                             value={Number((l as any)[c] ?? 0)}
                             disabled={ro}
                             decimals={isInc ? 2 : 0}
-                            validate={isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
+                            validate={isDias ? validateFalta : isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
                             onChange={(v) => updateCampo(p.id, c, v)}
                           />
                         </td>
@@ -843,7 +832,6 @@ export function FrequenciasContratadosPage() {
                 <td></td>
                 <td>Totais</td>
                 <td colSpan={3}></td>
-                <td></td>
                 {CAMPOS_NUM.map((c) => (
                   <td key={c} className="text-center font-mono">
                     {c === "incentivo"
@@ -862,8 +850,8 @@ export function FrequenciasContratadosPage() {
 
       <p className="text-xs text-muted-foreground">
         A coluna <strong>Conta</strong> (Banco / AG / CC) e <strong>CPF</strong> são somente leitura —
-        são atualizados no cadastro do profissional. A coluna <strong>Dias</strong> é calculada
-        automaticamente ({diasMes} dias do mês − faltas).
+        são atualizados no cadastro do profissional. A coluna <strong>Dias</strong> vem zerada
+        por padrão e deve ser preenchida manualmente pelo Diretor/Gestor (0 a 31).
       </p>
 
       <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
