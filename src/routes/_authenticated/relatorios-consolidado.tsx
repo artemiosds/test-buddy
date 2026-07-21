@@ -231,6 +231,7 @@ function RelatorioConsolidadoPage() {
     if (assin.length > 0) {
       drawAssinaturasBlock(doc, assin, { startY: pageHeight - 60 });
     }
+    let _sigConsolidado: Awaited<ReturnType<typeof registrarDocumentoAssinado>> | null = null;
     try {
       const sig = await registrarDocumentoAssinado({
         tipo: "relatorio_consolidado",
@@ -238,7 +239,11 @@ function RelatorioConsolidadoPage() {
         dados: { competencia: compLabel, tipo, unidades: aggregated.length, totais },
       });
       drawSignatureStamp(doc, sig);
+      _sigConsolidado = sig;
     } catch (err) { logger.error("relatorios_consolidado.signature_failed", { error: err }); }
+    if (_sigConsolidado) {
+      try { await armazenarPdfAssinado(_sigConsolidado, doc.output("blob")); } catch { /* best effort */ }
+    }
     doc.save(`consolidado_${compLabel.replace("/", "-")}.pdf`);
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
       tabela: "relatorios",
