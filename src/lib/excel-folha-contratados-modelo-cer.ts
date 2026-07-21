@@ -1,15 +1,11 @@
 /**
- * Excel "Modelo CER" — réplica fiel do arquivo FOLHA_CER.xlsx enviado pela SMS.
- *
- * Reproduz a mesma estrutura do template original:
- *   Linha 1..5 (mescladas em O)  — cabeçalho institucional
- *   Linha 6                      — cabeçalho da tabela
- *   Linha 7+                     — prestadores
- * E embute os 3 brasões oficiais (Prefeitura, Prefeitura alternativa e SMS).
+ * Excel "Modelo Gestão-SMS" — Frequência de Contratados.
+ * Cabeçalho mesclado B1:N4 com identificação institucional, brasões travados
+ * em 80x80 px em A1 e na última coluna, tabela iniciando na linha 6 com
+ * autoFilter e larguras de coluna calibradas.
  */
 import ExcelJS from "exceljs";
 import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
-import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
 import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 
@@ -43,100 +39,82 @@ export async function gerarExcelFolhaContratadosModeloCer(
   const wb = new ExcelJS.Workbook();
   wb.creator = "SMS Oriximiná";
   wb.created = new Date();
-  const ws = wb.addWorksheet("CER", {
+  const ws = wb.addWorksheet("Frequência", {
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    views: [{ state: "frozen", ySplit: 6 }],
   });
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
   const compStr = `${mesNome}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
-  // Larguras baseadas no template original
-  ws.columns = [
-    { width: 5.3 },   // A - Nº
-    { width: 32 },    // B - NOME
-    { width: 18 },    // C - CPF
-    { width: 20 },    // D - CARGO
-    { width: 23 },    // E - LOTAÇÃO
-    { width: 7 },     // F - DIAS
-    { width: 9 },     // G - FALTA
-    { width: 7 },     // H - ATT
-    { width: 9 },     // I - H.E 50%
-    { width: 9 },     // J - H.E 100%
-    { width: 7 },     // K - ADN
-    { width: 9 },     // L - PLANTÕES
-    { width: 8 },     // M - SOBREAVISOS
-    { width: 15 },    // N - INCENTIVO
-    { width: 30 },    // O - CONTA
-  ];
+  // Larguras — Nome/Lotação largas, contadores estreitos
+  const widths = [6, 35, 16, 22, 35, 10, 10, 10, 10, 10, 10, 12, 14, 14, 30];
+  widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
-  // Linhas altas para os brasões
-  ws.getRow(1).height = 22;
-  ws.getRow(2).height = 22;
-  ws.getRow(3).height = 22;
-  ws.getRow(4).height = 22;
-  ws.getRow(5).height = 20;
+  // Altura das linhas 1-4 para acomodar logos e header mesclado
+  for (let r = 1; r <= 4; r++) ws.getRow(r).height = 22;
+  ws.getRow(5).height = 6;
 
-  const textos = [
-    "ESTADO DO PARÁ",
-    "PREFEITURA MUNICIPAL DE ORIXIMINÁ",
-    "SECRETARIA MUNICIPAL DE SAÚDE",
-    unidadeUp,
-    `FREQUÊNCIA DOS PRESTADORES DE ${unidadeUp} — MÊS ${compStr}`,
-  ];
+  // Cabeçalho institucional mesclado B1:N4
+  ws.mergeCells("B1:N4");
+  const headerCell = ws.getCell("B1");
+  headerCell.value = {
+    richText: [
+      { text: "ESTADO DO PARÁ\n", font: { bold: true, size: 11, name: "Calibri" } },
+      { text: "PREFEITURA MUNICIPAL DE ORIXIMINÁ\n", font: { bold: true, size: 13, name: "Calibri" } },
+      { text: "SECRETARIA MUNICIPAL DE SAÚDE\n", font: { bold: true, size: 11, name: "Calibri" } },
+      { text: `${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`,
+        font: { bold: true, size: 10, name: "Calibri" } },
+    ],
+  };
+  headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
-  for (let i = 0; i < 5; i++) {
-    const row = i + 1;
-    ws.mergeCells(row, 1, row, 15);
-    const c = ws.getCell(row, 1);
-    c.value = textos[i];
-    c.alignment = { horizontal: "center", vertical: "middle" };
-    c.font = { name: "Calibri", bold: i !== 3, size: i === 1 ? 13 : i === 4 ? 12 : 11 };
-  }
-
-  // Embed logos
-  const [brasaoLeftBuf, brasaoAltBuf, smsBuf] = await Promise.all([
+  // Logos travados em 80x80 px
+  const [brasaoBuf, smsBuf] = await Promise.all([
     fetchAsBuffer(brasaoOriximina.url),
-    fetchAsBuffer(brasaoOriximinaAlt.url),
     fetchAsBuffer(logoSms.url),
   ]);
-
-  const addImg = (
-    buf: ArrayBuffer | null,
-    tl: { col: number; row: number },
-    ext: { width: number; height: number },
-  ) => {
-    if (!buf) return;
-    const id = wb.addImage({ buffer: buf, extension: "png" });
-    ws.addImage(id, { tl, ext, editAs: "oneCell" });
-  };
-
-  // Brasão da Prefeitura, à esquerda (col B, linhas 1-4)
-  addImg(brasaoLeftBuf, { col: 1.1, row: 0.1 }, { width: 70, height: 80 });
-  // Brasão alternativo, próximo (col E)
-  addImg(brasaoAltBuf,  { col: 4.1, row: 0.1 }, { width: 60, height: 80 });
-  // Logo SMS, à direita (col N-O)
-  addImg(smsBuf,        { col: 13.1, row: 0.2 }, { width: 90, height: 78 });
+  if (brasaoBuf) {
+    const id = wb.addImage({ buffer: brasaoBuf, extension: "png" });
+    ws.addImage(id, {
+      tl: { col: 0.1, row: 0.1 },
+      ext: { width: 80, height: 80 },
+      editAs: "oneCell",
+    });
+  }
+  if (smsBuf) {
+    const id = wb.addImage({ buffer: smsBuf, extension: "png" });
+    // Coluna O = índice 14 (0-based)
+    ws.addImage(id, {
+      tl: { col: 14.05, row: 0.1 },
+      ext: { width: 80, height: 80 },
+      editAs: "oneCell",
+    });
+  }
 
   // Cabeçalho da tabela (linha 6)
   const headers = [
     "Nº","NOME","C.P.F.","CARGO","LOTAÇÃO",
     "DIAS","FALTA","ATT","H.E 50%","H.E 100%","ADN",
-    "PLANTÕES","SOBREAVISOS","INCENTIVO","CONTA",
+    "PLANTÕES","SOBRE-AVISOS","INCENTIVO","CONTA",
   ];
   const headerRow = ws.getRow(6);
-  headerRow.height = 24;
+  headerRow.height = 26;
   headers.forEach((h, i) => {
     const c = headerRow.getCell(i + 1);
     c.value = h;
     c.font = { name: "Calibri", bold: true, size: 10 };
     c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE6E6E6" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
     c.border = {
       top: { style: "thin" }, bottom: { style: "thin" },
       left: { style: "thin" }, right: { style: "thin" },
     };
   });
+
+  // Filtro automático
+  ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: headers.length } };
 
   // Dados
   input.itens.forEach((it, i) => {
@@ -161,25 +139,30 @@ export async function gerarExcelFolhaContratadosModeloCer(
       fmtConta(p),
     ];
     const row = ws.getRow(rowIdx);
-    row.height = 20;
+    row.height = 18;
     values.forEach((v, ci) => {
       const c = row.getCell(ci + 1);
       c.value = v as ExcelJS.CellValue;
       c.font = { name: "Calibri", size: 9 };
+      const leftAlign = ci === 1 || ci === 3 || ci === 4 || ci === 14;
       c.alignment = {
-        horizontal: ci === 1 || ci === 3 || ci === 4 || ci === 14 ? "left" : "center",
+        horizontal: leftAlign ? "left" : "center",
         vertical: "middle",
-        wrapText: ci === 1 || ci === 3 || ci === 4 || ci === 14,
+        wrapText: leftAlign,
       };
+      // Zebra striping
+      if (i % 2 === 1) {
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+      }
       c.border = {
-        top: { style: "hair" }, bottom: { style: "hair" },
-        left: { style: "hair" }, right: { style: "hair" },
+        top: { style: "hair", color: { argb: "FFCBD5E1" } },
+        bottom: { style: "hair", color: { argb: "FFCBD5E1" } },
+        left: { style: "hair", color: { argb: "FFCBD5E1" } },
+        right: { style: "hair", color: { argb: "FFCBD5E1" } },
       };
     });
   });
 
-  // Freeze until linha 6 (cabeçalho)
-  ws.views = [{ state: "frozen", ySplit: 6 }];
   ws.pageSetup.margins = { left: 0.3, right: 0.3, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1 };
 
   const buf = await wb.xlsx.writeBuffer();
@@ -189,7 +172,7 @@ export async function gerarExcelFolhaContratadosModeloCer(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `folha-contratados-modelo-cer-${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}.xlsx`;
+  a.download = `folha-contratados-gestao-sms-${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}.xlsx`;
   document.body.appendChild(a);
   a.click();
   a.remove();
