@@ -633,10 +633,26 @@ export function FrequenciasEfetivosPage() {
 
       {/* Painel gerencial (UI-only) */}
       <KpiFolhaBar k={kpi} />
-      <ResumoDiasFaltasAttEfetivos
-        rowsConf={rowsConf}
-        linhas={linhas}
-        totCampo={totCampo}
+      <ResumoDiasFaltasAtt
+        totais={{
+          dias: totCampo.dias_trabalhados ?? 0,
+          faltas: totCampo.faltas_injustificadas ?? 0,
+          att: totCampo.atestado ?? 0,
+        }}
+        selecionado={(() => {
+          if (!selectedRowId) return null;
+          const l = linhas[selectedRowId];
+          const p = rowsConf.find((r) => r.profissional_id === selectedRowId);
+          if (!l || !p) return null;
+          return {
+            nome: p.nome_completo ?? "—",
+            valores: {
+              dias: Number(l.dias_trabalhados ?? 0),
+              faltas: Number(l.faltas_injustificadas ?? 0),
+              att: Number(l.atestado ?? 0),
+            },
+          };
+        })()}
       />
       <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
