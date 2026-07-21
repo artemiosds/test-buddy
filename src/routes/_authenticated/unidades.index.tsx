@@ -307,7 +307,7 @@ function UnidadesPage() {
             <DialogTrigger asChild>
               <Button
                 onClick={openNew}
-                className="h-11 shrink-0 rounded-xl bg-emerald-500 px-5 font-medium text-white shadow-sm shadow-emerald-500/20 transition hover:-translate-y-px hover:bg-emerald-600 hover:shadow-md hover:shadow-emerald-500/25 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                className="h-11 shrink-0 rounded-xl bg-slate-900 px-5 font-medium text-white shadow-sm shadow-slate-900/20 transition hover:-translate-y-px hover:bg-slate-800 hover:shadow-md hover:shadow-slate-900/25 focus-visible:ring-2 focus-visible:ring-slate-900/40"
               >
                 <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.25} /> Nova Unidade
               </Button>
@@ -521,24 +521,25 @@ function UnidadesPage() {
         </div>
       </div>
 
-      {/* Cabeçalho de colunas (desktop) */}
-      <div className="hidden rounded-xl bg-slate-50/70 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_240px] lg:gap-4">
-        <span>Nome</span>
-        <span>Sigla</span>
-        <span>CNES</span>
-        <span>Secretaria</span>
-        <span>Status</span>
-        <span className="text-right">Ações</span>
-      </div>
+      {/* Card principal envolvendo a lista */}
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+        {/* Cabeçalho de colunas (desktop) */}
+        <div className="hidden border-b border-slate-100 bg-slate-50/60 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_120px] lg:gap-4">
+          <span>Nome</span>
+          <span>Sigla</span>
+          <span>CNES</span>
+          <span>Secretaria</span>
+          <span>Status</span>
+          <span className="text-right">Ações</span>
+        </div>
 
-      {/* Lista de cards */}
-      <div className="space-y-3">
+        <div className="divide-y divide-slate-100">
         {isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+          <div className="p-10 text-center text-sm text-slate-500">
             Carregando...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+          <div className="p-10 text-center text-sm text-slate-500">
             Nenhuma unidade cadastrada.
           </div>
         ) : (
@@ -554,10 +555,10 @@ function UnidadesPage() {
                   navigate({ to: "/unidades/$id", params: { id: u.id } });
                 }
               }}
-              className="group grid cursor-pointer grid-cols-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_-1px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-[0_8px_24px_-8px_rgba(15,118,110,0.18),0_4px_10px_-6px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_240px] lg:gap-4"
+              className="group grid cursor-pointer grid-cols-1 items-center gap-3 px-6 py-4 transition-colors duration-150 hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_120px] lg:gap-4"
             >
               <div className="min-w-0">
-                <div className="truncate text-[15px] font-semibold text-slate-800 transition group-hover:text-teal-700">
+                <div className="truncate text-[14.5px] font-semibold text-slate-800 transition group-hover:text-slate-900">
                   {u.nome}
                 </div>
                 <div className="mt-0.5 text-xs text-slate-400 lg:hidden">
@@ -573,28 +574,31 @@ function UnidadesPage() {
                 <StatusPill status={u.status} />
               </div>
               <div
-                className="flex items-center justify-start gap-2 lg:justify-end"
+                className="flex items-center justify-start gap-1 lg:justify-end"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button
-                  asChild
+                <Link
+                  to="/unidades/$id"
+                  params={{ id: u.id }}
                   title="Painel da unidade"
-                  className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-slate-600 shadow-none transition hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 hover:shadow-sm"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 >
-                  <Link to="/unidades/$id" params={{ id: u.id }}>
-                    <LayoutDashboard className="h-4 w-4" strokeWidth={1.75} />
-                  </Link>
-                </Button>
+                  <LayoutDashboard className="h-4 w-4" strokeWidth={2} />
+                </Link>
                 {canEdit && (
-                  <Button
+                  <button
+                    type="button"
                     onClick={() => openEdit(u)}
-                    className="h-9 rounded-xl bg-sky-500 px-3.5 text-white shadow-sm shadow-sky-500/20 transition hover:-translate-y-px hover:bg-sky-600 hover:shadow-md hover:shadow-sky-500/25"
+                    title="Editar"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
                   >
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} /> Editar
-                  </Button>
+                    <Pencil className="h-4 w-4" strokeWidth={2} />
+                  </button>
                 )}
                 {canDelete && (
-                  <Button
+                  <button
+                    type="button"
+                    title="Arquivar"
                     onClick={() => {
                       void (async () => {
                         const ok = await askConfirm({
@@ -606,15 +610,16 @@ function UnidadesPage() {
                         if (ok) softDelete.mutate(u.id);
                       })();
                     }}
-                    className="h-9 rounded-xl border border-rose-100 bg-rose-50 px-3.5 text-rose-600 shadow-none transition hover:-translate-y-px hover:border-rose-200 hover:bg-rose-100 hover:text-rose-700 hover:shadow-sm"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
                   >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} /> Excluir
-                  </Button>
+                    <Trash2 className="h-4 w-4" strokeWidth={2} />
+                  </button>
                 )}
               </div>
             </div>
           ))
         )}
+        </div>
       </div>
     </div>
   );
@@ -622,7 +627,7 @@ function UnidadesPage() {
 
 function StatusPill({ status }: { status: StatusEnt }) {
   const map: Record<StatusEnt, { label: string; cls: string; dot: string }> = {
-    ativa:     { label: "Ativa",     cls: "bg-emerald-50 text-emerald-700 ring-emerald-100",  dot: "bg-emerald-500" },
+    ativa:     { label: "Ativa",     cls: "bg-emerald-100 text-emerald-800 ring-emerald-200", dot: "bg-emerald-500" },
     inativa:   { label: "Inativa",   cls: "bg-slate-100 text-slate-600 ring-slate-200",       dot: "bg-slate-400" },
     suspensa:  { label: "Suspensa",  cls: "bg-amber-50 text-amber-700 ring-amber-100",        dot: "bg-amber-500" },
     arquivada: { label: "Arquivada", cls: "bg-rose-50 text-rose-700 ring-rose-100",           dot: "bg-rose-500" },
