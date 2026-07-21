@@ -17,6 +17,7 @@ import { installBrowserErrorHandlers, logger } from "../lib/logger";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
+import { TermoAceiteProvider } from "@/components/documentos/termo-aceite-provider";
 
 function NotFoundComponent() {
   return (
@@ -162,9 +163,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster richColors position="top-right" />
+        <TermoAceiteProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </TermoAceiteProvider>
       </ConfirmProvider>
     </QueryClientProvider>
   );
