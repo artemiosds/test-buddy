@@ -726,9 +726,9 @@ export function FrequenciasContratadosPage() {
           <table>
             <thead>
               <tr>
-                <th className="erp-sticky" style={{ left: L.num, width: 40, textAlign: "center" }}>Nº</th>
-                <th className="erp-sticky" style={{ left: L.matricula, width: 80, textAlign: "center" }}>Matrícula</th>
-                <th className="erp-sticky erp-sticky-last" style={{ left: L.nome, minWidth: 200, maxWidth: 250, textAlign: "left" }}>Nome</th>
+                <th style={{ width: 40, textAlign: "center" }}>Nº</th>
+                <th style={{ width: 80, textAlign: "center" }}>Matrícula</th>
+                <th style={{ minWidth: 200, maxWidth: 250, textAlign: "left" }}>Nome</th>
                 <th style={{ textAlign: "center", width: 112 }}>CPF</th>
                 <th style={{ textAlign: "left", minWidth: 140 }}>Cargo</th>
                 <th style={{ textAlign: "left", minWidth: 140 }}>Lotação</th>
@@ -766,15 +766,15 @@ export function FrequenciasContratadosPage() {
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
-                      className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
-                      style={{ left: L.num, width: 40 }}
+                      className="text-center text-muted-foreground font-mono tabular-nums"
+                      style={{ width: 40 }}
                     >
                       {idx + 1}
                     </td>
-                    <td className="erp-sticky text-center font-mono" style={{ left: L.matricula, width: 80 }}>
+                    <td className="text-center font-mono" style={{ width: 80 }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="erp-sticky erp-sticky-last font-medium text-slate-900" style={{ left: L.nome, minWidth: 200, maxWidth: 250 }}>
+                    <td className="font-medium text-slate-900" style={{ minWidth: 200, maxWidth: 250 }}>
                       <div className="flex items-center gap-1.5">
                         <IconeSituacao situ={situ} />
                         <div className="min-w-0 flex-1 truncate">
@@ -835,9 +835,9 @@ export function FrequenciasContratadosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
-                <td className="erp-sticky" style={{ left: L.num }}></td>
-                <td className="erp-sticky" style={{ left: L.matricula }}></td>
-                <td className="erp-sticky erp-sticky-last" style={{ left: L.nome }}>Totais</td>
+                <td></td>
+                <td></td>
+                <td>Totais</td>
                 <td colSpan={3}></td>
                 <td></td>
                 {CAMPOS_NUM.map((c) => (
