@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,11 @@ import {
 } from "@/components/assinaturas/signature-editor";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({
-  component: MinhaAssinaturaPage,
+  // Módulo unificado em /assinaturas (aba "Minha assinatura").
+  // Mantido apenas como redirect para não quebrar links antigos.
+  beforeLoad: () => {
+    throw redirect({ to: "/assinaturas" });
+  },
 });
 
 const BUCKET = "assinaturas";
@@ -46,7 +50,7 @@ type Assinatura = {
   mostrar_cargo: boolean | null;
 };
 
-function MinhaAssinaturaPage() {
+export function MinhaAssinaturaPage() {
   const { data: me, isLoading: loadingMe } = useCurrentUser();
   const qc = useQueryClient();
 
