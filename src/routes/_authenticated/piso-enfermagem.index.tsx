@@ -124,6 +124,38 @@ function PisoIndex() {
     enabled: !!competenciaAtiva,
   });
 
+  // Enriquecimento gerencial UI-only.
+  const rowsPagina = (linhasQ.data?.rows ?? []) as Linha[];
+  const idsPagina = useMemo(() => rowsPagina.map((r) => r.id), [rowsPagina]);
+  const { data: confMap } = useConferenciaProfissionais(idsPagina);
+
+  const linhasConf: ProfConferencia[] = useMemo(
+    () =>
+      rowsPagina.map((r) =>
+        mergeConferencia(
+          {
+            id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
+            matricula: r.matricula, vinculo: r.vinculo,
+          },
+          confMap,
+        ),
+      ),
+    [rowsPagina, confMap],
+  );
+
+  const linhasFiltradasSituacao = useMemo(() => {
+    if (situacaoFilter === "todas") return rowsPagina;
+    const okIds = new Set(
+      linhasConf.filter((c) => derivarSituacao(c) === situacaoFilter).map((c) => c.id),
+    );
+    return rowsPagina.filter((r) => okIds.has(r.id));
+  }, [rowsPagina, linhasConf, situacaoFilter]);
+
+  function openDossie(p: ProfConferencia) {
+    setDossieProf(p);
+    setDossieOpen(true);
+  }
+
   const cols: DataTableColumn<Linha>[] = useMemo(
     () => [
       {
@@ -194,13 +226,8 @@ function PisoIndex() {
         cell: (r) => (r.valor_final != null ? fmtBRL(r.valor_final) : "—"),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [/* confMap injected via closure below */],
+    [confMap],
   );
-
-  // Recomputa colunas quando confMap muda — usamos um trick simples:
-  // envolvemos confMap fora do useMemo acima. Como React captura closure,
-  // reconstruímos as colunas a cada render via useMemo dependendo do map.
 
   function handleExportar() {
     const rows = (linhasQ.data?.rows ?? []) as Linha[];
