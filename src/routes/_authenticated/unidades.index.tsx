@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, Network, LayoutDashboard } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Network, LayoutDashboard, Download } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -252,6 +252,31 @@ function UnidadesPage() {
     );
   });
 
+  function exportCsv() {
+    const rows = [
+      ["Nome", "Sigla", "CNES", "CNPJ", "Secretaria", "Município", "Status"],
+      ...filtered.map((u) => [
+        u.nome ?? "",
+        u.sigla ?? "",
+        u.cnes ?? "",
+        u.cnpj ?? "",
+        u.secretaria?.nome ?? "",
+        u.municipio ?? "",
+        u.status ?? "",
+      ]),
+    ];
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `unidades_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function openNew() {
     setForm({
       ...EMPTY,
@@ -302,6 +327,14 @@ function UnidadesPage() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
+          <Button
+            type="button"
+            onClick={exportCsv}
+            variant="outline"
+            className="h-11 shrink-0 rounded-xl border-slate-200 bg-white px-4 font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50"
+          >
+            <Download className="mr-1.5 h-4 w-4" strokeWidth={2} /> Exportar
+          </Button>
           {canCreate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
