@@ -3121,3 +3121,199 @@ main * { }
 .dark table thead th { background-color: #1e293b !important; color: #f1f5f9 !important; border-color: #334155 !important; }
 .dark table tbody td { background-color: #0f172a !important; color: #e2e8f0 !important; border-color: #1e293b !important; }
 .dark table tbody tr:hover td { background-color: #172033 !important; }
+
+/* =========================================================
+   HOSPITAL CLEAN v14 — Re-aplica paleta v12 sobre v13.
+   Somente cores/estilo. Estrutura preservada.
+   ========================================================= */
+
+/* 1. Fundos globais */
+html, body, #root,
+main, .main-content, .page-canvas { background-color: #f5f7fa !important; }
+
+/* 2. Cards / tabelas / filtros — branco puro + sombra leve */
+.card, .kpi-card, .table-container, .filter-bar,
+[data-slot="card"] {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05) !important;
+}
+
+/* 3. Sidebar — Azul Petróleo Profundo, sem caixas brancas */
+aside.enterprise-sidebar,
+.enterprise-sidebar {
+  background-color: #0f172a !important;
+  border-right: 1px solid #0b1220 !important;
+  color: #cbd5e1 !important;
+}
+
+.enterprise-sidebar a,
+.enterprise-sidebar button,
+.enterprise-sidebar span,
+.enterprise-sidebar p {
+  color: #cbd5e1 !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+.enterprise-sidebar .sb-group-label,
+.enterprise-sidebar [class*="group-label"] {
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-size: 11px !important;
+  background: transparent !important;
+}
+
+.enterprise-sidebar .sb-item {
+  color: #cbd5e1 !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+.enterprise-sidebar .sb-item:hover,
+.enterprise-sidebar .sb-item:hover * {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+.enterprise-sidebar .sb-item.sb-item-active,
+.enterprise-sidebar .sb-item[aria-current="page"] {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-left: none !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+.enterprise-sidebar .sb-item.sb-item-active *,
+.enterprise-sidebar .sb-item[aria-current="page"] * {
+  color: #ffffff !important;
+}
+
+.enterprise-sidebar .sb-brand,
+.enterprise-sidebar .sb-brand *,
+.enterprise-sidebar h2 { color: #f8fafc !important; }
+.enterprise-sidebar .sb-brand p { color: #94a3b8 !important; }
+
+.enterprise-sidebar .sb-user-name { color: #f8fafc !important; }
+.enterprise-sidebar .sb-user-role { color: #94a3b8 !important; }
+.enterprise-sidebar .sb-user-avatar {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+.enterprise-sidebar .sb-search {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #f1f5f9 !important;
+}
+.enterprise-sidebar .sb-search::placeholder { color: #64748b !important; }
+
+/* 4. Tabela — cabeçalho claro, sem colunas verticais */
+table {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+table thead th,
+table th {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  font-size: 11px !important;
+  padding: 10px !important;
+}
+table tbody td,
+table td {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 10px 12px !important;
+  font-weight: 500 !important;
+}
+table tbody tr:hover td { background-color: #f8fafc !important; }
+table tbody tr:last-child td { border-bottom: none !important; }
+
+/* 5. Inputs — borda cinza clara, foco azul suave */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea, select,
+[data-slot="input"], [data-slot="select-trigger"] {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #2563eb !important;
+  outline: 2px solid rgba(37,99,235,0.15) !important;
+}
+
+/* 6. Botão primário */
+button[data-variant="default"],
+button.bg-primary,
+.btn-primary {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+button[data-variant="default"]:hover,
+button.bg-primary:hover,
+.btn-primary:hover { background-color: #1d4ed8 !important; }
+
+/* 7. Pílulas pastel com texto escuro */
+.badge, [data-slot="badge"], .status-badge, .alert-pill, .pill {
+  border-radius: 999px !important;
+  padding: 2px 10px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  color: #334155 !important;
+  border: 1px solid transparent !important;
+  background-color: #e2e8f0 !important;
+}
+.pill-ok, [data-tone="ok"], .badge-success,
+.bg-emerald-50, .bg-green-50 {
+  background-color: #d1fae5 !important; color: #065f46 !important; border-color: #a7f3d0 !important;
+}
+.pill-warn, [data-tone="warn"], .badge-warning,
+.bg-amber-50, .bg-yellow-50 {
+  background-color: #fef3c7 !important; color: #92400e !important; border-color: #fde68a !important;
+}
+.pill-danger, [data-tone="danger"], .badge-destructive,
+.bg-red-50, .bg-rose-50 {
+  background-color: #fee2e2 !important; color: #991b1b !important; border-color: #fecaca !important;
+}
+.pill-info, [data-tone="info"], .badge-info,
+.bg-sky-50, .bg-blue-50 {
+  background-color: #dbeafe !important; color: #1e40af !important; border-color: #bfdbfe !important;
+}
+
+/* 8. Dark mode ajustado */
+.dark html, .dark body, .dark #root,
+.dark main, .dark .main-content, .dark .page-canvas {
+  background-color: #0b1220 !important;
+}
+.dark .card, .dark [data-slot="card"], .dark .kpi-card,
+.dark .table-container, .dark .filter-bar {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+.dark table { background-color: #0f172a !important; border-color: #1e293b !important; }
+.dark table thead th { background-color: #1e293b !important; color: #e2e8f0 !important; border-bottom-color: #334155 !important; }
+.dark table tbody td { background-color: #0f172a !important; color: #e2e8f0 !important; border-bottom-color: #1e293b !important; }
+.dark table tbody tr:hover td { background-color: #172033 !important; }
