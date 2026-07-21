@@ -17,19 +17,19 @@ export function useConferenciaProfissionais(ids: string[]) {
     enabled: ids.length > 0,
     staleTime: 60_000,
     queryFn: async () => {
-      const [{ data: profs }, { data: pends }] = await Promise.all([
-        supabase
-          .from("profissionais")
-          .select(
-            "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, cargos(nome), funcoes(nome), setores!profissionais_setor_id_fkey(nome)",
-          )
-          .in("id", ids),
-        supabase
-          .from("pendencias")
-          .select("profissional_id")
-          .in("profissional_id", ids)
-          .in("status", ["aberta", "em_analise", "aguardando_resposta", "reaberta"]),
-      ]);
+      const { data: profs } = await supabase
+        .from("profissionais")
+        .select(
+          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, cargos(nome), funcoes(nome), setores!profissionais_setor_id_fkey(nome)",
+        )
+        .in("id", ids);
+
+      // Pendências abertas por profissional (via frequencia_profissional).
+      const { data: pends } = await supabase
+        .from("frequencia_pendencias")
+        .select("profissional_id")
+        .in("profissional_id", ids)
+        .is("resolvida_em", null);
 
       const pendSet = new Set<string>();
       for (const row of pends ?? []) {
