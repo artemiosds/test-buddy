@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, ShieldCheck, AlertTriangle, Download, ScrollText } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export const Route = createFileRoute("/validar/$id")({
   head: () => ({
@@ -57,6 +59,44 @@ function ValidarPage() {
       return data;
     },
   });
+
+  const [downloading, setDownloading] = useState(false);
+
+  async function baixarPdfOriginal() {
+    try {
+      setDownloading(true);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.error("Faça login para baixar o PDF original.");
+        return;
+      }
+      const { data: doc, error } = await supabase
+        .from("documentos_assinados")
+        .select("pdf_storage_path, assinado_por")
+        .eq("id", id)
+        .maybeSingle();
+      if (error || !doc) {
+        toast.error("Acesso restrito ao autor do documento.");
+        return;
+      }
+      if (!doc.pdf_storage_path) {
+        toast.error("PDF original não disponível para este documento.");
+        return;
+      }
+      const signed = await supabase.storage
+        .from("documentos-assinados")
+        .createSignedUrl(doc.pdf_storage_path, 60);
+      if (signed.error || !signed.data?.signedUrl) {
+        toast.error("Não foi possível gerar o link de download.");
+        return;
+      }
+      window.open(signed.data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao baixar PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
@@ -134,6 +174,30 @@ function ValidarPage() {
                   {data.hash_conteudo}
                 </dd>
               </dl>
+
+              {data.termo_aceite ? (
+                <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <ScrollText className="h-4 w-4 shrink-0 text-primary" />
+                  <span>
+                    Termo de responsabilidade aceito pelo signatário em{" "}
+                    {new Date(data.timestamp_confiavel ?? data.assinado_em).toLocaleString("pt-BR")}.
+                  </span>
+                </div>
+              ) : null}
+
+              <div className="pt-2">
+                <button
+                  onClick={baixarPdfOriginal}
+                  disabled={downloading}
+                  className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "Gerando link..." : "Baixar PDF original"}
+                </button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Disponível apenas para o autor do documento ou administrador Master.
+                </p>
+              </div>
             </>
           )}
 
