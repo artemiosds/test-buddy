@@ -42,6 +42,7 @@ const MESES = [
 
 type LinhaState = {
   profissional_id: string;
+  dias_trabalhados: number;
   faltas_injustificadas: number;
   atestado: number;
   he_50: number;
@@ -61,6 +62,7 @@ type LinhaState = {
 };
 
 const CAMPOS_OFICIAIS = [
+  { key: "dias_trabalhados", label: "Dias" },
   { key: "faltas_injustificadas", label: "Dias Falta" },
   { key: "atestado", label: "ATT" },
   { key: "he_50", label: "HE 50%" },
@@ -202,6 +204,7 @@ export function FrequenciasEfetivosPage() {
       const l = item.linha as any;
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
+        dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
         faltas_injustificadas: Number(l?.faltas_injustificadas ?? 0),
         atestado: Number(l?.atestado ?? 0),
         he_50: Number(l?.he_50 ?? 0),
@@ -250,6 +253,7 @@ export function FrequenciasEfetivosPage() {
       .filter((l) => l._dirty)
       .map((l) => ({
         profissional_id: l.profissional_id,
+        dias_trabalhados: l.dias_trabalhados,
         faltas_injustificadas: l.faltas_injustificadas,
         atestado: l.atestado,
         he_50: l.he_50,
