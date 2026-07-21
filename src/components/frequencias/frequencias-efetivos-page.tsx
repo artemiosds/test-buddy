@@ -724,14 +724,13 @@ export function FrequenciasEfetivosPage() {
                     {CAMPOS_OFICIAIS.map((c) => {
                       const isFalta = c.key === "faltas_injustificadas";
                       const isHora  = c.key === "he_50" || c.key === "he_100" || c.key === "sal_sub_h" || c.key === "adicional_noturno";
-                      const isInc   = c.key === "incentivo";
                       return (
                         <td key={c.key} className="erp-group-lanc">
                           <NumberCell
                             rowId={p.id} colKey={c.key}
                             value={Number((l as any)[c.key] ?? 0)}
                             disabled={ro}
-                            decimals={isInc ? 2 : 0}
+                            decimals={0}
                             validate={isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
                             onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
                           />
@@ -775,9 +774,7 @@ export function FrequenciasEfetivosPage() {
                 <td colSpan={4}></td>
                 {CAMPOS_OFICIAIS.map((c) => (
                   <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>
-                    {c.key === "incentivo"
-                      ? (totCampo[c.key] ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : (totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
+                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
                   </td>
                 ))}
                 {CAMPOS_SMS.map((c) => (
