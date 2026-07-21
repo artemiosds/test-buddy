@@ -1177,20 +1177,20 @@ main > * {
   min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 13px;
+  font-size: 12px;
 }
 .erp-grid thead th {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in oklab, var(--muted) 92%, transparent);
-  color: var(--muted-foreground);
+  background: oklch(0.28 0.03 250); /* slate-800 */
+  color: #fff;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  font-size: 10.5px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  padding: 8px 8px;
+  border-bottom: 2px solid oklch(0.22 0.03 250); /* slate-900 */
   white-space: nowrap;
 }
 .erp-grid thead tr:nth-child(2) th {
@@ -1198,15 +1198,17 @@ main > * {
 }
 .erp-grid tbody td {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  height: 32px;
+  border-bottom: 1px solid oklch(0.86 0.01 250); /* slate-300 */
   vertical-align: middle;
   background: var(--card);
+  font-size: 12px;
 }
 .erp-grid tbody tr:nth-child(even) td {
-  background: color-mix(in oklab, var(--muted) 45%, var(--card));
+  background: oklch(0.98 0.005 250 / 0.8); /* slate-50/80 */
 }
 .erp-grid tbody tr:hover td {
-  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  background: oklch(0.96 0.03 240 / 0.5); /* blue-50/50 */
 }
 .erp-grid tfoot td {
   position: sticky;
@@ -1239,7 +1241,7 @@ main > * {
 .erp-grid thead th,
 .erp-grid tbody td,
 .erp-grid tfoot td {
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid oklch(0.86 0.01 250); /* slate-300 */
 }
 .erp-grid thead th:last-child,
 .erp-grid tbody td:last-child,
@@ -1296,12 +1298,14 @@ main > * {
   opacity: 0.85;
 }
 
-/* Cabeçalhos de grupo (Profissional / Bancário / Lançamentos / Obs.) */
-.erp-grid .erp-group-prof   { background: color-mix(in oklab, var(--primary) 8%,  var(--muted)); color: var(--foreground); }
-.erp-grid .erp-group-bank   { background: color-mix(in oklab, var(--info,   oklch(0.7 0.14 235)) 12%, var(--muted)); color: var(--foreground); }
-.erp-grid .erp-group-lanc   { background: color-mix(in oklab, var(--success) 12%, var(--muted)); color: var(--foreground); }
-.erp-grid .erp-group-sms    { background: color-mix(in oklab, var(--warning) 18%, var(--muted)); color: var(--foreground); }
-.erp-grid .erp-group-obs    { background: color-mix(in oklab, var(--muted-foreground) 8%, var(--muted)); color: var(--foreground); }
+/* Cabeçalhos de grupo — sem tint colorido no corpo; apenas o header
+   (thead) mantém o fundo escuro compartilhado. Classes preservadas por
+   compatibilidade, mas sem cor extra no <td>. */
+.erp-grid .erp-group-prof,
+.erp-grid .erp-group-bank,
+.erp-grid .erp-group-lanc,
+.erp-grid .erp-group-sms,
+.erp-grid .erp-group-obs { color: var(--foreground); }
 
 /* Input numérico da célula — visual compacto, sem borda arredondada
    pesada, destaque na validação e no foco. */
