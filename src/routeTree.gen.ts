@@ -36,6 +36,7 @@ import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
 import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
 import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
+import { Route as AuthenticatedDocumentosEmitidosRouteImport } from './routes/_authenticated/documentos-emitidos'
 import { Route as AuthenticatedControleForcaTrabalhoRouteImport } from './routes/_authenticated/controle-forca-trabalho'
 import { Route as AuthenticatedConfiguracaoRouteImport } from './routes/_authenticated/configuracao'
 import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authenticated/competencias'
@@ -222,6 +223,12 @@ const AuthenticatedFeriadosRoute = AuthenticatedFeriadosRouteImport.update({
   path: '/feriados',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDocumentosEmitidosRoute =
+  AuthenticatedDocumentosEmitidosRouteImport.update({
+    id: '/documentos-emitidos',
+    path: '/documentos-emitidos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedControleForcaTrabalhoRoute =
   AuthenticatedControleForcaTrabalhoRouteImport.update({
     id: '/controle-forca-trabalho',
@@ -456,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
+  '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
   '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
@@ -521,6 +529,7 @@ export interface FileRoutesByTo {
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
   '/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
+  '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
   '/frequencias': typeof AuthenticatedFrequenciasRoute
   '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
@@ -588,6 +597,7 @@ export interface FileRoutesById {
   '/_authenticated/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
   '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRoute
   '/_authenticated/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
+  '/_authenticated/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
   '/_authenticated/frequencias': typeof AuthenticatedFrequenciasRoute
   '/_authenticated/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
@@ -657,6 +667,7 @@ export interface FileRouteTypes {
     | '/competencias'
     | '/configuracao'
     | '/controle-forca-trabalho'
+    | '/documentos-emitidos'
     | '/feriados'
     | '/frequencias'
     | '/gestao-profissionais'
@@ -722,6 +733,7 @@ export interface FileRouteTypes {
     | '/competencias'
     | '/configuracao'
     | '/controle-forca-trabalho'
+    | '/documentos-emitidos'
     | '/feriados'
     | '/frequencias'
     | '/gestao-profissionais'
@@ -788,6 +800,7 @@ export interface FileRouteTypes {
     | '/_authenticated/competencias'
     | '/_authenticated/configuracao'
     | '/_authenticated/controle-forca-trabalho'
+    | '/_authenticated/documentos-emitidos'
     | '/_authenticated/feriados'
     | '/_authenticated/frequencias'
     | '/_authenticated/gestao-profissionais'
@@ -1042,6 +1055,13 @@ declare module '@tanstack/react-router' {
       path: '/feriados'
       fullPath: '/feriados'
       preLoaderRoute: typeof AuthenticatedFeriadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/documentos-emitidos': {
+      id: '/_authenticated/documentos-emitidos'
+      path: '/documentos-emitidos'
+      fullPath: '/documentos-emitidos'
+      preLoaderRoute: typeof AuthenticatedDocumentosEmitidosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/controle-forca-trabalho': {
@@ -1416,6 +1436,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCompetenciasRoute: typeof AuthenticatedCompetenciasRouteWithChildren
   AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRoute
   AuthenticatedControleForcaTrabalhoRoute: typeof AuthenticatedControleForcaTrabalhoRoute
+  AuthenticatedDocumentosEmitidosRoute: typeof AuthenticatedDocumentosEmitidosRoute
   AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
   AuthenticatedFrequenciasRoute: typeof AuthenticatedFrequenciasRoute
   AuthenticatedGestaoProfissionaisRoute: typeof AuthenticatedGestaoProfissionaisRoute
@@ -1464,6 +1485,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRoute,
   AuthenticatedControleForcaTrabalhoRoute:
     AuthenticatedControleForcaTrabalhoRoute,
+  AuthenticatedDocumentosEmitidosRoute: AuthenticatedDocumentosEmitidosRoute,
   AuthenticatedFeriadosRoute: AuthenticatedFeriadosRoute,
   AuthenticatedFrequenciasRoute: AuthenticatedFrequenciasRoute,
   AuthenticatedGestaoProfissionaisRoute: AuthenticatedGestaoProfissionaisRoute,
