@@ -23,7 +23,7 @@ export type PdfContratadosInput = {
 };
 
 const MARGEM = 10;
-const LINHA_ALTURA = 8;
+const LINHA_ALTURA = 10;
 
 const COR_NIVEL_1: [number, number, number] = [139, 106, 42];
 const COR_NIVEL_2: [number, number, number] = [184, 147, 74];
@@ -36,20 +36,20 @@ type Col = { key: string; w: number; label: string; align: "left" | "center" | "
 // larguras somam ~277 mm (A4 landscape com 10 mm de margem)
 const COLS: Col[] = [
   { key: "n",       w:  8,  label: "Nº",           align: "center" },
-  { key: "nome",    w: 55,  label: "NOME",         align: "left"   },
-  { key: "cpf",     w: 28,  label: "C.P.F.",       align: "center", mono: true },
-  { key: "cargo",   w: 32,  label: "CARGO",        align: "left"   },
-  { key: "lot",     w: 30,  label: "LOTAÇÃO",      align: "left"   },
+  { key: "nome",    w: 52,  label: "NOME",         align: "left"   },
+  { key: "cpf",     w: 26,  label: "C.P.F.",       align: "center", mono: true },
+  { key: "cargo",   w: 30,  label: "CARGO",        align: "left"   },
+  { key: "lot",     w: 28,  label: "LOTAÇÃO",      align: "left"   },
   { key: "dias",    w:  9,  label: "DIAS",         align: "center", mono: true },
   { key: "falta",   w:  9,  label: "FALTA",        align: "center", mono: true },
   { key: "att",     w:  9,  label: "ATT",          align: "center", mono: true },
-  { key: "he50",    w: 11,  label: "H.E 50%",      align: "center", mono: true },
-  { key: "he100",   w: 11,  label: "H.E 100%",     align: "center", mono: true },
+  { key: "he50",    w: 11,  label: "H.E\n50%",     align: "center", mono: true },
+  { key: "he100",   w: 11,  label: "H.E\n100%",    align: "center", mono: true },
   { key: "adn",     w:  9,  label: "ADN",          align: "center", mono: true },
-  { key: "plant",   w: 11,  label: "PLANTÕES",     align: "center", mono: true },
-  { key: "sob",     w: 14,  label: "SOBREAVISOS",  align: "center", mono: true },
-  { key: "inc",     w: 12,  label: "INCENTIVO",    align: "center", mono: true },
-  { key: "conta",   w: 29,  label: "CONTA",        align: "left",   mono: true },
+  { key: "plant",   w: 12,  label: "PLAN-\nTÕES",  align: "center", mono: true },
+  { key: "sob",     w: 13,  label: "SOBRE-\nAVISOS", align: "center", mono: true },
+  { key: "inc",     w: 12,  label: "INCEN-\nTIVO", align: "center", mono: true },
+  { key: "conta",   w: 38,  label: "CONTA",        align: "left",   mono: true },
 ];
 
 function n(v: number | null | undefined): string {
@@ -110,7 +110,7 @@ function drawHierBar(doc: jsPDF, y: number, color: [number, number, number], tex
 }
 
 function drawTableHeader(doc: jsPDF, y: number): number {
-  const h = 7;
+  const h = 9;
   let x = MARGEM;
   doc.setDrawColor(...COR_BORDA);
   doc.setLineWidth(0.2);
@@ -119,10 +119,16 @@ function drawTableHeader(doc: jsPDF, y: number): number {
   doc.rect(MARGEM, y, totalW, h, "F");
   doc.setTextColor(...COR_TEXTO);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   for (const c of COLS) {
     doc.rect(x, y, c.w, h);
-    doc.text(c.label, x + c.w / 2, y + 4.5, { align: "center" });
+    const lines = c.label.split("\n");
+    if (lines.length === 1) {
+      doc.text(lines[0], x + c.w / 2, y + h / 2 + 1.1, { align: "center" });
+    } else {
+      doc.text(lines[0], x + c.w / 2, y + 3.4, { align: "center" });
+      doc.text(lines[1], x + c.w / 2, y + 6.6, { align: "center" });
+    }
     x += c.w;
   }
   return y + h;
@@ -156,11 +162,28 @@ function drawRow(doc: jsPDF, y: number, idx: number, item: ItemContratado): numb
   for (const c of COLS) {
     doc.rect(x, y, c.w, LINHA_ALTURA);
     doc.setFont(c.mono ? "courier" : "helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     const val = values[c.key] ?? "";
     const tx = c.align === "left" ? x + 1.5 : c.align === "right" ? x + c.w - 1.5 : x + c.w / 2;
-    const ty = y + LINHA_ALTURA / 2 + 1.2;
-    doc.text(val, tx, ty, { align: c.align, maxWidth: c.w - 2 });
+    const isTextoLongo = c.key === "nome" || c.key === "cargo" || c.key === "lot" || c.key === "conta";
+    if (isTextoLongo) {
+      // Quebra em até 2 linhas, com truncamento (elipse) se ultrapassar
+      const linhas = doc.splitTextToSize(val, c.w - 2) as string[];
+      const usadas = linhas.slice(0, 2);
+      if (linhas.length > 2) {
+        const ult = usadas[1];
+        usadas[1] = ult.length > 3 ? ult.slice(0, ult.length - 1).trimEnd() + "…" : ult;
+      }
+      const startY = usadas.length === 1
+        ? y + LINHA_ALTURA / 2 + 1.2
+        : y + LINHA_ALTURA / 2 - 1.2;
+      usadas.forEach((ln, i) => {
+        doc.text(ln, tx, startY + i * 3.2, { align: c.align });
+      });
+    } else {
+      const ty = y + LINHA_ALTURA / 2 + 1.2;
+      doc.text(val, tx, ty, { align: c.align, maxWidth: c.w - 2 });
+    }
     x += c.w;
   }
   return y + LINHA_ALTURA;
