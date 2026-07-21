@@ -15,7 +15,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Send, Search, FileSpreadsheet, FileDown, Download } from "lucide-react";
+import {
+  Save, Send, Search, FileSpreadsheet, FileDown, Download,
+  Palmtree, HeartPulse, AlertOctagon, Ban, ArrowRightLeft, Filter as FilterIcon,
+} from "lucide-react";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
@@ -72,6 +75,9 @@ export function FrequenciasContratadosPage() {
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
   const [setorFilter, setSetorFilter] = useState<string>("todos");
   const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [pendFilter, setPendFilter] = useState<
+    "todos" | "sem_conta" | "sem_cargo" | "sem_lotacao" | "sem_matricula" | "sem_cpf"
+  >("todos");
   const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
   const [dossieOpen, setDossieOpen] = useState(false);
 
@@ -342,12 +348,21 @@ export function FrequenciasContratadosPage() {
       if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
       if (setorFilter !== "todos" && p.setor_id !== setorFilter) return false;
+      if (pendFilter !== "todos") {
+        const semConta = !p.banco || !p.agencia || !p.conta_corrente;
+        if (pendFilter === "sem_conta"     && !semConta)      return false;
+        if (pendFilter === "sem_cargo"     && p.cargo)        return false;
+        if (pendFilter === "sem_lotacao"   && p.setor)        return false;
+        if (pendFilter === "sem_matricula" && p.matricula)    return false;
+        if (pendFilter === "sem_cpf"       && p.cpf)          return false;
+      }
       if (!q) return true;
       return p.nome.toLowerCase().includes(q)
         || (p.matricula ?? "").toLowerCase().includes(q)
+        || (p.cpf ?? "").toLowerCase().includes(q)
         || (p.cargo ?? "").toLowerCase().includes(q);
     });
-  }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
+  }, [folha, busca, cargoFilter, funcaoFilter, setorFilter, pendFilter]);
 
   const idsPagina = useMemo(
     () => filtradas.map((it: any) => it.profissional.id as string),
@@ -404,9 +419,9 @@ export function FrequenciasContratadosPage() {
 
   /* ------- ERP grid derivados de UI ------- */
   const FROZEN: FrozenCol[] = [
-    { key: "matricula", label: "Matrícula",    width: 100 },
+    { key: "num",       label: "Nº",           width: 48  },
+    { key: "matricula", label: "Matrícula",    width: 96  },
     { key: "nome",      label: "Profissional", width: 240 },
-    { key: "situacao",  label: "Situação",     width: 130 },
   ];
   const L = frozenLeftMap(FROZEN);
   const colKeysAll = useMemo(() => [...CAMPOS_NUM] as string[], []);
@@ -414,8 +429,15 @@ export function FrequenciasContratadosPage() {
     () => linhasFinais.map((x: any) => x.it.profissional.id as string),
     [linhasFinais],
   );
-  // 3 frozen + Cargo/Banco/AG/CC (4) + CAMPOS_NUM + Obs + Status
-  const colCount = 3 + 4 + CAMPOS_NUM.length + 2;
+  // 3 frozen (Nº/Matrícula/Nome) + CPF + Cargo + Lotação + Dias
+  // + CAMPOS_NUM (8) + Conta + Observações + Status
+  const colCount = 3 + 4 + CAMPOS_NUM.length + 3;
+
+  // Quantidade de dias da competência (para calcular "Dias trabalhados").
+  const diasMes = useMemo(() => {
+    if (!compSel?.ano || !compSel?.mes) return 30;
+    return new Date(compSel.ano as number, compSel.mes as number, 0).getDate();
+  }, [compSel]);
 
   const totCampo = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -486,6 +508,27 @@ export function FrequenciasContratadosPage() {
     tr?.scrollIntoView({ block: "center", behavior: "smooth" });
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
+
+  /** Ícone antes do nome conforme situação funcional. */
+  function IconeSituacao({ situ }: { situ: string }) {
+    const cls = "h-3.5 w-3.5 shrink-0";
+    if (situ === "ferias")    return <Palmtree     className={cn(cls, "text-info")} />;
+    if (situ === "licenca")   return <HeartPulse   className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "afastado")  return <AlertOctagon className={cn(cls, "text-destructive")} />;
+    if (situ === "cedido")    return <ArrowRightLeft className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "desligado" || situ === "inativo")
+      return <Ban className={cn(cls, "text-muted-foreground")} />;
+    return null;
+  }
+
+  const PEND_OPTS: Array<{ id: typeof pendFilter; label: string }> = [
+    { id: "todos",         label: "Sem pendências" },
+    { id: "sem_conta",     label: "Sem conta bancária" },
+    { id: "sem_cargo",     label: "Sem cargo" },
+    { id: "sem_lotacao",   label: "Sem lotação" },
+    { id: "sem_matricula", label: "Sem matrícula" },
+    { id: "sem_cpf",       label: "Sem CPF" },
+  ];
 
   return (
     <div className="p-4 md:p-6 space-y-4">
