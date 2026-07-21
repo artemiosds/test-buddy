@@ -319,7 +319,12 @@ export function FrequenciasContratadosPage() {
   }, [folha]);
 
   function mapExportItens(): ItemContratado[] {
-    return (folha ?? []).map((it: any) => ({
+    // Respeita os filtros aplicados na tela (competência já vem embutida
+    // na consulta; cargo/função/setor/situação/busca são aplicados em
+    // `filtradas` + `linhasFinais`). Assim, o PDF/Excel exportam somente
+    // as linhas visíveis atualmente na tabela.
+    const visiveis = linhasFinais.map((x) => x.it);
+    return visiveis.map((it: any) => ({
       profissional: {
         matricula: it.profissional.matricula,
         nome: it.profissional.nome,
