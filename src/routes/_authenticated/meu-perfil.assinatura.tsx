@@ -13,6 +13,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
+import {
+  SignatureEditor,
+  DEFAULT_POSITION,
+  type SignaturePosition,
+} from "@/components/assinaturas/signature-editor";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({
   component: MinhaAssinaturaPage,
@@ -33,6 +38,12 @@ type Assinatura = {
   vigencia_inicio: string | null;
   vigencia_fim: string | null;
   created_at: string;
+  posicao_x: number | null;
+  posicao_y: number | null;
+  tamanho_percentual: number | null;
+  alinhamento: string | null;
+  mostrar_nome: boolean | null;
+  mostrar_cargo: boolean | null;
 };
 
 function MinhaAssinaturaPage() {
@@ -67,7 +78,7 @@ function MinhaAssinaturaPage() {
     queryFn: async (): Promise<Assinatura[]> => {
       const { data, error } = await supabase
         .from("assinaturas_institucionais")
-        .select("id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at")
+        .select("id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo")
         .eq("usuario_id", me!.id)
         .eq("is_pessoal", true)
         .is("deleted_at", null)
