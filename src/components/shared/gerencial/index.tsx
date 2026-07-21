@@ -489,7 +489,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
                 ["Matrícula", prof.matricula ?? "—"],
                 ["Cargo", prof.cargo ?? "—"],
                 ["Função", prof.funcao ?? "—"],
-                ["Lotação", prof.setor ?? prof.unidade ?? "—"],
+                ["Lotação", prof.setor ?? "—"],
               ].map(([lb, val]) => (
                 <div key={lb as string}>
                   <div style={labelStyle}>{lb}</div>
