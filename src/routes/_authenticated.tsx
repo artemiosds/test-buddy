@@ -83,6 +83,7 @@ const GROUPS: NavGroup[] = [
       { to: "/pendencias", label: "Pendências", icon: AlertCircle, perm: "pendencia.gerenciar" },
       { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2, perm: "frequencia.aprovar" },
       { to: "/assinaturas", label: "Assinaturas", icon: Signature },
+      { to: "/documentos-emitidos", label: "Documentos Emitidos", icon: FileBarChart },
       { to: "/notificacoes", label: "Notificações", icon: Bell },
     ],
   },
