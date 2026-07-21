@@ -530,9 +530,18 @@ function PisoIndex() {
             </FilterBar.Field>
           </FilterBar>
 
+          {/* Painel gerencial (UI-only) */}
+          <div className="space-y-2 rounded-lg border bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SituacaoResumo rows={linhasConf} />
+              <AlertasBotao rows={linhasConf} onSelectProfissional={openDossie} />
+            </div>
+            <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
+          </div>
+
           <DataTable<Linha>
             columns={cols}
-            rows={(linhasQ.data?.rows ?? []) as Linha[]}
+            rows={linhasFiltradasSituacao}
             getRowKey={(r) => r.id}
             loading={linhasQ.isLoading}
             emptyTitle="Nenhum profissional encontrado"
@@ -546,6 +555,7 @@ function PisoIndex() {
           />
         </>
       )}
+      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
     </div>
   );
 }
