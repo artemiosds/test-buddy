@@ -2951,3 +2951,173 @@ table th { background-color: #f1f5f9 !important; }
   border-color: #334155 !important;
   color: #e2e8f0 !important;
 }
+
+/* =========================================================
+   LAYOUT REPAIR v13 — Sidebar clara + tabela sem estouro.
+   Sobrescreve blocos v12 / EMERGENCY conflitantes.
+   ========================================================= */
+
+/* Sidebar: fundo branco, borda cinza, sem caixas */
+aside.enterprise-sidebar,
+.enterprise-sidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+}
+
+.enterprise-sidebar a,
+.enterprise-sidebar button,
+.enterprise-sidebar span,
+.enterprise-sidebar p {
+  color: #1e293b !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.enterprise-sidebar .sb-group-label,
+.enterprise-sidebar [class*="group-label"] {
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-size: 11px !important;
+  background: transparent !important;
+}
+
+.enterprise-sidebar .sb-item {
+  color: #334155 !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-left: 4px solid transparent !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+.enterprise-sidebar .sb-item:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.enterprise-sidebar .sb-item.sb-item-active,
+.enterprise-sidebar .sb-item[aria-current="page"] {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  border-left: 4px solid #2563eb !important;
+  border-radius: 0 6px 6px 0 !important;
+}
+.enterprise-sidebar .sb-item.sb-item-active *,
+.enterprise-sidebar .sb-item[aria-current="page"] * {
+  color: #2563eb !important;
+}
+
+/* Marca / topo */
+.enterprise-sidebar .sb-brand,
+.enterprise-sidebar .sb-logo-mark,
+.enterprise-sidebar h2,
+.enterprise-sidebar .sb-brand * {
+  color: #0f172a !important;
+}
+.enterprise-sidebar .sb-brand p { color: #64748b !important; }
+
+/* Footer / user card */
+.enterprise-sidebar .sb-footer,
+.enterprise-sidebar .sb-user-card,
+.enterprise-sidebar .sb-user-name,
+.enterprise-sidebar .sb-user-role,
+.enterprise-sidebar .sb-signout {
+  color: #1e293b !important;
+  background-color: transparent !important;
+}
+.enterprise-sidebar .sb-user-avatar {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Busca do menu */
+.enterprise-sidebar .sb-search {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #1e293b !important;
+}
+.enterprise-sidebar .sb-search::placeholder { color: #94a3b8 !important; }
+
+/* ===== Container principal — evita estouro à direita ===== */
+main { min-width: 0 !important; }
+main > * { min-width: 0 !important; max-width: 100% !important; }
+.route-enter { min-width: 0 !important; max-width: 100% !important; }
+
+/* ===== Tabela com scroll interno e bordas nítidas ===== */
+.table-container,
+.data-table-wrap,
+div:has(> table) {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+table {
+  border: 1px solid #cbd5e1 !important;
+  border-collapse: collapse !important;
+  background-color: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+table thead th,
+table th {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border: 1px solid #cbd5e1 !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.03em !important;
+  padding: 10px !important;
+  opacity: 1 !important;
+}
+table tbody td,
+table td {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e5e7eb !important;
+  padding: 8px 12px !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+table tbody tr:hover td { background-color: #f8fafc !important; }
+
+/* Inputs / selects finos */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+/* Zera qualquer opacity < 1 herdada indevidamente */
+.enterprise-sidebar *,
+main * { }
+[style*="opacity: 0."]:not(.allow-fade) { opacity: 1 !important; }
+
+/* Dark mode: mantém legibilidade sem herdar o navy anterior */
+.dark aside.enterprise-sidebar,
+.dark .enterprise-sidebar {
+  background-color: #0f172a !important;
+  border-right-color: #1e293b !important;
+}
+.dark .enterprise-sidebar .sb-item { color: #cbd5e1 !important; }
+.dark .enterprise-sidebar .sb-item:hover { background-color: #1e293b !important; color: #fff !important; }
+.dark .enterprise-sidebar .sb-item.sb-item-active,
+.dark .enterprise-sidebar .sb-item[aria-current="page"] {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  border-left-color: #60a5fa !important;
+}
+.dark .enterprise-sidebar .sb-item.sb-item-active * { color: #ffffff !important; }
+.dark table { border-color: #334155 !important; background-color: #0f172a !important; }
+.dark table thead th { background-color: #1e293b !important; color: #f1f5f9 !important; border-color: #334155 !important; }
+.dark table tbody td { background-color: #0f172a !important; color: #e2e8f0 !important; border-color: #1e293b !important; }
+.dark table tbody tr:hover td { background-color: #172033 !important; }
