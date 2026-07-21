@@ -1,0 +1,1 @@
+ALTER TABLE public.frequencias_contratados ADD COLUMN IF NOT EXISTS dias_trabalhados numeric NOT NULL DEFAULT 0;

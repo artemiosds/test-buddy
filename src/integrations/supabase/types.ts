@@ -1253,6 +1253,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           dias_falta: number
+          dias_trabalhados: number
           enviada_em: string | null
           enviada_por: string | null
           he_100: number
@@ -1279,6 +1280,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           dias_falta?: number
+          dias_trabalhados?: number
           enviada_em?: string | null
           enviada_por?: string | null
           he_100?: number
@@ -1305,6 +1307,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           dias_falta?: number
+          dias_trabalhados?: number
           enviada_em?: string | null
           enviada_por?: string | null
           he_100?: number
