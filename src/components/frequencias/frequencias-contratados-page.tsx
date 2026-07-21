@@ -23,6 +23,12 @@ import type { Database } from "@/integrations/supabase/types";
 import { gerarExcelFolhaContratados, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { gerarFolhaContratadosOficial } from "@/lib/pdf-folha-contratados-oficial";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
+import {
+  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
+  AlertasBotao, DossieDrawer, type SituacaoFilterValue,
+} from "@/components/shared/gerencial";
+import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -60,6 +66,9 @@ export function FrequenciasContratadosPage() {
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
   const [setorFilter, setSetorFilter] = useState<string>("todos");
+  const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
+  const [dossieOpen, setDossieOpen] = useState(false);
 
   const { data: cargosOpts } = useQuery({
     queryKey: ["cargos-filter"],
@@ -335,6 +344,50 @@ export function FrequenciasContratadosPage() {
     });
   }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
 
+  const idsPagina = useMemo(
+    () => filtradas.map((it: any) => it.profissional.id as string),
+    [filtradas],
+  );
+  const { data: confMap } = useConferenciaProfissionais(idsPagina);
+
+  const linhasConferencia = useMemo(
+    () =>
+      filtradas.map((it: any) => {
+        const base: ProfConferencia = {
+          id: it.profissional.id,
+          nome: it.profissional.nome,
+          matricula: it.profissional.matricula ?? null,
+          cpf: it.profissional.cpf ?? null,
+          cargo: it.profissional.cargo ?? null,
+          setor: it.profissional.setor ?? null,
+          banco: it.profissional.banco ?? null,
+          agencia: it.profissional.agencia ?? null,
+          conta_corrente: it.profissional.conta_corrente ?? null,
+          cargo_id: it.profissional.cargo_id ?? null,
+          funcao_id: it.profissional.funcao_id ?? null,
+          setor_id: it.profissional.setor_id ?? null,
+          vinculo: "Contratado",
+        };
+        return { it, conf: mergeConferencia(base, confMap) };
+      }),
+    [filtradas, confMap],
+  );
+
+  const linhasFinais = useMemo(
+    () =>
+      situacaoFilter === "todas"
+        ? linhasConferencia
+        : linhasConferencia.filter((x) => derivarSituacao(x.conf) === situacaoFilter),
+    [linhasConferencia, situacaoFilter],
+  );
+
+  const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
+
+  function openDossie(p: ProfConferencia) {
+    setDossieProf(p);
+    setDossieOpen(true);
+  }
+
   if (!has("frequencia.visualizar")) {
     return (
       <div className="p-6">
@@ -494,12 +547,21 @@ export function FrequenciasContratadosPage() {
         </div>
       )}
 
+      <div className="space-y-2 rounded-lg border bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <SituacaoResumo rows={rowsConf} />
+          <AlertasBotao rows={rowsConf} onSelectProfissional={openDossie} />
+        </div>
+        <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
+      </div>
+
       <div className="rounded-md border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase tracking-wide">
             <tr>
               <th className="text-left px-2 py-2 whitespace-nowrap">Matrícula</th>
               <th className="text-left px-2 py-2 min-w-[180px]">Profissional</th>
+              <th className="text-left px-2 py-2 whitespace-nowrap">Situação</th>
               <th className="text-left px-2 py-2 whitespace-nowrap">Cargo</th>
               <th className="text-left px-2 py-2 whitespace-nowrap">Banco</th>
               <th className="text-left px-2 py-2 whitespace-nowrap">AG</th>
@@ -518,21 +580,28 @@ export function FrequenciasContratadosPage() {
           </thead>
           <tbody>
             {isFetching && (
-              <tr><td colSpan={16} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr><td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
             )}
-            {!isFetching && filtradas.length === 0 && (
-              <tr><td colSpan={16} className="px-3 py-6 text-center text-muted-foreground">
+            {!isFetching && linhasFinais.length === 0 && (
+              <tr><td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">
                 Nenhum profissional contratado nesta unidade.
               </td></tr>
             )}
-            {filtradas.map((it: any) => {
+            {linhasFinais.map(({ it, conf }) => {
               const p = it.profissional;
               const l = linhas[p.id];
               const ro = readonlyLinha(l);
               return (
                 <tr key={p.id} className="border-t align-top hover:bg-muted/20">
                   <td className="px-2 py-1.5 font-mono text-xs">{p.matricula ?? "-"}</td>
-                  <td className="px-2 py-1.5">{p.nome}</td>
+                  <td className="px-2 py-1.5">
+                    <ProfissionalNomeCell
+                      prof={conf}
+                      onOpenDossie={openDossie}
+                      secondary={p.cpf}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5"><SituacaoBadge prof={conf} /></td>
                   <td className="px-2 py-1.5 text-muted-foreground">{p.cargo ?? "-"}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{p.banco ?? "-"}</td>
                   <td className="px-2 py-1.5 text-muted-foreground font-mono">{p.agencia ?? "-"}</td>
@@ -571,6 +640,8 @@ export function FrequenciasContratadosPage() {
         Os campos <strong>Banco</strong>, <strong>Agência</strong> e <strong>Conta Corrente</strong> são somente leitura aqui —
         são atualizados no cadastro do profissional.
       </p>
+
+      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
     </div>
   );
 }

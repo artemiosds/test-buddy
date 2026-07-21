@@ -31,6 +31,13 @@ import {
 } from "recharts";
 import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { competenciaAtual } from "@/lib/piso-heuristics";
+import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
+import {
+  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
+  ElegibilidadePisoBadge, AlertasBotao, DossieDrawer,
+  type SituacaoFilterValue,
+} from "@/components/shared/gerencial";
+import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 
 export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
   component: () => (
@@ -74,6 +81,9 @@ function PisoIndex() {
   const [busca, setBusca] = useState<string>("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
+  const [dossieOpen, setDossieOpen] = useState(false);
 
   // Lista de competências (para o dropdown)
   const compQ = useQuery({
@@ -114,9 +124,82 @@ function PisoIndex() {
     enabled: !!competenciaAtiva,
   });
 
+  // Enriquecimento gerencial UI-only.
+  const rowsPagina = (linhasQ.data?.rows ?? []) as Linha[];
+  const idsPagina = useMemo(() => rowsPagina.map((r) => r.id), [rowsPagina]);
+  const { data: confMap } = useConferenciaProfissionais(idsPagina);
+
+  const linhasConf: ProfConferencia[] = useMemo(
+    () =>
+      rowsPagina.map((r) =>
+        mergeConferencia(
+          {
+            id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
+            matricula: r.matricula, vinculo: r.vinculo,
+          },
+          confMap,
+        ),
+      ),
+    [rowsPagina, confMap],
+  );
+
+  const linhasFiltradasSituacao = useMemo(() => {
+    if (situacaoFilter === "todas") return rowsPagina;
+    const okIds = new Set(
+      linhasConf.filter((c) => derivarSituacao(c) === situacaoFilter).map((c) => c.id),
+    );
+    return rowsPagina.filter((r) => okIds.has(r.id));
+  }, [rowsPagina, linhasConf, situacaoFilter]);
+
+  function openDossie(p: ProfConferencia) {
+    setDossieProf(p);
+    setDossieOpen(true);
+  }
+
   const cols: DataTableColumn<Linha>[] = useMemo(
     () => [
-      { key: "nome", header: "Nome", cell: (r) => r.nome ?? "—" },
+      {
+        key: "nome",
+        header: "Profissional",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            {
+              id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
+              matricula: r.matricula, vinculo: r.vinculo,
+            },
+            confMap,
+          );
+          return (
+            <ProfissionalNomeCell
+              prof={conf}
+              onOpenDossie={openDossie}
+              secondary={r.cargo}
+            />
+          );
+        },
+      },
+      {
+        key: "situacao",
+        header: "Situação",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
+            confMap,
+          );
+          return <SituacaoBadge prof={conf} />;
+        },
+      },
+      {
+        key: "elegibilidade",
+        header: "Elegibilidade",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
+            confMap,
+          );
+          return <ElegibilidadePisoBadge prof={conf} />;
+        },
+      },
       { key: "cpf", header: "CPF", cell: (r) => r.cpf ?? "—" },
       { key: "cargo", header: "Cargo", cell: (r) => r.cargo ?? "—" },
       { key: "vinculo", header: "Vínculo", cell: (r) => r.vinculo ?? "—" },
@@ -143,7 +226,7 @@ function PisoIndex() {
         cell: (r) => (r.valor_final != null ? fmtBRL(r.valor_final) : "—"),
       },
     ],
-    [],
+    [confMap],
   );
 
   function handleExportar() {
@@ -447,9 +530,18 @@ function PisoIndex() {
             </FilterBar.Field>
           </FilterBar>
 
+          {/* Painel gerencial (UI-only) */}
+          <div className="space-y-2 rounded-lg border bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SituacaoResumo rows={linhasConf} />
+              <AlertasBotao rows={linhasConf} onSelectProfissional={openDossie} />
+            </div>
+            <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
+          </div>
+
           <DataTable<Linha>
             columns={cols}
-            rows={(linhasQ.data?.rows ?? []) as Linha[]}
+            rows={linhasFiltradasSituacao}
             getRowKey={(r) => r.id}
             loading={linhasQ.isLoading}
             emptyTitle="Nenhum profissional encontrado"
@@ -463,6 +555,7 @@ function PisoIndex() {
           />
         </>
       )}
+      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
     </div>
   );
 }
