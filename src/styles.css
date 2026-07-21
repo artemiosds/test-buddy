@@ -1404,31 +1404,35 @@ main > * {
  * nenhum componente de rota específica.
  * ============================================================= */
 
-/* Tokens do sidebar (light + dark) — navy sério */
+/* Tokens do sidebar — LIGHT/CLEAN (Stripe/Tailwind UI). Dark mode via .dark override */
 :root {
-  --sidebar: oklch(0.19 0.045 258);           /* #0F172A slate-900 */
-  --sidebar-foreground: oklch(0.88 0.02 250); /* slate-200 */
-  --sidebar-primary: oklch(0.55 0.2 262);     /* blue-500 accent */
-  --sidebar-primary-foreground: oklch(0.985 0.005 250);
-  --sidebar-accent: oklch(0.26 0.05 258);     /* hover slate-800 */
-  --sidebar-accent-foreground: oklch(0.985 0.005 250);
-  --sidebar-border: oklch(0.28 0.045 258);    /* slate-700 */
-  --sidebar-ring: oklch(0.55 0.2 262);
-  --sidebar-muted: oklch(0.63 0.03 258);      /* labels/ícones apagados */
-  --sidebar-active-bg: oklch(0.55 0.2 262 / 18%);
-  --sidebar-active-fg: oklch(0.82 0.14 255);
+  --sidebar: #FFFFFF;                    /* fundo branco puro */
+  --sidebar-foreground: #334155;         /* slate-700 texto inativo */
+  --sidebar-primary: #2563EB;            /* barra ativa azul royal */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;             /* hover slate-100 */
+  --sidebar-accent-foreground: #0F172A;  /* hover text slate-900 */
+  --sidebar-border: #E2E8F0;             /* borda direita slate-200 */
+  --sidebar-ring: #2563EB;
+  --sidebar-muted: #64748B;              /* group labels slate-500 */
+  --sidebar-active-bg: #EFF6FF;          /* azul suave */
+  --sidebar-active-fg: #2563EB;          /* azul royal */
 }
 .dark {
   --sidebar: oklch(0.15 0.04 258);
   --sidebar-foreground: oklch(0.9 0.02 250);
+  --sidebar-primary: oklch(0.55 0.2 262);
+  --sidebar-primary-foreground: oklch(0.985 0.005 250);
   --sidebar-accent: oklch(0.22 0.05 258);
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: oklch(0.26 0.05 258);
+  --sidebar-ring: oklch(0.55 0.2 262);
   --sidebar-muted: oklch(0.62 0.03 258);
   --sidebar-active-bg: oklch(0.55 0.2 262 / 22%);
   --sidebar-active-fg: oklch(0.85 0.13 255);
 }
 
-/* Container do sidebar — flip para navy escuro (override do bloco branco) */
+/* Container do sidebar — light/clean, invertido automaticamente em .dark via tokens */
 [data-slot="sidebar-container"],
 [data-sidebar="sidebar"],
 .enterprise-sidebar,
@@ -1450,7 +1454,7 @@ main > * {
 /* Título/subtítulo do topo do sidebar */
 .enterprise-sidebar .sb-logo h2,
 .sidebar-user-name {
-  color: oklch(0.98 0.005 250) !important;
+  color: #0F172A !important;
 }
 .enterprise-sidebar .sb-logo p,
 .sidebar-user-role {
@@ -1465,23 +1469,23 @@ main > * {
 }
 .enterprise-sidebar .sb-collapse-btn:hover {
   background: var(--sidebar-accent) !important;
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 .enterprise-sidebar .sb-signout:hover,
 .sidebar-logout-btn:hover {
-  background: rgba(239, 68, 68, 0.14) !important;
-  color: #fca5a5 !important;
+  background: #FEE2E2 !important;
+  color: #B91C1C !important;
 }
 .enterprise-sidebar .sb-signout:hover svg,
 .sidebar-logout-btn:hover svg {
-  color: #fca5a5 !important;
+  color: #B91C1C !important;
 }
 
 /* Busca do sidebar */
 .enterprise-sidebar .sb-search,
 .sidebar-search-input {
-  background: oklch(1 0 0 / 6%) !important;
-  color: oklch(0.98 0.005 250) !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
   border: 1px solid transparent !important;
 }
 .enterprise-sidebar .sb-search::placeholder,
@@ -1490,7 +1494,7 @@ main > * {
 }
 .enterprise-sidebar .sb-search:focus,
 .sidebar-search-input:focus {
-  background: oklch(1 0 0 / 10%) !important;
+  background: #FFFFFF !important;
   border-color: var(--sidebar-ring) !important;
   box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 25%) !important;
 }
@@ -1508,7 +1512,7 @@ main > * {
   background: transparent !important;
 }
 .enterprise-sidebar .sb-group-label:hover {
-  color: oklch(0.85 0.02 250) !important;
+  color: var(--sidebar-accent-foreground) !important;
   background: transparent !important;
 }
 .enterprise-sidebar .sb-group-label svg,
@@ -1538,12 +1542,12 @@ main > * {
 .sidebar-nav-item:hover,
 .enterprise-sidebar a:hover {
   background: var(--sidebar-accent) !important;
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 [data-sidebar="menu-button"]:hover svg,
 .enterprise-sidebar .sb-item:hover svg,
 .sidebar-nav-item:hover svg {
-  color: #fff !important;
+  color: var(--sidebar-accent-foreground) !important;
 }
 
 /* Ativo: fundo blue/15%, texto blue-300, barra 3px azul */
@@ -1569,15 +1573,15 @@ main > * {
 .enterprise-sidebar .sb-user-card:hover {
   background: var(--sidebar-accent) !important;
 }
-.enterprise-sidebar .sb-user-name { color: #fff !important; }
+.enterprise-sidebar .sb-user-name { color: var(--sidebar-accent-foreground) !important; }
 .enterprise-sidebar .sb-user-role { color: var(--sidebar-muted) !important; }
 
 /* Scrollbar sobre navy */
 .enterprise-sidebar nav::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 12%) !important;
+  background: #CBD5E1 !important;
 }
 .enterprise-sidebar nav::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 22%) !important;
+  background: #94A3B8 !important;
 }
 
 /* Empty state */
@@ -1625,3 +1629,117 @@ main {
 @media (min-width: 1024px) {
   .kpi-number { font-size: 2.25rem; } /* 36px */
 }
+
+/* =============================================================
+ * SEGMENTED CONTROL — filtros agrupados (substitui pílulas soltas)
+ * Uso: <div class="seg"><button class="seg-item is-active">…</button>…</div>
+ * ============================================================= */
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+.dark .seg { background: color-mix(in oklab, var(--card) 80%, black); border-color: var(--border); }
+.seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  line-height: 1.2;
+}
+.dark .seg-item { color: var(--muted-foreground); }
+.seg-item:hover { color: #0F172A; background: rgba(15, 23, 42, 0.04); }
+.dark .seg-item:hover { color: var(--foreground); background: rgba(255,255,255,0.04); }
+.seg-item.is-active,
+.seg-item[aria-selected="true"],
+.seg-item[data-state="active"] {
+  background: #FFFFFF;
+  color: #0F172A;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  font-weight: 600;
+}
+.dark .seg-item.is-active,
+.dark .seg-item[aria-selected="true"],
+.dark .seg-item[data-state="active"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.seg-item .seg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.seg-item.is-active .seg-count,
+.seg-item[aria-selected="true"] .seg-count,
+.seg-item[data-state="active"] .seg-count {
+  color: #2563EB;
+  background: #EFF6FF;
+}
+
+/* =============================================================
+ * ALERT PILLS na tabela — pastel discreto (substitui caixas amarelas berrantes)
+ * ============================================================= */
+.alert-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+  line-height: 1.4;
+  border: none;
+}
+.alert-pill[data-tone="warn"]   { background: #FEF3C7; color: #92400E; }
+.alert-pill[data-tone="danger"] { background: #FEE2E2; color: #991B1B; }
+.alert-pill[data-tone="info"]   { background: #DBEAFE; color: #1E40AF; }
+.alert-pill[data-tone="ok"]     { background: #DCFCE7; color: #166534; }
+.dark .alert-pill[data-tone="warn"]   { background: color-mix(in oklab, #92400E 30%, transparent); color: #FDE68A; }
+.dark .alert-pill[data-tone="danger"] { background: color-mix(in oklab, #991B1B 30%, transparent); color: #FCA5A5; }
+.dark .alert-pill[data-tone="info"]   { background: color-mix(in oklab, #1E40AF 30%, transparent); color: #93C5FD; }
+.dark .alert-pill[data-tone="ok"]     { background: color-mix(in oklab, #166534 30%, transparent); color: #86EFAC; }
+
+/* =============================================================
+ * DATA TABLE refinada — thead slate-50, tipografia 11px uppercase
+ * ============================================================= */
+.data-table thead th,
+table.data-table > thead > tr > th {
+  background: #F8FAFC;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 10px 12px;
+}
+.dark .data-table thead th,
+.dark table.data-table > thead > tr > th {
+  background: color-mix(in oklab, var(--card) 85%, black);
+  color: var(--muted-foreground);
+  border-bottom-color: var(--border);
+}
+.data-table tbody td { border-bottom: 1px solid #F1F5F9; }
+.dark .data-table tbody td { border-bottom-color: var(--border); }
