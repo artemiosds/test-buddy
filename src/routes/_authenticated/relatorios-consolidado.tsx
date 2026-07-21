@@ -13,6 +13,7 @@ import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -66,6 +67,7 @@ type Agg = {
 function RelatorioConsolidadoPage() {
   const { has, isLoading: permLoading } = usePermissions();
   const { data: me } = useCurrentUser();
+  const pedirTermo = useTermoAceite();
   const isMaster = !!me?.is_master;
   const canView = isMaster || has("relatorio.visualizar");
   const canExport = isMaster || has("relatorio.exportar");
@@ -199,6 +201,12 @@ function RelatorioConsolidadoPage() {
 
   async function exportarPDF() {
     if (!aggregated.length) { toast.error("Nada para exportar."); return; }
+    const ok = await pedirTermo({
+      nome: me?.nome_completo,
+      cargo: me?.perfil_nome,
+      documento: `Relatório Consolidado — ${compLabel}`,
+    });
+    if (!ok) return;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const info = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(doc, info, `Relatório Consolidado — ${compLabel}`);
@@ -237,6 +245,7 @@ function RelatorioConsolidadoPage() {
         tipo: "relatorio_consolidado",
         descricao: `Relatório Consolidado — ${compLabel} — Tipo: ${tipo === "all" ? "Todos" : tipo}`,
         dados: { competencia: compLabel, tipo, unidades: aggregated.length, totais },
+        termoAceite: true,
       });
       drawSignatureStamp(doc, sig);
       _sigConsolidado = sig;
