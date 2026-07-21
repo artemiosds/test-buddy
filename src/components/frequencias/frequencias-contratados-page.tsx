@@ -214,7 +214,7 @@ export function FrequenciasContratadosPage() {
         adn: Number(l?.adn ?? 0),
         plantoes: Number(l?.plantoes ?? 0),
         sobreaviso: Number(l?.sobreaviso ?? 0),
-        incentivo: Number(l?.incentivo ?? 0),
+        incentivo: Number.isFinite(Number(l?.incentivo)) ? Number(l?.incentivo) : 0,
         observacoes: l?.observacoes ?? "",
       };
     }
@@ -847,7 +847,7 @@ export function FrequenciasContratadosPage() {
                         <td key={c} className="text-center font-mono">
                           <NumberCell
                             rowId={p.id} colKey={c}
-                            value={Number((l as any)[c] ?? 0)}
+                            value={(() => { const v = Number((l as any)[c] ?? 0); return Number.isFinite(v) ? v : 0; })()}
                             disabled={ro}
                             decimals={isInc ? 2 : 0}
                             validate={isDias ? validateFalta : isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
