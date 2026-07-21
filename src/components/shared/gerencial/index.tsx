@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -173,12 +179,20 @@ export function ProfissionalNomeCell({
             type="button"
             onClick={() => onOpenDossie?.(prof)}
             className="text-left"
+            style={{
+              color: "#2563EB",
+              fontWeight: 600,
+              cursor: "pointer",
+              textDecoration: "underline",
+              background: "transparent",
+              padding: 0,
+            }}
           >
-            <div className="font-medium text-slate-900 hover:text-primary">
+            <div style={{ color: "#2563EB", fontWeight: 600, textDecoration: "underline" }}>
               {prof.nome ?? "—"}
             </div>
             {secondary && (
-              <div className="text-[11px] text-muted-foreground">{secondary}</div>
+              <div className="text-[11px]" style={{ color: "#475569", textDecoration: "none", fontWeight: 500 }}>{secondary}</div>
             )}
             {alertas.length > 0 && (
               <div className="mt-1 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
@@ -403,3 +417,200 @@ export function AlertasBotao({
 
 // Suppress unused-import warnings by exporting used utilities.
 export { Users, XCircle };
+
+/* ---------------------------------------------------------------------- */
+/* ProfissionalEdicaoModal — formulário completo de edição da linha       */
+/* de folha do profissional (Dias, Faltas, HE, Justificativas, Status).   */
+/* ---------------------------------------------------------------------- */
+export type EdicaoCampo = {
+  key: string;
+  label: string;
+  decimals?: number;
+  min?: number;
+  max?: number;
+  group?: "oficial" | "sms";
+};
+
+export function ProfissionalEdicaoModal<L extends Record<string, any>>({
+  prof, linha, open, onOpenChange,
+  campos, canEdit = true, statusValue, onStatusChange,
+  onChangeCampo, onSave, saving,
+}: {
+  prof: ProfConferencia | null;
+  linha: L | undefined;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  campos: EdicaoCampo[];
+  canEdit?: boolean;
+  statusValue?: string;
+  onStatusChange?: (v: string) => void;
+  onChangeCampo: (campo: string, valor: number | string) => void;
+  onSave: () => void | Promise<void>;
+  saving?: boolean;
+}) {
+  if (!prof) return null;
+  const situ = derivarSituacao(prof);
+  const readOnlyStyle: CSSProperties = {
+    color: "#0F172A",
+    fontWeight: 500,
+    background: "#F1F5F9",
+    border: "1px solid #CBD5E1",
+    borderRadius: 6,
+    padding: "6px 10px",
+    fontSize: 13,
+  };
+  const labelStyle: CSSProperties = {
+    color: "#475569",
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle style={{ color: "#0F172A", fontWeight: 700 }}>
+            Editar folha — {prof.nome ?? "Profissional"}
+          </DialogTitle>
+          <DialogDescription>
+            Preencha os campos da folha do profissional. Alterações são gravadas ao clicar em <strong>Salvar Alterações</strong>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-2 space-y-4">
+          {/* Dados pessoais / vínculo (somente leitura) */}
+          <section>
+            <div style={labelStyle} className="mb-2">Identificação</div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {[
+                ["Nome", prof.nome ?? "—"],
+                ["CPF", prof.cpf ?? "—"],
+                ["Matrícula", prof.matricula ?? "—"],
+                ["Cargo", prof.cargo ?? "—"],
+                ["Função", prof.funcao ?? "—"],
+                ["Lotação", prof.setor ?? "—"],
+              ].map(([lb, val]) => (
+                <div key={lb as string}>
+                  <div style={labelStyle}>{lb}</div>
+                  <div style={readOnlyStyle}>{val as string}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <SituacaoBadge prof={prof} />
+              <ElegibilidadePisoBadge prof={prof} />
+              <span className="text-[11px] text-slate-500">Situação: {SITUACAO_LABEL[situ]}</span>
+            </div>
+          </section>
+
+          {/* Status da frequência */}
+          {onStatusChange && (
+            <section>
+              <div style={labelStyle} className="mb-2">Status da Frequência</div>
+              <select
+                value={statusValue ?? "rascunho"}
+                disabled={!canEdit}
+                onChange={(e) => onStatusChange(e.target.value)}
+                style={{
+                  color: "#0F172A", fontWeight: 600, background: "#FFFFFF",
+                  border: "1px solid #94A3B8", borderRadius: 6, padding: "8px 10px",
+                  fontSize: 13, width: "100%", maxWidth: 320,
+                }}
+              >
+                <option value="rascunho">Rascunho</option>
+                <option value="enviada">Enviada</option>
+                <option value="aprovada">Aprovada</option>
+                <option value="rejeitada">Rejeitada</option>
+                <option value="com_pendencias">Com Pendências</option>
+              </select>
+            </section>
+          )}
+
+          {/* Campos numéricos da folha */}
+          <section>
+            <div style={labelStyle} className="mb-2">Dados da Folha</div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+              {campos.map((c) => {
+                const raw = linha ? (linha as any)[c.key] : 0;
+                const val = Number(raw ?? 0);
+                const dec = c.decimals ?? 0;
+                return (
+                  <div key={c.key}>
+                    <Label htmlFor={`edm-${c.key}`} style={labelStyle}>
+                      {c.label}
+                    </Label>
+                    <Input
+                      id={`edm-${c.key}`}
+                      type="number"
+                      inputMode="decimal"
+                      step={dec > 0 ? Math.pow(10, -dec) : 1}
+                      min={c.min ?? 0}
+                      max={c.max}
+                      disabled={!canEdit}
+                      value={Number.isFinite(val) ? val : 0}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        onChangeCampo(c.key, isNaN(n) || n < 0 ? 0 : n);
+                      }}
+                      style={{
+                        color: "#0F172A",
+                        fontWeight: 600,
+                        background: c.group === "sms" ? "#FEF9C3" : "#FFFFFF",
+                        border: "1px solid #94A3B8",
+                        borderRadius: 6,
+                        fontSize: 13,
+                        textAlign: "right",
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Justificativa / Observações */}
+          <section>
+            <Label htmlFor="edm-obs" style={labelStyle}>Justificativa / Observações</Label>
+            <Textarea
+              id="edm-obs"
+              rows={3}
+              disabled={!canEdit}
+              value={String(linha?.observacoes ?? "")}
+              onChange={(e) => onChangeCampo("observacoes", e.target.value)}
+              style={{
+                color: "#0F172A", background: "#FFFFFF",
+                border: "1px solid #94A3B8", borderRadius: 6, fontSize: 13,
+              }}
+              placeholder="Descreva a justificativa da frequência ou observações relevantes…"
+            />
+          </section>
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onSave()}
+            disabled={!canEdit || saving}
+            style={{
+              backgroundColor: "#10B981",
+              color: "#FFFFFF",
+              fontWeight: 700,
+              borderRadius: 6,
+            }}
+          >
+            {saving ? "Salvando…" : "Salvar Alterações"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
