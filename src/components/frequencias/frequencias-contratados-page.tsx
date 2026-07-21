@@ -25,6 +25,8 @@ import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
 import { gerarExcelFolhaContratados, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { gerarFolhaContratadosOficial } from "@/lib/pdf-folha-contratados-oficial";
+import { gerarFolhaContratadosModeloCer } from "@/lib/pdf-folha-contratados-modelo-cer";
+import { gerarExcelFolhaContratadosModeloCer } from "@/lib/excel-folha-contratados-modelo-cer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
@@ -361,6 +363,33 @@ export function FrequenciasContratadosPage() {
     }
   }
 
+  async function handleExportarPdfModeloCer() {
+    if (!compSel) return;
+    try {
+      await gerarFolhaContratadosModeloCer({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+        emitidoPor: me?.nome_completo ?? me?.email ?? "—",
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar PDF (Modelo CER).");
+    }
+  }
+
+  async function handleExportarExcelModeloCer() {
+    if (!compSel) return;
+    try {
+      await gerarExcelFolhaContratadosModeloCer({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar Excel (Modelo CER).");
+    }
+  }
+
   const filtradas = useMemo(() => {
     if (!folha) return [];
     const q = busca.trim().toLowerCase();
@@ -628,6 +657,32 @@ export function FrequenciasContratadosPage() {
               {!folhaAprovada && (
                 <TooltipContent>Disponível somente após aprovação</TooltipContent>
               )}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="secondary"
+                    onClick={handleExportarPdfModeloCer}
+                  >
+                    <FileDown className="mr-1.5 h-4 w-4" /> PDF Modelo CER
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Réplica do modelo oficial da SMS (com brasões)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportarExcelModeloCer}
+                  >
+                    <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Excel Modelo CER
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Réplica do modelo oficial da SMS (com brasões)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
