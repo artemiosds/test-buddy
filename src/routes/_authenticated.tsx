@@ -443,8 +443,8 @@ function AuthenticatedLayout() {
       <div className={"sb-logo flex items-center gap-2 " + (compact ? "justify-center px-2" : "justify-between")}>
         {!compact && (
           <div className="min-w-0">
-            <h2 className="truncate">GESTÃO SAÚDE</h2>
-            <p className="truncate">ORIXIMINÁ · SMS</p>
+            <h2 className="truncate">ORIXIMINÁ · SMS</h2>
+            <p className="truncate">Gestão da Saúde</p>
           </div>
         )}
         <button
@@ -677,9 +677,9 @@ function TopBar({
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   {initial}
                 </span>
-                <span className="hidden text-left leading-tight sm:block">
-                  <span className="block max-w-[160px] truncate text-sm font-medium">{nome}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{perfil}</span>
+                <span className="hidden flex-col justify-center text-left leading-tight sm:flex">
+                  <span className="block max-w-[180px] truncate text-sm font-semibold text-foreground">{nome}</span>
+                  <span className="block truncate text-[11px] font-normal text-muted-foreground">{perfil}</span>
                 </span>
                 <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" strokeWidth={2} />
               </button>
