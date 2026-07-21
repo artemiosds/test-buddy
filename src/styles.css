@@ -1629,3 +1629,117 @@ main {
 @media (min-width: 1024px) {
   .kpi-number { font-size: 2.25rem; } /* 36px */
 }
+
+/* =============================================================
+ * SEGMENTED CONTROL — filtros agrupados (substitui pílulas soltas)
+ * Uso: <div class="seg"><button class="seg-item is-active">…</button>…</div>
+ * ============================================================= */
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+.dark .seg { background: color-mix(in oklab, var(--card) 80%, black); border-color: var(--border); }
+.seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  line-height: 1.2;
+}
+.dark .seg-item { color: var(--muted-foreground); }
+.seg-item:hover { color: #0F172A; background: rgba(15, 23, 42, 0.04); }
+.dark .seg-item:hover { color: var(--foreground); background: rgba(255,255,255,0.04); }
+.seg-item.is-active,
+.seg-item[aria-selected="true"],
+.seg-item[data-state="active"] {
+  background: #FFFFFF;
+  color: #0F172A;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  font-weight: 600;
+}
+.dark .seg-item.is-active,
+.dark .seg-item[aria-selected="true"],
+.dark .seg-item[data-state="active"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.seg-item .seg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.seg-item.is-active .seg-count,
+.seg-item[aria-selected="true"] .seg-count,
+.seg-item[data-state="active"] .seg-count {
+  color: #2563EB;
+  background: #EFF6FF;
+}
+
+/* =============================================================
+ * ALERT PILLS na tabela — pastel discreto (substitui caixas amarelas berrantes)
+ * ============================================================= */
+.alert-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+  line-height: 1.4;
+  border: none;
+}
+.alert-pill[data-tone="warn"]   { background: #FEF3C7; color: #92400E; }
+.alert-pill[data-tone="danger"] { background: #FEE2E2; color: #991B1B; }
+.alert-pill[data-tone="info"]   { background: #DBEAFE; color: #1E40AF; }
+.alert-pill[data-tone="ok"]     { background: #DCFCE7; color: #166534; }
+.dark .alert-pill[data-tone="warn"]   { background: color-mix(in oklab, #92400E 30%, transparent); color: #FDE68A; }
+.dark .alert-pill[data-tone="danger"] { background: color-mix(in oklab, #991B1B 30%, transparent); color: #FCA5A5; }
+.dark .alert-pill[data-tone="info"]   { background: color-mix(in oklab, #1E40AF 30%, transparent); color: #93C5FD; }
+.dark .alert-pill[data-tone="ok"]     { background: color-mix(in oklab, #166534 30%, transparent); color: #86EFAC; }
+
+/* =============================================================
+ * DATA TABLE refinada — thead slate-50, tipografia 11px uppercase
+ * ============================================================= */
+.data-table thead th,
+table.data-table > thead > tr > th {
+  background: #F8FAFC;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 10px 12px;
+}
+.dark .data-table thead th,
+.dark table.data-table > thead > tr > th {
+  background: color-mix(in oklab, var(--card) 85%, black);
+  color: var(--muted-foreground);
+  border-bottom-color: var(--border);
+}
+.data-table tbody td { border-bottom: 1px solid #F1F5F9; }
+.dark .data-table tbody td { border-bottom-color: var(--border); }
