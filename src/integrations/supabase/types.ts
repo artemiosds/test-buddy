@@ -70,6 +70,21 @@ export type Database = {
           },
         ]
       }
+      assinatura_perfis_elegiveis: {
+        Row: {
+          descricao: string | null
+          perfil_codigo: string
+        }
+        Insert: {
+          descricao?: string | null
+          perfil_codigo: string
+        }
+        Update: {
+          descricao?: string | null
+          perfil_codigo?: string
+        }
+        Relationships: []
+      }
       assinaturas_institucionais: {
         Row: {
           ativa: boolean
@@ -78,6 +93,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           id: string
+          is_pessoal: boolean
           metadata: Json
           mime_type: string | null
           obrigatoria: boolean
@@ -103,6 +119,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          is_pessoal?: boolean
           metadata?: Json
           mime_type?: string | null
           obrigatoria?: boolean
@@ -128,6 +145,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          is_pessoal?: boolean
           metadata?: Json
           mime_type?: string | null
           obrigatoria?: boolean
@@ -3260,6 +3278,20 @@ export type Database = {
     }
     Functions: {
       ack_evento_dominio: { Args: { _id: string }; Returns: undefined }
+      assinatura_dashboard: { Args: never; Returns: Json }
+      assinatura_pendentes: {
+        Args: never
+        Returns: {
+          dias_pendente: number
+          email: string
+          nome: string
+          perfil_codigo: string
+          perfil_nome: string
+          unidade_id: string
+          unidade_nome: string
+          usuario_id: string
+        }[]
+      }
       claim_eventos_dominio: {
         Args: { _qtd?: number; _worker?: string }
         Returns: {
@@ -3374,6 +3406,7 @@ export type Database = {
         Args: { _erro: string; _id: string }
         Returns: undefined
       }
+      notificar_assinatura_pendentes: { Args: never; Returns: number }
       proximo_numero_pendencia: {
         Args: { _secretaria_id: string }
         Returns: string
@@ -3400,6 +3433,10 @@ export type Database = {
         Returns: boolean
       }
       uso_metricas: { Args: { _dias?: number }; Returns: Json }
+      usuario_pode_cadastrar_assinatura: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       verify_and_consume_backup_code: {
         Args: { _code: string }
         Returns: boolean
