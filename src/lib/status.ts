@@ -115,12 +115,13 @@ const REGISTRY: Registry = {
     },
   },
   profissional: {
-    order: ["ativo", "afastado", "ferias", "licenca", "desligado", "inativo"],
+    order: ["ativo", "afastado", "ferias", "licenca", "cedido", "desligado", "inativo"],
     map: {
       ativo:     { label: "Ativo",     variant: "default",     icon: UserCheck, colorToken: "success", description: "Em pleno exercício." },
       afastado:  { label: "Afastado",  variant: "secondary",   icon: UserMinus, colorToken: "warning", description: "Afastado temporariamente." },
       ferias:    { label: "Férias",    variant: "secondary",   icon: Umbrella,  colorToken: "info",    description: "Em período de férias." },
       licenca:   { label: "Licença",   variant: "outline",     icon: FileText,  colorToken: "info",    description: "Em licença (saúde, prêmio, etc.)." },
+      cedido:    { label: "Cedido",    variant: "secondary",   icon: UserMinus, colorToken: "info",    description: "Cedido a outra unidade/órgão." },
       desligado: { label: "Desligado", variant: "destructive", icon: UserX,     colorToken: "danger",  description: "Desligado do quadro." },
       inativo:   { label: "Inativo",   variant: "secondary",   icon: UserMinus, colorToken: "muted",   description: "Inativo — não computa em folhas." },
     },
