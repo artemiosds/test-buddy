@@ -31,6 +31,13 @@ import {
 } from "recharts";
 import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { competenciaAtual } from "@/lib/piso-heuristics";
+import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
+import {
+  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
+  ElegibilidadePisoBadge, AlertasBotao, DossieDrawer,
+  type SituacaoFilterValue,
+} from "@/components/shared/gerencial";
+import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 
 export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
   component: () => (
@@ -74,6 +81,9 @@ function PisoIndex() {
   const [busca, setBusca] = useState<string>("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
+  const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
+  const [dossieOpen, setDossieOpen] = useState(false);
 
   // Lista de competências (para o dropdown)
   const compQ = useQuery({
@@ -116,7 +126,48 @@ function PisoIndex() {
 
   const cols: DataTableColumn<Linha>[] = useMemo(
     () => [
-      { key: "nome", header: "Nome", cell: (r) => r.nome ?? "—" },
+      {
+        key: "nome",
+        header: "Profissional",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            {
+              id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
+              matricula: r.matricula, vinculo: r.vinculo,
+            },
+            confMap,
+          );
+          return (
+            <ProfissionalNomeCell
+              prof={conf}
+              onOpenDossie={openDossie}
+              secondary={r.cargo}
+            />
+          );
+        },
+      },
+      {
+        key: "situacao",
+        header: "Situação",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
+            confMap,
+          );
+          return <SituacaoBadge prof={conf} />;
+        },
+      },
+      {
+        key: "elegibilidade",
+        header: "Elegibilidade",
+        cell: (r) => {
+          const conf: ProfConferencia = mergeConferencia(
+            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
+            confMap,
+          );
+          return <ElegibilidadePisoBadge prof={conf} />;
+        },
+      },
       { key: "cpf", header: "CPF", cell: (r) => r.cpf ?? "—" },
       { key: "cargo", header: "Cargo", cell: (r) => r.cargo ?? "—" },
       { key: "vinculo", header: "Vínculo", cell: (r) => r.vinculo ?? "—" },
@@ -143,8 +194,13 @@ function PisoIndex() {
         cell: (r) => (r.valor_final != null ? fmtBRL(r.valor_final) : "—"),
       },
     ],
-    [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [/* confMap injected via closure below */],
   );
+
+  // Recomputa colunas quando confMap muda — usamos um trick simples:
+  // envolvemos confMap fora do useMemo acima. Como React captura closure,
+  // reconstruímos as colunas a cada render via useMemo dependendo do map.
 
   function handleExportar() {
     const rows = (linhasQ.data?.rows ?? []) as Linha[];
