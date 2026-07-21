@@ -510,6 +510,8 @@ function AuthenticatedLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           onOpenMobile={() => setMobileOpen(true)}
+          onToggleCollapsed={() => setCollapsed((c) => !c)}
+          collapsed={collapsed}
           nome={nome}
           perfil={perfil}
           competencia={competencia}
@@ -547,6 +549,8 @@ function AuthenticatedLayout() {
 
 type TopBarProps = {
   onOpenMobile: () => void;
+  onToggleCollapsed: () => void;
+  collapsed: boolean;
   nome: string;
   perfil: string;
   competencia: { label: string; status: string } | null | undefined;
@@ -560,6 +564,8 @@ type TopBarProps = {
 
 function TopBar({
   onOpenMobile,
+  onToggleCollapsed,
+  collapsed,
   nome,
   perfil,
   competencia,
@@ -589,6 +595,27 @@ function TopBar({
         >
           <Menu className="h-5 w-5" strokeWidth={1.75} />
         </button>
+
+        {/* Toggle recolher/expandir sidebar (desktop) */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="hidden h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent md:inline-flex"
+              aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-5 w-5" strokeWidth={1.75} />
+              ) : (
+                <PanelLeftClose className="h-5 w-5" strokeWidth={1.75} />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {collapsed ? "Expandir menu" : "Recolher menu"}
+          </TooltipContent>
+        </Tooltip>
 
         {/* Breadcrumbs (desktop) + título compacto (mobile) */}
         <div className="min-w-0 flex-1">
