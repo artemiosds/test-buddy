@@ -5,6 +5,16 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { UploadCloud, Lightbulb, CheckCircle2, AlertTriangle } from "lucide-react";
 
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const CAMPOS_NAO_MONETARIOS = new Set(["cpf", "nome", "matricula"]);
+function fmtPreviewCell(v: unknown, destino?: PisoDestino | null): string {
+  if (v == null || v === "") return "—";
+  const isMoney = destino != null && !CAMPOS_NAO_MONETARIOS.has(destino);
+  const num = typeof v === "number" ? v : isMoney ? Number(String(v).replace(/[R$\s.]/g, "").replace(",", ".")) : NaN;
+  if (Number.isFinite(num) && (typeof v === "number" || isMoney)) return BRL.format(num);
+  return String(v);
+}
+
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
@@ -422,7 +432,7 @@ function ImportarPage() {
                   <tbody>
                     {preview5.map((r, i) => (
                       <tr key={i} className="border-t">
-                        {headers.map((h) => <td key={h} className="px-2 py-1">{String(r[h] ?? "—")}</td>)}
+                        {headers.map((h) => <td key={h} className="px-2 py-1 tabular-nums">{fmtPreviewCell(r[h], mapeamento[h])}</td>)}
                       </tr>
                     ))}
                   </tbody>
