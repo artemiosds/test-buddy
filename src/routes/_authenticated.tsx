@@ -405,7 +405,7 @@ function AuthenticatedLayout() {
                       }
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                      {!compact && <span className="flex-1 truncate">{item.label}</span>}
+                      {!compact && <span className="flex-1 leading-tight">{item.label}</span>}
                       {showBadge && (
                         <span className={
                           (compact ? "absolute -right-0.5 -top-0.5 " : "ml-auto ") +
