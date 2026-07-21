@@ -251,11 +251,12 @@ function parseNum(s: string): number {
   if (!s) return 0;
   const t = s.trim().replace(/\./g, "").replace(",", ".");
   const n = Number(t.includes(".") || t.includes("-") ? t : s);
-  return Number.isFinite(n) && n >= 0 ? n : Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? n : 0;
 }
 function fmtNum(n: number, decimals?: number): string {
-  if (decimals && decimals > 0) return (n ?? 0).toFixed(decimals);
-  return String(n ?? 0);
+  const safe = Number.isFinite(n) ? n : 0;
+  if (decimals && decimals > 0) return safe.toFixed(decimals);
+  return String(safe);
 }
 
 /* -----------------------------------------------------------------------
