@@ -713,23 +713,23 @@ export function FrequenciasContratadosPage() {
           <table>
             <thead>
               <tr>
-                <th className="erp-sticky" style={{ left: L.num, width: 48, textAlign: "center" }}>Nº</th>
-                <th className="erp-sticky" style={{ left: L.matricula, textAlign: "left" }}>Matrícula</th>
-                <th className="erp-sticky erp-sticky-last" style={{ left: L.nome, textAlign: "left" }}>Nome</th>
-                <th style={{ textAlign: "left", minWidth: 128 }}>CPF</th>
-                <th className="erp-group-prof" style={{ textAlign: "left", minWidth: 140 }}>Cargo</th>
-                <th className="erp-group-prof" style={{ textAlign: "left", minWidth: 140 }}>Lotação</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right", width: 64 }}>Dias</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Faltas</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>ATT</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 50%</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 100%</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>ADN</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Plantões</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Sobreavisos</th>
-                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Incentivo</th>
-                <th className="erp-group-bank" style={{ textAlign: "left", minWidth: 140 }}>Conta</th>
-                <th className="erp-group-obs" style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
+                <th className="erp-sticky" style={{ left: L.num, width: 40, textAlign: "center" }}>Nº</th>
+                <th className="erp-sticky" style={{ left: L.matricula, width: 80, textAlign: "center" }}>Matrícula</th>
+                <th className="erp-sticky erp-sticky-last" style={{ left: L.nome, minWidth: 200, maxWidth: 250, textAlign: "left" }}>Nome</th>
+                <th style={{ textAlign: "center", width: 112 }}>CPF</th>
+                <th style={{ textAlign: "left", minWidth: 140 }}>Cargo</th>
+                <th style={{ textAlign: "left", minWidth: 140 }}>Lotação</th>
+                <th style={{ textAlign: "center", width: 48 }}>Dias</th>
+                <th style={{ textAlign: "center", width: 48 }}>Faltas</th>
+                <th style={{ textAlign: "center", width: 48 }}>ATT</th>
+                <th style={{ textAlign: "center", width: 48 }}>HE 50%</th>
+                <th style={{ textAlign: "center", width: 48 }}>HE 100%</th>
+                <th style={{ textAlign: "center", width: 48 }}>ADN</th>
+                <th style={{ textAlign: "center", width: 48 }}>Plantões</th>
+                <th style={{ textAlign: "center", width: 48 }}>Sobreavisos</th>
+                <th style={{ textAlign: "center", width: 48 }}>Incentivo</th>
+                <th style={{ textAlign: "left", minWidth: 200, whiteSpace: "nowrap" }}>Conta</th>
+                <th style={{ textAlign: "center", width: 96 }}>Observações</th>
                 <th style={{ textAlign: "center", width: 110 }}>Status</th>
               </tr>
             </thead>
@@ -753,27 +753,27 @@ export function FrequenciasContratadosPage() {
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
-                      className="erp-sticky text-center text-muted-foreground tabular-nums"
-                      style={{ left: L.num, fontSize: 11 }}
+                      className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
+                      style={{ left: L.num, width: 40 }}
                     >
                       {idx + 1}
                     </td>
-                    <td className="erp-sticky" style={{ left: L.matricula, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
+                    <td className="erp-sticky text-center font-mono" style={{ left: L.matricula, width: 80 }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="erp-sticky erp-sticky-last" style={{ left: L.nome }}>
+                    <td className="erp-sticky erp-sticky-last font-medium text-slate-900" style={{ left: L.nome, minWidth: 200, maxWidth: 250 }}>
                       <div className="flex items-center gap-1.5">
                         <IconeSituacao situ={situ} />
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 truncate">
                           <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} />
                         </div>
                       </div>
                     </td>
-                    <td className="text-muted-foreground font-mono" style={{ fontSize: 11 }}>{p.cpf ?? "—"}</td>
-                    <td className="erp-group-prof text-muted-foreground">{p.cargo ?? "-"}</td>
-                    <td className="erp-group-prof text-muted-foreground">{p.setor ?? "—"}</td>
+                    <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
+                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
+                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.setor ?? undefined}>{p.setor ?? "—"}</td>
                     <td
-                      className="erp-group-lanc text-right tabular-nums text-muted-foreground"
+                      className="text-center font-mono tabular-nums text-muted-foreground"
                       title={`Dias do mês (${diasMes}) − Faltas (${l.dias_falta ?? 0})`}
                     >
                       {diasTrab}
@@ -783,7 +783,7 @@ export function FrequenciasContratadosPage() {
                       const isHora  = c === "he_50" || c === "he_100" || c === "adn";
                       const isInc   = c === "incentivo";
                       return (
-                        <td key={c} className="erp-group-lanc">
+                        <td key={c} className="text-center font-mono">
                           <NumberCell
                             rowId={p.id} colKey={c}
                             value={Number((l as any)[c] ?? 0)}
@@ -797,15 +797,14 @@ export function FrequenciasContratadosPage() {
                     })}
                     <td
                       className={cn(
-                        "erp-group-bank text-[11px] leading-tight whitespace-pre-line",
-                        semConta ? "text-destructive" : "text-muted-foreground",
+                        "whitespace-nowrap text-[12px]",
+                        semConta ? "text-destructive" : "text-slate-700",
                       )}
+                      title={semConta ? undefined : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
                     >
-                      {semConta
-                        ? "—"
-                        : `${p.banco}\nAG ${p.agencia}\nCC ${p.conta_corrente}`}
+                      {semConta ? "—" : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
                     </td>
-                    <td className="erp-group-obs">
+                    <td className="text-center">
                       <TextCell
                         rowId={p.id}
                         value={l.observacoes ?? ""}
@@ -827,9 +826,9 @@ export function FrequenciasContratadosPage() {
                 <td className="erp-sticky" style={{ left: L.matricula }}></td>
                 <td className="erp-sticky erp-sticky-last" style={{ left: L.nome }}>Totais</td>
                 <td colSpan={3}></td>
-                <td className="erp-group-lanc"></td>
+                <td></td>
                 {CAMPOS_NUM.map((c) => (
-                  <td key={c} className="erp-group-lanc" style={{ textAlign: "right" }}>
+                  <td key={c} className="text-center font-mono">
                     {c === "incentivo"
                       ? (totCampo[c] ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : (totCampo[c] ?? 0).toLocaleString("pt-BR")}
