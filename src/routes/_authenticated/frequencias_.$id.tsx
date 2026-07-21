@@ -193,6 +193,7 @@ function FrequenciaDetalhe() {
   const { id } = Route.useParams();
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
+  const pedirTermoDoc = useTermoAceite();
   const qc = useQueryClient();
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [obs, setObs] = useState("");
