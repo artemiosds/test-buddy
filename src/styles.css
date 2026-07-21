@@ -946,3 +946,121 @@ main > * {
 .enterprise-sidebar .sb-item > span:last-child:not(:first-child) {
   box-shadow: 0 0 0 2px #FFFFFF;
 }
+
+/* =========================================================
+   SIDEBAR LIGHT / CLEAN — DESIGN SYSTEM TOKENS
+   Tokens genéricos reutilizáveis (coexistem com .enterprise-sidebar).
+   ========================================================= */
+
+.sidebar-container {
+  width: 240px !important;
+  min-width: 240px !important;
+  max-width: 240px !important;
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E2E8F0 !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.sidebar-search-input {
+  background-color: #F1F5F9 !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  color: #0F172A !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  transition: all 150ms ease !important;
+}
+.sidebar-search-input::placeholder { color: #94A3B8 !important; }
+.sidebar-search-input:focus {
+  background-color: #FFFFFF !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
+}
+
+.sidebar-group-title {
+  color: #94A3B8 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 16px 12px 6px 12px !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+.sidebar-nav-item {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 8px 12px !important;
+  margin: 2px 8px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 150ms ease, color 150ms ease !important;
+  position: relative;
+}
+.sidebar-nav-item:hover {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+.sidebar-nav-item:hover svg,
+.sidebar-nav-item:hover .sidebar-icon { color: #0F172A !important; }
+
+.sidebar-nav-item.active {
+  background-color: #EFF6FF !important;
+  color: #2563EB !important;
+  font-weight: 600 !important;
+}
+.sidebar-nav-item.active svg,
+.sidebar-nav-item.active .sidebar-icon { color: #2563EB !important; }
+.sidebar-nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background-color: #2563EB !important;
+  border-radius: 0 4px 4px 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid #E2E8F0 !important;
+  background-color: #FFFFFF !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-user-name { color: #0F172A !important; font-size: 13px !important; font-weight: 600 !important; }
+.sidebar-user-role { color: #64748B !important; font-size: 11px !important; }
+
+.sidebar-logout-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #64748B !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  transition: all 150ms ease !important;
+}
+.sidebar-logout-btn:hover {
+  background-color: #FEF2F2 !important;
+  color: #EF4444 !important;
+}
+.sidebar-logout-btn:hover svg { color: #EF4444 !important; }
