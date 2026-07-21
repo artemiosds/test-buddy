@@ -458,6 +458,8 @@ export function FrequenciasEfetivosPage() {
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
 
+  const [selectedRowId] = useSelectedErpRow();
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
@@ -642,10 +644,10 @@ export function FrequenciasEfetivosPage() {
         selecionado={(() => {
           if (!selectedRowId) return null;
           const l = linhas[selectedRowId];
-          const p = rowsConf.find((r) => r.profissional_id === selectedRowId);
+          const p = rowsConf.find((r) => r.id === selectedRowId);
           if (!l || !p) return null;
           return {
-            nome: p.nome_completo ?? "—",
+            nome: p.nome ?? "—",
             valores: {
               dias: Number(l.dias_trabalhados ?? 0),
               faltas: Number(l.faltas_injustificadas ?? 0),
