@@ -135,33 +135,36 @@
 
 :root {
   --radius: 0.75rem;
-  /* Fundo geral #F4F7FB */
-  --background: oklch(0.972 0.007 250);
-  --foreground: oklch(0.22 0.03 250);
+  /* Canvas #F8FAFC */
+  --background: oklch(0.984 0.004 250);
+  /* Text primary #0F172A */
+  --foreground: oklch(0.21 0.04 258);
   /* Cards brancos */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 250);
+  --card-foreground: oklch(0.21 0.04 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 250);
+  --popover-foreground: oklch(0.21 0.04 258);
   /* Primária navy #0B1F3A */
   --primary: oklch(0.23 0.05 258);
   --primary-foreground: oklch(0.985 0.005 250);
-  --secondary: oklch(0.965 0.008 250);
-  --secondary-foreground: oklch(0.22 0.03 250);
-  --muted: oklch(0.965 0.008 250);
-  --muted-foreground: oklch(0.5 0.02 250);
-  /* Destaque azul elegante #2563EB */
-  --accent: oklch(0.95 0.03 260);
-  --accent-foreground: oklch(0.35 0.18 260);
+  /* Slate 100 */
+  --secondary: oklch(0.968 0.006 250);
+  --secondary-foreground: oklch(0.21 0.04 258);
+  --muted: oklch(0.968 0.006 250);
+  /* Text secondary #475569 */
+  --muted-foreground: oklch(0.5 0.03 258);
+  /* Accent #EFF6FF / azul #2563EB */
+  --accent: oklch(0.972 0.02 255);
+  --accent-foreground: oklch(0.52 0.22 262);
   /* Erro #EF4444 */
   --destructive: oklch(0.63 0.22 27);
   --destructive-foreground: oklch(0.985 0.005 27);
-  /* Bordas #E5E7EB */
-  --border: oklch(0.92 0.006 250);
-  --input: oklch(0.88 0.008 250);
+  /* Border light #E2E8F0 */
+  --border: oklch(0.912 0.008 250);
+  --input: oklch(0.912 0.008 250);
   /* Ring foco #2563EB */
-  --ring: oklch(0.55 0.2 260);
-  --chart-1: oklch(0.55 0.2 260);
+  --ring: oklch(0.52 0.22 262);
+  --chart-1: oklch(0.52 0.22 262);
   --chart-2: oklch(0.62 0.15 180);
   --chart-3: oklch(0.62 0.16 240);
   --chart-4: oklch(0.78 0.16 75);
@@ -169,14 +172,14 @@
   /* Sidebar navy #0B1F3A */
   --sidebar: oklch(0.23 0.05 258);
   --sidebar-foreground: oklch(0.975 0.005 250);
-  /* Menu ativo #1E4E8C */
-  --sidebar-primary: oklch(0.44 0.15 258);
+  /* Menu ativo #2563EB */
+  --sidebar-primary: oklch(0.52 0.22 262);
   --sidebar-primary-foreground: oklch(0.985 0.005 250);
-  /* Hover #163B6D */
-  --sidebar-accent: oklch(0.34 0.11 258);
+  /* Hover slate escuro */
+  --sidebar-accent: oklch(0.33 0.07 258);
   --sidebar-accent-foreground: oklch(0.975 0.005 250);
   --sidebar-border: oklch(0.32 0.07 258);
-  --sidebar-ring: oklch(0.55 0.2 260);
+  --sidebar-ring: oklch(0.52 0.22 262);
 
   /* Superfícies */
   --surface: var(--background);
@@ -184,13 +187,13 @@
   --surface-overlay: var(--popover);
   --surface-muted: var(--muted);
 
-  /* Bordas graduais */
+  /* Bordas graduais — Slate 100 / Slate 300 */
   --border-subtle: oklch(0.955 0.006 250);
-  --border-strong: oklch(0.86 0.01 250);
+  --border-strong: oklch(0.87 0.012 250);
 
-  /* Texto */
+  /* Texto — Slate 900 / Slate 600 */
   --text-primary: var(--foreground);
-  --text-secondary: oklch(0.35 0.03 260);
+  --text-secondary: oklch(0.5 0.03 258);
   --text-muted: var(--muted-foreground);
   --text-inverted: oklch(0.984 0.003 247.858);
 
@@ -216,8 +219,8 @@
   --info-soft: oklch(0.965 0.04 240);
   --info-soft-foreground: oklch(0.4 0.15 240);
 
-  /* Marca — hover #163B6D (navy claro) */
-  --brand-hover: oklch(0.34 0.11 258);
+  /* Marca — hover #1D4ED8 */
+  --brand-hover: oklch(0.46 0.22 262);
 }
 
 .dark {
@@ -400,7 +403,8 @@
   border-radius: 18px;
   border: 1px solid #E2E8F0;
   background: var(--color-card);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px 0 rgba(11, 31, 58, 0.05),
+              0 1px 2px -1px rgba(11, 31, 58, 0.05);
   padding: 0;
   transition: transform var(--dur-base) var(--ease-enterprise),
               box-shadow var(--dur-base) var(--ease-enterprise),
@@ -408,23 +412,26 @@
 }
 [data-slot="card"]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px -8px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.10),
+              0 8px 10px -6px rgba(37, 99, 235, 0.05);
+  border-color: #93C5FD;
 }
 [data-slot="card-header"],
 [data-slot="card-content"],
 [data-slot="card-footer"] {
-  padding-left: 28px;
-  padding-right: 28px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
-[data-slot="card-header"] { padding-top: 24px; padding-bottom: 8px; }
-[data-slot="card-content"] { padding-top: 16px; padding-bottom: 24px; }
-[data-slot="card-footer"] { padding-top: 16px; padding-bottom: 24px; }
+[data-slot="card-header"] { padding-top: 18px; padding-bottom: 6px; }
+[data-slot="card-content"] { padding-top: 12px; padding-bottom: 18px; }
+[data-slot="card-footer"] { padding-top: 12px; padding-bottom: 18px; }
 
 /* ---------- Sidebar ---------- */
 [data-slot="sidebar-container"],
 [data-sidebar="sidebar"] {
   --sidebar-width: 280px;
-  box-shadow: 6px 0 18px rgba(15, 23, 42, 0.12);
+  box-shadow: 4px 0 24px -2px rgba(11, 31, 58, 0.06);
+  border-right: 1px solid #E2E8F0;
 }
 [data-sidebar="group"] { padding: 12px 12px; }
 [data-sidebar="group"] + [data-sidebar="group"] { margin-top: 8px; }
@@ -440,28 +447,29 @@
   padding: 10px 12px;
   gap: 12px;
   font-weight: 500;
+  position: relative;
   transition: background-color var(--dur-fast) var(--ease-enterprise),
               color var(--dur-fast) var(--ease-enterprise),
               transform var(--dur-fast) var(--ease-enterprise);
 }
 [data-sidebar="menu-button"]:hover {
-  background: #163B6D !important;
-  color: #F8FAFC !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
 }
 [data-sidebar="menu-button"][data-active="true"] {
-  background: #1E4E8C !important;
-  color: #F8FAFC !important;
+  background: #EFF6FF !important;
+  color: #2563EB !important;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(30, 78, 140, 0.4);
+  box-shadow: inset 4px 0 0 0 #2563EB;
+  font-weight: 600;
 }
 [data-sidebar="menu-button"] svg {
   width: 22px; height: 22px;
   stroke-width: 1.75;
-  color: #CBD5E1;
 }
 [data-sidebar="menu-button"][data-active="true"] svg,
 [data-sidebar="menu-button"]:hover svg {
-  color: #F8FAFC;
+  color: inherit;
 }
 [data-sidebar="menu"] { gap: 2px; }
 
@@ -537,7 +545,11 @@ header[data-slot="topbar"],
 }
 [data-slot="table-row"]:hover,
 [data-slot="table"] tbody tr:hover {
-  background: #EEF4FF;
+  background: #F8FAFC;
+}
+[data-slot="table-row"] td,
+[data-slot="table"] tbody td {
+  border-bottom-color: #F1F5F9;
 }
 
 /* ---------- Badges ---------- */
