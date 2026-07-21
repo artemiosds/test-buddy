@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, Plus, Power, PowerOff, Signature, Stamp, Image as ImageIcon, Trash2, Settings2, ShieldCheck } from "lucide-react";
+import { Eye, Plus, Power, PowerOff, Signature, Stamp, Image as ImageIcon, Trash2, Settings2, ShieldCheck, BellRing, AlertCircle, CheckCircle2 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -83,6 +83,10 @@ function AssinaturasPage() {
             <Settings2 className="mr-2 h-4 w-4" />
             Regras por documento
           </TabsTrigger>
+          <TabsTrigger value="pendentes" disabled={!isMaster && !has("assinatura.gerenciar")}>
+            <BellRing className="mr-2 h-4 w-4" />
+            Pendentes
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="cadastro">
@@ -91,7 +95,121 @@ function AssinaturasPage() {
         <TabsContent value="regras">
           {isMaster ? <RegrasTab /> : <div className="text-sm text-muted-foreground">Apenas usuários Master.</div>}
         </TabsContent>
+        <TabsContent value="pendentes">
+          {(isMaster || has("assinatura.gerenciar")) ? <PendentesTab /> : (
+            <div className="text-sm text-muted-foreground">Sem permissão.</div>
+          )}
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function PendentesTab() {
+  const qc = useQueryClient();
+  const { data: dash } = useQuery({
+    queryKey: ["assinatura-dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("assinatura_dashboard");
+      if (error) throw error;
+      return data as {
+        total_elegiveis: number; com_assinatura: number; pendentes: number; expirando_30d: number;
+      };
+    },
+  });
+
+  const { data: pendentes, isLoading } = useQuery({
+    queryKey: ["assinatura-pendentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("assinatura_pendentes");
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        usuario_id: string; nome: string; email: string;
+        perfil_codigo: string; perfil_nome: string;
+        unidade_id: string | null; unidade_nome: string | null;
+        dias_pendente: number;
+      }>;
+    },
+  });
+
+  const notificar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("notificar_assinatura_pendentes");
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} notificação(ões) enviada(s)`);
+      qc.invalidateQueries({ queryKey: ["assinatura-pendentes"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <KPI label="Elegíveis" value={dash?.total_elegiveis ?? 0} icon={<ShieldCheck className="h-4 w-4 text-primary" />} />
+        <KPI label="Com assinatura" value={dash?.com_assinatura ?? 0} icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} />
+        <KPI label="Pendentes" value={dash?.pendentes ?? 0} icon={<AlertCircle className="h-4 w-4 text-amber-600" />} />
+        <KPI label="Vencendo em 30d" value={dash?.expirando_30d ?? 0} icon={<AlertCircle className="h-4 w-4 text-red-600" />} />
+      </div>
+
+      <div className="flex justify-end">
+        <Button onClick={() => notificar.mutate()} disabled={notificar.isPending || (pendentes ?? []).length === 0}>
+          <BellRing className="mr-2 h-4 w-4" />
+          {notificar.isPending ? "Enviando…" : "Notificar todos os pendentes"}
+        </Button>
+      </div>
+
+      <div className="border rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left p-3">Usuário</th>
+              <th className="text-left p-3">Perfil</th>
+              <th className="text-left p-3">Unidade</th>
+              <th className="text-right p-3">Dias pendente</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
+            ) : (pendentes ?? []).length === 0 ? (
+              <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum usuário pendente 🎉</td></tr>
+            ) : (
+              (pendentes ?? []).map((p, i) => (
+                <tr key={`${p.usuario_id}-${p.unidade_id ?? "x"}-${i}`} className="border-t">
+                  <td className="p-3">
+                    <div className="font-medium">{p.nome}</div>
+                    <div className="text-xs text-muted-foreground">{p.email}</div>
+                  </td>
+                  <td className="p-3">
+                    <Badge variant="secondary">{p.perfil_nome ?? p.perfil_codigo}</Badge>
+                  </td>
+                  <td className="p-3 text-muted-foreground">{p.unidade_nome ?? "—"}</td>
+                  <td className="p-3 text-right">
+                    <Badge variant={p.dias_pendente > 7 ? "destructive" : "outline"}>
+                      {p.dias_pendente} dias
+                    </Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function KPI({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  return (
+    <div className="border rounded-lg p-4 bg-card">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {icon}
+      </div>
+      <div className="text-2xl font-semibold mt-2">{value}</div>
     </div>
   );
 }
