@@ -49,6 +49,7 @@ const MESES = [
 type LinhaState = {
   profissional_id: string;
   status: StatusFreq;
+  dias_trabalhados: number;
   dias_falta: number;
   atestado: number;
   he_50: number;
@@ -61,7 +62,7 @@ type LinhaState = {
   _dirty?: boolean;
 };
 
-const CAMPOS_NUM = ["dias_falta","atestado","he_50","he_100","adn","plantoes","sobreaviso","incentivo"] as const;
+const CAMPOS_NUM = ["dias_trabalhados","dias_falta","atestado","he_50","he_100","adn","plantoes","sobreaviso","incentivo"] as const;
 
 /** Formata dados bancários em uma única linha limpa, sem prefixos duplicados. */
 function formatContaBancaria(
@@ -202,6 +203,7 @@ export function FrequenciasContratadosPage() {
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
         status: (l?.status as StatusFreq) ?? "rascunho",
+        dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
         dias_falta: Number(l?.dias_falta ?? 0),
         atestado: Number(l?.atestado ?? 0),
         he_50: Number(l?.he_50 ?? 0),
@@ -253,6 +255,7 @@ export function FrequenciasContratadosPage() {
           unidade_id: unidadeId,
           linhas: dirtyList.map((l) => ({
             profissional_id: l.profissional_id,
+            dias_trabalhados: l.dias_trabalhados,
             dias_falta: l.dias_falta,
             atestado: l.atestado,
             he_50: l.he_50,
@@ -285,6 +288,7 @@ export function FrequenciasContratadosPage() {
             unidade_id: unidadeId,
             linhas: dirtyList.map((l) => ({
               profissional_id: l.profissional_id,
+              dias_trabalhados: l.dias_trabalhados,
               dias_falta: l.dias_falta, atestado: l.atestado,
               he_50: l.he_50, he_100: l.he_100, adn: l.adn,
               plantoes: l.plantoes, sobreaviso: l.sobreaviso,
