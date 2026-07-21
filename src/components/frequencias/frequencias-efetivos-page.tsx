@@ -805,7 +805,7 @@ export function FrequenciasEfetivosPage() {
         campos={[
           ...CAMPOS_OFICIAIS.map((c) => ({
             key: c.key, label: c.label,
-            decimals: c.key === "incentivo" ? 2 : 0,
+            decimals: 0,
             group: "oficial" as const,
           })),
           ...CAMPOS_SMS.map((c) => ({
