@@ -363,6 +363,33 @@ export function FrequenciasContratadosPage() {
     }
   }
 
+  async function handleExportarPdfModeloCer() {
+    if (!compSel) return;
+    try {
+      await gerarFolhaContratadosModeloCer({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+        emitidoPor: me?.nome_completo ?? me?.email ?? "—",
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar PDF (Modelo CER).");
+    }
+  }
+
+  async function handleExportarExcelModeloCer() {
+    if (!compSel) return;
+    try {
+      await gerarExcelFolhaContratadosModeloCer({
+        competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
+        unidadeNome: unidadeSel ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}` : "",
+        itens: mapExportItens(),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar Excel (Modelo CER).");
+    }
+  }
+
   const filtradas = useMemo(() => {
     if (!folha) return [];
     const q = busca.trim().toLowerCase();
