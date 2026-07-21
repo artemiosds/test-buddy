@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      assinatura_documento_regras: {
+        Row: {
+          ativa: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          obrigatoria: boolean
+          observacao: string | null
+          ordem: number
+          perfil_codigo: string | null
+          secretaria_id: string | null
+          tipo_assinatura: Database["public"]["Enums"]["tipo_assinatura"]
+          tipo_documento: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obrigatoria?: boolean
+          observacao?: string | null
+          ordem?: number
+          perfil_codigo?: string | null
+          secretaria_id?: string | null
+          tipo_assinatura?: Database["public"]["Enums"]["tipo_assinatura"]
+          tipo_documento: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obrigatoria?: boolean
+          observacao?: string | null
+          ordem?: number
+          perfil_codigo?: string | null
+          secretaria_id?: string | null
+          tipo_assinatura?: Database["public"]["Enums"]["tipo_assinatura"]
+          tipo_documento?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinatura_documento_regras_secretaria_id_fkey"
+            columns: ["secretaria_id"]
+            isOneToOne: false
+            referencedRelation: "secretarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas_institucionais: {
         Row: {
           ativa: boolean
@@ -24,9 +80,13 @@ export type Database = {
           id: string
           metadata: Json
           mime_type: string | null
+          obrigatoria: boolean
+          ordem: number
+          perfil_id: string | null
           secretaria_id: string | null
           storage_path: string
           tipo: Database["public"]["Enums"]["tipo_assinatura"]
+          tipos_documento: string[]
           titular_cargo: string | null
           titular_nome: string
           unidade_id: string | null
@@ -45,9 +105,13 @@ export type Database = {
           id?: string
           metadata?: Json
           mime_type?: string | null
+          obrigatoria?: boolean
+          ordem?: number
+          perfil_id?: string | null
           secretaria_id?: string | null
           storage_path: string
           tipo?: Database["public"]["Enums"]["tipo_assinatura"]
+          tipos_documento?: string[]
           titular_cargo?: string | null
           titular_nome: string
           unidade_id?: string | null
@@ -66,9 +130,13 @@ export type Database = {
           id?: string
           metadata?: Json
           mime_type?: string | null
+          obrigatoria?: boolean
+          ordem?: number
+          perfil_id?: string | null
           secretaria_id?: string | null
           storage_path?: string
           tipo?: Database["public"]["Enums"]["tipo_assinatura"]
+          tipos_documento?: string[]
           titular_cargo?: string | null
           titular_nome?: string
           unidade_id?: string | null
@@ -79,6 +147,13 @@ export type Database = {
           vigencia_inicio?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "assinaturas_institucionais_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assinaturas_institucionais_secretaria_id_fkey"
             columns: ["secretaria_id"]
@@ -3234,6 +3309,25 @@ export type Database = {
         Returns: string
       }
       eventos_travados: { Args: { _limit?: number }; Returns: Json }
+      get_assinaturas_documento: {
+        Args: {
+          _secretaria_id?: string
+          _tipo_documento: string
+          _unidade_id?: string
+        }
+        Returns: {
+          assinatura_id: string
+          escopo: string
+          obrigatoria: boolean
+          ordem: number
+          perfil_codigo: string
+          regra_id: string
+          storage_path: string
+          tipo_assinatura: Database["public"]["Enums"]["tipo_assinatura"]
+          titular_cargo: string
+          titular_nome: string
+        }[]
+      }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: {
         Args: never
