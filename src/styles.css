@@ -672,7 +672,6 @@ main > * {
    ========================================================= */
 .enterprise-sidebar {
   --sidebar-width: 240px;
-  width: 240px;
   background: #FFFFFF;
   box-shadow: none;
   border-right: 1px solid #E2E8F0;
