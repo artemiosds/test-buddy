@@ -357,13 +357,13 @@ function AuthenticatedLayout() {
   const renderNav = (compact: boolean) => (
     <nav className="flex-1 overflow-y-auto p-2">
       {!compact && (
-        <div className="relative mb-2 px-1">
+        <div className="sb-search-wrap relative mb-3 px-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar no menu..."
-            className="w-full rounded-md border bg-background py-1.5 pl-8 pr-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+            className="sb-search w-full rounded-md border bg-background py-2 pl-8 pr-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
           />
         </div>
       )}
@@ -371,20 +371,20 @@ function AuthenticatedLayout() {
         const GroupIcon = g.icon;
         const open = compact ? true : isGroupOpen(g.id);
         return (
-          <div key={g.id} className="mb-1">
+          <div key={g.id} className="sb-group mb-1">
             {!compact && (
               <button
                 type="button"
                 onClick={() => toggleGroup(g.id)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                className="sb-group-label flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:bg-accent hover:text-foreground"
               >
                 <GroupIcon className="h-3.5 w-3.5" />
                 <span className="flex-1 text-left">{g.label}</span>
-                {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {open ? <ChevronDown className="sb-chevron h-3.5 w-3.5" /> : <ChevronRight className="sb-chevron h-3.5 w-3.5" />}
               </button>
             )}
             {open && (
-              <div className={compact ? "space-y-0.5" : "mt-0.5 space-y-0.5 pl-2"}>
+              <div className={compact ? "space-y-0.5" : "mt-1 space-y-0.5 pl-1"}>
                 {g.items.map((item, idx) => {
                   const Icon = item.icon;
                   const active = isItemActive(item.to);
@@ -399,11 +399,9 @@ function AuthenticatedLayout() {
                       onClick={() => setMobileOpen(false)}
                       title={compact ? item.label : undefined}
                       className={
-                        "group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150 " +
-                        (active
-                          ? "bg-primary/10 font-medium text-primary shadow-[inset_2px_0_0_0_var(--primary)]"
-                          : "text-foreground/75 hover:bg-accent hover:text-foreground") +
-                        (compact ? " justify-center" : "")
+                        "sb-item group relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-200 " +
+                        (active ? "sb-item-active " : "") +
+                        (compact ? "sb-item-compact justify-center" : "")
                       }
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -421,7 +419,7 @@ function AuthenticatedLayout() {
                   return (
                     <div key={`${item.to}${item.hash ?? ""}-${idx}`}>
                       {showSectionHeader && (
-                        <div className="mt-2 border-t border-border/60 px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                        <div className="sb-section mt-2 border-t border-border/60 px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
                           {item.section}
                         </div>
                       )}
@@ -435,24 +433,24 @@ function AuthenticatedLayout() {
         );
       })}
       {visibleGroups.length === 0 && (
-        <p className="px-3 py-4 text-center text-xs text-muted-foreground">Nenhum item encontrado.</p>
+        <p className="sb-empty px-3 py-4 text-center text-xs">Nenhum item encontrado.</p>
       )}
     </nav>
   );
 
   const sidebarInner = (compact: boolean) => (
     <>
-      <div className={"flex items-center gap-2 border-b " + (compact ? "justify-center px-2 py-3" : "justify-between px-4 py-3")}>
+      <div className={"sb-logo flex items-center gap-2 " + (compact ? "justify-center px-2" : "justify-between")}>
         {!compact && (
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold uppercase tracking-wider text-primary">GESTÃO SAÚDE</h2>
-            <p className="truncate text-xs text-muted-foreground">ORIXIMINÁ - SMS</p>
+            <h2 className="truncate">GESTÃO SAÚDE</h2>
+            <p className="truncate">ORIXIMINÁ · SMS</p>
           </div>
         )}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="hidden h-7 w-7 items-center justify-center rounded-md hover:bg-accent md:inline-flex"
+          className="sb-collapse-btn hidden h-8 w-8 items-center justify-center rounded-md md:inline-flex"
           title={compact ? "Expandir menu" : "Recolher menu"}
           aria-label={compact ? "Expandir menu" : "Recolher menu"}
         >
@@ -460,13 +458,22 @@ function AuthenticatedLayout() {
         </button>
       </div>
       {renderNav(compact)}
-      <div className={"border-t " + (compact ? "p-2" : "p-3")}>
+      <div className="sb-footer">
+        {!compact && (
+          <div className="sb-user-card">
+            <span className="sb-user-avatar">{(nome?.[0] ?? "U").toUpperCase()}</span>
+            <div className="sb-user-info">
+              <div className="sb-user-name">{nome}</div>
+              <div className="sb-user-role">{perfil}</div>
+            </div>
+          </div>
+        )}
         <button
           onClick={handleSignOut}
-          className={"flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm hover:bg-accent " + (compact ? "justify-center" : "justify-center")}
+          className={"sb-signout " + (compact ? "!px-0" : "")}
           title="Sair"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut />
           {!compact && <span>Sair</span>}
         </button>
       </div>
@@ -476,7 +483,7 @@ function AuthenticatedLayout() {
   return (
     <div className="flex min-h-screen w-full bg-muted/20">
       {/* Desktop sidebar */}
-      <aside className={"hidden flex-col border-r bg-card transition-[width] md:flex " + (collapsed ? "w-16" : "w-64")}>
+      <aside className={"enterprise-sidebar hidden flex-col transition-[width] md:flex " + (collapsed ? "w-16" : "w-64")}>
         {sidebarInner(collapsed)}
       </aside>
 
@@ -484,7 +491,7 @@ function AuthenticatedLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r bg-card shadow-xl">
+          <aside className="enterprise-sidebar absolute left-0 top-0 flex h-full w-64 flex-col shadow-xl">
             {sidebarInner(false)}
           </aside>
         </div>
