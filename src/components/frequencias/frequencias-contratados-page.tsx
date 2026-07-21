@@ -153,7 +153,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const q = supabase
         .from("unidades")
-        .select("id, nome, sigla")
+        .select("id, nome, sigla, tipo_unidade")
         .is("deleted_at", null)
         .eq("status", "ativa")
         .order("nome");
@@ -169,7 +169,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("usuario_unidades")
-        .select("unidade_id, unidades(id, nome, sigla)")
+        .select("unidade_id, unidades(id, nome, sigla, tipo_unidade)")
         .eq("usuario_id", me!.id)
         .is("deleted_at", null);
       return (data ?? []).map((r: any) => r.unidades).filter(Boolean);
