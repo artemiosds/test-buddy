@@ -32,6 +32,9 @@ import {
   ErpGridProvider, ErpTbody, NumberCell, TextCell,
   KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
 } from "@/components/erp-grid";
+import {
+  FolhaBreadcrumb, ResumoDiasFaltasAtt, useSelectedErpRow,
+} from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -455,8 +458,11 @@ export function FrequenciasEfetivosPage() {
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
 
+  const [selectedRowId] = useSelectedErpRow();
+
   return (
     <div className="p-4 md:p-6 space-y-4">
+      <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -629,6 +635,27 @@ export function FrequenciasEfetivosPage() {
 
       {/* Painel gerencial (UI-only) */}
       <KpiFolhaBar k={kpi} />
+      <ResumoDiasFaltasAtt
+        totais={{
+          dias: totCampo.dias_trabalhados ?? 0,
+          faltas: totCampo.faltas_injustificadas ?? 0,
+          att: totCampo.atestado ?? 0,
+        }}
+        selecionado={(() => {
+          if (!selectedRowId) return null;
+          const l = linhas[selectedRowId];
+          const p = rowsConf.find((r) => r.id === selectedRowId);
+          if (!l || !p) return null;
+          return {
+            nome: p.nome ?? "—",
+            valores: {
+              dias: Number(l.dias_trabalhados ?? 0),
+              faltas: Number(l.faltas_injustificadas ?? 0),
+              att: Number(l.atestado ?? 0),
+            },
+          };
+        })()}
+      />
       <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SituacaoResumo rows={rowsConf} />

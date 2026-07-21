@@ -38,6 +38,9 @@ import {
   ErpGridProvider, ErpTbody, NumberCell, TextCell,
   KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
 } from "@/components/erp-grid";
+import {
+  FolhaBreadcrumb, ResumoDiasFaltasAtt, useSelectedErpRow,
+} from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -543,6 +546,8 @@ export function FrequenciasContratadosPage() {
     tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
 
+  const [selectedRowId] = useSelectedErpRow();
+
   /** Ícone antes do nome conforme situação funcional. */
   function IconeSituacao({ situ }: { situ: string }) {
     const cls = "h-3.5 w-3.5 shrink-0";
@@ -566,6 +571,7 @@ export function FrequenciasContratadosPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
+      <FolhaBreadcrumb current="Folha Pagamento — Contratados" />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -715,6 +721,27 @@ export function FrequenciasContratadosPage() {
       )}
 
       <KpiFolhaBar k={kpi} />
+      <ResumoDiasFaltasAtt
+        totais={{
+          dias: totCampo.dias_trabalhados ?? 0,
+          faltas: totCampo.dias_falta ?? 0,
+          att: totCampo.atestado ?? 0,
+        }}
+        selecionado={(() => {
+          if (!selectedRowId) return null;
+          const l = linhas[selectedRowId];
+          const p = rowsConf.find((r) => r.id === selectedRowId);
+          if (!l || !p) return null;
+          return {
+            nome: p.nome ?? "—",
+            valores: {
+              dias: Number(l.dias_trabalhados ?? 0),
+              faltas: Number(l.dias_falta ?? 0),
+              att: Number(l.atestado ?? 0),
+            },
+          };
+        })()}
+      />
       <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SituacaoResumo rows={rowsConf} />
