@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaContratados,
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -26,9 +25,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
   SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  AlertasBotao, DossieDrawer, type SituacaoFilterValue,
+  DossieDrawer, type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
-import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+import {
+  contarSituacoes, derivarSituacao, type ProfConferencia,
+} from "@/lib/situacao-funcional";
+import {
+  ErpGridProvider, ErpTbody, NumberCell, TextCell,
+  KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
+} from "@/components/erp-grid";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
