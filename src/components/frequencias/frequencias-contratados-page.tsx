@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
   SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  DossieDrawer, type SituacaoFilterValue,
+  ProfissionalEdicaoModal, type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
 import {
   contarSituacoes, derivarSituacao, type ProfConferencia,
@@ -908,7 +908,38 @@ export function FrequenciasContratadosPage() {
         por padrão e deve ser preenchida manualmente pelo Diretor/Gestor (0 a 31).
       </p>
 
-      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
+      <ProfissionalEdicaoModal
+        prof={dossieProf}
+        linha={dossieProf ? linhas[dossieProf.id] : undefined}
+        open={dossieOpen}
+        onOpenChange={setDossieOpen}
+        canEdit={canEdit}
+        statusValue={dossieProf ? linhas[dossieProf.id]?.status : undefined}
+        onStatusChange={(v) => {
+          if (!dossieProf) return;
+          updateCampo(dossieProf.id, "status" as keyof LinhaState, v);
+        }}
+        campos={[
+          { key: "dias_trabalhados", label: "Dias Trabalhados", min: 0, max: 31 },
+          { key: "dias_falta", label: "Faltas", min: 0, max: 31 },
+          { key: "atestado", label: "Atestado (ATT)", min: 0, max: 31 },
+          { key: "he_50", label: "HE 50%" },
+          { key: "he_100", label: "HE 100%" },
+          { key: "adn", label: "Adic. Noturno" },
+          { key: "plantoes", label: "Plantões" },
+          { key: "sobreaviso", label: "Sobreaviso" },
+          { key: "incentivo", label: "Incentivo", decimals: 2 },
+        ]}
+        onChangeCampo={(campo, valor) => {
+          if (!dossieProf) return;
+          updateCampo(dossieProf.id, campo as keyof LinhaState, valor);
+        }}
+        onSave={async () => {
+          await mSalvar.mutateAsync();
+          setDossieOpen(false);
+        }}
+        saving={mSalvar.isPending}
+      />
     </div>
   );
 }
