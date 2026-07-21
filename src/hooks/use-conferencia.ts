@@ -24,17 +24,27 @@ export function useConferenciaProfissionais(ids: string[]) {
         )
         .in("id", ids);
 
-      // Pendências abertas por profissional (via frequencia_profissional).
-      const { data: pends } = await supabase
-        .from("frequencia_pendencias")
-        .select("profissional_id")
-        .in("profissional_id", ids)
-        .is("resolvida_em", null);
-
-      const pendSet = new Set<string>();
-      for (const row of pends ?? []) {
-        const pid = (row as { profissional_id: string | null }).profissional_id;
-        if (pid) pendSet.add(pid);
+      // Pendências abertas — via frequencia_profissional (schema atual não
+      // liga pendências direto ao profissional). Best-effort: se falhar,
+      // seguimos apenas com os alertas cadastrais.
+      let pendSet = new Set<string>();
+      try {
+        const { data: fp } = await supabase
+          .from("frequencia_profissional")
+          .select("profissional_id, frequencia_pendencias!left(id, status)")
+          .in("profissional_id", ids);
+        for (const row of (fp ?? []) as Array<{
+          profissional_id: string | null;
+          frequencia_pendencias?: Array<{ status: string | null }> | null;
+        }>) {
+          if (!row.profissional_id) continue;
+          const abertas = (row.frequencia_pendencias ?? []).some(
+            (p) => p.status && !["resolvida", "cancelada"].includes(p.status),
+          );
+          if (abertas) pendSet.add(row.profissional_id);
+        }
+      } catch {
+        pendSet = new Set();
       }
 
       const map = new Map<string, ProfConferencia>();
