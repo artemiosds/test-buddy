@@ -373,7 +373,7 @@ export function FrequenciasContratadosPage() {
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
       });
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao gerar PDF (Modelo CER).");
+      toast.error(e?.message ?? "Falha ao gerar PDF (Modelo Gestão-SMS).");
     }
   }
 
@@ -386,7 +386,7 @@ export function FrequenciasContratadosPage() {
         itens: mapExportItens(),
       });
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao gerar Excel (Modelo CER).");
+      toast.error(e?.message ?? "Falha ao gerar Excel (Modelo Gestão-SMS).");
     }
   }
 
@@ -665,7 +665,7 @@ export function FrequenciasContratadosPage() {
                     variant="secondary"
                     onClick={handleExportarPdfModeloCer}
                   >
-                    <FileDown className="mr-1.5 h-4 w-4" /> PDF Modelo CER
+                    <FileDown className="mr-1.5 h-4 w-4" /> PDF Modelo Gestão-SMS
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -678,7 +678,7 @@ export function FrequenciasContratadosPage() {
                     variant="outline"
                     onClick={handleExportarExcelModeloCer}
                   >
-                    <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Excel Modelo CER
+                    <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Excel Modelo Gestão-SMS
                   </Button>
                 </span>
               </TooltipTrigger>
