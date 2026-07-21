@@ -32,6 +32,9 @@ import {
   ErpGridProvider, ErpTbody, NumberCell, TextCell,
   KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
 } from "@/components/erp-grid";
+import {
+  FolhaBreadcrumb, ResumoDiasFaltasAtt, useSelectedErpRow,
+} from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -457,6 +460,7 @@ export function FrequenciasEfetivosPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
+      <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
