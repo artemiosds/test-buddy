@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -450,7 +450,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
 }) {
   if (!prof) return null;
   const situ = derivarSituacao(prof);
-  const readOnlyStyle: React.CSSProperties = {
+  const readOnlyStyle: CSSProperties = {
     color: "#0F172A",
     fontWeight: 500,
     background: "#F1F5F9",
@@ -459,7 +459,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
     padding: "6px 10px",
     fontSize: 13,
   };
-  const labelStyle: React.CSSProperties = {
+  const labelStyle: CSSProperties = {
     color: "#475569",
     fontSize: 11,
     fontWeight: 700,
