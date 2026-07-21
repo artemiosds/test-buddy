@@ -1743,3 +1743,34 @@ table.data-table > thead > tr > th {
 }
 .data-table tbody td { border-bottom: 1px solid #F1F5F9; }
 .dark .data-table tbody td { border-bottom-color: var(--border); }
+
+/* =========================================================
+   FUNDO DA PÁGINA X CARDS (PROFUNDIDADE E CONTRASTE)
+   ========================================================= */
+main,
+.main-content,
+.page-canvas {
+  background-color: #F1F5F9;
+}
+.dark main,
+.dark .main-content,
+.dark .page-canvas {
+  background-color: #0F172A;
+}
+
+.card,
+.kpi-card,
+.table-container,
+.filter-bar {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+}
+.dark .card,
+.dark .kpi-card,
+.dark .table-container,
+.dark .filter-bar {
+  background-color: #1E293B;
+  border-color: #334155;
+}
