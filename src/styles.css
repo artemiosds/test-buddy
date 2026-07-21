@@ -1223,18 +1223,18 @@ main > * {
 
 /* Colunas congeladas — sombras para separar visualmente do scroll. */
 .erp-grid .erp-sticky {
-  position: sticky;
-  z-index: 5;
-  background: inherit;
+  /* Colunas congeladas desativadas — mantido como no-op para compatibilidade
+     com componentes antigos que ainda referenciem a classe. */
+  position: static;
 }
 .erp-grid thead .erp-sticky {
-  z-index: 25;
+  /* noop */
 }
 .erp-grid tfoot .erp-sticky {
-  z-index: 18;
+  /* noop */
 }
 .erp-grid .erp-sticky-last {
-  box-shadow: 6px 0 6px -6px oklch(0 0 0 / 0.15);
+  /* noop */
 }
 
 /* Gridlines verticais em todas as células — aparência de planilha. */
