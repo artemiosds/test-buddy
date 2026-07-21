@@ -3317,3 +3317,16 @@ button.bg-primary:hover,
 .dark table thead th { background-color: #1e293b !important; color: #e2e8f0 !important; border-bottom-color: #334155 !important; }
 .dark table tbody td { background-color: #0f172a !important; color: #e2e8f0 !important; border-bottom-color: #1e293b !important; }
 .dark table tbody tr:hover td { background-color: #172033 !important; }
+
+/* =========================================================
+   REMOVER SETAS (SPIN BUTTONS) DE INPUTS NUMÉRICOS
+   ========================================================= */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
