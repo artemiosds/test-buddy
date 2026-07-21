@@ -3313,6 +3313,7 @@ export type Database = {
           motivo_revogacao: string | null
           revogado_em: string | null
           status: string | null
+          termo_aceite: boolean | null
           timestamp_confiavel: string | null
           tipo: string | null
         }
@@ -3325,6 +3326,7 @@ export type Database = {
           motivo_revogacao?: string | null
           revogado_em?: string | null
           status?: string | null
+          termo_aceite?: boolean | null
           timestamp_confiavel?: string | null
           tipo?: string | null
         }
@@ -3337,6 +3339,7 @@ export type Database = {
           motivo_revogacao?: string | null
           revogado_em?: string | null
           status?: string | null
+          termo_aceite?: boolean | null
           timestamp_confiavel?: string | null
           tipo?: string | null
         }
