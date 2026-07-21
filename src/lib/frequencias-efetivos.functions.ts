@@ -7,6 +7,7 @@ const NUM = z.number().nonnegative();
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
+  dias_trabalhados: NUM.default(0),
   faltas_injustificadas: NUM.default(0),
   atestado: NUM.default(0),
   he_50: NUM.default(0),
@@ -36,7 +37,7 @@ const EnviarSchema = z.object({
 });
 
 const PAYLOAD_FIELDS = [
-  "faltas_injustificadas","atestado","he_50","he_100",
+  "dias_trabalhados","faltas_injustificadas","atestado","he_50","he_100",
   "ferias_terco","ferias_integral","sal_sub_h","adicional_noturno",
   "aulas_suplementares","sobreaviso","plantoes_extras","incentivo",
   "ferias","licenca_premio","observacoes",
