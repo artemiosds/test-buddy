@@ -507,7 +507,7 @@ function AuthenticatedLayout() {
       )}
 
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           onOpenMobile={() => setMobileOpen(true)}
           nome={nome}
@@ -535,8 +535,8 @@ function AuthenticatedLayout() {
             </span>
           </div>
         )}
-        <main className="flex-1 p-4 md:p-6">
-          <div key={pathname} className="route-enter">
+        <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">
+          <div key={pathname} className="route-enter min-w-0">
             <Outlet />
           </div>
         </main>
