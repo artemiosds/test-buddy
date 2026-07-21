@@ -20,7 +20,7 @@ export function useConferenciaProfissionais(ids: string[]) {
       const { data: profs } = await supabase
         .from("profissionais")
         .select(
-          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, cargos(nome), funcoes(nome), setores!profissionais_setor_id_fkey(nome)",
+          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, cargos(nome), funcoes(nome), setores!profissionais_setor_id_fkey(nome, sigla)",
         )
         .in("id", ids);
 
@@ -52,7 +52,7 @@ export function useConferenciaProfissionais(ids: string[]) {
         const row = p as Record<string, unknown> & {
           cargos?: { nome: string | null } | null;
           funcoes?: { nome: string | null } | null;
-          setores?: { nome: string | null } | null;
+          setores?: { nome: string | null; sigla?: string | null } | null;
         };
         const id = String(row.id);
         map.set(id, {
@@ -71,6 +71,7 @@ export function useConferenciaProfissionais(ids: string[]) {
           cargo: row.cargos?.nome ?? null,
           funcao: row.funcoes?.nome ?? null,
           setor: row.setores?.nome ?? null,
+          setor_sigla: row.setores?.sigla ?? null,
           tem_pendencia: pendSet.has(id),
         });
       }
@@ -109,5 +110,6 @@ export function mergeConferencia(
     cargo:          nn(base.cargo)          ?? nn(extra.cargo),
     funcao:         nn(base.funcao)         ?? nn(extra.funcao),
     setor:          nn(base.setor)          ?? nn(extra.setor),
+    setor_sigla:    nn((base as any).setor_sigla) ?? nn((extra as any).setor_sigla),
   };
 }
