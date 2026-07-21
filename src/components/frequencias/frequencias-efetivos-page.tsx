@@ -633,6 +633,11 @@ export function FrequenciasEfetivosPage() {
 
       {/* Painel gerencial (UI-only) */}
       <KpiFolhaBar k={kpi} />
+      <ResumoDiasFaltasAttEfetivos
+        rowsConf={rowsConf}
+        linhas={linhas}
+        totCampo={totCampo}
+      />
       <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SituacaoResumo rows={rowsConf} />
