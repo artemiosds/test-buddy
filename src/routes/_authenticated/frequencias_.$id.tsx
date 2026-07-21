@@ -40,6 +40,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, drawSignatureFooter, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { registrarDocumentoAssinado, drawSignatureStamp } from "@/lib/pdf-signature";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
@@ -725,7 +726,18 @@ function FrequenciaDetalhe() {
       doc.text(doc.splitTextToSize(obs, 260), 14, finalY + 13);
     }
 
-    drawSignatureFooter(doc, doc.internal.pageSize.getHeight() - 60);
+    // Bloco dinâmico (Perfil + Unidade → Secretaria → Global). Fallback para
+    // o rodapé estático quando nenhuma regra estiver cadastrada.
+    const assinDoc = await resolverAssinaturasDocumento("frequencia", {
+      unidadeId: cu?.unidade_id ?? null,
+    });
+    if (assinDoc.some((a) => a.tipo_assinatura !== "logo")) {
+      drawAssinaturasBlock(doc, assinDoc, {
+        startY: doc.internal.pageSize.getHeight() - 60,
+      });
+    } else {
+      drawSignatureFooter(doc, doc.internal.pageSize.getHeight() - 60);
+    }
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}`, 14, pageHeight - 8);
