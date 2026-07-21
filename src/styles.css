@@ -1395,3 +1395,233 @@ main > * {
 .erp-kpi[data-tone="info"]  .erp-kpi-value { color: color-mix(in oklab, var(--primary) 80%, black); }
 .erp-kpi[data-tone="warn"]  .erp-kpi-value { color: color-mix(in oklab, var(--warning) 80%, black); }
 .erp-kpi[data-tone="danger"].erp-kpi-value { color: var(--danger, oklch(0.55 0.22 27)); }
+
+/* =============================================================
+ * ENTERPRISE THEME v4 — SIDEBAR DARK / STATUSBADGE SOFT / KPI
+ * Escopo puramente visual. Reaproveita tokens `--sidebar*` já
+ * existentes (funcionam em light + dark) e sobrepõe todas as
+ * regras claras que forçavam o sidebar em branco. Não altera
+ * nenhum componente de rota específica.
+ * ============================================================= */
+
+/* Tokens do sidebar (light + dark) — navy sério */
+:root {
+  --sidebar: oklch(0.19 0.045 258);           /* #0F172A slate-900 */
+  --sidebar-foreground: oklch(0.88 0.02 250); /* slate-200 */
+  --sidebar-primary: oklch(0.55 0.2 262);     /* blue-500 accent */
+  --sidebar-primary-foreground: oklch(0.985 0.005 250);
+  --sidebar-accent: oklch(0.26 0.05 258);     /* hover slate-800 */
+  --sidebar-accent-foreground: oklch(0.985 0.005 250);
+  --sidebar-border: oklch(0.28 0.045 258);    /* slate-700 */
+  --sidebar-ring: oklch(0.55 0.2 262);
+  --sidebar-muted: oklch(0.63 0.03 258);      /* labels/ícones apagados */
+  --sidebar-active-bg: oklch(0.55 0.2 262 / 18%);
+  --sidebar-active-fg: oklch(0.82 0.14 255);
+}
+.dark {
+  --sidebar: oklch(0.15 0.04 258);
+  --sidebar-foreground: oklch(0.9 0.02 250);
+  --sidebar-accent: oklch(0.22 0.05 258);
+  --sidebar-border: oklch(0.26 0.05 258);
+  --sidebar-muted: oklch(0.62 0.03 258);
+  --sidebar-active-bg: oklch(0.55 0.2 262 / 22%);
+  --sidebar-active-fg: oklch(0.85 0.13 255);
+}
+
+/* Container do sidebar — flip para navy escuro (override do bloco branco) */
+[data-slot="sidebar-container"],
+[data-sidebar="sidebar"],
+.enterprise-sidebar,
+.sidebar-container {
+  background: var(--sidebar) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+  color: var(--sidebar-foreground) !important;
+  box-shadow: none !important;
+}
+[data-sidebar="sidebar"] [data-sidebar="header"],
+[data-sidebar="sidebar"] [data-sidebar="footer"],
+.enterprise-sidebar .sb-logo,
+.enterprise-sidebar .sb-footer,
+.sidebar-footer {
+  background: transparent !important;
+  border-color: var(--sidebar-border) !important;
+}
+
+/* Título/subtítulo do topo do sidebar */
+.enterprise-sidebar .sb-logo h2,
+.sidebar-user-name {
+  color: oklch(0.98 0.005 250) !important;
+}
+.enterprise-sidebar .sb-logo p,
+.sidebar-user-role {
+  color: var(--sidebar-muted) !important;
+}
+.enterprise-sidebar .sb-collapse-btn,
+.enterprise-sidebar .sb-signout,
+.sidebar-logout-btn {
+  color: var(--sidebar-muted) !important;
+  background: transparent !important;
+  border: none !important;
+}
+.enterprise-sidebar .sb-collapse-btn:hover {
+  background: var(--sidebar-accent) !important;
+  color: #fff !important;
+}
+.enterprise-sidebar .sb-signout:hover,
+.sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #fca5a5 !important;
+}
+.enterprise-sidebar .sb-signout:hover svg,
+.sidebar-logout-btn:hover svg {
+  color: #fca5a5 !important;
+}
+
+/* Busca do sidebar */
+.enterprise-sidebar .sb-search,
+.sidebar-search-input {
+  background: oklch(1 0 0 / 6%) !important;
+  color: oklch(0.98 0.005 250) !important;
+  border: 1px solid transparent !important;
+}
+.enterprise-sidebar .sb-search::placeholder,
+.sidebar-search-input::placeholder {
+  color: var(--sidebar-muted) !important;
+}
+.enterprise-sidebar .sb-search:focus,
+.sidebar-search-input:focus {
+  background: oklch(1 0 0 / 10%) !important;
+  border-color: var(--sidebar-ring) !important;
+  box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 25%) !important;
+}
+.enterprise-sidebar .sb-search-wrap svg { color: var(--sidebar-muted) !important; }
+
+/* Labels de grupo/subgrupo */
+[data-sidebar="group-label"],
+.enterprise-sidebar .sb-group-label,
+.enterprise-sidebar .sb-section,
+.enterprise-sidebar .sub-header,
+.sidebar-group-title,
+.sidebar-subgroup-title {
+  color: var(--sidebar-muted) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+.enterprise-sidebar .sb-group-label:hover {
+  color: oklch(0.85 0.02 250) !important;
+  background: transparent !important;
+}
+.enterprise-sidebar .sb-group-label svg,
+.enterprise-sidebar .sb-group-label .sb-chevron { color: var(--sidebar-muted) !important; }
+
+/* Itens do menu */
+[data-sidebar="menu-button"],
+.enterprise-sidebar .sb-item,
+.sidebar-nav-item,
+.enterprise-sidebar a,
+.enterprise-sidebar button {
+  color: var(--sidebar-foreground) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[data-sidebar="menu-button"] svg,
+.enterprise-sidebar .sb-item svg,
+.sidebar-nav-item svg,
+.enterprise-sidebar svg {
+  color: var(--sidebar-muted) !important;
+}
+
+/* Hover: fundo levemente mais claro (slate-800) */
+[data-sidebar="menu-button"]:hover,
+.enterprise-sidebar .sb-item:hover,
+.sidebar-nav-item:hover,
+.enterprise-sidebar a:hover {
+  background: var(--sidebar-accent) !important;
+  color: #fff !important;
+}
+[data-sidebar="menu-button"]:hover svg,
+.enterprise-sidebar .sb-item:hover svg,
+.sidebar-nav-item:hover svg {
+  color: #fff !important;
+}
+
+/* Ativo: fundo blue/15%, texto blue-300, barra 3px azul */
+[data-sidebar="menu-button"][data-active="true"],
+.enterprise-sidebar .sb-item.sb-item-active,
+.sidebar-nav-item.active {
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-fg) !important;
+  font-weight: 600 !important;
+}
+[data-sidebar="menu-button"][data-active="true"] svg,
+.enterprise-sidebar .sb-item.sb-item-active svg,
+.sidebar-nav-item.active svg {
+  color: var(--sidebar-active-fg) !important;
+}
+[data-sidebar="menu-button"][data-active="true"]::before,
+.enterprise-sidebar .sb-item.sb-item-active::before,
+.sidebar-nav-item.active::before {
+  background: var(--sidebar-primary) !important;
+}
+
+/* Card de usuário no rodapé */
+.enterprise-sidebar .sb-user-card:hover {
+  background: var(--sidebar-accent) !important;
+}
+.enterprise-sidebar .sb-user-name { color: #fff !important; }
+.enterprise-sidebar .sb-user-role { color: var(--sidebar-muted) !important; }
+
+/* Scrollbar sobre navy */
+.enterprise-sidebar nav::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 12%) !important;
+}
+.enterprise-sidebar nav::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 22%) !important;
+}
+
+/* Empty state */
+.enterprise-sidebar .sb-empty { color: var(--sidebar-muted) !important; }
+
+/* =============================================================
+ * Topbar — reforço: fundo neutro, sem preenchimento de marca
+ * ============================================================= */
+header.h-14,
+header[data-slot="topbar"],
+.app-topbar {
+  background: var(--color-card) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+  box-shadow: none !important;
+}
+
+/* =============================================================
+ * Página vs Cartão — profundidade sutil
+ * ============================================================= */
+main {
+  background: var(--color-background);
+}
+[data-slot="card"] {
+  background: var(--color-card);
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+[data-slot="card"]:hover {
+  box-shadow: var(--shadow-card-hover) !important;
+  border-color: color-mix(in oklab, var(--color-border) 70%, var(--color-primary)) !important;
+}
+
+/* =============================================================
+ * KPI hierarchy — números grandes com peso 700
+ * ============================================================= */
+.kpi-number {
+  font-size: 2rem;          /* 32px */
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 1024px) {
+  .kpi-number { font-size: 2.25rem; } /* 36px */
+}
