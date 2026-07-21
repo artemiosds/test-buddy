@@ -153,7 +153,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const q = supabase
         .from("unidades")
-        .select("id, nome, sigla")
+        .select("id, nome, sigla, tipo_unidade")
         .is("deleted_at", null)
         .eq("status", "ativa")
         .order("nome");
@@ -169,7 +169,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("usuario_unidades")
-        .select("unidade_id, unidades(id, nome, sigla)")
+        .select("unidade_id, unidades(id, nome, sigla, tipo_unidade)")
         .eq("usuario_id", me!.id)
         .is("deleted_at", null);
       return (data ?? []).map((r: any) => r.unidades).filter(Boolean);
@@ -418,6 +418,19 @@ export function FrequenciasContratadosPage() {
         : linhasConferencia.filter((x) => derivarSituacao(x.conf) === situacaoFilter),
     [linhasConferencia, situacaoFilter],
   );
+
+  // Lotação = nome da unidade selecionada, exceto quando a unidade for do
+  // tipo UBS ("Atenção Básica") — nesse caso mostramos o setor do
+  // profissional. Regra pedida pela SMS: só a Atenção Básica é
+  // gerenciada por setor; nas demais a lotação é a própria unidade.
+  const tipoUnidade = String((unidadeSel as any)?.tipo_unidade ?? "").toUpperCase();
+  const isAtencaoBasica =
+    tipoUnidade === "UBS" ||
+    tipoUnidade.includes("ATEN") /* ATENÇÃO BÁSICA / ATENCAO BASICA */;
+  const lotacaoDe = (conf: ProfConferencia): string | null => {
+    if (isAtencaoBasica) return conf.setor ?? null;
+    return (unidadeSel as any)?.nome ?? conf.setor ?? null;
+  };
 
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
 
@@ -761,6 +774,8 @@ export function FrequenciasContratadosPage() {
                 const ro = readonlyLinha(l);
                 const situ = derivarSituacao(conf);
                 const semConta = !p.banco || !p.agencia || !p.conta_corrente;
+                const semContaConf =
+                  !conf.banco || !conf.agencia || !conf.conta_corrente;
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
@@ -782,7 +797,7 @@ export function FrequenciasContratadosPage() {
                     </td>
                     <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
-                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.setor ?? undefined}>{p.setor ?? "—"}</td>
+                    <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={lotacaoDe(conf) ?? undefined}>{lotacaoDe(conf) ?? "—"}</td>
                     {CAMPOS_NUM.map((c) => {
                       const isDias  = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
@@ -804,11 +819,11 @@ export function FrequenciasContratadosPage() {
                     <td
                       className={cn(
                         "whitespace-nowrap text-[12px]",
-                        semConta ? "text-destructive" : "text-slate-700",
+                        semContaConf ? "text-destructive" : "text-slate-700",
                       )}
-                      title={semConta ? undefined : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
+                      title={semContaConf ? undefined : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
                     >
-                      {semConta ? "—" : formatContaBancaria(p.banco, p.agencia, p.conta_corrente)}
+                      {semContaConf ? "—" : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
                     </td>
                     <td className="text-center">
                       <TextCell

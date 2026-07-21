@@ -81,6 +81,13 @@ export function useConferenciaProfissionais(ids: string[]) {
 
 /** Enriquece um `ProfConferencia` parcial (o que já veio do servidor da folha/piso)
  *  com o mapa retornado pela hook. Mantém tudo que já estava. */
+/** Retorna `v` se for uma string não-vazia; caso contrário `null`. */
+function nn(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
+}
+
 export function mergeConferencia(
   base: ProfConferencia,
   map: Map<string, ProfConferencia> | undefined,
@@ -88,14 +95,19 @@ export function mergeConferencia(
   if (!map) return base;
   const extra = map.get(base.id);
   if (!extra) return base;
-  return { ...extra, ...base, tem_pendencia: extra.tem_pendencia ?? base.tem_pendencia,
-    situacao_funcional: base.situacao_funcional ?? extra.situacao_funcional,
-    cpf: base.cpf ?? extra.cpf,
-    banco: base.banco ?? extra.banco,
-    agencia: base.agencia ?? extra.agencia,
-    conta_corrente: base.conta_corrente ?? extra.conta_corrente,
-    cargo: base.cargo ?? extra.cargo,
-    funcao: base.funcao ?? extra.funcao,
-    setor: base.setor ?? extra.setor,
+  // Considera strings vazias ("") como ausentes — muitos registros importados
+  // gravaram "" no lugar de NULL nos campos bancários/cadastrais.
+  return {
+    ...extra,
+    ...base,
+    tem_pendencia: extra.tem_pendencia ?? base.tem_pendencia,
+    situacao_funcional: nn(base.situacao_funcional) ?? nn(extra.situacao_funcional),
+    cpf:            nn(base.cpf)            ?? nn(extra.cpf),
+    banco:          nn(base.banco)          ?? nn(extra.banco),
+    agencia:        nn(base.agencia)        ?? nn(extra.agencia),
+    conta_corrente: nn(base.conta_corrente) ?? nn(extra.conta_corrente),
+    cargo:          nn(base.cargo)          ?? nn(extra.cargo),
+    funcao:         nn(base.funcao)         ?? nn(extra.funcao),
+    setor:          nn(base.setor)          ?? nn(extra.setor),
   };
 }
