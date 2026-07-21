@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaEfetivos,
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -24,9 +23,15 @@ import type { Database } from "@/integrations/supabase/types";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
   SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  AlertasBotao, DossieDrawer, type SituacaoFilterValue,
+  DossieDrawer, type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
-import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+import {
+  contarSituacoes, derivarSituacao, type ProfConferencia,
+} from "@/lib/situacao-funcional";
+import {
+  ErpGridProvider, ErpTbody, NumberCell, TextCell,
+  KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
+} from "@/components/erp-grid";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -352,11 +357,98 @@ export function FrequenciasEfetivosPage() {
     );
   }
 
-  const totalCols = 6 /* ref */ + 1 /* situacao */ + CAMPOS_OFICIAIS.length + CAMPOS_SMS.length + 1 /* obs */ + 1 /* status */;
-
   function openDossie(p: ProfConferencia) {
     setDossieProf(p);
     setDossieOpen(true);
+  }
+
+  /* ------- ERP grid: derivados de UI (sem impacto em back-end) ------- */
+  const FROZEN: FrozenCol[] = [
+    { key: "matricula", label: "Matrícula",    width: 100 },
+    { key: "nome",      label: "Profissional", width: 260 },
+    { key: "situacao",  label: "Situação",     width: 130 },
+  ];
+  const L = frozenLeftMap(FROZEN);
+
+  const colKeysAll = useMemo(
+    () => [...CAMPOS_OFICIAIS.map((c) => c.key), ...CAMPOS_SMS.map((c) => c.key)],
+    [],
+  ) as string[];
+  const rowIdsAll = useMemo(
+    () => linhasFinais.map((x: any) => x.it.profissional.id as string),
+    [linhasFinais],
+  );
+  const colCount = 3 + 4 + CAMPOS_OFICIAIS.length + CAMPOS_SMS.length + 2;
+
+  /* Totais por campo (rodapé) e agregados p/ KPIs (topo) */
+  const totCampo = useMemo(() => {
+    const acc: Record<string, number> = {};
+    for (const k of colKeysAll) acc[k] = 0;
+    for (const { it } of linhasFinais) {
+      const l = linhas[it.profissional.id]; if (!l) continue;
+      for (const k of colKeysAll) {
+        const v = Number((l as any)[k] ?? 0);
+        if (Number.isFinite(v)) acc[k] += v;
+      }
+    }
+    return acc;
+  }, [linhasFinais, linhas, colKeysAll]);
+
+  const kpi = useMemo(() => {
+    const sit = contarSituacoes(rowsConf);
+    return {
+      total: rowsConf.length,
+      ativos: sit.ativos,
+      ferias: sit.ferias,
+      licenca: sit.licenca,
+      afastados: sit.afastados,
+      pendencias: sit.pendencias,
+      naoElegiveis: sit.nao_elegiveis ?? 0,
+      totalHE50: totCampo.he_50 ?? 0,
+      totalHE100: totCampo.he_100 ?? 0,
+      totalPlantoes: totCampo.plantoes_extras ?? 0,
+      totalFaltas: totCampo.faltas_injustificadas ?? 0,
+    };
+  }, [rowsConf, totCampo]);
+
+  const handlePaste = useCallback(
+    (rowId: string, colKey: string, matrix: string[][]) => {
+      const rStart = rowIdsAll.indexOf(rowId);
+      const cStart = colKeysAll.indexOf(colKey);
+      if (rStart < 0 || cStart < 0) return;
+      setLinhas((prev) => {
+        const next = { ...prev };
+        let touched = 0;
+        matrix.forEach((row, dr) => {
+          row.forEach((cell, dc) => {
+            const rId = rowIdsAll[rStart + dr];
+            const cKey = colKeysAll[cStart + dc];
+            if (!rId || !cKey) return;
+            const cur = next[rId]; if (!cur) return;
+            const raw = String(cell ?? "").trim().replace(/\./g, "").replace(",", ".");
+            const n = Number(raw.replace(/[^\d.-]/g, ""));
+            if (!Number.isFinite(n)) return;
+            next[rId] = { ...cur, [cKey]: n, _dirty: true };
+            touched++;
+          });
+        });
+        if (touched) toast.success(`${touched} valor(es) colado(s).`);
+        return next;
+      });
+    },
+    [rowIdsAll, colKeysAll],
+  );
+
+  const validateFalta   = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
+  const validateHoras   = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
+  const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
+
+  function focarLinha(rowId: string) {
+    const tr = document.querySelector<HTMLTableRowElement>(
+      `.erp-grid tr[data-row-id="${rowId.replace(/"/g, "")}"]`,
+    );
+    tr?.scrollIntoView({ block: "center", behavior: "smooth" });
+    tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
   }
 
   return (
@@ -532,129 +624,143 @@ export function FrequenciasEfetivosPage() {
       )}
 
       {/* Painel gerencial (UI-only) */}
-      <div className="space-y-2 rounded-lg border bg-white p-3">
+      <KpiFolhaBar k={kpi} />
+      <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SituacaoResumo rows={rowsConf} />
-          <AlertasBotao rows={rowsConf} onSelectProfissional={openDossie} />
+          <InconsistenciasPanel rows={rowsConf} onGoto={focarLinha} />
         </div>
         <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wide">
-            <tr>
-              <th className="text-left px-2 py-2 whitespace-nowrap" rowSpan={2}>Matrícula</th>
-              <th className="text-left px-2 py-2 min-w-[180px]" rowSpan={2}>Nome</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap" rowSpan={2}>Situação</th>
-              <th className="text-right px-2 py-2" rowSpan={2}>Proj</th>
-              <th className="text-right px-2 py-2" rowSpan={2}>H.P</th>
-              <th className="text-right px-2 py-2" rowSpan={2}>C.H</th>
-              <th className="text-right px-2 py-2" rowSpan={2}>Jorn</th>
-              <th
-                className="text-center px-2 py-1 border-l bg-primary/5"
-                colSpan={CAMPOS_OFICIAIS.length}
-              >
-                Modelo oficial — Prefeitura
-              </th>
-              <th
-                className="text-center px-2 py-1 border-l bg-warning-soft text-warning-soft-foreground"
-                colSpan={CAMPOS_SMS.length}
-              >
-                Campos adicionais SMS
-              </th>
-              <th className="text-left px-2 py-2 min-w-[160px] border-l" rowSpan={2}>Obs.</th>
-              <th className="text-center px-2 py-2" rowSpan={2}>Status</th>
-            </tr>
-            <tr>
-              {CAMPOS_OFICIAIS.map((c, i) => (
-                <th
-                  key={c.key}
-                  className={`text-right px-2 py-1 whitespace-nowrap bg-primary/5 ${i === 0 ? "border-l" : ""}`}
-                >
-                  {c.label}
-                </th>
-              ))}
-              {CAMPOS_SMS.map((c, i) => (
-                <th
-                  key={c.key}
-                  className={`text-right px-2 py-1 whitespace-nowrap bg-warning-soft text-warning-soft-foreground ${i === 0 ? "border-l" : ""}`}
-                >
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isFetching && (
-              <tr><td colSpan={totalCols} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
-            )}
-            {!isFetching && linhasFinais.length === 0 && (
-              <tr><td colSpan={totalCols} className="px-3 py-6 text-center text-muted-foreground">
-                Nenhum servidor efetivo nesta unidade.
-              </td></tr>
-            )}
-            {linhasFinais.map(({ it, conf }) => {
-              const p = it.profissional;
-              const l = linhas[p.id];
-              const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
-              const ro = !canEdit || linhaAprovada;
-              return (
-                <tr key={p.id} className="border-t align-top hover:bg-muted/20">
-                  <td className="px-2 py-1.5 font-mono text-xs">{p.matricula ?? "-"}</td>
-                  <td className="px-2 py-1.5">
-                    <ProfissionalNomeCell
-                      prof={conf}
-                      onOpenDossie={openDossie}
-                      secondary={p.cargo}
-                    />
-                  </td>
-                  <td className="px-2 py-1.5"><SituacaoBadge prof={conf} /></td>
-                  <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.proj ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.h_p ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.c_h ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-right text-muted-foreground tabular-nums">{p.jorn ?? "-"}</td>
-                  {CAMPOS_OFICIAIS.map((c, i) => (
-                    <td key={c.key} className={`px-1 py-1 bg-primary/5 ${i === 0 ? "border-l" : ""}`}>
-                      <Input
-                        type="number" min={0} step={c.key === "incentivo" ? "0.01" : "1"}
-                        value={l?.[c.key as keyof LinhaState] as number ?? 0}
-                        onChange={(e) => updateCampo(p.id, c.key as keyof LinhaState, e.target.value)}
+      {/* Grade ERP — cabeçalho fixo, colunas congeladas, digitação rápida */}
+      <div className="erp-grid">
+        <ErpGridProvider rowIds={rowIdsAll} colKeys={colKeysAll} onPaste={handlePaste}>
+          <table>
+            <thead>
+              <tr>
+                <th className="erp-sticky" style={{ left: L.matricula, textAlign: "left" }} rowSpan={2}>Matrícula</th>
+                <th className="erp-sticky" style={{ left: L.nome, textAlign: "left" }} rowSpan={2}>Profissional</th>
+                <th className="erp-sticky erp-sticky-last" style={{ left: L.situacao, textAlign: "left" }} rowSpan={2}>Situação</th>
+                <th style={{ textAlign: "right" }} rowSpan={2}>Proj</th>
+                <th style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
+                <th style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
+                <th style={{ textAlign: "right" }} rowSpan={2}>Jorn</th>
+                <th className="erp-group-lanc" colSpan={CAMPOS_OFICIAIS.length} style={{ textAlign: "center" }}>Lançamentos — Modelo Oficial</th>
+                <th className="erp-group-sms"  colSpan={CAMPOS_SMS.length} style={{ textAlign: "center" }}>Controles SMS</th>
+                <th className="erp-group-obs" rowSpan={2} style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
+                <th rowSpan={2} style={{ textAlign: "center" }}>Status</th>
+              </tr>
+              <tr>
+                {CAMPOS_OFICIAIS.map((c) => (
+                  <th key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>{c.label}</th>
+                ))}
+                {CAMPOS_SMS.map((c) => (
+                  <th key={c.key} className="erp-group-sms" style={{ textAlign: "right" }}>{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <ErpTbody>
+              {isFetching && (
+                <tr><td colSpan={colCount} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
+              )}
+              {!isFetching && linhasFinais.length === 0 && (
+                <tr><td colSpan={colCount} className="px-3 py-6 text-center text-muted-foreground">
+                  Nenhum servidor efetivo nesta unidade.
+                </td></tr>
+              )}
+              {linhasFinais.map(({ it, conf }) => {
+                const p = it.profissional;
+                const l = linhas[p.id];
+                if (!l) return null;
+                const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
+                const ro = !canEdit || linhaAprovada;
+                const situ = derivarSituacao(conf);
+                return (
+                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
+                    <td className="erp-sticky" style={{ left: L.matricula, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
+                      {p.matricula ?? "—"}
+                    </td>
+                    <td className="erp-sticky" style={{ left: L.nome }}>
+                      <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cargo} />
+                    </td>
+                    <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}>
+                      <SituacaoBadge prof={conf} />
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">{p.proj ?? "-"}</td>
+                    <td className="text-right text-muted-foreground tabular-nums">{p.h_p ?? "-"}</td>
+                    <td className="text-right text-muted-foreground tabular-nums">{p.c_h ?? "-"}</td>
+                    <td className="text-right text-muted-foreground tabular-nums">{p.jorn ?? "-"}</td>
+                    {CAMPOS_OFICIAIS.map((c) => {
+                      const isFalta = c.key === "faltas_injustificadas";
+                      const isHora  = c.key === "he_50" || c.key === "he_100" || c.key === "sal_sub_h" || c.key === "adicional_noturno";
+                      const isInc   = c.key === "incentivo";
+                      return (
+                        <td key={c.key} className="erp-group-lanc">
+                          <NumberCell
+                            rowId={p.id} colKey={c.key}
+                            value={Number((l as any)[c.key] ?? 0)}
+                            disabled={ro}
+                            decimals={isInc ? 2 : 0}
+                            validate={isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
+                            onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
+                          />
+                        </td>
+                      );
+                    })}
+                    {CAMPOS_SMS.map((c) => (
+                      <td key={c.key} className="erp-group-sms">
+                        <NumberCell
+                          rowId={p.id} colKey={c.key}
+                          value={Number((l as any)[c.key] ?? 0)}
+                          disabled={ro}
+                          validate={validateGeneric}
+                          onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
+                        />
+                      </td>
+                    ))}
+                    <td className="erp-group-obs">
+                      <TextCell
+                        rowId={p.id}
+                        value={l.observacoes ?? ""}
                         disabled={ro}
-                        className="h-8 text-right w-20"
+                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
+                        placeholder="—"
                       />
                     </td>
-                  ))}
-                  {CAMPOS_SMS.map((c, i) => (
-                    <td key={c.key} className={`px-1 py-1 bg-warning-soft/60 ${i === 0 ? "border-l" : ""}`}>
-                      <Input
-                        type="number" min={0} step="1"
-                        value={l?.[c.key as keyof LinhaState] as number ?? 0}
-                        onChange={(e) => updateCampo(p.id, c.key as keyof LinhaState, e.target.value)}
-                        disabled={ro}
-                        className="h-8 text-right w-20"
-                      />
+                    <td className="text-center">
+                      <Badge variant="outline">
+                        {(it.linha as any)?.status_linha ?? "pendente"}
+                      </Badge>
                     </td>
-                  ))}
-                  <td className="px-1 py-1 border-l">
-                    <Textarea
-                      value={l?.observacoes ?? ""}
-                      onChange={(e) => updateCampo(p.id, "observacoes", e.target.value)}
-                      disabled={ro}
-                      rows={1}
-                      className="min-h-8 text-xs"
-                    />
+                  </tr>
+                );
+              })}
+            </ErpTbody>
+            <tfoot>
+              <tr>
+                <td className="erp-sticky" style={{ left: L.matricula }}></td>
+                <td className="erp-sticky" style={{ left: L.nome }}>Totais</td>
+                <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}></td>
+                <td colSpan={4}></td>
+                {CAMPOS_OFICIAIS.map((c) => (
+                  <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>
+                    {c.key === "incentivo"
+                      ? (totCampo[c.key] ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : (totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
                   </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <Badge variant="outline">
-                      {(it.linha as any)?.status_linha ?? "pendente"}
-                    </Badge>
+                ))}
+                {CAMPOS_SMS.map((c) => (
+                  <td key={c.key} className="erp-group-sms" style={{ textAlign: "right" }}>
+                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
                   </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                ))}
+                <td></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </ErpGridProvider>
       </div>
 
       <p className="text-xs text-muted-foreground">

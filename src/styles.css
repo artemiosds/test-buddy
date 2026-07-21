@@ -1141,3 +1141,222 @@ main > * {
 .sidebar-nav-item:hover svg {
   color: #2563EB !important;
 }
+
+/* =============================================================
+   ERP Grid — grade profissional para Folha / Piso
+   Escopo: apenas visual e interação. Nenhum cálculo, regra
+   de negócio ou fluxo de servidor é alterado.
+   ============================================================= */
+
+/* Remove os spinners nativos dos inputs numéricos dentro da grade
+   ERP e ativa digitação rápida com fonte tabular. */
+.erp-grid input[type="number"]::-webkit-outer-spin-button,
+.erp-grid input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.erp-grid input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Estrutura da tabela ERP: cabeçalho fixo, colunas congeladas,
+   grupos coloridos e feedback de foco por linha. */
+.erp-grid {
+  position: relative;
+  overflow: auto;
+  max-height: min(72vh, 780px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.03);
+}
+.erp-grid table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.erp-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in oklab, var(--muted) 92%, transparent);
+  color: var(--muted-foreground);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 10.5px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.erp-grid thead tr:nth-child(2) th {
+  top: 30px;
+}
+.erp-grid tbody td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+  background: var(--card);
+}
+.erp-grid tbody tr:nth-child(even) td {
+  background: color-mix(in oklab, var(--muted) 45%, var(--card));
+}
+.erp-grid tbody tr:hover td {
+  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+}
+.erp-grid tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  background: color-mix(in oklab, var(--muted) 92%, transparent);
+  border-top: 1px solid var(--border);
+  padding: 6px 8px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Colunas congeladas — sombras para separar visualmente do scroll. */
+.erp-grid .erp-sticky {
+  position: sticky;
+  z-index: 5;
+  background: inherit;
+}
+.erp-grid thead .erp-sticky {
+  z-index: 25;
+}
+.erp-grid tfoot .erp-sticky {
+  z-index: 18;
+}
+.erp-grid .erp-sticky-last {
+  box-shadow: 6px 0 6px -6px oklch(0 0 0 / 0.15);
+}
+
+/* Linha em edição — destaque completo (sem re-render em massa,
+   basta um atributo no <tbody>). */
+.erp-grid tbody[data-active-row] tr[data-row-id] td {
+  transition: background-color 0.12s ease;
+}
+.erp-grid tbody tr[data-row-id][data-active="true"] td {
+  background: color-mix(in oklab, var(--primary) 10%, var(--card)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+/* Faixa lateral por situação funcional (férias/licença/afastado…). */
+.erp-grid tr[data-situacao] td:first-child {
+  border-left: 3px solid transparent;
+}
+.erp-grid tr[data-situacao="ferias"] td:first-child {
+  border-left-color: var(--info, oklch(0.7 0.16 235));
+}
+.erp-grid tr[data-situacao="licenca"] td:first-child {
+  border-left-color: var(--warning);
+}
+.erp-grid tr[data-situacao="afastado"] td:first-child,
+.erp-grid tr[data-situacao="cedido"] td:first-child {
+  border-left-color: color-mix(in oklab, var(--warning) 70%, var(--danger, oklch(0.6 0.22 27)));
+}
+.erp-grid tr[data-situacao="desligado"] td:first-child,
+.erp-grid tr[data-situacao="inativo"] td:first-child {
+  border-left-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  opacity: 0.85;
+}
+
+/* Cabeçalhos de grupo (Profissional / Bancário / Lançamentos / Obs.) */
+.erp-grid .erp-group-prof   { background: color-mix(in oklab, var(--primary) 8%,  var(--muted)); color: var(--foreground); }
+.erp-grid .erp-group-bank   { background: color-mix(in oklab, var(--info,   oklch(0.7 0.14 235)) 12%, var(--muted)); color: var(--foreground); }
+.erp-grid .erp-group-lanc   { background: color-mix(in oklab, var(--success) 12%, var(--muted)); color: var(--foreground); }
+.erp-grid .erp-group-sms    { background: color-mix(in oklab, var(--warning) 18%, var(--muted)); color: var(--foreground); }
+.erp-grid .erp-group-obs    { background: color-mix(in oklab, var(--muted-foreground) 8%, var(--muted)); color: var(--foreground); }
+
+/* Input numérico da célula — visual compacto, sem borda arredondada
+   pesada, destaque na validação e no foco. */
+.erp-grid .erp-cell-input {
+  height: 30px;
+  width: 100%;
+  min-width: 68px;
+  padding: 0 8px;
+  text-align: right;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.erp-grid .erp-cell-input:hover:not(:disabled) {
+  border-color: var(--border);
+}
+.erp-grid .erp-cell-input:focus {
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  background: var(--card);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.erp-grid .erp-cell-input:disabled {
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+}
+.erp-grid .erp-cell-input[data-invalid="true"] {
+  border-color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 8%, var(--card));
+}
+
+/* Célula de texto (observações) mantém o mesmo footprint. */
+.erp-grid .erp-cell-textarea {
+  min-height: 30px;
+  height: 30px;
+  width: 100%;
+  min-width: 180px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 12px;
+  resize: none;
+  outline: none;
+}
+.erp-grid .erp-cell-textarea:hover:not(:disabled) { border-color: var(--border); }
+.erp-grid .erp-cell-textarea:focus {
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  background: var(--card);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+
+/* Barra de KPIs da folha (topo). */
+.erp-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 8px;
+}
+.erp-kpi {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.03);
+}
+.erp-kpi .erp-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.erp-kpi .erp-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+.erp-kpi[data-tone="ok"]    .erp-kpi-value { color: var(--success); }
+.erp-kpi[data-tone="info"]  .erp-kpi-value { color: color-mix(in oklab, var(--primary) 80%, black); }
+.erp-kpi[data-tone="warn"]  .erp-kpi-value { color: color-mix(in oklab, var(--warning) 80%, black); }
+.erp-kpi[data-tone="danger"].erp-kpi-value { color: var(--danger, oklch(0.55 0.22 27)); }

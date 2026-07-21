@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaContratados,
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -26,9 +25,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
   SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  AlertasBotao, DossieDrawer, type SituacaoFilterValue,
+  DossieDrawer, type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
-import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+import {
+  contarSituacoes, derivarSituacao, type ProfConferencia,
+} from "@/lib/situacao-funcional";
+import {
+  ErpGridProvider, ErpTbody, NumberCell, TextCell,
+  KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
+} from "@/components/erp-grid";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -397,6 +402,91 @@ export function FrequenciasContratadosPage() {
     );
   }
 
+  /* ------- ERP grid derivados de UI ------- */
+  const FROZEN: FrozenCol[] = [
+    { key: "matricula", label: "Matrícula",    width: 100 },
+    { key: "nome",      label: "Profissional", width: 240 },
+    { key: "situacao",  label: "Situação",     width: 130 },
+  ];
+  const L = frozenLeftMap(FROZEN);
+  const colKeysAll = useMemo(() => [...CAMPOS_NUM] as string[], []);
+  const rowIdsAll = useMemo(
+    () => linhasFinais.map((x: any) => x.it.profissional.id as string),
+    [linhasFinais],
+  );
+  // 3 frozen + Cargo/Banco/AG/CC (4) + CAMPOS_NUM + Obs + Status
+  const colCount = 3 + 4 + CAMPOS_NUM.length + 2;
+
+  const totCampo = useMemo(() => {
+    const acc: Record<string, number> = {};
+    for (const k of colKeysAll) acc[k] = 0;
+    for (const { it } of linhasFinais) {
+      const l = linhas[it.profissional.id]; if (!l) continue;
+      for (const k of colKeysAll) {
+        const v = Number((l as any)[k] ?? 0);
+        if (Number.isFinite(v)) acc[k] += v;
+      }
+    }
+    return acc;
+  }, [linhasFinais, linhas, colKeysAll]);
+
+  const kpi = useMemo(() => {
+    const sit = contarSituacoes(rowsConf);
+    return {
+      total: rowsConf.length,
+      ativos: sit.ativos,
+      ferias: sit.ferias,
+      licenca: sit.licenca,
+      afastados: sit.afastados,
+      pendencias: sit.pendencias,
+      naoElegiveis: sit.nao_elegiveis ?? 0,
+      totalHE50: totCampo.he_50 ?? 0,
+      totalHE100: totCampo.he_100 ?? 0,
+      totalPlantoes: totCampo.plantoes ?? 0,
+      totalFaltas: totCampo.dias_falta ?? 0,
+    };
+  }, [rowsConf, totCampo]);
+
+  const handlePaste = useCallback(
+    (rowId: string, colKey: string, matrix: string[][]) => {
+      const rStart = rowIdsAll.indexOf(rowId);
+      const cStart = colKeysAll.indexOf(colKey);
+      if (rStart < 0 || cStart < 0) return;
+      setLinhas((prev) => {
+        const next = { ...prev };
+        let touched = 0;
+        matrix.forEach((row, dr) => {
+          row.forEach((cell, dc) => {
+            const rId = rowIdsAll[rStart + dr];
+            const cKey = colKeysAll[cStart + dc];
+            if (!rId || !cKey) return;
+            const cur = next[rId]; if (!cur) return;
+            const raw = String(cell ?? "").trim().replace(/\./g, "").replace(",", ".");
+            const n = Number(raw.replace(/[^\d.-]/g, ""));
+            if (!Number.isFinite(n)) return;
+            next[rId] = { ...cur, [cKey]: n, _dirty: true };
+            touched++;
+          });
+        });
+        if (touched) toast.success(`${touched} valor(es) colado(s).`);
+        return next;
+      });
+    },
+    [rowIdsAll, colKeysAll],
+  );
+
+  const validateFalta   = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
+  const validateHoras   = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
+  const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
+
+  function focarLinha(rowId: string) {
+    const tr = document.querySelector<HTMLTableRowElement>(
+      `.erp-grid tr[data-row-id="${rowId.replace(/"/g, "")}"]`,
+    );
+    tr?.scrollIntoView({ block: "center", behavior: "smooth" });
+    tr?.querySelector<HTMLInputElement>(".erp-cell-input")?.focus();
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
@@ -547,93 +637,121 @@ export function FrequenciasContratadosPage() {
         </div>
       )}
 
-      <div className="space-y-2 rounded-lg border bg-white p-3">
+      <KpiFolhaBar k={kpi} />
+      <div className="space-y-2 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SituacaoResumo rows={rowsConf} />
-          <AlertasBotao rows={rowsConf} onSelectProfissional={openDossie} />
+          <InconsistenciasPanel rows={rowsConf} onGoto={focarLinha} />
         </div>
         <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wide">
-            <tr>
-              <th className="text-left px-2 py-2 whitespace-nowrap">Matrícula</th>
-              <th className="text-left px-2 py-2 min-w-[180px]">Profissional</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap">Situação</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap">Cargo</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap">Banco</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap">AG</th>
-              <th className="text-left px-2 py-2 whitespace-nowrap">CC</th>
-              <th className="text-right px-2 py-2">Faltas</th>
-              <th className="text-right px-2 py-2">ATT</th>
-              <th className="text-right px-2 py-2">HE 50%</th>
-              <th className="text-right px-2 py-2">HE 100%</th>
-              <th className="text-right px-2 py-2">ADN</th>
-              <th className="text-right px-2 py-2">Plantões</th>
-              <th className="text-right px-2 py-2">Sobreaviso</th>
-              <th className="text-right px-2 py-2">Incentivo</th>
-              <th className="text-left px-2 py-2 min-w-[160px]">Obs.</th>
-              <th className="text-center px-2 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isFetching && (
-              <tr><td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
-            )}
-            {!isFetching && linhasFinais.length === 0 && (
-              <tr><td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">
-                Nenhum profissional contratado nesta unidade.
-              </td></tr>
-            )}
-            {linhasFinais.map(({ it, conf }) => {
-              const p = it.profissional;
-              const l = linhas[p.id];
-              const ro = readonlyLinha(l);
-              return (
-                <tr key={p.id} className="border-t align-top hover:bg-muted/20">
-                  <td className="px-2 py-1.5 font-mono text-xs">{p.matricula ?? "-"}</td>
-                  <td className="px-2 py-1.5">
-                    <ProfissionalNomeCell
-                      prof={conf}
-                      onOpenDossie={openDossie}
-                      secondary={p.cpf}
-                    />
-                  </td>
-                  <td className="px-2 py-1.5"><SituacaoBadge prof={conf} /></td>
-                  <td className="px-2 py-1.5 text-muted-foreground">{p.cargo ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-muted-foreground">{p.banco ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-muted-foreground font-mono">{p.agencia ?? "-"}</td>
-                  <td className="px-2 py-1.5 text-muted-foreground font-mono">{p.conta_corrente ?? "-"}</td>
-                  {CAMPOS_NUM.map((c) => (
-                    <td key={c} className="px-1 py-1">
-                      <Input
-                        type="number" min={0} step={c === "incentivo" ? "0.01" : "1"}
-                        value={l?.[c] ?? 0}
-                        onChange={(e) => updateCampo(p.id, c, e.target.value)}
+      <div className="erp-grid">
+        <ErpGridProvider rowIds={rowIdsAll} colKeys={colKeysAll} onPaste={handlePaste}>
+          <table>
+            <thead>
+              <tr>
+                <th className="erp-sticky" style={{ left: L.matricula, textAlign: "left" }}>Matrícula</th>
+                <th className="erp-sticky" style={{ left: L.nome, textAlign: "left" }}>Profissional</th>
+                <th className="erp-sticky erp-sticky-last" style={{ left: L.situacao, textAlign: "left" }}>Situação</th>
+                <th className="erp-group-prof" style={{ textAlign: "left" }}>Cargo</th>
+                <th className="erp-group-bank" style={{ textAlign: "left" }}>Banco</th>
+                <th className="erp-group-bank" style={{ textAlign: "left" }}>AG</th>
+                <th className="erp-group-bank" style={{ textAlign: "left" }}>CC</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Faltas</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>ATT</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 50%</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>HE 100%</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>ADN</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Plantões</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Sobreaviso</th>
+                <th className="erp-group-lanc" style={{ textAlign: "right" }}>Incentivo</th>
+                <th className="erp-group-obs" style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
+                <th style={{ textAlign: "center" }}>Status</th>
+              </tr>
+            </thead>
+            <ErpTbody>
+              {isFetching && (
+                <tr><td colSpan={colCount} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
+              )}
+              {!isFetching && linhasFinais.length === 0 && (
+                <tr><td colSpan={colCount} className="px-3 py-6 text-center text-muted-foreground">
+                  Nenhum profissional contratado nesta unidade.
+                </td></tr>
+              )}
+              {linhasFinais.map(({ it, conf }) => {
+                const p = it.profissional;
+                const l = linhas[p.id];
+                if (!l) return null;
+                const ro = readonlyLinha(l);
+                const situ = derivarSituacao(conf);
+                return (
+                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
+                    <td className="erp-sticky" style={{ left: L.matricula, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
+                      {p.matricula ?? "—"}
+                    </td>
+                    <td className="erp-sticky" style={{ left: L.nome }}>
+                      <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cpf} />
+                    </td>
+                    <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}>
+                      <SituacaoBadge prof={conf} />
+                    </td>
+                    <td className="erp-group-prof text-muted-foreground">{p.cargo ?? "-"}</td>
+                    <td className="erp-group-bank text-muted-foreground">{p.banco ?? "—"}</td>
+                    <td className="erp-group-bank text-muted-foreground font-mono">{p.agencia ?? "—"}</td>
+                    <td className="erp-group-bank text-muted-foreground font-mono">{p.conta_corrente ?? "—"}</td>
+                    {CAMPOS_NUM.map((c) => {
+                      const isFalta = c === "dias_falta";
+                      const isHora  = c === "he_50" || c === "he_100" || c === "adn";
+                      const isInc   = c === "incentivo";
+                      return (
+                        <td key={c} className="erp-group-lanc">
+                          <NumberCell
+                            rowId={p.id} colKey={c}
+                            value={Number((l as any)[c] ?? 0)}
+                            disabled={ro}
+                            decimals={isInc ? 2 : 0}
+                            validate={isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
+                            onChange={(v) => updateCampo(p.id, c, v)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="erp-group-obs">
+                      <TextCell
+                        rowId={p.id}
+                        value={l.observacoes ?? ""}
                         disabled={ro}
-                        className="h-8 text-right w-20"
+                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
+                        placeholder="—"
                       />
                     </td>
-                  ))}
-                  <td className="px-1 py-1">
-                    <Textarea
-                      value={l?.observacoes ?? ""}
-                      onChange={(e) => updateCampo(p.id, "observacoes", e.target.value)}
-                      disabled={ro}
-                      rows={1}
-                      className="min-h-8 text-xs"
-                    />
+                    <td className="text-center">
+                      <StatusBadge domain="frequencia" value={l.status ?? "rascunho"} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </ErpTbody>
+            <tfoot>
+              <tr>
+                <td className="erp-sticky" style={{ left: L.matricula }}></td>
+                <td className="erp-sticky" style={{ left: L.nome }}>Totais</td>
+                <td className="erp-sticky erp-sticky-last" style={{ left: L.situacao }}></td>
+                <td colSpan={4}></td>
+                {CAMPOS_NUM.map((c) => (
+                  <td key={c} className="erp-group-lanc" style={{ textAlign: "right" }}>
+                    {c === "incentivo"
+                      ? (totCampo[c] ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : (totCampo[c] ?? 0).toLocaleString("pt-BR")}
                   </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <StatusBadge domain="frequencia" value={l?.status ?? "rascunho"} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                ))}
+                <td></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </ErpGridProvider>
       </div>
 
       <p className="text-xs text-muted-foreground">
