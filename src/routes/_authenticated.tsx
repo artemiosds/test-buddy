@@ -416,14 +416,6 @@ function AuthenticatedLayout() {
       userCtx.is_master ||
       userCtx.perfil_codigo === "ADMIN_SMS");
 
-  if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/20 px-4">
-        <div className="text-sm text-muted-foreground">Validando sessão...</div>
-      </div>
-    );
-  }
-
   // Guard 5D: administradores só acessam rotas fora de /seguranca depois de
   // ativar o segundo fator. Executado no render para não bloquear a própria
   // tela de configuração (nem gerar redirect loop).
@@ -445,7 +437,7 @@ function AuthenticatedLayout() {
     return Array.isArray(perm) ? perm.some(has) : has(perm);
   };
 
-  const nome = userCtx?.nome_completo ?? user.email ?? "Usuário";
+  const nome = userCtx?.nome_completo ?? user?.email ?? "Usuário";
   const perfil = userCtx?.perfil_nome ?? (userCtx?.is_master ? "MASTER" : "—");
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
