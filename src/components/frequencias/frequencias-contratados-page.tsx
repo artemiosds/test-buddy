@@ -37,10 +37,7 @@ import {
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
-import { gerarExcelFolhaContratados, type ItemContratado } from "@/lib/excel-folha-contratados";
-import { gerarFolhaContratadosOficial } from "@/lib/pdf-folha-contratados-oficial";
-import { gerarFolhaContratadosModeloCer } from "@/lib/pdf-folha-contratados-modelo-cer";
-import { gerarExcelFolhaContratadosModeloCer } from "@/lib/excel-folha-contratados-modelo-cer";
+import type { ItemContratado } from "@/lib/excel-folha-contratados";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
@@ -412,6 +409,7 @@ export function FrequenciasContratadosPage() {
   async function handleExportarExcel() {
     if (!compSel) return;
     try {
+      const { gerarExcelFolhaContratados } = await import("@/lib/excel-folha-contratados");
       await gerarExcelFolhaContratados({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -427,6 +425,7 @@ export function FrequenciasContratadosPage() {
   async function handleExportarPdf() {
     if (!compSel) return;
     try {
+      const { gerarFolhaContratadosOficial } = await import("@/lib/pdf-folha-contratados-oficial");
       await gerarFolhaContratadosOficial({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -445,6 +444,7 @@ export function FrequenciasContratadosPage() {
   async function handleExportarPdfModeloCer() {
     if (!compSel) return;
     try {
+      const { gerarFolhaContratadosModeloCer } = await import("@/lib/pdf-folha-contratados-modelo-cer");
       await gerarFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -461,6 +461,7 @@ export function FrequenciasContratadosPage() {
   async function handleExportarExcelModeloCer() {
     if (!compSel) return;
     try {
+      const { gerarExcelFolhaContratadosModeloCer } = await import("@/lib/excel-folha-contratados-modelo-cer");
       await gerarExcelFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
