@@ -3409,6 +3409,18 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
   position: sticky !important;
 }
 
+/* Sticky cells devem RECORTAR o próprio conteúdo. Sem isso, filhos
+ * mais largos que o td (ex.: nome + cargo em Efetivos, sem wrapper
+ * truncate) transbordam pra direita e são pintados por cima das
+ * colunas roláveis, dando a impressão de "vazamento" mesmo com
+ * background opaco. Escopo restrito a .erp-grid. */
+.erp-grid thead th.erp-sticky,
+.erp-grid tbody td.erp-sticky,
+.erp-grid tfoot td.erp-sticky {
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+}
+
 /* =====================================================================
  * ERP-GRID STICKY OPACITY FIX — colunas fixas precisam ter fundo OPACO
  * próprio em todos os estados (normal, zebra, hover, situacao, ativa),
