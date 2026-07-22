@@ -661,7 +661,7 @@ function IndiceCard({ indice }: { indice: IndiceAutomatico }) {
         </div>
         <div className="ml-auto grid gap-1 text-xs sm:grid-cols-2 lg:grid-cols-4">
           {indice.componentes.map((c) => (
-            <div key={c.rotulo} className="rounded border bg-white/60 px-2 py-1">
+            <div key={c.rotulo} className="rounded border bg-card/60 px-2 py-1">
               <div className="text-[10px] uppercase opacity-70">
                 {c.rotulo} <span className="opacity-60">({c.peso}%)</span>
               </div>

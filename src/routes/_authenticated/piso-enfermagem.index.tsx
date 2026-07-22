@@ -566,7 +566,7 @@ function PisoIndex() {
           </FilterBar>
 
           {/* Painel gerencial (UI-only) */}
-          <div className="space-y-2 rounded-lg border bg-white p-3">
+          <div className="space-y-2 rounded-lg border bg-card p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <SituacaoResumo rows={linhasConf} />
               <AlertasBotao rows={linhasConf} onSelectProfissional={openDossie} />

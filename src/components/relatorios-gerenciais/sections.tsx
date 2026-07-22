@@ -177,7 +177,7 @@ export function SmartAlerts({ alertas, limit = 6 }: { alertas: Alerta[]; limit?:
           <div className="mb-0.5 flex items-center gap-1 text-xs font-semibold">
             <AlertTriangle className="h-3.5 w-3.5" /> {a.titulo}
             {a.quantidade != null && (
-              <span className="ml-auto rounded-full bg-white/70 px-2 text-[10px]">
+              <span className="ml-auto rounded-full bg-card/70 px-2 text-[10px]">
                 {a.quantidade}
               </span>
             )}

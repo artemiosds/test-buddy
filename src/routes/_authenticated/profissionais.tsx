@@ -1261,7 +1261,10 @@ function ProfissionalFormBody({
               </AvatarFallback>
             </Avatar>
             {uploadingFoto ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white">
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-full text-primary-foreground"
+                style={{ background: "var(--overlay-scrim)" }}
+              >
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : null}

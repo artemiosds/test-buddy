@@ -133,7 +133,7 @@ export function SignatureEditor({
           ref={areaRef}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          className="relative bg-white shadow-sm border select-none"
+          className="relative bg-card shadow-sm border select-none"
           style={{
             width: REF_W * zoom,
             height: REF_H * zoom,
