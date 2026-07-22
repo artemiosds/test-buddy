@@ -31,9 +31,7 @@ type EventoDominio = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supa = any;
 
-type NotifTipo =
-  | "info" | "sucesso" | "alerta" | "erro"
-  | "pendencia" | "aprovacao" | "sistema";
+type NotifTipo = "info" | "sucesso" | "alerta" | "erro" | "pendencia" | "aprovacao" | "sistema";
 type NotifPrioridade = "baixa" | "normal" | "alta" | "urgente";
 
 async function notificar(
@@ -51,9 +49,7 @@ async function notificar(
     evento_id?: string;
   },
 ): Promise<void> {
-  const ids = Array.from(
-    new Set(destinatarios.filter((x): x is string => !!x)),
-  );
+  const ids = Array.from(new Set(destinatarios.filter((x): x is string => !!x)));
   if (ids.length === 0) return;
 
   const rows = ids.map((uid) => ({
@@ -93,14 +89,21 @@ async function notificar(
 async function loadPendencia(supa: Supa, id: string) {
   const { data } = await supa
     .from("pendencias")
-    .select("id, numero, titulo, prioridade, status, responsavel_id, created_by, unidade_id, secretaria_id, prazo")
+    .select(
+      "id, numero, titulo, prioridade, status, responsavel_id, created_by, unidade_id, secretaria_id, prazo",
+    )
     .eq("id", id)
     .maybeSingle();
   return data as null | {
-    id: string; numero: string; titulo: string;
-    prioridade: string; status: string;
-    responsavel_id: string | null; created_by: string | null;
-    unidade_id: string | null; secretaria_id: string | null;
+    id: string;
+    numero: string;
+    titulo: string;
+    prioridade: string;
+    status: string;
+    responsavel_id: string | null;
+    created_by: string | null;
+    unidade_id: string | null;
+    secretaria_id: string | null;
     prazo: string | null;
   };
 }
@@ -228,7 +231,9 @@ async function handleCompetencia(supa: Supa, ev: EventoDominio): Promise<void> {
   if (!ev.agregado_id) return;
   const { data: cu } = await supa
     .from("competencia_unidades")
-    .select("id, responsavel_id, unidade_id, competencia_id, unidades(nome), competencias(mes, ano)")
+    .select(
+      "id, responsavel_id, unidade_id, competencia_id, unidades(nome), competencias(mes, ano)",
+    )
     .eq("id", ev.agregado_id)
     .maybeSingle();
   if (!cu) return;
@@ -250,14 +255,18 @@ async function handleCompetencia(supa: Supa, ev: EventoDominio): Promise<void> {
       await notificar(supa, [cu.responsavel_id], {
         titulo: `Competência ${label} aprovada`,
         mensagem: `${unidade}: folha aprovada.`,
-        tipo: "sucesso", prioridade: "normal", ...meta,
+        tipo: "sucesso",
+        prioridade: "normal",
+        ...meta,
       });
       return;
     case "competencia.rejeitada":
       await notificar(supa, [cu.responsavel_id], {
         titulo: `Competência ${label} rejeitada`,
         mensagem: `${unidade}: folha rejeitada.`,
-        tipo: "erro", prioridade: "alta", ...meta,
+        tipo: "erro",
+        prioridade: "alta",
+        ...meta,
       });
       return;
     default:
@@ -285,9 +294,7 @@ export const Route = createFileRoute("/api/public/hooks/eventos-worker")({
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         const url = process.env.SUPABASE_URL;
-        const key =
-          process.env.SUPABASE_SERVICE_ROLE_KEY ||
-          process.env.SERVICE_ROLE_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
         const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
 
         // Autenticação mínima: apikey deve ser anon ou service_role
@@ -300,17 +307,15 @@ export const Route = createFileRoute("/api/public/hooks/eventos-worker")({
         }
 
         if (!url || !key) {
-          return new Response(
-            JSON.stringify({ error: "missing supabase env" }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "missing supabase env" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         let batchSize = 25;
         try {
-          const body = (await request.json().catch(() => null)) as
-            | { batch?: number }
-            | null;
+          const body = (await request.json().catch(() => null)) as { batch?: number } | null;
           if (body?.batch && Number.isFinite(body.batch)) {
             batchSize = Math.max(1, Math.min(100, Math.floor(body.batch)));
           }
@@ -325,16 +330,16 @@ export const Route = createFileRoute("/api/public/hooks/eventos-worker")({
         const workerId = `edge-${Math.random().toString(36).slice(2, 10)}`;
 
         // 1) Claim
-        const { data: claimed, error: claimErr } = await supa.rpc(
-          "claim_eventos_dominio",
-          { _qtd: batchSize, _worker: workerId },
-        );
+        const { data: claimed, error: claimErr } = await supa.rpc("claim_eventos_dominio", {
+          _qtd: batchSize,
+          _worker: workerId,
+        });
 
         if (claimErr) {
-          return new Response(
-            JSON.stringify({ error: "claim_failed", detail: claimErr.message }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "claim_failed", detail: claimErr.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const eventos = (claimed ?? []) as EventoDominio[];
@@ -348,8 +353,7 @@ export const Route = createFileRoute("/api/public/hooks/eventos-worker")({
             await supa.rpc("ack_evento_dominio", { _id: ev.id });
             ok++;
           } catch (err) {
-            const msg =
-              err instanceof Error ? err.message : "erro desconhecido";
+            const msg = err instanceof Error ? err.message : "erro desconhecido";
             await supa.rpc("nack_evento_dominio", {
               _id: ev.id,
               _erro: msg.slice(0, 500),

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from "react";
 
 export type ProfessionalFilters = {
   q?: string;
@@ -21,19 +21,27 @@ type ContextValue = {
 
 const ProfessionalFilterContext = createContext<ContextValue | undefined>(undefined);
 
-export const ProfessionalFilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ProfessionalFilterProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [filters, setFiltersState] = useState<ProfessionalFilters>({});
 
-  const setFilters = (v: Partial<ProfessionalFilters>) => setFiltersState((prev) => ({ ...prev, ...v }));
+  const setFilters = (v: Partial<ProfessionalFilters>) =>
+    setFiltersState((prev) => ({ ...prev, ...v }));
   const reset = () => setFiltersState({});
 
   const value = useMemo(() => ({ filters, setFilters, reset }), [filters]);
 
-  return <ProfessionalFilterContext.Provider value={value}>{children}</ProfessionalFilterContext.Provider>;
+  return (
+    <ProfessionalFilterContext.Provider value={value}>
+      {children}
+    </ProfessionalFilterContext.Provider>
+  );
 };
 
 export function useProfessionalFilters() {
   const ctx = useContext(ProfessionalFilterContext);
-  if (!ctx) throw new Error('useProfessionalFilters must be used within ProfessionalFilterProvider');
+  if (!ctx)
+    throw new Error("useProfessionalFilters must be used within ProfessionalFilterProvider");
   return ctx;
 }

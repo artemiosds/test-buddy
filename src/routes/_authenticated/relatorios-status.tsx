@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Download, FileBarChart } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
@@ -18,7 +24,20 @@ export const Route = createFileRoute("/_authenticated/relatorios-status")({
   component: RelatorioStatusPage,
 });
 
-const MES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MES_LABEL = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 type FreqStatus = Database["public"]["Enums"]["status_frequencia"];
 
@@ -47,7 +66,7 @@ type Agg = {
 };
 
 function statusRank(s: StatusGeral): number {
-  return { "Com pendência": 0, "Não iniciado": 1, "Em andamento": 2, "Enviado": 3 }[s];
+  return { "Com pendência": 0, "Não iniciado": 1, "Em andamento": 2, Enviado: 3 }[s];
 }
 
 function statusBadgeVariant(s: StatusGeral): "outline" | "secondary" | "destructive" | "default" {
@@ -106,7 +125,8 @@ function RelatorioStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("frequencia_profissional")
-        .select(`
+        .select(
+          `
           status_linha,
           frequencias!inner(
             status,
@@ -115,7 +135,8 @@ function RelatorioStatusPage() {
               unidades!inner(id, nome, sigla)
             )
           )
-        `)
+        `,
+        )
         .is("deleted_at", null)
         .eq("frequencias.competencia_unidades.competencia_id", competenciaId)
         .limit(10000);
@@ -130,7 +151,11 @@ function RelatorioStatusPage() {
       map.set(u.id, {
         unidade_id: u.id,
         unidade_nome: u.sigla ? `${u.sigla} — ${u.nome}` : u.nome,
-        total_ativos: u.ativos, rascunho: 0, enviadas: 0, aprovadas: 0, rejeitadas: 0,
+        total_ativos: u.ativos,
+        rascunho: 0,
+        enviadas: 0,
+        aprovadas: 0,
+        rejeitadas: 0,
         statusGeral: "Não iniciado",
       });
     }
@@ -142,7 +167,11 @@ function RelatorioStatusPage() {
         a = {
           unidade_id: u.id,
           unidade_nome: u.sigla ? `${u.sigla} — ${u.nome}` : u.nome,
-          total_ativos: 0, rascunho: 0, enviadas: 0, aprovadas: 0, rejeitadas: 0,
+          total_ativos: 0,
+          rascunho: 0,
+          enviadas: 0,
+          aprovadas: 0,
+          rejeitadas: 0,
           statusGeral: "Não iniciado",
         };
         map.set(u.id, a);
@@ -172,10 +201,27 @@ function RelatorioStatusPage() {
   }, [competencias, competenciaId]);
 
   function exportarCSV() {
-    if (!aggregated.length) { toast.error("Nada para exportar."); return; }
-    const header = ["Unidade","Profissionais Ativos","Rascunho","Enviadas","Aprovadas","Rejeitadas","Status Geral"];
+    if (!aggregated.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
+    const header = [
+      "Unidade",
+      "Profissionais Ativos",
+      "Rascunho",
+      "Enviadas",
+      "Aprovadas",
+      "Rejeitadas",
+      "Status Geral",
+    ];
     const lines = aggregated.map((a) => [
-      a.unidade_nome, a.total_ativos, a.rascunho, a.enviadas, a.aprovadas, a.rejeitadas, a.statusGeral,
+      a.unidade_nome,
+      a.total_ativos,
+      a.rascunho,
+      a.enviadas,
+      a.aprovadas,
+      a.rejeitadas,
+      a.statusGeral,
     ]);
     const csv = [header, ...lines]
       .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";"))
@@ -192,7 +238,12 @@ function RelatorioStatusPage() {
 
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!canView) {
-    return <div className="p-6"><h1 className="text-2xl font-bold">Relatórios</h1><p className="mt-2 text-muted-foreground">Sem permissão.</p></div>;
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold">Relatórios</h1>
+        <p className="mt-2 text-muted-foreground">Sem permissão.</p>
+      </div>
+    );
   }
 
   return (
@@ -214,9 +265,13 @@ function RelatorioStatusPage() {
       <RelatoriosTabs />
 
       <div className="rounded-lg border bg-card p-4">
-        <label className="mb-1 block text-xs font-medium text-muted-foreground">Competência *</label>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          Competência *
+        </label>
         <Select value={competenciaId} onValueChange={setCompetenciaId}>
-          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione..." />
+          </SelectTrigger>
           <SelectContent>
             {competencias?.map((c) => (
               <SelectItem key={c.id} value={c.id}>
@@ -246,8 +301,20 @@ function RelatorioStatusPage() {
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">Carregando...</td></tr>}
-              {!isLoading && !aggregated.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">Nenhuma unidade.</td></tr>}
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                    Carregando...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !aggregated.length && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                    Nenhuma unidade.
+                  </td>
+                </tr>
+              )}
               {aggregated.map((a) => (
                 <tr key={a.unidade_id} className="border-t">
                   <td className="px-3 py-2">{a.unidade_nome}</td>

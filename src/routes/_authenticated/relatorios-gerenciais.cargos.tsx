@@ -28,12 +28,21 @@ function CargosGerencial() {
     staleTime: 60_000,
   });
 
-  const ordenados = useMemo(() => [...rows].sort((a, b) => b.qtd_profissionais - a.qtd_profissionais || a.nome.localeCompare(b.nome)), [rows]);
-  const totais = useMemo(() => ({
-    total: rows.length,
-    profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
-    ocupados: rows.filter((r) => r.qtd_profissionais > 0).length,
-  }), [rows]);
+  const ordenados = useMemo(
+    () =>
+      [...rows].sort(
+        (a, b) => b.qtd_profissionais - a.qtd_profissionais || a.nome.localeCompare(b.nome),
+      ),
+    [rows],
+  );
+  const totais = useMemo(
+    () => ({
+      total: rows.length,
+      profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
+      ocupados: rows.filter((r) => r.qtd_profissionais > 0).length,
+    }),
+    [rows],
+  );
 
   function exportCsv() {
     downloadCsv(`cargos-${preset}.csv`, ordenados, [
@@ -51,12 +60,18 @@ function CargosGerencial() {
       <IntelligencePanel foco="cargos" titulo="Cargos" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as CargoPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
-          {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}
+          {PRESETS.map((p) => (
+            <TabsTrigger key={p.value} value={p.value} className="text-xs">
+              {p.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
       <div className="flex justify-end">
-        <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="mr-1 h-4 w-4" /> CSV</Button>
+        <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+          <Download className="mr-1 h-4 w-4" /> CSV
+        </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -78,8 +93,20 @@ function CargosGerencial() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (<tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Carregando…</td></tr>)}
-            {!isLoading && rows.length === 0 && (<tr><td colSpan={6}><EmptyState title="Nenhum cargo encontrado" description="Ajuste os filtros." /></td></tr>)}
+            {isLoading && (
+              <tr>
+                <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={6}>
+                  <EmptyState title="Nenhum cargo encontrado" description="Ajuste os filtros." />
+                </td>
+              </tr>
+            )}
             {ordenados.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-2 font-medium">{r.nome}</td>

@@ -28,19 +28,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  AlertCircle, CalendarClock, CheckCircle2, ClipboardList, MessageSquare,
-  Repeat2, Search, UserPlus2, XCircle, Flag, Loader2,
+  AlertCircle,
+  CalendarClock,
+  CheckCircle2,
+  ClipboardList,
+  MessageSquare,
+  Repeat2,
+  Search,
+  UserPlus2,
+  XCircle,
+  Flag,
+  Loader2,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -62,7 +84,10 @@ type Prioridade = Database["public"]["Enums"]["pendencia_prioridade"];
 type Categoria = Database["public"]["Enums"]["pendencia_categoria"];
 
 const PRIORIDADE_LABEL: Record<Prioridade, string> = {
-  baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica",
+  baixa: "Baixa",
+  media: "Média",
+  alta: "Alta",
+  critica: "Crítica",
 };
 
 const PRIORIDADE_CLASSES: Record<Prioridade, string> = {
@@ -85,7 +110,12 @@ function slaBadge(prazo?: string | null, status?: Status) {
   const dias = Math.ceil((new Date(prazo).getTime() - Date.now()) / 86400000);
   if (isNaN(dias)) return null;
   if (dias < 0) return <Badge variant="destructive">Atrasada {Math.abs(dias)}d</Badge>;
-  if (dias <= 2) return <Badge className="bg-warning/15 text-warning-soft-foreground hover:bg-warning/25">Vence em {dias}d</Badge>;
+  if (dias <= 2)
+    return (
+      <Badge className="bg-warning/15 text-warning-soft-foreground hover:bg-warning/25">
+        Vence em {dias}d
+      </Badge>
+    );
   return <Badge variant="outline">{dias}d</Badge>;
 }
 
@@ -119,7 +149,9 @@ function PendenciasPage() {
     return {
       total: all.length,
       abertas: all.filter((x: any) => x.status === "aberta" || x.status === "reaberta").length,
-      analise: all.filter((x: any) => x.status === "em_analise" || x.status === "aguardando_resposta").length,
+      analise: all.filter(
+        (x: any) => x.status === "em_analise" || x.status === "aguardando_resposta",
+      ).length,
       resolvidas: all.filter((x: any) => x.status === "resolvida").length,
     };
   }, [list.data]);
@@ -144,9 +176,24 @@ function PendenciasPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={<ClipboardList className="h-4 w-4" />} label="Total" value={kpis.total} />
-        <KpiCard icon={<AlertCircle className="h-4 w-4" />} label="Abertas / Reabertas" value={kpis.abertas} tone="warning" />
-        <KpiCard icon={<Loader2 className="h-4 w-4" />} label="Em análise" value={kpis.analise} tone="info" />
-        <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Resolvidas" value={kpis.resolvidas} tone="success" />
+        <KpiCard
+          icon={<AlertCircle className="h-4 w-4" />}
+          label="Abertas / Reabertas"
+          value={kpis.abertas}
+          tone="warning"
+        />
+        <KpiCard
+          icon={<Loader2 className="h-4 w-4" />}
+          label="Em análise"
+          value={kpis.analise}
+          tone="info"
+        />
+        <KpiCard
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          label="Resolvidas"
+          value={kpis.resolvidas}
+          tone="success"
+        />
       </div>
 
       {/* Filtros */}
@@ -160,7 +207,8 @@ function PendenciasPage() {
               defaultValue={search.q ?? ""}
               onBlur={(e) => setSearch({ q: e.target.value || undefined })}
               onKeyDown={(e) => {
-                if (e.key === "Enter") setSearch({ q: (e.target as HTMLInputElement).value || undefined });
+                if (e.key === "Enter")
+                  setSearch({ q: (e.target as HTMLInputElement).value || undefined });
               }}
             />
           </div>
@@ -179,7 +227,10 @@ function PendenciasPage() {
             placeholder="Categoria"
             options={[
               { v: "todas", l: "Todas as categorias" },
-              ...(Object.keys(CATEGORIA_LABEL) as Categoria[]).map((c) => ({ v: c, l: CATEGORIA_LABEL[c] })),
+              ...(Object.keys(CATEGORIA_LABEL) as Categoria[]).map((c) => ({
+                v: c,
+                l: CATEGORIA_LABEL[c],
+              })),
             ]}
           />
           <FilterSelect
@@ -188,7 +239,10 @@ function PendenciasPage() {
             placeholder="Prioridade"
             options={[
               { v: "todas", l: "Todas as prioridades" },
-              ...(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((p) => ({ v: p, l: PRIORIDADE_LABEL[p] })),
+              ...(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((p) => ({
+                v: p,
+                l: PRIORIDADE_LABEL[p],
+              })),
             ]}
           />
         </CardContent>
@@ -201,7 +255,10 @@ function PendenciasPage() {
             <div className="p-8 text-center text-muted-foreground text-sm">Carregando…</div>
           ) : rows.length === 0 ? (
             <div className="p-4">
-              <EmptyState title="Nenhuma pendência encontrada." description="Ajuste os filtros ou aguarde novos registros." />
+              <EmptyState
+                title="Nenhuma pendência encontrada."
+                description="Ajuste os filtros ou aguarde novos registros."
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -226,9 +283,13 @@ function PendenciasPage() {
                     >
                       <TableCell className="font-mono text-xs">{p.numero}</TableCell>
                       <TableCell className="max-w-[420px] truncate">{p.titulo}</TableCell>
-                      <TableCell>{CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${PRIORIDADE_CLASSES[p.prioridade as Prioridade]}`}>
+                        {CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${PRIORIDADE_CLASSES[p.prioridade as Prioridade]}`}
+                        >
                           <Flag className="h-3 w-3" />
                           {PRIORIDADE_LABEL[p.prioridade as Prioridade]}
                         </span>
@@ -242,7 +303,9 @@ function PendenciasPage() {
                           {slaBadge(p.prazo, p.status as Status)}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{fmtDateTime(p.aberta_em)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {fmtDateTime(p.aberta_em)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -271,7 +334,10 @@ function PendenciasPage() {
 }
 
 function FilterSelect({
-  value, onValueChange, placeholder, options,
+  value,
+  onValueChange,
+  placeholder,
+  options,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -280,16 +346,25 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
       <SelectContent>
-        {options.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+        {options.map((o) => (
+          <SelectItem key={o.v} value={o.v}>
+            {o.l}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
 }
 
 function KpiCard({
-  icon, label, value, tone,
+  icon,
+  label,
+  value,
+  tone,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -297,14 +372,19 @@ function KpiCard({
   tone?: "warning" | "info" | "success";
 }) {
   const toneCls =
-    tone === "warning" ? "text-warning-soft-foreground"
-    : tone === "info" ? "text-primary"
-    : tone === "success" ? "text-success"
-    : "text-foreground";
+    tone === "warning"
+      ? "text-warning-soft-foreground"
+      : tone === "info"
+        ? "text-primary"
+        : tone === "success"
+          ? "text-success"
+          : "text-foreground";
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
-        <div className={`h-9 w-9 rounded-md bg-muted flex items-center justify-center ${toneCls}`}>{icon}</div>
+        <div className={`h-9 w-9 rounded-md bg-muted flex items-center justify-center ${toneCls}`}>
+          {icon}
+        </div>
         <div>
           <div className="text-xs text-muted-foreground">{label}</div>
           <div className="text-2xl font-semibold leading-tight">{value}</div>
@@ -315,7 +395,10 @@ function KpiCard({
 }
 
 function PendenciaDetail({
-  id, perms, onChange, onClose,
+  id,
+  perms,
+  onChange,
+  onClose,
 }: {
   id: string;
   perms: ReturnType<typeof usePermissions>;
@@ -370,13 +453,25 @@ function PendenciaDetail({
     });
   };
 
-  const mAtribuir  = useAction(atribuirPendencia,  "Responsável atualizado.", { operation: "pendencia.atribuir" });
+  const mAtribuir = useAction(atribuirPendencia, "Responsável atualizado.", {
+    operation: "pendencia.atribuir",
+  });
   const mResponder = useAction(responderPendencia, "Resposta registrada."); // NÃO idempotente
-  const mResolver  = useAction(resolverPendencia,  "Pendência resolvida.",   { operation: "pendencia.resolver" });
-  const mReabrir   = useAction(reabrirPendencia,   "Pendência reaberta.",    { operation: "pendencia.reabrir" });
-  const mCancelar  = useAction(cancelarPendencia,  "Pendência cancelada.",   { operation: "pendencia.cancelar" });
-  const mPrioridade = useAction(alterarPrioridade, "Prioridade alterada.",   { operation: "pendencia.alterar_prioridade" });
-  const mPrazo     = useAction(alterarPrazo,       "Prazo alterado.",        { operation: "pendencia.alterar_prazo" });
+  const mResolver = useAction(resolverPendencia, "Pendência resolvida.", {
+    operation: "pendencia.resolver",
+  });
+  const mReabrir = useAction(reabrirPendencia, "Pendência reaberta.", {
+    operation: "pendencia.reabrir",
+  });
+  const mCancelar = useAction(cancelarPendencia, "Pendência cancelada.", {
+    operation: "pendencia.cancelar",
+  });
+  const mPrioridade = useAction(alterarPrioridade, "Prioridade alterada.", {
+    operation: "pendencia.alterar_prioridade",
+  });
+  const mPrazo = useAction(alterarPrazo, "Prazo alterado.", {
+    operation: "pendencia.alterar_prazo",
+  });
 
   const [resposta, setResposta] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -385,7 +480,8 @@ function PendenciaDetail({
   const [novoResp, setNovoResp] = useState<string>("");
 
   if (detail.isLoading) return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
-  if (detail.isError || !detail.data) return <div className="p-6 text-sm text-destructive">Erro ao carregar pendência.</div>;
+  if (detail.isError || !detail.data)
+    return <div className="p-6 text-sm text-destructive">Erro ao carregar pendência.</div>;
 
   const p: any = detail.data.pendencia;
   const historico: any[] = detail.data.historico ?? [];
@@ -400,17 +496,24 @@ function PendenciaDetail({
         </SheetTitle>
         <SheetDescription className="flex flex-wrap gap-2 items-center">
           <StatusBadge domain="pendencia" value={p.status} />
-          <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${PRIORIDADE_CLASSES[p.prioridade as Prioridade]}`}>
-            <Flag className="h-3 w-3" />{PRIORIDADE_LABEL[p.prioridade as Prioridade]}
+          <span
+            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${PRIORIDADE_CLASSES[p.prioridade as Prioridade]}`}
+          >
+            <Flag className="h-3 w-3" />
+            {PRIORIDADE_LABEL[p.prioridade as Prioridade]}
           </span>
-          <span className="text-xs">Categoria: {CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria}</span>
+          <span className="text-xs">
+            Categoria: {CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria}
+          </span>
         </SheetDescription>
       </SheetHeader>
 
       <div className="mt-4 space-y-4 text-sm">
         {p.descricao && (
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Descrição</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+              Descrição
+            </div>
             <p className="whitespace-pre-wrap">{p.descricao}</p>
           </div>
         )}
@@ -419,7 +522,13 @@ function PendenciaDetail({
           <Info label="Prazo" value={fmtDate(p.prazo)} />
           <Info label="Respondida em" value={fmtDateTime(p.respondida_em)} />
           <Info label="Resolvida em" value={fmtDateTime(p.resolvida_em)} />
-          <Info label="Responsável" value={usersList.data?.find((u: any) => u.id === p.responsavel_id)?.nome_completo ?? (p.responsavel_id ? p.responsavel_id.slice(0, 8) : "—")} />
+          <Info
+            label="Responsável"
+            value={
+              usersList.data?.find((u: any) => u.id === p.responsavel_id)?.nome_completo ??
+              (p.responsavel_id ? p.responsavel_id.slice(0, 8) : "—")
+            }
+          />
           <Info label="Unidade" value={p.unidade_id ? p.unidade_id.slice(0, 8) : "—"} />
         </div>
       </div>
@@ -438,10 +547,14 @@ function PendenciaDetail({
             <Section title="Atribuir responsável" icon={<UserPlus2 className="h-4 w-4" />}>
               <div className="flex gap-2">
                 <Select value={novoResp} onValueChange={setNovoResp}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um responsável…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um responsável…" />
+                  </SelectTrigger>
                   <SelectContent>
                     {(usersList.data ?? []).map((u: any) => (
-                      <SelectItem key={u.id} value={u.id}>{u.nome_completo ?? u.email}</SelectItem>
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.nome_completo ?? u.email}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -467,9 +580,12 @@ function PendenciaDetail({
               <div className="flex justify-end mt-2">
                 <Button
                   onClick={() => {
-                    mResponder.mutate({ id, resposta }, {
-                      onSuccess: () => setResposta(""),
-                    });
+                    mResponder.mutate(
+                      { id, resposta },
+                      {
+                        onSuccess: () => setResposta(""),
+                      },
+                    );
                   }}
                   disabled={mResponder.isPending || resposta.trim().length < 1}
                 >
@@ -494,7 +610,8 @@ function PendenciaDetail({
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (motivo.trim().length < 3) return toast.error("Informe o motivo da reabertura.");
+                  if (motivo.trim().length < 3)
+                    return toast.error("Informe o motivo da reabertura.");
                   mReabrir.mutate({ id, motivo });
                 }}
                 disabled={mReabrir.isPending}
@@ -506,7 +623,8 @@ function PendenciaDetail({
               <Button
                 variant="destructive"
                 onClick={() => {
-                  if (motivo.trim().length < 3) return toast.error("Informe o motivo do cancelamento.");
+                  if (motivo.trim().length < 3)
+                    return toast.error("Informe o motivo do cancelamento.");
                   mCancelar.mutate({ id, motivo });
                 }}
                 disabled={mCancelar.isPending}
@@ -530,10 +648,14 @@ function PendenciaDetail({
               <Section title="Alterar prioridade" icon={<Flag className="h-4 w-4" />}>
                 <div className="flex gap-2">
                   <Select value={novaPrio} onValueChange={(v) => setNovaPrio(v as Prioridade)}>
-                    <SelectTrigger><SelectValue placeholder="Nova prioridade" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nova prioridade" />
+                    </SelectTrigger>
                     <SelectContent>
                       {(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((pp) => (
-                        <SelectItem key={pp} value={pp}>{PRIORIDADE_LABEL[pp]}</SelectItem>
+                        <SelectItem key={pp} value={pp}>
+                          {PRIORIDADE_LABEL[pp]}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -574,7 +696,9 @@ function PendenciaDetail({
                 <li key={h.id} className="pl-4">
                   <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-primary" />
                   <div className="text-xs text-muted-foreground">{fmtDateTime(h.created_at)}</div>
-                  <div className="text-sm font-medium capitalize">{String(h.acao).replaceAll("_", " ")}</div>
+                  <div className="text-sm font-medium capitalize">
+                    {String(h.acao).replaceAll("_", " ")}
+                  </div>
                   {h.status_anterior && h.status_novo && (
                     <div className="text-xs text-muted-foreground">
                       {statusLabel("pendencia", h.status_anterior)}
@@ -582,7 +706,9 @@ function PendenciaDetail({
                       {statusLabel("pendencia", h.status_novo)}
                     </div>
                   )}
-                  {h.comentario && <p className="text-sm mt-1 whitespace-pre-wrap">{h.comentario}</p>}
+                  {h.comentario && (
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{h.comentario}</p>
+                  )}
                 </li>
               ))}
             </ol>
@@ -591,16 +717,29 @@ function PendenciaDetail({
       </Tabs>
 
       <div className="mt-6 flex justify-end">
-        <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        <Button variant="ghost" onClick={onClose}>
+          Fechar
+        </Button>
       </div>
     </>
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm font-medium mb-2">{icon}{title}</div>
+      <div className="flex items-center gap-2 text-sm font-medium mb-2">
+        {icon}
+        {title}
+      </div>
       {children}
     </div>
   );

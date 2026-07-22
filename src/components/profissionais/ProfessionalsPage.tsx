@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import ProfessionalsTable from './ProfessionalsTable';
-import { useProfessionalFilters } from '@/context/professional-filter-context';
-import { usePermissions } from '@/hooks/use-permissions';
-import { FilterBar } from '@/components/shared';
+import React, { useState } from "react";
+import ProfessionalsTable from "./ProfessionalsTable";
+import { useProfessionalFilters } from "@/context/professional-filter-context";
+import { usePermissions } from "@/hooks/use-permissions";
+import { FilterBar } from "@/components/shared";
 
 export default function ProfessionalsPage() {
   const { filters, setFilters, reset } = useProfessionalFilters();
@@ -17,12 +17,20 @@ export default function ProfessionalsPage() {
 
       <FilterBar
         actions={
-          <button onClick={() => { reset(); setPage(1); }} className="rounded-md border px-3">Limpar</button>
+          <button
+            onClick={() => {
+              reset();
+              setPage(1);
+            }}
+            className="rounded-md border px-3"
+          >
+            Limpar
+          </button>
         }
       >
         <FilterBar.Field label="Pesquisar">
           <input
-            value={filters.q ?? ''}
+            value={filters.q ?? ""}
             onChange={(e) => setFilters({ q: e.target.value })}
             placeholder="Nome, CPF ou matrícula"
             className="w-full rounded-md border p-2"
@@ -30,7 +38,7 @@ export default function ProfessionalsPage() {
         </FilterBar.Field>
         <FilterBar.Field label="CPF">
           <input
-            value={filters.cpf ?? ''}
+            value={filters.cpf ?? ""}
             onChange={(e) => setFilters({ cpf: e.target.value })}
             placeholder="CPF"
             className="w-full rounded-md border p-2"
@@ -38,7 +46,7 @@ export default function ProfessionalsPage() {
         </FilterBar.Field>
         <FilterBar.Field label="Matrícula">
           <input
-            value={filters.matricula ?? ''}
+            value={filters.matricula ?? ""}
             onChange={(e) => setFilters({ matricula: e.target.value })}
             placeholder="Matrícula"
             className="w-full rounded-md border p-2"

@@ -2,8 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from "recharts";
 import { TrendingUp, BarChart3, PieChart as PieIcon, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +25,16 @@ export const Route = createFileRoute("/_authenticated/analitico")({
 });
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
+const COLORS = [
+  "hsl(var(--primary))",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+];
 
 function DashboardAnalitico() {
   const [ano, setAno] = useState(new Date().getFullYear());
@@ -47,7 +67,10 @@ function DashboardAnalitico() {
     queryKey: ["analitico", "status-dist", ano],
     queryFn: async () => {
       const { data: comps } = await supabase
-        .from("competencias").select("id").eq("ano", ano).is("deleted_at", null);
+        .from("competencias")
+        .select("id")
+        .eq("ano", ano)
+        .is("deleted_at", null);
       const ids = (comps ?? []).map((c: any) => c.id);
       if (ids.length === 0) return [];
       const { data, error } = await supabase
@@ -74,7 +97,10 @@ function DashboardAnalitico() {
         .is("deleted_at", null);
       if (error) throw error;
       return (data ?? [])
-        .map((u: any) => ({ nome: u.nome.length > 22 ? u.nome.slice(0, 20) + "…" : u.nome, total: (u.profissionais ?? []).length }))
+        .map((u: any) => ({
+          nome: u.nome.length > 22 ? u.nome.slice(0, 20) + "…" : u.nome,
+          total: (u.profissionais ?? []).length,
+        }))
         .sort((a: any, b: any) => b.total - a.total)
         .slice(0, 10);
     },
@@ -114,7 +140,11 @@ function DashboardAnalitico() {
               onChange={(e) => setAno(Number(e.target.value))}
               className="rounded-md border bg-background px-3 py-1.5 text-sm"
             >
-              {anos.map((a) => <option key={a} value={a}>{a}</option>)}
+              {anos.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
             </select>
             <Link to="/relatorios" className="text-sm text-primary hover:underline ml-4">
               → Relatórios detalhados

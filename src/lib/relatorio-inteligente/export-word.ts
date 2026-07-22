@@ -22,7 +22,9 @@ export function exportarWord(opts: {
   const a = document.createElement("a");
   a.href = url;
   a.download = opts.filename.endsWith(".doc") ? opts.filename : `${opts.filename}.doc`;
-  document.body.appendChild(a); a.click(); a.remove();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 }
 
@@ -33,10 +35,14 @@ function esc(v: unknown): string {
 }
 
 function buildHtml(o: Parameters<typeof exportarWord>[0]): string {
-  const rowsHtml = (b: BlocoExport) => b.linhas.map((r) =>
-    `<tr>${b.colunas.map((c) => `<td>${esc(r[c.key])}</td>`).join("")}</tr>`).join("");
+  const rowsHtml = (b: BlocoExport) =>
+    b.linhas
+      .map((r) => `<tr>${b.colunas.map((c) => `<td>${esc(r[c.key])}</td>`).join("")}</tr>`)
+      .join("");
 
-  const bloquesHtml = o.blocos.map((b, i) => `
+  const bloquesHtml = o.blocos
+    .map(
+      (b, i) => `
     <h2>${i + 1}. ${esc(b.titulo)}</h2>
     ${b.descricao ? `<p><i>${esc(b.descricao)}</i></p>` : ""}
     <table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;">
@@ -45,14 +51,21 @@ function buildHtml(o: Parameters<typeof exportarWord>[0]): string {
       </tr></thead>
       <tbody>${rowsHtml(b)}</tbody>
     </table>
-  `).join("");
+  `,
+    )
+    .join("");
 
-  const parHtml = (o.pareceres ?? []).map((p) => `
+  const parHtml = (o.pareceres ?? [])
+    .map(
+      (p) => `
     <h3>${esc(p.titulo)}</h3>
     <ul>${p.frases.map((f) => `<li>${esc(f.replace(/\*\*/g, ""))}</li>`).join("")}</ul>
-  `).join("");
+  `,
+    )
+    .join("");
 
-  const indiceHtml = o.indice ? `
+  const indiceHtml = o.indice
+    ? `
     <h2>Índice Automático da Gestão</h2>
     <p style="font-size:28pt;font-weight:bold;color:#5C4020;">${o.indice.score} / 100 <span style="font-size:12pt;color:#555;">(${o.indice.nivel})</span></p>
     <p>${esc(o.indice.interpretacao)}</p>
@@ -60,12 +73,15 @@ function buildHtml(o: Parameters<typeof exportarWord>[0]): string {
       <thead><tr style="background:#EBD79A;"><th align="left">Componente</th><th>Peso</th><th>Valor</th></tr></thead>
       <tbody>${o.indice.componentes.map((c) => `<tr><td>${esc(c.rotulo)}</td><td align="center">${c.peso}%</td><td align="right">${c.valor}</td></tr>`).join("")}</tbody>
     </table>
-  ` : "";
+  `
+    : "";
 
-  const resumoHtml = o.resumo?.length ? `
+  const resumoHtml = o.resumo?.length
+    ? `
     <h2>Resumo Executivo</h2>
     <ul>${o.resumo.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
-  ` : "";
+  `
+    : "";
 
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">

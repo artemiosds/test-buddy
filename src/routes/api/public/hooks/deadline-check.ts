@@ -29,10 +29,10 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
           process.env.SUPABASE_ADMIN_KEY;
 
         if (!url || !key) {
-          return new Response(
-            JSON.stringify({ error: "missing supabase env" }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "missing supabase env" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const supa = createClient(url, key, {
@@ -81,9 +81,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
 
         for (const comp of proximas || []) {
           const dias = Math.ceil(
-            (new Date(comp.prazo_envio + "T00:00:00").getTime() -
-              today.getTime()) /
-              86400000,
+            (new Date(comp.prazo_envio + "T00:00:00").getTime() - today.getTime()) / 86400000,
           );
           for (const u of alvos || []) {
             notifRows.push({

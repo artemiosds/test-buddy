@@ -15,7 +15,11 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuica
   component: () => (
     <PermissionGate
       permission="profissional.visualizar"
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <DistribuicaoSetor />
     </PermissionGate>
@@ -35,9 +39,24 @@ function DistribuicaoSetor() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label="Setores com profissionais" value={rows.length.toLocaleString("pt-BR")} loading={a.distribuicaoSetor.isLoading} icon={<Network className="h-4 w-4" />} />
-        <KpiCard label="Profissionais vinculados" value={total.toLocaleString("pt-BR")} loading={a.distribuicaoSetor.isLoading} icon={<Users className="h-4 w-4" />} />
-        <KpiCard label="Total de setores" value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")} loading={a.totalSetores.isLoading} icon={<Network className="h-4 w-4" />} />
+        <KpiCard
+          label="Setores com profissionais"
+          value={rows.length.toLocaleString("pt-BR")}
+          loading={a.distribuicaoSetor.isLoading}
+          icon={<Network className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Profissionais vinculados"
+          value={total.toLocaleString("pt-BR")}
+          loading={a.distribuicaoSetor.isLoading}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Total de setores"
+          value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}
+          loading={a.totalSetores.isLoading}
+          icon={<Network className="h-4 w-4" />}
+        />
       </div>
 
       <div className="mt-6 rounded-md border">
@@ -47,7 +66,11 @@ function DistribuicaoSetor() {
         {a.distribuicaoSetor.isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Carregando…</div>
         ) : rows.length === 0 ? (
-          <EmptyState className="m-3" title="Sem distribuição registrada" description="Nenhum profissional vinculado a setores." />
+          <EmptyState
+            className="m-3"
+            title="Sem distribuição registrada"
+            description="Nenhum profissional vinculado a setores."
+          />
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -63,7 +86,9 @@ function DistribuicaoSetor() {
                 <tr key={r.id} className="border-b last:border-0">
                   <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-2">{r.nome}</td>
-                  <td className="px-3 py-2 text-right font-medium tabular-nums">{r.total.toLocaleString("pt-BR")}</td>
+                  <td className="px-3 py-2 text-right font-medium tabular-nums">
+                    {r.total.toLocaleString("pt-BR")}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                     {total > 0 ? ((r.total / total) * 100).toFixed(1) : "0"}%
                   </td>

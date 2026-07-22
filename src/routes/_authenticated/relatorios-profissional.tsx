@@ -29,7 +29,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
+import {
+  registrarDocumentoAssinado,
+  drawSignatureStamp,
+  armazenarPdfAssinado,
+} from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { toast } from "sonner";
@@ -344,7 +348,11 @@ function RelatorioProfissionalPage() {
       logger.error("relatorios_profissional.signature_failed", { error: err });
     }
     if (_sigProf) {
-      try { await armazenarPdfAssinado(_sigProf, doc.output("blob")); } catch { /* best effort */ }
+      try {
+        await armazenarPdfAssinado(_sigProf, doc.output("blob"));
+      } catch {
+        /* best effort */
+      }
     }
     doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {

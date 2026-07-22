@@ -136,17 +136,20 @@ export function TendenciaKpi({
   const cai = tendencia.direcao === "cai";
   const isBad = invertBad ? sobe : cai;
   const isGood = invertBad ? cai : sobe;
-  const tone = tendencia.direcao === "estavel"
-    ? "text-muted-foreground"
-    : isBad
-      ? "text-destructive"
-      : isGood
-        ? "text-success-soft-foreground"
-        : "text-muted-foreground";
+  const tone =
+    tendencia.direcao === "estavel"
+      ? "text-muted-foreground"
+      : isBad
+        ? "text-destructive"
+        : isGood
+          ? "text-success-soft-foreground"
+          : "text-muted-foreground";
   const Icon = sobe ? TrendingUp : cai ? TrendingDown : Minus;
   const pctText =
     tendencia.variacaoPct === null
-      ? tendencia.anterior === 0 && tendencia.atual === 0 ? "—" : "novo"
+      ? tendencia.anterior === 0 && tendencia.atual === 0
+        ? "—"
+        : "novo"
       : `${tendencia.variacaoPct > 0 ? "+" : ""}${tendencia.variacaoPct.toFixed(1)}%`;
 
   return (
@@ -195,9 +198,7 @@ export function IntegridadeCard({
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-4 w-4" /> Integridade Cadastral
           </CardTitle>
-          <div className={"text-2xl font-bold tabular-nums " + tone}>
-            {integridade.percentual}%
-          </div>
+          <div className={"text-2xl font-bold tabular-nums " + tone}>{integridade.percentual}%</div>
         </div>
       </CardHeader>
       <CardContent>
@@ -205,13 +206,12 @@ export function IntegridadeCard({
         <div className="mb-3 flex justify-between text-xs text-muted-foreground">
           <span>{integridade.cadastrosCompletos.toLocaleString("pt-BR")} completos</span>
           <span>
-            {(integridade.total - integridade.cadastrosCompletos).toLocaleString("pt-BR")} incompletos
+            {(integridade.total - integridade.cadastrosCompletos).toLocaleString("pt-BR")}{" "}
+            incompletos
           </span>
         </div>
         {integridade.camposFaltantes.filter((c) => c.faltantes > 0).length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhum campo crítico com pendências.
-          </p>
+          <p className="text-sm text-muted-foreground">Nenhum campo crítico com pendências.</p>
         ) : (
           <ul className="grid gap-1.5 md:grid-cols-2">
             {integridade.camposFaltantes
@@ -242,8 +242,14 @@ export function IntegridadeCard({
 
 const INSIGHT_STYLE = {
   concentracao: { icon: <Info className="h-4 w-4" />, tone: "border-primary/40 bg-primary/5" },
-  risco: { icon: <AlertTriangle className="h-4 w-4" />, tone: "border-destructive/40 bg-destructive/5" },
-  melhoria: { icon: <TrendingDown className="h-4 w-4" />, tone: "border-success-soft-foreground/40 bg-success-soft/40" },
+  risco: {
+    icon: <AlertTriangle className="h-4 w-4" />,
+    tone: "border-destructive/40 bg-destructive/5",
+  },
+  melhoria: {
+    icon: <TrendingDown className="h-4 w-4" />,
+    tone: "border-success-soft-foreground/40 bg-success-soft/40",
+  },
   informativo: { icon: <Info className="h-4 w-4" />, tone: "border-border" },
 } as const;
 
@@ -302,7 +308,11 @@ export function AlertaItem({ alerta }: { alerta: AlertaGerencial }) {
         ? "border-warning-soft-foreground/40 bg-warning-soft/30"
         : "border-border";
   const priorBadge =
-    alerta.prioridade === "alta" ? "destructive" : alerta.prioridade === "media" ? "secondary" : "outline";
+    alerta.prioridade === "alta"
+      ? "destructive"
+      : alerta.prioridade === "media"
+        ? "secondary"
+        : "outline";
   return (
     <div className={"flex items-start justify-between gap-3 rounded-md border p-3 text-sm " + tone}>
       <div className="min-w-0 flex-1">

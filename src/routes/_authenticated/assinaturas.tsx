@@ -8,21 +8,52 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, Plus, Power, PowerOff, Signature, Stamp, Image as ImageIcon, Trash2, Settings2, ShieldCheck, BellRing, AlertCircle, CheckCircle2, PenLine } from "lucide-react";
+import {
+  Eye,
+  Plus,
+  Power,
+  PowerOff,
+  Signature,
+  Stamp,
+  Image as ImageIcon,
+  Trash2,
+  Settings2,
+  ShieldCheck,
+  BellRing,
+  AlertCircle,
+  CheckCircle2,
+  PenLine,
+} from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { MinhaAssinaturaPage } from "@/routes/_authenticated/meu-perfil.assinatura";
 
-const PERFIS_ELEGIVEIS_PESSOAL = ["MASTER", "GESTOR", "GESTAO", "DIRETOR", "DIRETOR_UNIDADE", "COORDENADOR"];
+const PERFIS_ELEGIVEIS_PESSOAL = [
+  "MASTER",
+  "GESTOR",
+  "GESTAO",
+  "DIRETOR",
+  "DIRETOR_UNIDADE",
+  "COORDENADOR",
+];
 
 export const Route = createFileRoute("/_authenticated/assinaturas")({
   component: AssinaturasPage,
@@ -38,7 +69,7 @@ const TIPOS_DOCUMENTO = [
   { value: "piso", label: "Piso da Enfermagem" },
   { value: "relatorio", label: "Relatórios" },
 ] as const;
-type TipoDoc = typeof TIPOS_DOCUMENTO[number]["value"];
+type TipoDoc = (typeof TIPOS_DOCUMENTO)[number]["value"];
 
 /** Perfis funcionais que podem assinar (subset do que existe em `perfis`). */
 const PERFIS_ASSINANTES = ["MASTER", "GESTOR", "DIRETOR_UNIDADE"] as const;
@@ -66,7 +97,8 @@ function AssinaturasPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const isMaster = !!me?.is_master;
-  const elegivelPessoal = !!me && PERFIS_ELEGIVEIS_PESSOAL.includes((me.perfil_codigo || "").toUpperCase());
+  const elegivelPessoal =
+    !!me && PERFIS_ELEGIVEIS_PESSOAL.includes((me.perfil_codigo || "").toUpperCase());
   const podeGerenciar = isMaster || has("assinatura.gerenciar");
   const defaultTab = elegivelPessoal ? "minha" : "cadastro";
 
@@ -114,10 +146,16 @@ function AssinaturasPage() {
           )}
         </TabsContent>
         <TabsContent value="regras">
-          {isMaster ? <RegrasTab /> : <div className="text-sm text-muted-foreground">Apenas usuários Master.</div>}
+          {isMaster ? (
+            <RegrasTab />
+          ) : (
+            <div className="text-sm text-muted-foreground">Apenas usuários Master.</div>
+          )}
         </TabsContent>
         <TabsContent value="pendentes">
-          {podeGerenciar ? <PendentesTab /> : (
+          {podeGerenciar ? (
+            <PendentesTab />
+          ) : (
             <div className="text-sm text-muted-foreground">Sem permissão.</div>
           )}
         </TabsContent>
@@ -134,7 +172,10 @@ function PendentesTab() {
       const { data, error } = await supabase.rpc("assinatura_dashboard");
       if (error) throw error;
       return data as {
-        total_elegiveis: number; com_assinatura: number; pendentes: number; expirando_30d: number;
+        total_elegiveis: number;
+        com_assinatura: number;
+        pendentes: number;
+        expirando_30d: number;
       };
     },
   });
@@ -145,9 +186,13 @@ function PendentesTab() {
       const { data, error } = await supabase.rpc("assinatura_pendentes");
       if (error) throw error;
       return (data ?? []) as Array<{
-        usuario_id: string; nome: string; email: string;
-        perfil_codigo: string; perfil_nome: string;
-        unidade_id: string | null; unidade_nome: string | null;
+        usuario_id: string;
+        nome: string;
+        email: string;
+        perfil_codigo: string;
+        perfil_nome: string;
+        unidade_id: string | null;
+        unidade_nome: string | null;
         dias_pendente: number;
       }>;
     },
@@ -169,14 +214,33 @@ function PendentesTab() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
-        <KPI label="Elegíveis" value={dash?.total_elegiveis ?? 0} icon={<ShieldCheck className="h-4 w-4 text-primary" />} />
-        <KPI label="Com assinatura" value={dash?.com_assinatura ?? 0} icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} />
-        <KPI label="Pendentes" value={dash?.pendentes ?? 0} icon={<AlertCircle className="h-4 w-4 text-amber-600" />} />
-        <KPI label="Vencendo em 30d" value={dash?.expirando_30d ?? 0} icon={<AlertCircle className="h-4 w-4 text-red-600" />} />
+        <KPI
+          label="Elegíveis"
+          value={dash?.total_elegiveis ?? 0}
+          icon={<ShieldCheck className="h-4 w-4 text-primary" />}
+        />
+        <KPI
+          label="Com assinatura"
+          value={dash?.com_assinatura ?? 0}
+          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+        />
+        <KPI
+          label="Pendentes"
+          value={dash?.pendentes ?? 0}
+          icon={<AlertCircle className="h-4 w-4 text-amber-600" />}
+        />
+        <KPI
+          label="Vencendo em 30d"
+          value={dash?.expirando_30d ?? 0}
+          icon={<AlertCircle className="h-4 w-4 text-red-600" />}
+        />
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={() => notificar.mutate()} disabled={notificar.isPending || (pendentes ?? []).length === 0}>
+        <Button
+          onClick={() => notificar.mutate()}
+          disabled={notificar.isPending || (pendentes ?? []).length === 0}
+        >
           <BellRing className="mr-2 h-4 w-4" />
           {notificar.isPending ? "Enviando…" : "Notificar todos os pendentes"}
         </Button>
@@ -194,9 +258,17 @@ function PendentesTab() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr>
+                <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
             ) : (pendentes ?? []).length === 0 ? (
-              <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum usuário pendente 🎉</td></tr>
+              <tr>
+                <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                  Nenhum usuário pendente 🎉
+                </td>
+              </tr>
             ) : (
               (pendentes ?? []).map((p, i) => (
                 <tr key={`${p.usuario_id}-${p.unidade_id ?? "x"}-${i}`} className="border-t">
@@ -235,7 +307,13 @@ function KPI({ label, value, icon }: { label: string; value: number; icon: React
   );
 }
 
-function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnType<typeof useCurrentUser>["data"] }) {
+function CadastroTab({
+  canGerenciar,
+  me,
+}: {
+  canGerenciar: boolean;
+  me: ReturnType<typeof useCurrentUser>["data"];
+}) {
   const qc = useQueryClient();
   const askConfirm = useConfirm();
   const [openForm, setOpenForm] = useState(false);
@@ -244,8 +322,11 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("secretarias")
-        .select("id, nome").is("deleted_at", null).order("nome");
+      const { data, error } = await supabase
+        .from("secretarias")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -254,8 +335,11 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
   const { data: unidades } = useQuery({
     queryKey: ["unidades-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("unidades")
-        .select("id, nome, secretaria_id").is("deleted_at", null).order("nome");
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("id, nome, secretaria_id")
+        .is("deleted_at", null)
+        .order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -264,8 +348,10 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
   const { data: perfis } = useQuery({
     queryKey: ["perfis-assinantes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("perfis")
-        .select("id, codigo, nome").is("deleted_at", null)
+      const { data, error } = await supabase
+        .from("perfis")
+        .select("id, codigo, nome")
+        .is("deleted_at", null)
         .in("codigo", PERFIS_ASSINANTES as unknown as string[]);
       if (error) throw error;
       return data ?? [];
@@ -277,14 +363,16 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assinaturas_institucionais")
-        .select(`
+        .select(
+          `
           id, tipo, titular_nome, titular_cargo, storage_path, mime_type,
           vigencia_inicio, vigencia_fim, ativa, created_at,
           secretaria_id, unidade_id, perfil_id, tipos_documento, obrigatoria, ordem,
           secretarias:secretaria_id(nome),
           unidades:unidade_id(nome),
           perfis:perfil_id(codigo, nome)
-        `)
+        `,
+        )
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -301,8 +389,10 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
 
   const toggleAtiva = useMutation({
     mutationFn: async ({ id, ativa }: { id: string; ativa: boolean }) => {
-      const { error } = await supabase.from("assinaturas_institucionais")
-        .update({ ativa, updated_by: me?.id }).eq("id", id);
+      const { error } = await supabase
+        .from("assinaturas_institucionais")
+        .update({ ativa, updated_by: me?.id })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -314,7 +404,8 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
 
   const remove = useMutation({
     mutationFn: async (row: NonNullable<typeof rows>[number]) => {
-      const { error } = await supabase.from("assinaturas_institucionais")
+      const { error } = await supabase
+        .from("assinaturas_institucionais")
         .update({ deleted_at: new Date().toISOString(), deleted_by: me?.id, ativa: false })
         .eq("id", row.id);
       if (error) throw error;
@@ -334,12 +425,16 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
           <div className="w-56">
             <Label className="text-xs">Filtrar por perfil</Label>
             <Select value={filterPerfil} onValueChange={setFilterPerfil}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="institucional">Institucional (logo / brasão)</SelectItem>
                 {PERFIS_ASSINANTES.map((c) => (
-                  <SelectItem key={c} value={c}>{PERFIL_LABEL[c]}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {PERFIL_LABEL[c]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -347,7 +442,8 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
         </div>
         {canGerenciar && (
           <Button onClick={() => setOpenForm(true)}>
-            <Plus className="mr-1 h-4 w-4" />Nova assinatura
+            <Plus className="mr-1 h-4 w-4" />
+            Nova assinatura
           </Button>
         )}
       </div>
@@ -400,9 +496,7 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
                       </div>
                     </td>
                     <td className="p-3">
-                      <Badge variant={r.perfil_id ? "secondary" : "outline"}>
-                        {perfilLabel}
-                      </Badge>
+                      <Badge variant={r.perfil_id ? "secondary" : "outline"}>{perfilLabel}</Badge>
                     </td>
                     <td className="p-3">
                       {tiposDocs.length === 0 ? (
@@ -419,16 +513,25 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
                     </td>
                     <td className="p-3">{escopo}</td>
                     <td className="p-3 text-xs">
-                      {r.vigencia_inicio ? new Date(r.vigencia_inicio).toLocaleDateString("pt-BR") : "—"}
+                      {r.vigencia_inicio
+                        ? new Date(r.vigencia_inicio).toLocaleDateString("pt-BR")
+                        : "—"}
                       {" → "}
-                      {r.vigencia_fim ? new Date(r.vigencia_fim).toLocaleDateString("pt-BR") : "indefinido"}
+                      {r.vigencia_fim
+                        ? new Date(r.vigencia_fim).toLocaleDateString("pt-BR")
+                        : "indefinido"}
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1">
                         <Badge variant={r.ativa ? "default" : "outline"}>
                           {r.ativa ? "Ativa" : "Inativa"}
                         </Badge>
-                        {r.obrigatoria && <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-label="Obrigatória" />}
+                        {r.obrigatoria && (
+                          <ShieldCheck
+                            className="h-3.5 w-3.5 text-primary"
+                            aria-label="Obrigatória"
+                          />
+                        )}
                       </div>
                     </td>
                     <td className="p-3">
@@ -436,12 +539,21 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
                         <PreviewButton path={r.storage_path} mime={r.mime_type} />
                         {canGerenciar && (
                           <>
-                            <Button size="sm" variant="outline"
-                              onClick={() => toggleAtiva.mutate({ id: r.id, ativa: !r.ativa })}>
-                              {r.ativa ? <PowerOff className="mr-1 h-4 w-4" /> : <Power className="mr-1 h-4 w-4" />}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleAtiva.mutate({ id: r.id, ativa: !r.ativa })}
+                            >
+                              {r.ativa ? (
+                                <PowerOff className="mr-1 h-4 w-4" />
+                              ) : (
+                                <Power className="mr-1 h-4 w-4" />
+                              )}
                               {r.ativa ? "Inativar" : "Ativar"}
                             </Button>
-                            <Button size="sm" variant="ghost"
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => {
                                 void (async () => {
                                   const ok = await askConfirm({
@@ -451,7 +563,8 @@ function CadastroTab({ canGerenciar, me }: { canGerenciar: boolean; me: ReturnTy
                                   });
                                   if (ok) remove.mutate(r);
                                 })();
-                              }}>
+                              }}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
@@ -489,7 +602,10 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
 
   async function abrir() {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setUrl(data.signedUrl);
     setOpen(true);
   }
@@ -499,18 +615,24 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
   return (
     <>
       <Button size="sm" variant="ghost" onClick={abrir}>
-        <Eye className="mr-1 h-4 w-4" />Visualizar
+        <Eye className="mr-1 h-4 w-4" />
+        Visualizar
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Pré-visualização</DialogTitle>
           </DialogHeader>
-          {url && (isImage ? (
-            <img src={url} alt="Assinatura" className="max-h-[70vh] w-full object-contain bg-muted/30 rounded" />
-          ) : (
-            <iframe src={url} className="h-[70vh] w-full rounded border" title="Arquivo" />
-          ))}
+          {url &&
+            (isImage ? (
+              <img
+                src={url}
+                alt="Assinatura"
+                className="max-h-[70vh] w-full object-contain bg-muted/30 rounded"
+              />
+            ) : (
+              <iframe src={url} className="h-[70vh] w-full rounded border" title="Arquivo" />
+            ))}
         </DialogContent>
       </Dialog>
     </>
@@ -522,10 +644,19 @@ type LookupUni = { id: string; nome: string; secretaria_id: string | null };
 type LookupPerfil = { id: string; codigo: string; nome: string };
 
 function NovaAssinaturaDialog({
-  onClose, onSaved, secretarias, unidades, perfis, userId,
+  onClose,
+  onSaved,
+  secretarias,
+  unidades,
+  perfis,
+  userId,
 }: {
-  onClose: () => void; onSaved: () => void;
-  secretarias: LookupSec[]; unidades: LookupUni[]; perfis: LookupPerfil[]; userId?: string;
+  onClose: () => void;
+  onSaved: () => void;
+  secretarias: LookupSec[];
+  unidades: LookupUni[];
+  perfis: LookupPerfil[];
+  userId?: string;
 }) {
   const [tipo, setTipo] = useState<Tipo>("assinatura");
   const [titularNome, setTitularNome] = useState("");
@@ -557,27 +688,44 @@ function NovaAssinaturaDialog({
   function toggleDoc(v: TipoDoc) {
     setTiposDoc((prev) => {
       const next = new Set(prev);
-      if (next.has(v)) next.delete(v); else next.add(v);
+      if (next.has(v)) next.delete(v);
+      else next.add(v);
       return next;
     });
   }
 
   async function salvar() {
-    if (!titularNome.trim()) { toast.error("Informe o nome do titular"); return; }
-    if (!file) { toast.error("Selecione o arquivo"); return; }
-    if (escopo === "secretaria" && !secretariaId) { toast.error("Selecione a secretaria"); return; }
-    if (escopo === "unidade" && !unidadeId) { toast.error("Selecione a unidade"); return; }
+    if (!titularNome.trim()) {
+      toast.error("Informe o nome do titular");
+      return;
+    }
+    if (!file) {
+      toast.error("Selecione o arquivo");
+      return;
+    }
+    if (escopo === "secretaria" && !secretariaId) {
+      toast.error("Selecione a secretaria");
+      return;
+    }
+    if (escopo === "unidade" && !unidadeId) {
+      toast.error("Selecione a unidade");
+      return;
+    }
 
     setSaving(true);
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-      const scopeSeg = escopo === "unidade" ? `unidade/${unidadeId}`
-        : escopo === "secretaria" ? `secretaria/${secretariaId}`
-        : "global";
+      const scopeSeg =
+        escopo === "unidade"
+          ? `unidade/${unidadeId}`
+          : escopo === "secretaria"
+            ? `secretaria/${secretariaId}`
+            : "global";
       const path = `${scopeSeg}/${tipo}/${crypto.randomUUID()}.${ext}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type || undefined, upsert: false,
+        contentType: file.type || undefined,
+        upsert: false,
       });
       if (up.error) throw up.error;
 
@@ -587,9 +735,12 @@ function NovaAssinaturaDialog({
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
         mime_type: file.type || null,
-        secretaria_id: escopo === "secretaria" ? secretariaId : escopo === "unidade"
-          ? unidades.find((u) => u.id === unidadeId)?.secretaria_id ?? null
-          : null,
+        secretaria_id:
+          escopo === "secretaria"
+            ? secretariaId
+            : escopo === "unidade"
+              ? (unidades.find((u) => u.id === unidadeId)?.secretaria_id ?? null)
+              : null,
         unidade_id: escopo === "unidade" ? unidadeId : null,
         perfil_id: perfilId === "__institucional__" ? null : perfilId,
         obrigatoria,
@@ -614,11 +765,18 @@ function NovaAssinaturaDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova assinatura</DialogTitle>
-          <DialogDescription>Upload de assinatura, carimbo ou brasão institucional.</DialogDescription>
+          <DialogDescription>
+            Upload de assinatura, carimbo ou brasão institucional.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
@@ -626,7 +784,9 @@ function NovaAssinaturaDialog({
             <div>
               <Label>Tipo</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="assinatura">Assinatura</SelectItem>
                   <SelectItem value="carimbo">Carimbo</SelectItem>
@@ -637,7 +797,9 @@ function NovaAssinaturaDialog({
             <div>
               <Label>Escopo</Label>
               <Select value={escopo} onValueChange={(v) => setEscopo(v as typeof escopo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="global">Global (município)</SelectItem>
                   <SelectItem value="secretaria">Secretaria</SelectItem>
@@ -651,7 +813,9 @@ function NovaAssinaturaDialog({
             <div>
               <Label>Perfil funcional</Label>
               <Select value={perfilId} onValueChange={setPerfilId} disabled={tipo === "logo"}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__institucional__">Institucional (sem perfil)</SelectItem>
                   {perfis.map((p) => (
@@ -667,8 +831,12 @@ function NovaAssinaturaDialog({
             </div>
             <div>
               <Label>Ordem no PDF</Label>
-              <Input type="number" min={1} value={ordem}
-                onChange={(e) => setOrdem(Math.max(1, Number(e.target.value) || 1))} />
+              <Input
+                type="number"
+                min={1}
+                value={ordem}
+                onChange={(e) => setOrdem(Math.max(1, Number(e.target.value) || 1))}
+              />
             </div>
           </div>
 
@@ -676,9 +844,15 @@ function NovaAssinaturaDialog({
             <div>
               <Label>Secretaria</Label>
               <Select value={secretariaId} onValueChange={setSecretariaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {secretarias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                  {secretarias.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -687,9 +861,15 @@ function NovaAssinaturaDialog({
             <div>
               <Label>Unidade</Label>
               <Select value={unidadeId} onValueChange={setUnidadeId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {unidadesFiltradas.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  {unidadesFiltradas.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -697,21 +877,37 @@ function NovaAssinaturaDialog({
 
           <div>
             <Label>Titular</Label>
-            <Input value={titularNome} onChange={(e) => setTitularNome(e.target.value)} placeholder="Nome completo" />
+            <Input
+              value={titularNome}
+              onChange={(e) => setTitularNome(e.target.value)}
+              placeholder="Nome completo"
+            />
           </div>
           <div>
             <Label>Cargo / Função</Label>
-            <Input value={titularCargo} onChange={(e) => setTitularCargo(e.target.value)} placeholder="Ex.: Secretário Municipal de Saúde" />
+            <Input
+              value={titularCargo}
+              onChange={(e) => setTitularCargo(e.target.value)}
+              placeholder="Ex.: Secretário Municipal de Saúde"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Vigência início</Label>
-              <Input type="date" value={vigenciaInicio} onChange={(e) => setVigenciaInicio(e.target.value)} />
+              <Input
+                type="date"
+                value={vigenciaInicio}
+                onChange={(e) => setVigenciaInicio(e.target.value)}
+              />
             </div>
             <div>
               <Label>Vigência fim</Label>
-              <Input type="date" value={vigenciaFim} onChange={(e) => setVigenciaFim(e.target.value)} />
+              <Input
+                type="date"
+                value={vigenciaFim}
+                onChange={(e) => setVigenciaFim(e.target.value)}
+              />
             </div>
           </div>
 
@@ -724,7 +920,10 @@ function NovaAssinaturaDialog({
             </div>
             <div className="grid grid-cols-2 gap-2">
               {TIPOS_DOCUMENTO.map((d) => (
-                <label key={d.value} className="flex items-center gap-2 rounded-md p-2 hover:bg-background cursor-pointer">
+                <label
+                  key={d.value}
+                  className="flex items-center gap-2 rounded-md p-2 hover:bg-background cursor-pointer"
+                >
                   <Checkbox
                     checked={tiposDoc.has(d.value)}
                     onCheckedChange={() => toggleDoc(d.value)}
@@ -750,8 +949,11 @@ function NovaAssinaturaDialog({
 
           <div>
             <Label>Arquivo (PNG, JPG ou PDF)</Label>
-            <Input type="file" accept="image/png,image/jpeg,image/webp,application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,application/pdf"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
             <p className="mt-1 text-xs text-muted-foreground">
               PNG com fundo transparente é recomendado para assinaturas e carimbos.
             </p>
@@ -759,8 +961,12 @@ function NovaAssinaturaDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button disabled={saving} onClick={salvar}>{saving ? "Enviando..." : "Salvar"}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={saving} onClick={salvar}>
+            {saving ? "Enviando..." : "Salvar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -792,8 +998,11 @@ function RegrasTab() {
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("secretarias")
-        .select("id, nome").is("deleted_at", null).order("nome");
+      const { data, error } = await supabase
+        .from("secretarias")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -815,8 +1024,10 @@ function RegrasTab() {
 
   const toggleAtiva = useMutation({
     mutationFn: async ({ id, ativa }: { id: string; ativa: boolean }) => {
-      const { error } = await supabase.from("assinatura_documento_regras")
-        .update({ ativa }).eq("id", id);
+      const { error } = await supabase
+        .from("assinatura_documento_regras")
+        .update({ ativa })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -844,12 +1055,15 @@ function RegrasTab() {
         <Tabs value={tab} onValueChange={(v) => setTab(v as TipoDoc)}>
           <TabsList>
             {TIPOS_DOCUMENTO.map((d) => (
-              <TabsTrigger key={d.value} value={d.value}>{d.label}</TabsTrigger>
+              <TabsTrigger key={d.value} value={d.value}>
+                {d.label}
+              </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
         <Button onClick={() => setOpenForm(true)}>
-          <Plus className="mr-1 h-4 w-4" />Nova regra
+          <Plus className="mr-1 h-4 w-4" />
+          Nova regra
         </Button>
       </div>
 
@@ -875,7 +1089,9 @@ function RegrasTab() {
             </thead>
             <tbody>
               {regras.map((r) => {
-                const escopo = r.secretarias?.nome ? `Secretaria · ${r.secretarias.nome}` : "Global (padrão)";
+                const escopo = r.secretarias?.nome
+                  ? `Secretaria · ${r.secretarias.nome}`
+                  : "Global (padrão)";
                 const label = r.perfil_codigo
                   ? `${PERFIL_LABEL[r.perfil_codigo] ?? r.perfil_codigo} — ${TIPO_LABEL[r.tipo_assinatura]}`
                   : `Institucional — ${TIPO_LABEL[r.tipo_assinatura]}`;
@@ -887,19 +1103,30 @@ function RegrasTab() {
                     </td>
                     <td className="p-3">{escopo}</td>
                     <td className="p-3">
-                      {r.obrigatoria ? <Badge>Obrigatória</Badge> : <Badge variant="outline">Opcional</Badge>}
+                      {r.obrigatoria ? (
+                        <Badge>Obrigatória</Badge>
+                      ) : (
+                        <Badge variant="outline">Opcional</Badge>
+                      )}
                     </td>
                     <td className="p-3">
-                      <Badge variant={r.ativa ? "default" : "outline"}>{r.ativa ? "Ativa" : "Inativa"}</Badge>
+                      <Badge variant={r.ativa ? "default" : "outline"}>
+                        {r.ativa ? "Ativa" : "Inativa"}
+                      </Badge>
                     </td>
                     <td className="p-3 text-xs text-muted-foreground">{r.observacao ?? "—"}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Button size="sm" variant="outline"
-                          onClick={() => toggleAtiva.mutate({ id: r.id, ativa: !r.ativa })}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAtiva.mutate({ id: r.id, ativa: !r.ativa })}
+                        >
                           {r.ativa ? "Inativar" : "Ativar"}
                         </Button>
-                        <Button size="sm" variant="ghost"
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => {
                             void (async () => {
                               const ok = await askConfirm({
@@ -909,7 +1136,8 @@ function RegrasTab() {
                               });
                               if (ok) remove.mutate(r.id);
                             })();
-                          }}>
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -938,7 +1166,10 @@ function RegrasTab() {
 }
 
 function NovaRegraDialog({
-  tipoDocumento, secretarias, onClose, onSaved,
+  tipoDocumento,
+  secretarias,
+  onClose,
+  onSaved,
 }: {
   tipoDocumento: TipoDoc;
   secretarias: LookupSec[];
@@ -956,7 +1187,8 @@ function NovaRegraDialog({
 
   async function salvar() {
     if (alcance === "secretaria" && !secretariaId) {
-      toast.error("Selecione a secretaria"); return;
+      toast.error("Selecione a secretaria");
+      return;
     }
     setSaving(true);
     try {
@@ -981,12 +1213,18 @@ function NovaRegraDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova regra</DialogTitle>
           <DialogDescription>
-            Define quem assina o documento <strong>{TIPOS_DOCUMENTO.find((d) => d.value === tipoDocumento)?.label}</strong>.
+            Define quem assina o documento{" "}
+            <strong>{TIPOS_DOCUMENTO.find((d) => d.value === tipoDocumento)?.label}</strong>.
           </DialogDescription>
         </DialogHeader>
 
@@ -995,7 +1233,9 @@ function NovaRegraDialog({
             <div>
               <Label>Alcance</Label>
               <Select value={alcance} onValueChange={(v) => setAlcance(v as typeof alcance)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="global">Global (padrão)</SelectItem>
                   <SelectItem value="secretaria">Secretaria específica</SelectItem>
@@ -1004,8 +1244,12 @@ function NovaRegraDialog({
             </div>
             <div>
               <Label>Ordem no PDF</Label>
-              <Input type="number" min={1} value={ordem}
-                onChange={(e) => setOrdem(Math.max(1, Number(e.target.value) || 1))} />
+              <Input
+                type="number"
+                min={1}
+                value={ordem}
+                onChange={(e) => setOrdem(Math.max(1, Number(e.target.value) || 1))}
+              />
             </div>
           </div>
 
@@ -1013,9 +1257,15 @@ function NovaRegraDialog({
             <div>
               <Label>Secretaria</Label>
               <Select value={secretariaId} onValueChange={setSecretariaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {secretarias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                  {secretarias.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1025,11 +1275,15 @@ function NovaRegraDialog({
             <div>
               <Label>Perfil</Label>
               <Select value={perfilCodigo} onValueChange={setPerfilCodigo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__institucional__">Institucional (sem perfil)</SelectItem>
                   {PERFIS_ASSINANTES.map((c) => (
-                    <SelectItem key={c} value={c}>{PERFIL_LABEL[c]}</SelectItem>
+                    <SelectItem key={c} value={c}>
+                      {PERFIL_LABEL[c]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1037,7 +1291,9 @@ function NovaRegraDialog({
             <div>
               <Label>Tipo</Label>
               <Select value={tipoAssinatura} onValueChange={(v) => setTipoAssinatura(v as Tipo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="assinatura">Assinatura</SelectItem>
                   <SelectItem value="carimbo">Carimbo</SelectItem>
@@ -1059,14 +1315,21 @@ function NovaRegraDialog({
 
           <div>
             <Label>Observação</Label>
-            <Input value={observacao} onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Opcional — descreve o papel/uso" />
+            <Input
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Opcional — descreve o papel/uso"
+            />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button disabled={saving} onClick={salvar}>{saving ? "Salvando..." : "Salvar regra"}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={saving} onClick={salvar}>
+            {saving ? "Salvando..." : "Salvar regra"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

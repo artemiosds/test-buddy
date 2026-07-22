@@ -41,10 +41,7 @@ describe("withRetry", () => {
   });
 
   it("faz retry com backoff exponencial e sucede na segunda tentativa", async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("net"))
-      .mockResolvedValue("ok");
+    const fn = vi.fn().mockRejectedValueOnce(new Error("net")).mockResolvedValue("ok");
     const wrapped = withRetry(fn, { operation: "op.test" });
     const promise = wrapped(undefined);
     // primeiro delay = 1s

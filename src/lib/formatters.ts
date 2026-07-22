@@ -44,9 +44,7 @@ export function formatTime(
   placeholder: string = DEFAULT_PLACEHOLDER,
 ): string {
   const d = toDate(v);
-  return d
-    ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    : placeholder;
+  return d ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : placeholder;
 }
 
 // ---------- Números / moeda ----------
@@ -133,13 +131,9 @@ export function formatPhone(
   const d = onlyDigits(v).slice(0, 11);
   if (!d) return placeholder;
   if (d.length <= 10) {
-    return d
-      .replace(/^(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+    return d.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
   }
-  return d
-    .replace(/^(\d{2})(\d)/, "($1) $2")
-    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+  return d.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 }
 
 // ---------- Competência ----------

@@ -8,7 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info } from "lucide-react";
@@ -28,7 +34,14 @@ export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({
 });
 
 const BUCKET = "assinaturas";
-const PERFIS_ELEGIVEIS = ["MASTER", "GESTOR", "GESTAO", "DIRETOR", "DIRETOR_UNIDADE", "COORDENADOR"];
+const PERFIS_ELEGIVEIS = [
+  "MASTER",
+  "GESTOR",
+  "GESTAO",
+  "DIRETOR",
+  "DIRETOR_UNIDADE",
+  "COORDENADOR",
+];
 
 type Unidade = { id: string; nome: string };
 type Assinatura = {
@@ -82,7 +95,9 @@ export function MinhaAssinaturaPage() {
     queryFn: async (): Promise<Assinatura[]> => {
       const { data, error } = await supabase
         .from("assinaturas_institucionais")
-        .select("id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo")
+        .select(
+          "id, storage_path, mime_type, unidade_id, titular_nome, titular_cargo, ativa, vigencia_inicio, vigencia_fim, created_at, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo",
+        )
         .eq("usuario_id", me!.id)
         .eq("is_pessoal", true)
         .is("deleted_at", null)
@@ -109,10 +124,7 @@ export function MinhaAssinaturaPage() {
 
   const excluir = useMutation({
     mutationFn: async (row: Assinatura) => {
-      const { error } = await supabase
-        .from("assinaturas_institucionais")
-        .delete()
-        .eq("id", row.id);
+      const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
       if (error) throw error;
       await supabase.storage.from(BUCKET).remove([row.storage_path]);
     },
@@ -133,7 +145,8 @@ export function MinhaAssinaturaPage() {
             <PenLine className="h-6 w-6 text-primary" /> Minha assinatura digital
           </h1>
           <p className="text-sm text-muted-foreground">
-            Cadastre sua assinatura para que documentos oficiais possam ser assinados automaticamente pelo sistema.
+            Cadastre sua assinatura para que documentos oficiais possam ser assinados
+            automaticamente pelo sistema.
           </p>
         </div>
       </div>
@@ -143,8 +156,8 @@ export function MinhaAssinaturaPage() {
           <Info className="h-4 w-4" />
           <AlertTitle>Seu perfil não requer assinatura pessoal</AlertTitle>
           <AlertDescription>
-            Somente Diretores, Coordenadores, Gestores e Master têm assinatura pessoal vinculada aos documentos.
-            Se você entende que deveria ter, procure o administrador do sistema.
+            Somente Diretores, Coordenadores, Gestores e Master têm assinatura pessoal vinculada aos
+            documentos. Se você entende que deveria ter, procure o administrador do sistema.
           </AlertDescription>
         </Alert>
       )}
@@ -154,7 +167,9 @@ export function MinhaAssinaturaPage() {
           <Card>
             <CardHeader>
               <CardTitle>Nova assinatura</CardTitle>
-              <CardDescription>Envie um arquivo PNG ou JPG. Recomendamos PNG com fundo transparente.</CardDescription>
+              <CardDescription>
+                Envie um arquivo PNG ou JPG. Recomendamos PNG com fundo transparente.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <UploadForm
@@ -169,7 +184,8 @@ export function MinhaAssinaturaPage() {
             <CardHeader>
               <CardTitle>Minhas assinaturas</CardTitle>
               <CardDescription>
-                Apenas uma assinatura pode estar ativa por unidade. Ativar uma nova desativa a anterior automaticamente.
+                Apenas uma assinatura pode estar ativa por unidade. Ativar uma nova desativa a
+                anterior automaticamente.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -203,7 +219,9 @@ export function MinhaAssinaturaPage() {
 }
 
 function UploadForm({
-  me, unidades, onSaved,
+  me,
+  unidades,
+  onSaved,
 }: {
   me: { id: string; nome_completo?: string | null; perfil_id?: string | null };
   unidades: Unidade[];
@@ -219,17 +237,32 @@ function UploadForm({
   const [pos, setPos] = useState<SignaturePosition>(DEFAULT_POSITION);
 
   useEffect(() => {
-    if (!file) { setPreview(null); return; }
+    if (!file) {
+      setPreview(null);
+      return;
+    }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
   async function salvar() {
-    if (!file) { toast.error("Selecione um arquivo PNG ou JPG"); return; }
-    if (!/^image\/(png|jpe?g)$/i.test(file.type)) { toast.error("Formato inválido. Use PNG ou JPG"); return; }
-    if (file.size > 2 * 1024 * 1024) { toast.error("Arquivo muito grande. Máx: 2MB"); return; }
-    if (!titularNome.trim()) { toast.error("Informe seu nome completo"); return; }
+    if (!file) {
+      toast.error("Selecione um arquivo PNG ou JPG");
+      return;
+    }
+    if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+      toast.error("Formato inválido. Use PNG ou JPG");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máx: 2MB");
+      return;
+    }
+    if (!titularNome.trim()) {
+      toast.error("Informe seu nome completo");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -238,7 +271,8 @@ function UploadForm({
       const path = `pessoal/${me.id}/${unidSeg}/${crypto.randomUUID()}.${ext}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type, upsert: false,
+        contentType: file.type,
+        upsert: false,
       });
       if (up.error) throw up.error;
 
@@ -312,11 +346,15 @@ function UploadForm({
         <div>
           <Label htmlFor="unidade">Unidade</Label>
           <Select value={unidadeId} onValueChange={setUnidadeId}>
-            <SelectTrigger id="unidade"><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectTrigger id="unidade">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__todas__">Todas as minhas unidades</SelectItem>
               {unidades.map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                <SelectItem key={u.id} value={u.id}>
+                  {u.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -328,7 +366,12 @@ function UploadForm({
         </div>
         <div>
           <Label htmlFor="fim">Vigência até (opcional)</Label>
-          <Input id="fim" type="date" value={vigenciaFim} onChange={(e) => setVigenciaFim(e.target.value)} />
+          <Input
+            id="fim"
+            type="date"
+            value={vigenciaFim}
+            onChange={(e) => setVigenciaFim(e.target.value)}
+          />
         </div>
         <Button onClick={salvar} disabled={saving || !file} className="w-full">
           <Upload className="mr-2 h-4 w-4" />
@@ -353,7 +396,10 @@ function UploadForm({
 }
 
 function AssinaturaCard({
-  row, unidades, onToggle, onDelete,
+  row,
+  unidades,
+  onToggle,
+  onDelete,
 }: {
   row: Assinatura;
   unidades: Unidade[];
@@ -378,11 +424,13 @@ function AssinaturaCard({
       const { data } = await supabase.storage.from(BUCKET).createSignedUrl(row.storage_path, 600);
       if (!cancel) setSignedUrl(data?.signedUrl ?? null);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [row.storage_path]);
 
   const unidadeNome = row.unidade_id
-    ? unidades.find((u) => u.id === row.unidade_id)?.nome ?? "Unidade removida"
+    ? (unidades.find((u) => u.id === row.unidade_id)?.nome ?? "Unidade removida")
     : "Todas as unidades";
 
   const vencida = row.vigencia_fim && new Date(row.vigencia_fim) < new Date();
@@ -423,11 +471,19 @@ function AssinaturaCard({
         </div>
         <div className="flex items-center gap-1">
           {row.ativa ? (
-            <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Ativa</Badge>
+            <Badge variant="default" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Ativa
+            </Badge>
           ) : (
             <Badge variant="secondary">Inativa</Badge>
           )}
-          {vencida && <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3" />Vencida</Badge>}
+          {vencida && (
+            <Badge variant="destructive" className="gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Vencida
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -473,12 +529,7 @@ function AssinaturaCard({
               titularNome={row.titular_nome}
               titularCargo={row.titular_cargo ?? undefined}
             />
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={salvarPosicao}
-              disabled={savingPos}
-            >
+            <Button size="sm" className="w-full" onClick={salvarPosicao} disabled={savingPos}>
               {savingPos ? "Salvando…" : "Salvar posicionamento"}
             </Button>
           </div>

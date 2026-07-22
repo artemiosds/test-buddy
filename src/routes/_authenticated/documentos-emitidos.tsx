@@ -7,10 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -54,7 +63,9 @@ function DocumentosEmitidosPage() {
     queryFn: async () => {
       let q = supabase
         .from("documentos_assinados_publico")
-        .select("id, tipo, descricao, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, hash_conteudo")
+        .select(
+          "id, tipo, descricao, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, hash_conteudo",
+        )
         .order("assinado_em", { ascending: false })
         .limit(500);
       if (tipo !== "all") q = q.eq("tipo", tipo);
@@ -72,7 +83,9 @@ function DocumentosEmitidosPage() {
     const t = busca.trim().toLowerCase();
     return data.filter((d) =>
       [d.descricao, d.tipo, d.assinado_por_nome ?? "", d.id, d.hash_conteudo]
-        .join(" ").toLowerCase().includes(t),
+        .join(" ")
+        .toLowerCase()
+        .includes(t),
     );
   }, [data, busca]);
 
@@ -84,7 +97,8 @@ function DocumentosEmitidosPage() {
   const revogarMut = useMutation({
     mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
       const { error } = await supabase.rpc("revogar_documento_assinado", {
-        _id: id, _motivo: motivo,
+        _id: id,
+        _motivo: motivo,
       });
       if (error) throw error;
     },
@@ -112,29 +126,42 @@ function DocumentosEmitidosPage() {
       <div>
         <h1 className="text-2xl font-semibold">Documentos Emitidos</h1>
         <p className="text-sm text-muted-foreground">
-          Trilha oficial de todos os documentos assinados eletronicamente. Autor ou Master pode revogar.
+          Trilha oficial de todos os documentos assinados eletronicamente. Autor ou Master pode
+          revogar.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
         <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground">Busca</label>
-          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Descrição, autor, protocolo, hash..." />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Descrição, autor, protocolo, hash..."
+          />
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Tipo</label>
           <Select value={tipo} onValueChange={setTipo}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {tipos.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Status</label>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="ativo">Ativos</SelectItem>
@@ -167,49 +194,74 @@ function DocumentosEmitidosPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Carregando...</td></tr>
-            ) : filtradas.length === 0 ? (
-              <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum documento encontrado.</td></tr>
-            ) : filtradas.map((d) => (
-              <tr key={d.id} className="border-t">
-                <td className="px-3 py-2 font-mono text-xs">{d.id.slice(0, 8)}…</td>
-                <td className="px-3 py-2">{d.tipo}</td>
-                <td className="px-3 py-2 max-w-[380px] truncate" title={d.descricao}>{d.descricao}</td>
-                <td className="px-3 py-2">{d.assinado_por_nome ?? "—"}</td>
-                <td className="px-3 py-2">{new Date(d.assinado_em).toLocaleString("pt-BR")}</td>
-                <td className="px-3 py-2">
-                  {d.status === "revogado" ? (
-                    <Badge variant="destructive" className="gap-1"><ShieldOff className="h-3 w-3" /> Revogado</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="gap-1"><ShieldCheck className="h-3 w-3" /> Ativo</Badge>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="inline-flex gap-1">
-                    <Button asChild size="sm" variant="ghost">
-                      <Link to="/validar/$id" params={{ id: d.id }} target="_blank">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                    {d.status !== "revogado" && (
-                      <Button size="sm" variant="outline" onClick={() => setRevogar(d)}>
-                        <Ban className="h-3.5 w-3.5 mr-1" /> Revogar
-                      </Button>
-                    )}
-                  </div>
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                  Carregando...
                 </td>
               </tr>
-            ))}
+            ) : filtradas.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                  Nenhum documento encontrado.
+                </td>
+              </tr>
+            ) : (
+              filtradas.map((d) => (
+                <tr key={d.id} className="border-t">
+                  <td className="px-3 py-2 font-mono text-xs">{d.id.slice(0, 8)}…</td>
+                  <td className="px-3 py-2">{d.tipo}</td>
+                  <td className="px-3 py-2 max-w-[380px] truncate" title={d.descricao}>
+                    {d.descricao}
+                  </td>
+                  <td className="px-3 py-2">{d.assinado_por_nome ?? "—"}</td>
+                  <td className="px-3 py-2">{new Date(d.assinado_em).toLocaleString("pt-BR")}</td>
+                  <td className="px-3 py-2">
+                    {d.status === "revogado" ? (
+                      <Badge variant="destructive" className="gap-1">
+                        <ShieldOff className="h-3 w-3" /> Revogado
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1">
+                        <ShieldCheck className="h-3 w-3" /> Ativo
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="inline-flex gap-1">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to="/validar/$id" params={{ id: d.id }} target="_blank">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                      {d.status !== "revogado" && (
+                        <Button size="sm" variant="outline" onClick={() => setRevogar(d)}>
+                          <Ban className="h-3.5 w-3.5 mr-1" /> Revogar
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <Dialog open={!!revogar} onOpenChange={(o) => { if (!o) { setRevogar(null); setMotivo(""); } }}>
+      <Dialog
+        open={!!revogar}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRevogar(null);
+            setMotivo("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Revogar documento</DialogTitle>
             <DialogDescription>
-              A revogação é <strong>irreversível</strong> e ficará registrada na trilha de auditoria.
+              A revogação é <strong>irreversível</strong> e ficará registrada na trilha de
+              auditoria.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">
@@ -217,15 +269,32 @@ function DocumentosEmitidosPage() {
               <p className="text-xs text-muted-foreground">Documento</p>
               <p className="font-medium">{revogar?.descricao}</p>
             </div>
-            <label className="text-xs text-muted-foreground">Motivo (obrigatório, mínimo 5 caracteres)</label>
-            <Textarea rows={4} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: erro de digitação na competência, versão substituída por..." />
+            <label className="text-xs text-muted-foreground">
+              Motivo (obrigatório, mínimo 5 caracteres)
+            </label>
+            <Textarea
+              rows={4}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: erro de digitação na competência, versão substituída por..."
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRevogar(null); setMotivo(""); }}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRevogar(null);
+                setMotivo("");
+              }}
+            >
+              Cancelar
+            </Button>
             <Button
               variant="destructive"
               disabled={motivo.trim().length < 5 || revogarMut.isPending}
-              onClick={() => revogar && revogarMut.mutate({ id: revogar.id, motivo: motivo.trim() })}
+              onClick={() =>
+                revogar && revogarMut.mutate({ id: revogar.id, motivo: motivo.trim() })
+              }
             >
               {revogarMut.isPending ? "Revogando..." : "Confirmar revogação"}
             </Button>

@@ -26,15 +26,28 @@ import {
   getPisoDistribuicao,
 } from "@/lib/piso-enfermagem.functions";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { competenciaAtual } from "@/lib/piso-heuristics";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
-  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  ElegibilidadePisoBadge, AlertasBotao, DossieDrawer,
+  SituacaoResumo,
+  SituacaoFilter,
+  ProfissionalNomeCell,
+  SituacaoBadge,
+  ElegibilidadePisoBadge,
+  AlertasBotao,
+  DossieDrawer,
   type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
 import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
@@ -71,8 +84,7 @@ type Linha = {
 const VINCULO_OPCOES = ["Efetivos", "Contratados"] as const;
 const CARGO_OPCOES = ["Enfermeiro", "Técnico", "Auxiliar"] as const;
 
-const fmtBRL = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function PisoIndex() {
   const [competencia, setCompetencia] = useState<string | null>(null);
@@ -134,8 +146,12 @@ function PisoIndex() {
       rowsPagina.map((r) =>
         mergeConferencia(
           {
-            id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
-            matricula: r.matricula, vinculo: r.vinculo,
+            id: r.id,
+            nome: r.nome,
+            cpf: r.cpf,
+            cargo: r.cargo,
+            matricula: r.matricula,
+            vinculo: r.vinculo,
           },
           confMap,
         ),
@@ -164,18 +180,16 @@ function PisoIndex() {
         cell: (r) => {
           const conf: ProfConferencia = mergeConferencia(
             {
-              id: r.id, nome: r.nome, cpf: r.cpf, cargo: r.cargo,
-              matricula: r.matricula, vinculo: r.vinculo,
+              id: r.id,
+              nome: r.nome,
+              cpf: r.cpf,
+              cargo: r.cargo,
+              matricula: r.matricula,
+              vinculo: r.vinculo,
             },
             confMap,
           );
-          return (
-            <ProfissionalNomeCell
-              prof={conf}
-              onOpenDossie={openDossie}
-              secondary={r.cargo}
-            />
-          );
+          return <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={r.cargo} />;
         },
       },
       {
@@ -257,8 +271,7 @@ function PisoIndex() {
     n == null
       ? undefined
       : {
-          direction:
-            n > 0 ? ("up" as const) : n < 0 ? ("down" as const) : ("flat" as const),
+          direction: n > 0 ? ("up" as const) : n < 0 ? ("down" as const) : ("flat" as const),
           label: `${n > 0 ? "+" : ""}${n.toFixed(1)}% vs mês anterior`,
         };
 
@@ -275,7 +288,11 @@ function PisoIndex() {
         description="Profissionais beneficiados e complementação salarial por competência."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleExportar} disabled={!linhasQ.data?.rows?.length}>
+            <Button
+              variant="outline"
+              onClick={handleExportar}
+              disabled={!linhasQ.data?.rows?.length}
+            >
               <Download className="mr-2 h-4 w-4" /> Exportar Excel
             </Button>
             <PermissionGate permission="piso.importar">
@@ -309,7 +326,9 @@ function PisoIndex() {
             <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
               <div>
-                <div className="font-medium">Competência {mesCorrente} ainda não foi importada.</div>
+                <div className="font-medium">
+                  Competência {mesCorrente} ainda não foi importada.
+                </div>
                 <div className="text-xs text-muted-foreground">
                   Última competência registrada: {resumoQ.data?.competenciaAtual ?? "—"}.
                 </div>
@@ -329,7 +348,9 @@ function PisoIndex() {
             <KpiCard
               label="Total pago"
               value={fmtBRL(atualR?.valorFinal ?? 0)}
-              trend={atualR && antR ? kpiTrend(delta(atualR.valorFinal, antR.valorFinal)) : undefined}
+              trend={
+                atualR && antR ? kpiTrend(delta(atualR.valorFinal, antR.valorFinal)) : undefined
+              }
               icon={
                 atualR && antR && delta(atualR.valorFinal, antR.valorFinal)! >= 0 ? (
                   <TrendingUp className="h-4 w-4" />
@@ -391,7 +412,14 @@ function PisoIndex() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={distQ.data.porUnidade}>
-                      <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 10 }}
+                        interval={0}
+                        angle={-25}
+                        textAnchor="end"
+                        height={60}
+                      />
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip />
                       <Bar dataKey="total" fill="hsl(var(--primary))" />
@@ -412,7 +440,14 @@ function PisoIndex() {
                         label={({ name, value }) => `${name}: ${value}`}
                       >
                         {distQ.data.porCargo.map((_, i) => (
-                          <Cell key={i} fill={["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2"][i % 6]} />
+                          <Cell
+                            key={i}
+                            fill={
+                              ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"][
+                                i % 6
+                              ]
+                            }
+                          />
                         ))}
                       </Pie>
                       <Legend wrapperStyle={{ fontSize: 11 }} />

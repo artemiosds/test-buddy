@@ -54,11 +54,7 @@ function competenciaAtivaHandler() {
 // paralelos (statusBreakdown/vinculo/distribuicao*/alertas/quadroLotacao)
 // que disparam automaticamente sem depender de filtro.
 function baseAnalyticsFixture() {
-  return [
-    permsHandler(),
-    competenciaAtivaHandler(),
-    ...baseCountHandlers({}),
-  ];
+  return [permsHandler(), competenciaAtivaHandler(), ...baseCountHandlers({})];
 }
 
 describe("useAnalytics", () => {
@@ -75,19 +71,13 @@ describe("useAnalytics", () => {
         frequencia_pendencias: 5,
       }),
       ...analyticsQueriesOk(),
-      http.get(`${BASE}/frequencias`, () =>
-        HttpResponse.json([FREQ_ROW_A, FREQ_ROW_B]),
-      ),
+      http.get(`${BASE}/frequencias`, () => HttpResponse.json([FREQ_ROW_A, FREQ_ROW_B])),
     );
 
-    const { result } = renderHookWithQuery(() =>
-      useAnalytics({ competenciaId: "c1" }),
-    );
+    const { result } = renderHookWithQuery(() => useAnalytics({ competenciaId: "c1" }));
 
     await waitFor(() => expect(result.current.frequencias.isSuccess).toBe(true));
-    await waitFor(() =>
-      expect(result.current.totalProfessionals.isSuccess).toBe(true),
-    );
+    await waitFor(() => expect(result.current.totalProfessionals.isSuccess).toBe(true));
 
     expect(result.current.totalProfessionals.data).toBe(42);
     expect(result.current.totalUnidades.data).toBe(7);
@@ -109,9 +99,7 @@ describe("useAnalytics", () => {
       http.get(`${BASE}/frequencias`, () => HttpResponse.json([])),
     );
 
-    const { result } = renderHookWithQuery(() =>
-      useAnalytics({ competenciaId: "c1" }),
-    );
+    const { result } = renderHookWithQuery(() => useAnalytics({ competenciaId: "c1" }));
     await waitFor(() => expect(result.current.frequencias.isSuccess).toBe(true));
 
     expect(result.current.frequenciasAprovadas).toBe(0);
@@ -128,9 +116,7 @@ describe("useAnalytics", () => {
       ),
     );
 
-    const { result } = renderHookWithQuery(() =>
-      useAnalytics({ competenciaId: "c1" }),
-    );
+    const { result } = renderHookWithQuery(() => useAnalytics({ competenciaId: "c1" }));
     await waitFor(() => expect(result.current.frequencias.isError).toBe(true));
     // Agregações defaultam com array vazio quando data é undefined.
     expect(result.current.frequenciasAprovadas).toBe(0);
@@ -166,7 +152,11 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
 
     expect(result.current.statusBreakdown.data).toEqual({ ativo: 2, ferias: 1, afastado: 1 });
-    expect(result.current.vinculoBreakdown.data).toEqual({ efetivos: 2, temporarios: 1, outros: 1 });
+    expect(result.current.vinculoBreakdown.data).toEqual({
+      efetivos: 2,
+      temporarios: 1,
+      outros: 1,
+    });
     expect(result.current.distribuicaoUnidade.data?.[0]?.total).toBe(2);
     expect(result.current.distribuicaoCargo.data?.[0]?.total).toBe(2);
     expect(result.current.distribuicaoSetor.data?.[0]?.total).toBe(2);
@@ -196,7 +186,11 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
 
     expect(result.current.statusBreakdown.data).toEqual({});
-    expect(result.current.vinculoBreakdown.data).toEqual({ efetivos: 0, temporarios: 0, outros: 0 });
+    expect(result.current.vinculoBreakdown.data).toEqual({
+      efetivos: 0,
+      temporarios: 0,
+      outros: 0,
+    });
     expect(result.current.distribuicaoUnidade.data).toEqual([]);
     expect(result.current.distribuicaoCargo.data).toEqual([]);
     expect(result.current.distribuicaoSetor.data).toEqual([]);

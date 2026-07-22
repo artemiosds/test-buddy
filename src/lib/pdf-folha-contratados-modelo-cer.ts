@@ -18,8 +18,18 @@ export type PdfContratadosModeloCerInput = {
 };
 
 const MESES = [
-  "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
-  "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO",
+  "JANEIRO",
+  "FEVEREIRO",
+  "MARÇO",
+  "ABRIL",
+  "MAIO",
+  "JUNHO",
+  "JULHO",
+  "AGOSTO",
+  "SETEMBRO",
+  "OUTUBRO",
+  "NOVEMBRO",
+  "DEZEMBRO",
 ];
 
 async function fetchAsDataUrl(url: string): Promise<string | null> {
@@ -33,7 +43,9 @@ async function fetchAsDataUrl(url: string): Promise<string | null> {
       r.onerror = () => reject(r.error);
       r.readAsDataURL(blob);
     });
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function fmtNum(v: number | null | undefined): string {
@@ -65,17 +77,29 @@ export async function gerarFolhaContratadosModeloCer(
     const logoY = 8;
     // Logo 1 (esquerda) — Prefeitura
     if (logoPrefeitura) {
-      try { doc.addImage(logoPrefeitura, "PNG", MARGEM, logoY, logoSize, logoSize); } catch { /* noop */ }
+      try {
+        doc.addImage(logoPrefeitura, "PNG", MARGEM, logoY, logoSize, logoSize);
+      } catch {
+        /* noop */
+      }
     }
     // Logo 3 (direita) — Secretaria Municipal de Saúde
     if (logoSaude) {
-      try { doc.addImage(logoSaude, "PNG", pageW - MARGEM - logoSize, logoY, logoSize, logoSize); } catch { /* noop */ }
+      try {
+        doc.addImage(logoSaude, "PNG", pageW - MARGEM - logoSize, logoY, logoSize, logoSize);
+      } catch {
+        /* noop */
+      }
     }
 
     const cx = pageW / 2;
     // Logo 2 (centro) — brasão alternativo, acima dos textos
     if (logoBrasaoAlt) {
-      try { doc.addImage(logoBrasaoAlt, "PNG", cx - logoSize / 2, logoY - 2, logoSize, logoSize); } catch { /* noop */ }
+      try {
+        doc.addImage(logoBrasaoAlt, "PNG", cx - logoSize / 2, logoY - 2, logoSize, logoSize);
+      } catch {
+        /* noop */
+      }
     }
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
@@ -91,20 +115,33 @@ export async function gerarFolhaContratadosModeloCer(
     doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, ty, { align: "center" });
     ty += 4;
     doc.setFontSize(9);
-    doc.text(
-      `${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`,
-      cx, ty, { align: "center" },
-    );
+    doc.text(`${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`, cx, ty, {
+      align: "center",
+    });
     doc.setDrawColor(120, 120, 120);
     doc.setLineWidth(0.3);
     doc.line(MARGEM, ty + 2, pageW - MARGEM, ty + 2);
   };
 
-  const head = [[
-    "Nº","NOME","C.P.F.","CARGO","LOTAÇÃO",
-    "DIAS","FALTA","ATT","H.E 50%","H.E 100%","ADN",
-    "PLANTÕES","SOBRE-AVISOS","INCENTIVO","CONTA",
-  ]];
+  const head = [
+    [
+      "Nº",
+      "NOME",
+      "C.P.F.",
+      "CARGO",
+      "LOTAÇÃO",
+      "DIAS",
+      "FALTA",
+      "ATT",
+      "H.E 50%",
+      "H.E 100%",
+      "ADN",
+      "PLANTÕES",
+      "SOBRE-AVISOS",
+      "INCENTIVO",
+      "CONTA",
+    ],
+  ];
 
   const body = input.itens.map((it, i) => {
     const p = it.profissional;
@@ -152,21 +189,21 @@ export async function gerarFolhaContratadosModeloCer(
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0:  { halign: "center", cellWidth: 8 },
-      1:  { halign: "left",   cellWidth: 50 },
-      2:  { halign: "center", cellWidth: 24 },
-      3:  { halign: "left",   cellWidth: 28 },
-      4:  { halign: "left",   cellWidth: 24 },
-      5:  { halign: "center", cellWidth: 10 },
-      6:  { halign: "center", cellWidth: 10 },
-      7:  { halign: "center", cellWidth: 10 },
-      8:  { halign: "center", cellWidth: 12 },
-      9:  { halign: "center", cellWidth: 12 },
+      0: { halign: "center", cellWidth: 8 },
+      1: { halign: "left", cellWidth: 50 },
+      2: { halign: "center", cellWidth: 24 },
+      3: { halign: "left", cellWidth: 28 },
+      4: { halign: "left", cellWidth: 24 },
+      5: { halign: "center", cellWidth: 10 },
+      6: { halign: "center", cellWidth: 10 },
+      7: { halign: "center", cellWidth: 10 },
+      8: { halign: "center", cellWidth: 12 },
+      9: { halign: "center", cellWidth: 12 },
       10: { halign: "center", cellWidth: 10 },
       11: { halign: "center", cellWidth: 14 },
       12: { halign: "center", cellWidth: 16 },
       13: { halign: "center", cellWidth: 14 },
-      14: { halign: "left",   cellWidth: 45 },
+      14: { halign: "left", cellWidth: 45 },
     },
     didDrawPage: () => {
       drawHeader();

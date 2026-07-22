@@ -36,9 +36,20 @@ export type ResolvedRow = {
 };
 
 const NUMERIC_KEYS: PisoDestino[] = [
-  "salario_base","piso_complementacao","insalubridade","gratificacao",
-  "hora_extra_50","hora_extra_100","adicional_noturno","auxilio_financeiro",
-  "ferias_1_3","ferias","inss","irrf","valor_liquido","valor_final",
+  "salario_base",
+  "piso_complementacao",
+  "insalubridade",
+  "gratificacao",
+  "hora_extra_50",
+  "hora_extra_100",
+  "adicional_noturno",
+  "auxilio_financeiro",
+  "ferias_1_3",
+  "ferias",
+  "inss",
+  "irrf",
+  "valor_liquido",
+  "valor_final",
 ];
 
 function isNumericKey(k: PisoDestino): boolean {
@@ -64,26 +75,46 @@ function applyMap(row: RawRow, mapeamento: Mapeamento): Partial<ResolvedRow> {
 
 function empty(): ResolvedRow {
   return {
-    cpf: null, nome: null, matricula: null, cargo: null, unidade: null,
-    setor: null, vinculo: null, competencia: null,
-    salario_base: null, piso_complementacao: null, insalubridade: null,
-    gratificacao: null, hora_extra_50: null, hora_extra_100: null,
-    adicional_noturno: null, auxilio_financeiro: null, ferias_1_3: null,
-    ferias: null, inss: null, irrf: null, valor_liquido: null, valor_final: null,
-    profissional_id: null, status_match: "nao_localizado",
+    cpf: null,
+    nome: null,
+    matricula: null,
+    cargo: null,
+    unidade: null,
+    setor: null,
+    vinculo: null,
+    competencia: null,
+    salario_base: null,
+    piso_complementacao: null,
+    insalubridade: null,
+    gratificacao: null,
+    hora_extra_50: null,
+    hora_extra_100: null,
+    adicional_noturno: null,
+    auxilio_financeiro: null,
+    ferias_1_3: null,
+    ferias: null,
+    inss: null,
+    irrf: null,
+    valor_liquido: null,
+    valor_final: null,
+    profissional_id: null,
+    status_match: "nao_localizado",
   };
 }
 
 export type MatchMaps = {
-  byCpf: Record<string, string>;         // cpf(11 dig) -> profissional_id
-  byMatricula: Record<string, string>;   // matricula   -> profissional_id
+  byCpf: Record<string, string>; // cpf(11 dig) -> profissional_id
+  byMatricula: Record<string, string>; // matricula   -> profissional_id
 };
 
 /**
  * Resolve profissional_id + status_match segundo a ordem: CPF → matrícula → nao_localizado.
  * Fuzzy nome fica para fase 2.
  */
-export function resolveMatch(row: Pick<ResolvedRow, "cpf" | "matricula">, maps: MatchMaps): {
+export function resolveMatch(
+  row: Pick<ResolvedRow, "cpf" | "matricula">,
+  maps: MatchMaps,
+): {
   profissional_id: string | null;
   status_match: ResolvedRow["status_match"];
 } {
@@ -99,7 +130,11 @@ export function resolveMatch(row: Pick<ResolvedRow, "cpf" | "matricula">, maps: 
 }
 
 /** Aplica mapa + resolve match para todas as linhas cruas. */
-export function resolveRows(rows: RawRow[], mapeamento: Mapeamento, maps: MatchMaps): ResolvedRow[] {
+export function resolveRows(
+  rows: RawRow[],
+  mapeamento: Mapeamento,
+  maps: MatchMaps,
+): ResolvedRow[] {
   return rows.map((raw) => {
     const partial = applyMap(raw, mapeamento);
     const base = { ...empty(), ...partial };
@@ -116,10 +151,18 @@ export type ImportStats = {
 };
 
 export function statsFrom(rows: ResolvedRow[]): ImportStats {
-  let importados = 0, divergentes = 0, nao_localizados = 0;
+  let importados = 0,
+    divergentes = 0,
+    nao_localizados = 0;
   for (const r of rows) {
-    if (r.status_match === "nao_localizado") { nao_localizados++; continue; }
-    if (!r.cpf && !r.matricula) { divergentes++; continue; }
+    if (r.status_match === "nao_localizado") {
+      nao_localizados++;
+      continue;
+    }
+    if (!r.cpf && !r.matricula) {
+      divergentes++;
+      continue;
+    }
     importados++;
   }
   return { total: rows.length, importados, divergentes, nao_localizados };

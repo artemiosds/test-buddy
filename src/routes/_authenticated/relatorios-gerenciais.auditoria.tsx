@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pagination } from "@/components/shared/Pagination";
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
@@ -39,12 +41,20 @@ type AuditRow = {
 };
 
 const OP_VARIANT: Record<Operacao, "default" | "secondary" | "destructive" | "outline"> = {
-  insert: "secondary", update: "default", delete: "destructive",
-  login: "outline", logout: "outline", custom: "default",
+  insert: "secondary",
+  update: "default",
+  delete: "destructive",
+  login: "outline",
+  logout: "outline",
+  custom: "default",
 };
 const OP_LABEL: Record<Operacao, string> = {
-  insert: "Inserção", update: "Atualização", delete: "Exclusão",
-  login: "Login", logout: "Logout", custom: "Ação",
+  insert: "Inserção",
+  update: "Atualização",
+  delete: "Exclusão",
+  login: "Login",
+  logout: "Logout",
+  custom: "Ação",
 };
 
 type Preset = {
@@ -56,21 +66,80 @@ type Preset = {
 };
 
 const PRESETS: Preset[] = [
-  { id: "todos", label: "Todos os eventos", desc: "Trilha completa (todas as tabelas e operações)." },
-  { id: "cadastros", label: "Cadastros gerais", desc: "Alterações em Profissionais, Unidades, Setores, Cargos, Funções, Tipos de Unidade.",
-    tabelas: ["public.profissionais", "public.unidades", "public.setores", "public.cargos", "public.funcoes", "public.tipos_unidade", "public.vinculos"] },
-  { id: "profissionais", label: "Profissionais", desc: "Somente eventos na tabela profissionais.",
-    tabelas: ["public.profissionais", "public.profissional_historico_funcional"] },
-  { id: "usuarios", label: "Usuários & Permissões", desc: "Criação, alteração e permissões de usuários do sistema.",
-    tabelas: ["public.usuarios", "public.usuario_permissoes", "public.usuario_unidades", "public.usuario_secretarias", "public.perfil_permissoes", "public.perfis"] },
-  { id: "sessoes", label: "Sessões (login/logout)", desc: "Entradas e saídas de usuários.",
-    operacoes: ["login", "logout"] },
-  { id: "piso", label: "Piso da Enfermagem", desc: "Importações, recálculos e alterações no Piso.",
-    tabelas: ["public.piso_enfermagem", "public.piso_mapeamentos_salvos", "public.historico_importacoes"] },
-  { id: "frequencias", label: "Frequências & Folhas", desc: "Alterações em frequências, aprovações e pendências.",
-    tabelas: ["public.frequencias", "public.frequencia_profissional", "public.frequencia_aprovacoes", "public.frequencia_pendencias", "public.frequencias_contratados", "public.competencias", "public.competencia_unidades"] },
-  { id: "exclusoes", label: "Exclusões", desc: "Todos os registros deletados no sistema.",
-    operacoes: ["delete"] },
+  {
+    id: "todos",
+    label: "Todos os eventos",
+    desc: "Trilha completa (todas as tabelas e operações).",
+  },
+  {
+    id: "cadastros",
+    label: "Cadastros gerais",
+    desc: "Alterações em Profissionais, Unidades, Setores, Cargos, Funções, Tipos de Unidade.",
+    tabelas: [
+      "public.profissionais",
+      "public.unidades",
+      "public.setores",
+      "public.cargos",
+      "public.funcoes",
+      "public.tipos_unidade",
+      "public.vinculos",
+    ],
+  },
+  {
+    id: "profissionais",
+    label: "Profissionais",
+    desc: "Somente eventos na tabela profissionais.",
+    tabelas: ["public.profissionais", "public.profissional_historico_funcional"],
+  },
+  {
+    id: "usuarios",
+    label: "Usuários & Permissões",
+    desc: "Criação, alteração e permissões de usuários do sistema.",
+    tabelas: [
+      "public.usuarios",
+      "public.usuario_permissoes",
+      "public.usuario_unidades",
+      "public.usuario_secretarias",
+      "public.perfil_permissoes",
+      "public.perfis",
+    ],
+  },
+  {
+    id: "sessoes",
+    label: "Sessões (login/logout)",
+    desc: "Entradas e saídas de usuários.",
+    operacoes: ["login", "logout"],
+  },
+  {
+    id: "piso",
+    label: "Piso da Enfermagem",
+    desc: "Importações, recálculos e alterações no Piso.",
+    tabelas: [
+      "public.piso_enfermagem",
+      "public.piso_mapeamentos_salvos",
+      "public.historico_importacoes",
+    ],
+  },
+  {
+    id: "frequencias",
+    label: "Frequências & Folhas",
+    desc: "Alterações em frequências, aprovações e pendências.",
+    tabelas: [
+      "public.frequencias",
+      "public.frequencia_profissional",
+      "public.frequencia_aprovacoes",
+      "public.frequencia_pendencias",
+      "public.frequencias_contratados",
+      "public.competencias",
+      "public.competencia_unidades",
+    ],
+  },
+  {
+    id: "exclusoes",
+    label: "Exclusões",
+    desc: "Todos os registros deletados no sistema.",
+    operacoes: ["delete"],
+  },
 ];
 
 function AuditoriaGerencial() {
@@ -86,7 +155,9 @@ function AuditoriaGerencial() {
 
   const cfg = useMemo(() => PRESETS.find((p) => p.id === preset) ?? PRESETS[0], [preset]);
 
-  useEffect(() => { setPage(1); }, [preset, operacao, tabela, usuario, busca, dias, pageSize]);
+  useEffect(() => {
+    setPage(1);
+  }, [preset, operacao, tabela, usuario, busca, dias, pageSize]);
 
   const desde = useMemo(() => {
     const d = new Date();
@@ -95,12 +166,17 @@ function AuditoriaGerencial() {
   }, [dias]);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["rel-gerenciais-auditoria", { preset, operacao, tabela, usuario, busca, desde, page, pageSize }],
+    queryKey: [
+      "rel-gerenciais-auditoria",
+      { preset, operacao, tabela, usuario, busca, desde, page, pageSize },
+    ],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-      let q = supabase.from("audit_log").select("*", { count: "exact" })
+      let q = supabase
+        .from("audit_log")
+        .select("*", { count: "exact" })
         .gte("ocorrido_em", desde)
         .order("ocorrido_em", { ascending: false });
       if (cfg.tabelas?.length) q = q.in("tabela", cfg.tabelas);
@@ -122,14 +198,22 @@ function AuditoriaGerencial() {
     queryKey: ["rel-gerenciais-auditoria-kpis", { preset, desde }],
     queryFn: async () => {
       const cnt = async (op?: Operacao) => {
-        let q = supabase.from("audit_log").select("id", { count: "exact", head: true }).gte("ocorrido_em", desde);
+        let q = supabase
+          .from("audit_log")
+          .select("id", { count: "exact", head: true })
+          .gte("ocorrido_em", desde);
         if (cfg.tabelas?.length) q = q.in("tabela", cfg.tabelas);
         if (cfg.operacoes?.length) q = q.in("operacao", cfg.operacoes);
         if (op) q = q.eq("operacao", op);
         const { count } = await q;
         return count ?? 0;
       };
-      const [total, ins, upd, del] = await Promise.all([cnt(), cnt("insert"), cnt("update"), cnt("delete")]);
+      const [total, ins, upd, del] = await Promise.all([
+        cnt(),
+        cnt("insert"),
+        cnt("update"),
+        cnt("delete"),
+      ]);
       return { total, ins, upd, del };
     },
   });
@@ -138,8 +222,13 @@ function AuditoriaGerencial() {
   const total = data?.count ?? 0;
 
   const exportarCsv = async () => {
-    if (!total) { toast.error("Nada para exportar"); return; }
-    let q = supabase.from("audit_log").select("*")
+    if (!total) {
+      toast.error("Nada para exportar");
+      return;
+    }
+    let q = supabase
+      .from("audit_log")
+      .select("*")
       .gte("ocorrido_em", desde)
       .order("ocorrido_em", { ascending: false })
       .limit(5000);
@@ -153,14 +242,26 @@ function AuditoriaGerencial() {
       q = q.or(`registro_id.ilike.%${b}%,tabela.ilike.%${b}%,usuario_email.ilike.%${b}%`);
     }
     const { data: exportRows, error } = await q;
-    if (error || !exportRows?.length) { toast.error("Falha ao preparar exportação"); return; }
-    if (total > 5000) toast.warning(`Exportação limitada a 5000 registros (total filtrado: ${total}).`);
+    if (error || !exportRows?.length) {
+      toast.error("Falha ao preparar exportação");
+      return;
+    }
+    if (total > 5000)
+      toast.warning(`Exportação limitada a 5000 registros (total filtrado: ${total}).`);
     const header = ["ocorrido_em", "operacao", "tabela", "registro_id", "usuario_email", "ip"];
     const csv = [
       "\ufeff" + header.join(";"),
       ...(exportRows as AuditRow[]).map((r) =>
-        [r.ocorrido_em, r.operacao, r.tabela, r.registro_id ?? "", r.usuario_email ?? "", r.ip ?? ""]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"),
+        [
+          r.ocorrido_em,
+          r.operacao,
+          r.tabela,
+          r.registro_id ?? "",
+          r.usuario_email ?? "",
+          r.ip ?? "",
+        ]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(";"),
       ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -206,7 +307,11 @@ function AuditoriaGerencial() {
               key={p.id}
               size="sm"
               variant={preset === p.id ? "default" : "outline"}
-              onClick={() => { setPreset(p.id); setOperacao("todas"); setTabela("todas"); }}
+              onClick={() => {
+                setPreset(p.id);
+                setOperacao("todas");
+                setTabela("todas");
+              }}
               title={p.desc}
             >
               {p.label}
@@ -223,10 +328,20 @@ function AuditoriaGerencial() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-5">
-          <Input placeholder="Buscar registro, tabela ou e-mail…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          <Input placeholder="Filtrar por e-mail do usuário" value={usuario} onChange={(e) => setUsuario(e.target.value)} />
+          <Input
+            placeholder="Buscar registro, tabela ou e-mail…"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          <Input
+            placeholder="Filtrar por e-mail do usuário"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+          />
           <Select value={operacao} onValueChange={(v) => setOperacao(v as Operacao | "todas")}>
-            <SelectTrigger><SelectValue placeholder="Operação" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Operação" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas operações</SelectItem>
               <SelectItem value="insert">Inserção</SelectItem>
@@ -238,16 +353,22 @@ function AuditoriaGerencial() {
             </SelectContent>
           </Select>
           <Select value={tabela} onValueChange={setTabela}>
-            <SelectTrigger><SelectValue placeholder="Tabela" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Tabela" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas tabelas do foco</SelectItem>
               {(cfg.tabelas ?? []).map((t) => (
-                <SelectItem key={t} value={t}>{t.replace(/^public\./, "")}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {t.replace(/^public\./, "")}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={dias} onValueChange={setDias}>
-            <SelectTrigger><SelectValue placeholder="Período" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="1">Últimas 24h</SelectItem>
               <SelectItem value="7">Últimos 7 dias</SelectItem>
@@ -273,23 +394,41 @@ function AuditoriaGerencial() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando…</td></tr>
-                ) : rows.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum evento no período/filtro selecionado.</td></tr>
-                ) : rows.map((r) => (
-                  <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="p-3 whitespace-nowrap">{new Date(r.ocorrido_em).toLocaleString("pt-BR")}</td>
-                    <td className="p-3"><Badge variant={OP_VARIANT[r.operacao]}>{OP_LABEL[r.operacao]}</Badge></td>
-                    <td className="p-3 font-mono text-xs">{r.tabela.replace(/^public\./, "")}</td>
-                    <td className="p-3 font-mono text-xs truncate max-w-[220px]">{r.registro_id ?? "—"}</td>
-                    <td className="p-3">{r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}</td>
-                    <td className="p-3">
-                      <Button size="icon" variant="ghost" onClick={() => setDetalhe(r)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      Carregando…
                     </td>
                   </tr>
-                ))}
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      Nenhum evento no período/filtro selecionado.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((r) => (
+                    <tr key={r.id} className="border-t hover:bg-muted/30">
+                      <td className="p-3 whitespace-nowrap">
+                        {new Date(r.ocorrido_em).toLocaleString("pt-BR")}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={OP_VARIANT[r.operacao]}>{OP_LABEL[r.operacao]}</Badge>
+                      </td>
+                      <td className="p-3 font-mono text-xs">{r.tabela.replace(/^public\./, "")}</td>
+                      <td className="p-3 font-mono text-xs truncate max-w-[220px]">
+                        {r.registro_id ?? "—"}
+                      </td>
+                      <td className="p-3">
+                        {r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}
+                      </td>
+                      <td className="p-3">
+                        <Button size="icon" variant="ghost" onClick={() => setDetalhe(r)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -306,19 +445,28 @@ function AuditoriaGerencial() {
 
         <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Detalhes do evento</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Detalhes do evento</DialogTitle>
+            </DialogHeader>
             {detalhe && (
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <Info label="Data/Hora" value={new Date(detalhe.ocorrido_em).toLocaleString("pt-BR")} />
+                  <Info
+                    label="Data/Hora"
+                    value={new Date(detalhe.ocorrido_em).toLocaleString("pt-BR")}
+                  />
                   <Info label="Operação" value={OP_LABEL[detalhe.operacao]} />
                   <Info label="Tabela" value={detalhe.tabela} mono />
                   <Info label="Registro" value={detalhe.registro_id ?? "—"} mono />
                   <Info label="Usuário" value={detalhe.usuario_email ?? "sistema"} />
                   <Info label="IP" value={detalhe.ip ?? "—"} />
                 </div>
-                {detalhe.valor_anterior != null && <JsonBlock title="Valor anterior" data={detalhe.valor_anterior} />}
-                {detalhe.valor_novo != null && <JsonBlock title="Valor novo" data={detalhe.valor_novo} />}
+                {detalhe.valor_anterior != null && (
+                  <JsonBlock title="Valor anterior" data={detalhe.valor_anterior} />
+                )}
+                {detalhe.valor_novo != null && (
+                  <JsonBlock title="Valor novo" data={detalhe.valor_novo} />
+                )}
                 {detalhe.contexto != null && <JsonBlock title="Contexto" data={detalhe.contexto} />}
               </div>
             )}
@@ -329,11 +477,21 @@ function AuditoriaGerencial() {
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: number; tone?: "default" | "secondary" | "destructive" }) {
+function Kpi({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "secondary" | "destructive";
+}) {
   const color =
-    tone === "destructive" ? "text-destructive"
-    : tone === "secondary" ? "text-muted-foreground"
-    : "text-primary";
+    tone === "destructive"
+      ? "text-destructive"
+      : tone === "secondary"
+        ? "text-muted-foreground"
+        : "text-primary";
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
@@ -355,7 +513,9 @@ function JsonBlock({ title, data }: { title: string; data: unknown }) {
   return (
     <div>
       <div className="text-xs font-semibold mb-1">{title}</div>
-      <pre className="bg-muted rounded p-3 text-xs overflow-x-auto max-h-64">{JSON.stringify(data, null, 2)}</pre>
+      <pre className="bg-muted rounded p-3 text-xs overflow-x-auto max-h-64">
+        {JSON.stringify(data, null, 2)}
+      </pre>
     </div>
   );
 }

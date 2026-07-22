@@ -1,10 +1,17 @@
-import React from 'react';
-import { useProfissionais } from '@/hooks/use-profissionais';
-import { useProfessionalFilters } from '@/context/professional-filter-context';
-import { Link } from '@tanstack/react-router';
+import React from "react";
+import { useProfissionais } from "@/hooks/use-profissionais";
+import { useProfessionalFilters } from "@/context/professional-filter-context";
+import { Link } from "@tanstack/react-router";
 
-export default function ProfessionalsTable({ page, setPage, pageSize = 25 }:
-  { page: number; setPage: (p: number) => void; pageSize?: number }) {
+export default function ProfessionalsTable({
+  page,
+  setPage,
+  pageSize = 25,
+}: {
+  page: number;
+  setPage: (p: number) => void;
+  pageSize?: number;
+}) {
   const { filters } = useProfessionalFilters();
   const { data, isLoading, error } = useProfissionais(filters, page, pageSize);
 
@@ -31,9 +38,11 @@ export default function ProfessionalsTable({ page, setPage, pageSize = 25 }:
               <td className="p-2">{r.nome_completo}</td>
               <td className="p-2">{r.cpf}</td>
               <td className="p-2">{r.matricula}</td>
-              <td className="p-2">{r.unidade_nome ?? '-'}</td>
+              <td className="p-2">{r.unidade_nome ?? "-"}</td>
               <td className="p-2">
-                <Link to="/profissionais/$id" params={{ id: r.id }}>Abrir</Link>
+                <Link to="/profissionais/$id" params={{ id: r.id }}>
+                  Abrir
+                </Link>
               </td>
             </tr>
           ))}
@@ -41,18 +50,24 @@ export default function ProfessionalsTable({ page, setPage, pageSize = 25 }:
       </table>
 
       <div className="mt-4 flex items-center justify-between">
-        <div>Mostrando {rows.length} de {total}</div>
+        <div>
+          Mostrando {rows.length} de {total}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             className="rounded-md border px-3"
             disabled={page === 1}
-          >Anterior</button>
+          >
+            Anterior
+          </button>
           <button
             onClick={() => setPage(page + 1)}
             className="rounded-md border px-3"
             disabled={page * pageSize >= total}
-          >Próxima</button>
+          >
+            Próxima
+          </button>
         </div>
       </div>
     </div>

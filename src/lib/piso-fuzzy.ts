@@ -7,7 +7,8 @@ export function levenshtein(a: string, b: string): number {
   if (a === b) return 0;
   if (!a.length) return b.length;
   if (!b.length) return a.length;
-  const m = a.length, n = b.length;
+  const m = a.length,
+    n = b.length;
   let prev = new Array(n + 1);
   let curr = new Array(n + 1);
   for (let j = 0; j <= n; j++) prev[j] = j;
@@ -24,7 +25,8 @@ export function levenshtein(a: string, b: string): number {
 
 /** Similaridade [0..1] entre duas strings, após normalização. */
 export function similarity(a: string, b: string): number {
-  const A = normalize(a), B = normalize(b);
+  const A = normalize(a),
+    B = normalize(b);
   if (!A && !B) return 1;
   if (!A || !B) return 0;
   const d = levenshtein(A, B);
@@ -35,7 +37,11 @@ export type FuzzyCandidate = { id: string; nome: string };
 export type FuzzyMatch = { id: string; nome: string; score: number };
 
 /** Devolve o melhor candidato com score >= minScore (default 0.85). */
-export function bestFuzzy(nome: string, candidates: FuzzyCandidate[], minScore = 0.85): FuzzyMatch | null {
+export function bestFuzzy(
+  nome: string,
+  candidates: FuzzyCandidate[],
+  minScore = 0.85,
+): FuzzyMatch | null {
   if (!nome || candidates.length === 0) return null;
   let best: FuzzyMatch | null = null;
   for (const c of candidates) {

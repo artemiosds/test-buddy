@@ -29,7 +29,12 @@ export async function exportarPdfAbnt(opts: {
 
   // Capa ABNT.
   doc.setFont("times", "bold").setFontSize(14);
-  doc.text([uf, municipio, secretaria].filter(Boolean).map((s) => s.toUpperCase()), w / 2, 40, { align: "center" });
+  doc.text(
+    [uf, municipio, secretaria].filter(Boolean).map((s) => s.toUpperCase()),
+    w / 2,
+    40,
+    { align: "center" },
+  );
   doc.setFontSize(16);
   doc.text(opts.titulo.toUpperCase(), w / 2, h / 2, { align: "center", maxWidth: w - 40 });
   if (opts.subtitulo) {
@@ -37,12 +42,15 @@ export async function exportarPdfAbnt(opts: {
     doc.text(opts.subtitulo, w / 2, h / 2 + 12, { align: "center", maxWidth: w - 40 });
   }
   doc.setFont("times", "normal").setFontSize(12);
-  doc.text([municipio, new Date().toLocaleDateString("pt-BR")].filter(Boolean), w / 2, h - 30, { align: "center" });
+  doc.text([municipio, new Date().toLocaleDateString("pt-BR")].filter(Boolean), w / 2, h - 30, {
+    align: "center",
+  });
 
   doc.addPage();
   let y = 30;
   doc.setFont("times", "bold").setFontSize(14);
-  doc.text("SUMÁRIO", w / 2, y, { align: "center" }); y += 10;
+  doc.text("SUMÁRIO", w / 2, y, { align: "center" });
+  y += 10;
   doc.setFont("times", "normal").setFontSize(12);
   const secoes = [
     opts.indice ? "1. Índice Automático da Gestão" : null,
@@ -50,12 +58,17 @@ export async function exportarPdfAbnt(opts: {
     opts.pareceres?.length ? "3. Parecer Técnico" : null,
     ...opts.blocos.map((b, i) => `${4 + i}. ${b.titulo}`),
   ].filter(Boolean) as string[];
-  for (const s of secoes) { doc.text(s, 30, y); y += 8; }
+  for (const s of secoes) {
+    doc.text(s, 30, y);
+    y += 8;
+  }
 
   // Índice.
   if (opts.indice) {
-    doc.addPage(); y = 30;
-    titulo(doc, "1  ÍNDICE AUTOMÁTICO DA GESTÃO", y); y += 12;
+    doc.addPage();
+    y = 30;
+    titulo(doc, "1  ÍNDICE AUTOMÁTICO DA GESTÃO", y);
+    y += 12;
     doc.setFont("times", "bold").setFontSize(28).setTextColor(92, 64, 32);
     doc.text(`${opts.indice.score} / 100`, w / 2, y + 4, { align: "center" });
     doc.setFontSize(12).setFont("times", "italic").setTextColor(90);
@@ -63,7 +76,10 @@ export async function exportarPdfAbnt(opts: {
     doc.setTextColor(0);
     y += 26;
     doc.setFont("times", "normal").setFontSize(12);
-    for (const linha of doc.splitTextToSize(opts.indice.interpretacao, w - 60)) { doc.text(linha, 30, y); y += 6; }
+    for (const linha of doc.splitTextToSize(opts.indice.interpretacao, w - 60)) {
+      doc.text(linha, 30, y);
+      y += 6;
+    }
     y += 3;
     autoTable(doc, {
       startY: y,
@@ -78,27 +94,46 @@ export async function exportarPdfAbnt(opts: {
 
   // Resumo.
   if (opts.resumo?.length) {
-    doc.addPage(); y = 30; titulo(doc, "2  RESUMO EXECUTIVO", y); y += 10;
+    doc.addPage();
+    y = 30;
+    titulo(doc, "2  RESUMO EXECUTIVO", y);
+    y += 10;
     doc.setFont("times", "normal").setFontSize(12);
     for (const f of opts.resumo) {
       const linhas = doc.splitTextToSize(`• ${f}`, w - 60);
-      doc.text(linhas, 30, y); y += linhas.length * 6 + 1;
-      if (y > h - 30) { doc.addPage(); y = 30; }
+      doc.text(linhas, 30, y);
+      y += linhas.length * 6 + 1;
+      if (y > h - 30) {
+        doc.addPage();
+        y = 30;
+      }
     }
   }
 
   // Parecer.
   if (opts.pareceres?.length) {
-    doc.addPage(); y = 30; titulo(doc, "3  PARECER TÉCNICO", y); y += 10;
+    doc.addPage();
+    y = 30;
+    titulo(doc, "3  PARECER TÉCNICO", y);
+    y += 10;
     doc.setFont("times", "normal").setFontSize(12);
     for (const p of opts.pareceres) {
-      if (y > h - 40) { doc.addPage(); y = 30; }
-      doc.setFont("times", "bold").setFontSize(12); doc.text(p.titulo, 30, y); y += 7;
+      if (y > h - 40) {
+        doc.addPage();
+        y = 30;
+      }
+      doc.setFont("times", "bold").setFontSize(12);
+      doc.text(p.titulo, 30, y);
+      y += 7;
       doc.setFont("times", "normal");
       for (const frase of p.frases) {
         const linhas = doc.splitTextToSize(`• ${frase.replace(/\*\*/g, "")}`, w - 60);
-        doc.text(linhas, 30, y); y += linhas.length * 6 + 1;
-        if (y > h - 30) { doc.addPage(); y = 30; }
+        doc.text(linhas, 30, y);
+        y += linhas.length * 6 + 1;
+        if (y > h - 30) {
+          doc.addPage();
+          y = 30;
+        }
       }
       y += 2;
     }
@@ -106,18 +141,25 @@ export async function exportarPdfAbnt(opts: {
 
   // Blocos.
   opts.blocos.forEach((b, i) => {
-    doc.addPage(); y = 30; titulo(doc, `${4 + i}  ${b.titulo.toUpperCase()}`, y); y += 8;
+    doc.addPage();
+    y = 30;
+    titulo(doc, `${4 + i}  ${b.titulo.toUpperCase()}`, y);
+    y += 8;
     if (b.descricao) {
       doc.setFont("times", "italic").setFontSize(11);
       const linhas = doc.splitTextToSize(b.descricao, w - 60);
-      doc.text(linhas, 30, y); y += linhas.length * 5 + 2;
+      doc.text(linhas, 30, y);
+      y += linhas.length * 5 + 2;
     }
     autoTable(doc, {
       startY: y,
       head: [b.colunas.map((c) => c.header)],
-      body: b.linhas.map((r) => b.colunas.map((c) => {
-        const v = r[c.key]; return v == null ? "" : typeof v === "number" ? v.toLocaleString("pt-BR") : String(v);
-      })),
+      body: b.linhas.map((r) =>
+        b.colunas.map((c) => {
+          const v = r[c.key];
+          return v == null ? "" : typeof v === "number" ? v.toLocaleString("pt-BR") : String(v);
+        }),
+      ),
       styles: { font: "times", fontSize: 10, cellPadding: 1.5 },
       headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [250, 246, 240] },

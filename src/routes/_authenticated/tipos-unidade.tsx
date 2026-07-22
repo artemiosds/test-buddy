@@ -148,7 +148,8 @@ function TiposUnidadePage() {
           </div>
         </div>
         <Button onClick={abrirNovo}>
-          <Plus className="mr-1 h-4 w-4" />Novo tipo
+          <Plus className="mr-1 h-4 w-4" />
+          Novo tipo
         </Button>
         <FormDialog
           open={open}
@@ -159,7 +160,11 @@ function TiposUnidadePage() {
         >
           <div>
             <Label>Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: UBS, Hospital, CAPS" />
+            <Input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: UBS, Hospital, CAPS"
+            />
           </div>
           <div>
             <Label>Descrição</Label>
@@ -231,8 +236,9 @@ function TiposUnidadePage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Tipos em uso por unidades não podem ser excluídos — apenas inativados. Tipos inativos deixam de aparecer no
-        cadastro de novas unidades, mas as unidades já cadastradas continuam funcionando normalmente.
+        Tipos em uso por unidades não podem ser excluídos — apenas inativados. Tipos inativos deixam
+        de aparecer no cadastro de novas unidades, mas as unidades já cadastradas continuam
+        funcionando normalmente.
       </p>
     </div>
   );

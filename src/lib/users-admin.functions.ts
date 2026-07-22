@@ -20,7 +20,6 @@ export const createUsuario = createServerFn({ method: "POST" })
       .parse(data),
   )
 
-
   .handler(async ({ data, context }) => {
     // Only MASTER can create users
     const { data: isMaster, error: mErr } = await context.supabase.rpc("is_master", {
@@ -31,8 +30,7 @@ export const createUsuario = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const password =
-      data.password ?? Math.random().toString(36).slice(2, 10) + "A1!";
+    const password = data.password ?? Math.random().toString(36).slice(2, 10) + "A1!";
 
     const tryCreate = async () =>
       supabaseAdmin.auth.admin.createUser({
@@ -62,7 +60,9 @@ export const createUsuario = createServerFn({ method: "POST" })
         let orphanId: string | undefined = existing?.id;
         if (!orphanId) {
           const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
-          orphanId = list?.users.find((u) => u.email?.toLowerCase() === data.email.toLowerCase())?.id;
+          orphanId = list?.users.find(
+            (u) => u.email?.toLowerCase() === data.email.toLowerCase(),
+          )?.id;
         }
         if (orphanId) {
           if (existing) {
@@ -85,16 +85,17 @@ export const createUsuario = createServerFn({ method: "POST" })
 
     // Keep this independent from the auth trigger: if the trigger exists it updates,
     // if it is missing/delayed it creates the public user row immediately.
-    const { error: uErr } = await supabaseAdmin
-      .from("usuarios")
-      .upsert({
+    const { error: uErr } = await supabaseAdmin.from("usuarios").upsert(
+      {
         id: newId,
         perfil_id: data.perfil_id,
         status: data.status,
         nome_completo: data.nome_completo,
         email: data.email,
         telefone: data.telefone ?? null,
-      }, { onConflict: "id" });
+      },
+      { onConflict: "id" },
+    );
     if (uErr) throw new Error(uErr.message);
 
     // Link user to units (usuario_unidades) and propagate secretaria links.
@@ -114,7 +115,10 @@ export const createUsuario = createServerFn({ method: "POST" })
         .from("unidades")
         .select("id, secretaria_id")
         .in("id", data.unidade_ids);
-      if (unErr) throw new Error(`Usuário criado, mas falha ao ler secretarias das unidades: ${unErr.message}`);
+      if (unErr)
+        throw new Error(
+          `Usuário criado, mas falha ao ler secretarias das unidades: ${unErr.message}`,
+        );
 
       const secretariaByUnidade = new Map<string, string>();
       for (const u of unidadesInfo ?? []) {
@@ -129,10 +133,9 @@ export const createUsuario = createServerFn({ method: "POST" })
           secretaria_id: sid,
           is_principal: sid === principalSecretaria,
         }));
-        const { error: sErr } = await supabaseAdmin
-          .from("usuario_secretarias")
-          .insert(secRows);
-        if (sErr) throw new Error(`Usuário criado, mas falha ao vincular secretarias: ${sErr.message}`);
+        const { error: sErr } = await supabaseAdmin.from("usuario_secretarias").insert(secRows);
+        if (sErr)
+          throw new Error(`Usuário criado, mas falha ao vincular secretarias: ${sErr.message}`);
 
         // Também define a secretaria principal em usuarios.secretaria_id (usada pela RLS).
         if (principalSecretaria) {
@@ -140,13 +143,18 @@ export const createUsuario = createServerFn({ method: "POST" })
             .from("usuarios")
             .update({ secretaria_id: principalSecretaria })
             .eq("id", newId);
-          if (upErr) throw new Error(`Usuário criado, mas falha ao definir secretaria principal: ${upErr.message}`);
+          if (upErr)
+            throw new Error(
+              `Usuário criado, mas falha ao definir secretaria principal: ${upErr.message}`,
+            );
         }
       }
     }
 
     await emitEvento(context.supabase, EVENTOS.USUARIO_CRIADO, "usuario", newId, {
-      email: data.email, perfil_id: data.perfil_id, status: data.status,
+      email: data.email,
+      perfil_id: data.perfil_id,
+      status: data.status,
     });
     return { id: newId, email: data.email, password };
   });
@@ -213,9 +221,7 @@ export const updateUsuario = createServerFn({ method: "POST" })
 
 export const deleteUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(data),
-  )
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertMaster(context);
     if (data.id === context.userId) {
@@ -336,18 +342,17 @@ export const setUsuarioPermissao = createServerFn({ method: "POST" })
         .eq("id", (existing as { id: string }).id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabase
-        .from("usuario_permissoes")
-        .insert({
-          usuario_id: data.usuario_id,
-          permissao_id: data.permissao_id,
-          tipo: data.state,
-          created_by: userId,
-        } as never);
+      const { error } = await supabase.from("usuario_permissoes").insert({
+        usuario_id: data.usuario_id,
+        permissao_id: data.permissao_id,
+        tipo: data.state,
+        created_by: userId,
+      } as never);
       if (error) throw new Error(error.message);
     }
     await emitEvento(supabase, EVENTOS.PERMISSAO_ALTERADA, "permissao", data.permissao_id, {
-      usuario_id: data.usuario_id, state: data.state,
+      usuario_id: data.usuario_id,
+      state: data.state,
     });
     return { ok: true, state: data.state };
   });
@@ -394,9 +399,7 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
       is_principal: uid === principal,
       created_by: userId,
     }));
-    const { error: insErr } = await supabase
-      .from("usuario_unidades")
-      .insert(rows as never);
+    const { error: insErr } = await supabase.from("usuario_unidades").insert(rows as never);
     if (insErr) throw new Error(insErr.message);
 
     // Propaga secretarias
@@ -427,9 +430,7 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
         is_principal: sid === secPrincipal,
         created_by: userId,
       }));
-      const { error: sErr } = await supabase
-        .from("usuario_secretarias")
-        .insert(secRows as never);
+      const { error: sErr } = await supabase.from("usuario_secretarias").insert(secRows as never);
       if (sErr) throw new Error(sErr.message);
       if (secPrincipal) {
         await supabase
@@ -447,4 +448,3 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
 
 // Silencia lint: import mantido para uso futuro (perfis/permissões granulares no servidor)
 export const _rbacHelpers = { ensurePermission };
-

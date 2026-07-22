@@ -59,12 +59,13 @@ const TREND_TONE: Record<KpiTrendDirection, string> = {
 };
 
 const ICON_TONE_CLASS: Record<KpiIconTone, string> = {
-  info:    "bg-info-soft text-info-soft-foreground",
+  info: "bg-info-soft text-info-soft-foreground",
   success: "bg-success-soft text-success-soft-foreground",
   warning: "bg-warning-soft text-warning-soft-foreground",
-  danger:  "bg-danger-soft text-danger-soft-foreground",
+  danger: "bg-danger-soft text-danger-soft-foreground",
   primary: "bg-accent text-accent-foreground",
-  purple:  "bg-[color-mix(in_oklab,var(--color-info)_18%,transparent)] text-[color-mix(in_oklab,var(--color-info)_65%,black)]",
+  purple:
+    "bg-[color-mix(in_oklab,var(--color-info)_18%,transparent)] text-[color-mix(in_oklab,var(--color-info)_65%,black)]",
   neutral: "bg-muted text-muted-foreground",
 };
 

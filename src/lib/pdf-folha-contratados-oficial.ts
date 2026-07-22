@@ -8,10 +8,7 @@
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
-import {
-  resolverAssinaturasDocumento,
-  drawAssinaturasBlock,
-} from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 
 export type PdfContratadosInput = {
   competencia: { mes: number; ano: number };
@@ -31,25 +28,31 @@ const COR_NIVEL_3: [number, number, number] = [212, 168, 83];
 const COR_BORDA: [number, number, number] = [180, 180, 180];
 const COR_TEXTO: [number, number, number] = [0, 0, 0];
 
-type Col = { key: string; w: number; label: string; align: "left" | "center" | "right"; mono?: boolean };
+type Col = {
+  key: string;
+  w: number;
+  label: string;
+  align: "left" | "center" | "right";
+  mono?: boolean;
+};
 
 // larguras somam ~277 mm (A4 landscape com 10 mm de margem)
 const COLS: Col[] = [
-  { key: "n",       w:  8,  label: "Nº",           align: "center" },
-  { key: "nome",    w: 52,  label: "NOME",         align: "left"   },
-  { key: "cpf",     w: 26,  label: "C.P.F.",       align: "center", mono: true },
-  { key: "cargo",   w: 30,  label: "CARGO",        align: "left"   },
-  { key: "lot",     w: 28,  label: "LOTAÇÃO",      align: "left"   },
-  { key: "dias",    w:  9,  label: "DIAS",         align: "center", mono: true },
-  { key: "falta",   w:  9,  label: "FALTA",        align: "center", mono: true },
-  { key: "att",     w:  9,  label: "ATT",          align: "center", mono: true },
-  { key: "he50",    w: 11,  label: "H.E\n50%",     align: "center", mono: true },
-  { key: "he100",   w: 11,  label: "H.E\n100%",    align: "center", mono: true },
-  { key: "adn",     w:  9,  label: "ADN",          align: "center", mono: true },
-  { key: "plant",   w: 12,  label: "PLAN-\nTÕES",  align: "center", mono: true },
-  { key: "sob",     w: 13,  label: "SOBRE-\nAVISOS", align: "center", mono: true },
-  { key: "inc",     w: 12,  label: "INCEN-\nTIVO", align: "center", mono: true },
-  { key: "conta",   w: 38,  label: "CONTA",        align: "left",   mono: true },
+  { key: "n", w: 8, label: "Nº", align: "center" },
+  { key: "nome", w: 52, label: "NOME", align: "left" },
+  { key: "cpf", w: 26, label: "C.P.F.", align: "center", mono: true },
+  { key: "cargo", w: 30, label: "CARGO", align: "left" },
+  { key: "lot", w: 28, label: "LOTAÇÃO", align: "left" },
+  { key: "dias", w: 9, label: "DIAS", align: "center", mono: true },
+  { key: "falta", w: 9, label: "FALTA", align: "center", mono: true },
+  { key: "att", w: 9, label: "ATT", align: "center", mono: true },
+  { key: "he50", w: 11, label: "H.E\n50%", align: "center", mono: true },
+  { key: "he100", w: 11, label: "H.E\n100%", align: "center", mono: true },
+  { key: "adn", w: 9, label: "ADN", align: "center", mono: true },
+  { key: "plant", w: 12, label: "PLAN-\nTÕES", align: "center", mono: true },
+  { key: "sob", w: 13, label: "SOBRE-\nAVISOS", align: "center", mono: true },
+  { key: "inc", w: 12, label: "INCEN-\nTIVO", align: "center", mono: true },
+  { key: "conta", w: 38, label: "CONTA", align: "left", mono: true },
 ];
 
 function n(v: number | null | undefined): string {
@@ -58,7 +61,11 @@ function n(v: number | null | undefined): string {
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
-function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; logoData: string | null }, subtitulo: string) {
+function drawInstitutionalBox(
+  doc: jsPDF,
+  info: { data: MunicipioInfo | null; logoData: string | null },
+  subtitulo: string,
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = MARGEM;
   const y = 8;
@@ -70,7 +77,11 @@ function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; lo
   doc.rect(x, y, w, h);
 
   if (info.logoData) {
-    try { doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18); } catch { /* ignore */ }
+    try {
+      doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18);
+    } catch {
+      /* ignore */
+    }
   }
 
   const uf = info.data?.uf ?? "PA";
@@ -165,7 +176,8 @@ function drawRow(doc: jsPDF, y: number, idx: number, item: ItemContratado): numb
     doc.setFontSize(7);
     const val = values[c.key] ?? "";
     const tx = c.align === "left" ? x + 1.5 : c.align === "right" ? x + c.w - 1.5 : x + c.w / 2;
-    const isTextoLongo = c.key === "nome" || c.key === "cargo" || c.key === "lot" || c.key === "conta";
+    const isTextoLongo =
+      c.key === "nome" || c.key === "cargo" || c.key === "lot" || c.key === "conta";
     if (isTextoLongo) {
       // Quebra em até 2 linhas, com truncamento (elipse) se ultrapassar
       const linhas = doc.splitTextToSize(val, c.w - 2) as string[];
@@ -174,9 +186,7 @@ function drawRow(doc: jsPDF, y: number, idx: number, item: ItemContratado): numb
         const ult = usadas[1];
         usadas[1] = ult.length > 3 ? ult.slice(0, ult.length - 1).trimEnd() + "…" : ult;
       }
-      const startY = usadas.length === 1
-        ? y + LINHA_ALTURA / 2 + 1.2
-        : y + LINHA_ALTURA / 2 - 1.2;
+      const startY = usadas.length === 1 ? y + LINHA_ALTURA / 2 + 1.2 : y + LINHA_ALTURA / 2 - 1.2;
       usadas.forEach((ln, i) => {
         doc.text(ln, tx, startY + i * 3.2, { align: c.align });
       });
@@ -209,7 +219,9 @@ function drawFooter(doc: jsPDF, emitidoPor: string, emissaoStr: string) {
     doc.setFontSize(7);
     doc.setTextColor(90, 90, 90);
     doc.text(`Data da emissão: ${emissaoStr}`, MARGEM, y2);
-    doc.text("ÁGILIBlue Recursos Humanos - Ágili Software Brasil", pageWidth / 2, y2, { align: "center" });
+    doc.text("ÁGILIBlue Recursos Humanos - Ágili Software Brasil", pageWidth / 2, y2, {
+      align: "center",
+    });
     doc.text(`Emitido por: ${emitidoPor}`, pageWidth - MARGEM, y2, { align: "right" });
   }
 }
@@ -228,7 +240,20 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const limiteBaixo = pageHeight - rodapeReserva;
   const emissaoStr = new Date().toLocaleString("pt-BR");
 
-  const MESES = ["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+  const MESES = [
+    "JANEIRO",
+    "FEVEREIRO",
+    "MARÇO",
+    "ABRIL",
+    "MAIO",
+    "JUNHO",
+    "JULHO",
+    "AGOSTO",
+    "SETEMBRO",
+    "OUTUBRO",
+    "NOVEMBRO",
+    "DEZEMBRO",
+  ];
   const compStr = `${MESES[(input.competencia.mes - 1 + 12) % 12]}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 

@@ -23,7 +23,13 @@ export const Route = createFileRoute("/_authenticated/feriados")({
   component: FeriadosPage,
 });
 
-type TipoCal = "feriado_nacional" | "feriado_estadual" | "feriado_municipal" | "ponto_facultativo" | "recesso" | "data_comemorativa";
+type TipoCal =
+  | "feriado_nacional"
+  | "feriado_estadual"
+  | "feriado_municipal"
+  | "ponto_facultativo"
+  | "recesso"
+  | "data_comemorativa";
 type Abr = "municipal" | "estadual" | "nacional";
 
 type Feriado = {
@@ -183,7 +189,8 @@ function FeriadosPage() {
             onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
           />
           <Button onClick={abrirNovo}>
-            <Plus className="mr-1 h-4 w-4" />Novo feriado
+            <Plus className="mr-1 h-4 w-4" />
+            Novo feriado
           </Button>
           <FormDialog
             open={open}
@@ -192,48 +199,67 @@ function FeriadosPage() {
             onSubmit={() => saveMut.mutate()}
             loading={saveMut.isPending}
           >
-              <div className="grid gap-3">
-                <div>
-                  <Label>Data *</Label>
-                  <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Descrição *</Label>
-                  <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Tipo</Label>
-                    <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoCal })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(TIPO_LABEL) as TipoCal[]).map((k) => (
-                          <SelectItem key={k} value={k}>{TIPO_LABEL[k]}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Abrangência</Label>
-                    <Select value={form.abrangencia} onValueChange={(v) => setForm({ ...form, abrangencia: v as Abr })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="municipal">Municipal</SelectItem>
-                        <SelectItem value="estadual">Estadual</SelectItem>
-                        <SelectItem value="nacional">Nacional</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.eh_recorrente}
-                    onChange={(e) => setForm({ ...form, eh_recorrente: e.target.checked })}
-                  />
-                  Recorrente (ocorre todos os anos na mesma data)
-                </label>
+            <div className="grid gap-3">
+              <div>
+                <Label>Data *</Label>
+                <Input
+                  type="date"
+                  value={form.data}
+                  onChange={(e) => setForm({ ...form, data: e.target.value })}
+                />
               </div>
+              <div>
+                <Label>Descrição *</Label>
+                <Input
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tipo</Label>
+                  <Select
+                    value={form.tipo}
+                    onValueChange={(v) => setForm({ ...form, tipo: v as TipoCal })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(TIPO_LABEL) as TipoCal[]).map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {TIPO_LABEL[k]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Abrangência</Label>
+                  <Select
+                    value={form.abrangencia}
+                    onValueChange={(v) => setForm({ ...form, abrangencia: v as Abr })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="municipal">Municipal</SelectItem>
+                      <SelectItem value="estadual">Estadual</SelectItem>
+                      <SelectItem value="nacional">Nacional</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.eh_recorrente}
+                  onChange={(e) => setForm({ ...form, eh_recorrente: e.target.checked })}
+                />
+                Recorrente (ocorre todos os anos na mesma data)
+              </label>
+            </div>
           </FormDialog>
         </div>
       </div>
@@ -242,7 +268,9 @@ function FeriadosPage() {
         {isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
         ) : feriados.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">Nenhum feriado cadastrado em {year}.</div>
+          <div className="p-6 text-sm text-muted-foreground">
+            Nenhum feriado cadastrado em {year}.
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left">
@@ -265,7 +293,11 @@ function FeriadosPage() {
                   <td className="p-3">{TIPO_LABEL[f.tipo]}</td>
                   <td className="p-3 capitalize">{f.abrangencia}</td>
                   <td className="p-3">
-                    {f.eh_recorrente ? <Badge variant="secondary">Sim</Badge> : <span className="text-muted-foreground">—</span>}
+                    {f.eh_recorrente ? (
+                      <Badge variant="secondary">Sim</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-2">

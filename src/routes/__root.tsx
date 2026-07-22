@@ -85,10 +85,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GESTÃO SAÚDE ORIXIMINÁ - SMS" },
-      { name: "description", content: "Sistema de Gestão de Frequência e Folha da Secretaria Municipal de Saúde de Oriximiná" },
+      {
+        name: "description",
+        content:
+          "Sistema de Gestão de Frequência e Folha da Secretaria Municipal de Saúde de Oriximiná",
+      },
       { name: "author", content: "SMS Oriximiná" },
       { property: "og:title", content: "GESTÃO SAÚDE ORIXIMINÁ - SMS" },
-      { property: "og:description", content: "Sistema de Gestão de Frequência e Folha da Secretaria Municipal de Saúde de Oriximiná" },
+      {
+        property: "og:description",
+        content:
+          "Sistema de Gestão de Frequência e Folha da Secretaria Municipal de Saúde de Oriximiná",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },

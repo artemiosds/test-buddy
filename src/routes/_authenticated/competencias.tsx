@@ -55,8 +55,18 @@ type Competencia = {
 };
 
 const MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 function lastDay(ano: number, mes: number) {
@@ -75,7 +85,11 @@ function CompetenciasPage() {
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-ativas"],
     queryFn: async () => {
-      const { data } = await supabase.from("secretarias").select("id, nome, sigla").eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("secretarias")
+        .select("id, nome, sigla")
+        .eq("status", "ativa")
+        .order("nome");
       return data ?? [];
     },
   });
@@ -85,7 +99,9 @@ function CompetenciasPage() {
     queryFn: async (): Promise<Competencia[]> => {
       const { data, error } = await supabase
         .from("competencias")
-        .select("id, ano, mes, data_inicio, data_fim, prazo_envio, prazo_analise, status, secretaria_id, descricao, observacoes")
+        .select(
+          "id, ano, mes, data_inicio, data_fim, prazo_envio, prazo_analise, status, secretaria_id, descricao, observacoes",
+        )
         .is("deleted_at", null)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
@@ -97,7 +113,6 @@ function CompetenciasPage() {
   const criarFn = useServerFn(criarCompetencia);
   const editarFn = useServerFn(editarCompetencia);
   const statusFn = useServerFn(alterarStatusCompetencia);
-
 
   const saveMutation = useMutation({
     mutationFn: async (payload: Partial<Competencia>) => {
@@ -138,7 +153,15 @@ function CompetenciasPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ id, status, motivo }: { id: string; status: StatusComp; motivo?: string }) => {
+    mutationFn: async ({
+      id,
+      status,
+      motivo,
+    }: {
+      id: string;
+      status: StatusComp;
+      motivo?: string;
+    }) => {
       await statusFn({ data: { id, status, motivo } });
     },
     onSuccess: () => {
@@ -161,12 +184,23 @@ function CompetenciasPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Competências</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os períodos mensais de frequência.</p>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os períodos mensais de frequência.
+          </p>
         </div>
         {canCriar && (
-          <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditing(null); }}>
+          <Dialog
+            open={openForm}
+            onOpenChange={(o) => {
+              setOpenForm(o);
+              if (!o) setEditing(null);
+            }}
+          >
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Nova competência</Button>
+              <Button className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova competência
+              </Button>
             </DialogTrigger>
             <CompetenciaForm
               editing={editing}
@@ -182,7 +216,9 @@ function CompetenciasPage() {
         {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
         ) : !competencias?.length ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma competência cadastrada.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Nenhuma competência cadastrada.
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
@@ -197,13 +233,20 @@ function CompetenciasPage() {
             <tbody>
               {competencias.map((c) => (
                 <tr key={c.id} className="border-b last:border-0">
-                  <td className="p-3 font-medium">{MESES[c.mes - 1]}/{c.ano}</td>
+                  <td className="p-3 font-medium">
+                    {MESES[c.mes - 1]}/{c.ano}
+                  </td>
                   <td className="p-3 text-muted-foreground">
-                    {new Date(c.data_inicio).toLocaleDateString("pt-BR")} — {new Date(c.data_fim).toLocaleDateString("pt-BR")}
+                    {new Date(c.data_inicio).toLocaleDateString("pt-BR")} —{" "}
+                    {new Date(c.data_fim).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="p-3 text-xs text-muted-foreground">
-                    {c.prazo_envio && <div>Envio: {new Date(c.prazo_envio).toLocaleDateString("pt-BR")}</div>}
-                    {c.prazo_analise && <div>Análise: {new Date(c.prazo_analise).toLocaleDateString("pt-BR")}</div>}
+                    {c.prazo_envio && (
+                      <div>Envio: {new Date(c.prazo_envio).toLocaleDateString("pt-BR")}</div>
+                    )}
+                    {c.prazo_analise && (
+                      <div>Análise: {new Date(c.prazo_analise).toLocaleDateString("pt-BR")}</div>
+                    )}
                   </td>
                   <td className="p-3">
                     <StatusBadge domain="competencia" value={c.status} />
@@ -216,23 +259,48 @@ function CompetenciasPage() {
                         </Link>
                       </Button>
                       {canEditar && c.status === "aberta" && (
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpenForm(true); }}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(c);
+                            setOpenForm(true);
+                          }}
+                        >
                           Editar
                         </Button>
                       )}
                       {canEncerrar && c.status === "aberta" && (
-                        <Button size="sm" variant="ghost" onClick={() => statusMutation.mutate({ id: c.id, status: "encerrada" })}>
-                          <Lock className="mr-1 h-4 w-4" />Encerrar
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => statusMutation.mutate({ id: c.id, status: "encerrada" })}
+                        >
+                          <Lock className="mr-1 h-4 w-4" />
+                          Encerrar
                         </Button>
                       )}
                       {canReabrir && c.status === "encerrada" && (
-                        <Button size="sm" variant="ghost" onClick={() => { setReabrirTarget(c); setMotivoReabertura(""); }}>
-                          <Unlock className="mr-1 h-4 w-4" />Reabrir
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setReabrirTarget(c);
+                            setMotivoReabertura("");
+                          }}
+                        >
+                          <Unlock className="mr-1 h-4 w-4" />
+                          Reabrir
                         </Button>
                       )}
                       {canEncerrar && c.status === "encerrada" && (
-                        <Button size="sm" variant="ghost" onClick={() => statusMutation.mutate({ id: c.id, status: "arquivada" })}>
-                          <Archive className="mr-1 h-4 w-4" />Arquivar
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => statusMutation.mutate({ id: c.id, status: "arquivada" })}
+                        >
+                          <Archive className="mr-1 h-4 w-4" />
+                          Arquivar
                         </Button>
                       )}
                     </div>
@@ -246,15 +314,29 @@ function CompetenciasPage() {
 
       <FormDialog
         open={!!reabrirTarget}
-        onOpenChange={(o) => { if (!o) { setReabrirTarget(null); setMotivoReabertura(""); } }}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReabrirTarget(null);
+            setMotivoReabertura("");
+          }
+        }}
         title={`Reabrir competência ${reabrirTarget ? `${MESES[reabrirTarget.mes - 1]}/${reabrirTarget.ano}` : ""}`}
         submitLabel="Confirmar reabertura"
         submitDisabled={!motivoReabertura.trim()}
         loading={statusMutation.isPending}
-        onSubmit={() => reabrirTarget && statusMutation.mutate({ id: reabrirTarget.id, status: "aberta", motivo: motivoReabertura.trim() })}
+        onSubmit={() =>
+          reabrirTarget &&
+          statusMutation.mutate({
+            id: reabrirTarget.id,
+            status: "aberta",
+            motivo: motivoReabertura.trim(),
+          })
+        }
       >
         <div className="space-y-2">
-          <Label>Motivo da reabertura <span className="text-destructive">*</span></Label>
+          <Label>
+            Motivo da reabertura <span className="text-destructive">*</span>
+          </Label>
           <Textarea
             rows={4}
             value={motivoReabertura}
@@ -297,7 +379,8 @@ function CompetenciaForm({
       return;
     }
     onSubmit({
-      ano, mes,
+      ano,
+      mes,
       data_inicio: dataInicio,
       data_fim: dataFim,
       prazo_envio: prazoEnvio || null,
@@ -317,23 +400,44 @@ function CompetenciaForm({
         <div className="grid grid-cols-3 gap-4">
           <div>
             <Label>Mês</Label>
-            <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))} disabled={!!editing}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={String(mes)}
+              onValueChange={(v) => setMes(Number(v))}
+              disabled={!!editing}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {MESES.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+                {MESES.map((m, i) => (
+                  <SelectItem key={i} value={String(i + 1)}>
+                    {m}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Ano</Label>
-            <Input type="number" value={ano} onChange={(e) => setAno(Number(e.target.value))} disabled={!!editing} />
+            <Input
+              type="number"
+              value={ano}
+              onChange={(e) => setAno(Number(e.target.value))}
+              disabled={!!editing}
+            />
           </div>
           <div>
             <Label>Secretaria</Label>
             <Select value={secretariaId} onValueChange={setSecretariaId} disabled={!!editing}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
               <SelectContent>
-                {secretarias.map((s) => <SelectItem key={s.id} value={s.id}>{s.sigla || s.nome}</SelectItem>)}
+                {secretarias.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.sigla || s.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -341,11 +445,19 @@ function CompetenciaForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Prazo de envio</Label>
-            <Input type="date" value={prazoEnvio ?? ""} onChange={(e) => setPrazoEnvio(e.target.value)} />
+            <Input
+              type="date"
+              value={prazoEnvio ?? ""}
+              onChange={(e) => setPrazoEnvio(e.target.value)}
+            />
           </div>
           <div>
             <Label>Prazo de análise</Label>
-            <Input type="date" value={prazoAnalise ?? ""} onChange={(e) => setPrazoAnalise(e.target.value)} />
+            <Input
+              type="date"
+              value={prazoAnalise ?? ""}
+              onChange={(e) => setPrazoAnalise(e.target.value)}
+            />
           </div>
         </div>
         <div>
@@ -354,10 +466,16 @@ function CompetenciaForm({
         </div>
         <div>
           <Label>Observações</Label>
-          <Textarea value={observacoes ?? ""} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
+          <Textarea
+            value={observacoes ?? ""}
+            onChange={(e) => setObservacoes(e.target.value)}
+            rows={3}
+          />
         </div>
         <DialogFooter>
-          <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
         </DialogFooter>
       </form>
     </DialogContent>

@@ -3,13 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  RotateCcw,
-  ZoomIn,
-} from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, RotateCcw, ZoomIn } from "lucide-react";
 
 /**
  * Editor visual de posicionamento de assinatura.
@@ -153,10 +147,7 @@ export function SignatureEditor({
             className="absolute left-0 right-0 top-0 text-center border-b"
             style={{ padding: 8 * zoom }}
           >
-            <div
-              className="font-bold text-slate-700"
-              style={{ fontSize: 11 * zoom }}
-            >
+            <div className="font-bold text-slate-700" style={{ fontSize: 11 * zoom }}>
               {headerLine1}
             </div>
             <div className="text-slate-500" style={{ fontSize: 9 * zoom }}>
@@ -225,10 +216,7 @@ export function SignatureEditor({
                 assinatura
               </div>
             )}
-            <div
-              className="border-t border-slate-700 mt-0.5"
-              style={{ width: sigW * zoom }}
-            />
+            <div className="border-t border-slate-700 mt-0.5" style={{ width: sigW * zoom }} />
             {value.mostrar_nome && titularNome && (
               <div
                 className="text-center font-semibold text-slate-800 leading-tight"
@@ -280,9 +268,7 @@ export function SignatureEditor({
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label className="text-xs">Tamanho</Label>
-              <span className="text-xs text-muted-foreground">
-                {value.tamanho_percentual}%
-              </span>
+              <span className="text-xs text-muted-foreground">{value.tamanho_percentual}%</span>
             </div>
             <Slider
               value={[value.tamanho_percentual]}

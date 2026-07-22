@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 
-
 const CriarSchema = z.object({
   ano: z.number().int().min(2000).max(2100),
   mes: z.number().int().min(1).max(12),
@@ -43,7 +42,9 @@ export const criarCompetencia = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const id = row.id as string;
     await emitEvento(context.supabase, EVENTOS.COMPETENCIA_CRIADA, "competencia", id, {
-      ano: data.ano, mes: data.mes, secretaria_id: data.secretaria_id,
+      ano: data.ano,
+      mes: data.mes,
+      secretaria_id: data.secretaria_id,
     });
     return { id };
   });
@@ -66,7 +67,10 @@ export const editarCompetencia = createServerFn({ method: "POST" })
     if (data.observacoes !== undefined) patch.observacoes = data.observacoes;
     if (data.prazo_envio !== undefined) patch.prazo_envio = data.prazo_envio;
     if (data.prazo_analise !== undefined) patch.prazo_analise = data.prazo_analise;
-    const { error } = await context.supabase.from("competencias").update(patch as never).eq("id", data.id);
+    const { error } = await context.supabase
+      .from("competencias")
+      .update(patch as never)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     await emitEvento(context.supabase, EVENTOS.COMPETENCIA_EDITADA, "competencia", data.id, patch);
     return { id: data.id };
@@ -86,10 +90,14 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
     const acaoPorDestino: Record<string, string> = {
       encerrada: ACOES.COMPETENCIA_ENCERRAR,
       arquivada: ACOES.COMPETENCIA_ARQUIVAR,
-      aberta:    ACOES.COMPETENCIA_REABRIR,
+      aberta: ACOES.COMPETENCIA_REABRIR,
       em_processamento: ACOES.COMPETENCIA_EDITAR,
     };
-    await ensurePermission(context.supabase, context.userId, acaoPorDestino[data.status] ?? ACOES.COMPETENCIA_EDITAR);
+    await ensurePermission(
+      context.supabase,
+      context.userId,
+      acaoPorDestino[data.status] ?? ACOES.COMPETENCIA_EDITAR,
+    );
 
     if (data.status === "encerrada") {
       const { count, error: cErr } = await context.supabase
@@ -99,7 +107,9 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
         .in("status", ["rascunho", "enviada", "em_analise", "com_pendencias"]);
       if (cErr) throw new Error(cErr.message);
       if ((count ?? 0) > 0) {
-        throw new Error(`Existem ${count} folha(s) não aprovadas. Aprove ou arquive antes de encerrar.`);
+        throw new Error(
+          `Existem ${count} folha(s) não aprovadas. Aprove ou arquive antes de encerrar.`,
+        );
       }
     } else if (data.status === "aberta" && (!data.motivo || !data.motivo.trim())) {
       throw new Error("Motivo da reabertura é obrigatório.");
@@ -117,7 +127,7 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
     const EVENTO_POR_DESTINO: Record<string, string> = {
       encerrada: EVENTOS.COMPETENCIA_ENCERRADA,
       arquivada: EVENTOS.COMPETENCIA_ARQUIVADA,
-      aberta:    EVENTOS.COMPETENCIA_REABERTA,
+      aberta: EVENTOS.COMPETENCIA_REABERTA,
     };
     const tipoEvento = EVENTO_POR_DESTINO[data.status];
     if (tipoEvento) {
@@ -185,7 +195,8 @@ export const iniciarFrequencia = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const id = row.id as string;
     await emitEvento(context.supabase, EVENTOS.FREQUENCIA_INICIADA, "frequencia", id, {
-      competencia_unidade_id: data.competencia_unidade_id, tipo: data.tipo,
+      competencia_unidade_id: data.competencia_unidade_id,
+      tipo: data.tipo,
     });
     return { id };
   });

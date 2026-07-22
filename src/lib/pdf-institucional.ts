@@ -26,7 +26,10 @@ async function urlToDataUrl(url: string): Promise<string | null> {
   }
 }
 
-export async function loadMunicipioInfo(): Promise<{ data: MunicipioInfo | null; logoData: string | null }> {
+export async function loadMunicipioInfo(): Promise<{
+  data: MunicipioInfo | null;
+  logoData: string | null;
+}> {
   if (cached) return cached;
   const { data } = await supabase
     .from("municipio_config")

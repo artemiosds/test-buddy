@@ -2,30 +2,50 @@ import type { ReactNode, CSSProperties } from "react";
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  AlertTriangle, CheckCircle2, MinusCircle, XCircle, Info as InfoIcon, Users, User,
-  ExternalLink, Filter as FilterIcon,
+  AlertTriangle,
+  CheckCircle2,
+  MinusCircle,
+  XCircle,
+  Info as InfoIcon,
+  Users,
+  User,
+  ExternalLink,
+  Filter as FilterIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusBadge } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import {
-  ALERTA_LABEL, SITUACAO_LABEL, SITUACAO_ORDER,
-  contarSituacoes, derivarAlertas, derivarElegibilidadePiso,
+  ALERTA_LABEL,
+  SITUACAO_LABEL,
+  SITUACAO_ORDER,
+  contarSituacoes,
+  derivarAlertas,
+  derivarElegibilidadePiso,
   derivarSituacao,
-  type Elegibilidade, type ProfConferencia, type ResumoSituacao,
+  type Elegibilidade,
+  type ProfConferencia,
+  type ResumoSituacao,
   type SituacaoFuncional,
 } from "@/lib/situacao-funcional";
 
@@ -33,9 +53,7 @@ import {
 /* SituacaoBadge — reutiliza o registry central `status.ts` domínio       */
 /* `profissional`, mantendo padrão visual do sistema.                     */
 /* ---------------------------------------------------------------------- */
-export function SituacaoBadge({
-  prof, className,
-}: { prof: ProfConferencia; className?: string }) {
+export function SituacaoBadge({ prof, className }: { prof: ProfConferencia; className?: string }) {
   const s = derivarSituacao(prof);
   return <StatusBadge domain="profissional" value={s} className={className} />;
 }
@@ -44,8 +62,14 @@ export function SituacaoBadge({
 /* SituacaoResumo — KPIs de topo por situação funcional.                  */
 /* ---------------------------------------------------------------------- */
 function KpiChip({
-  label, value, tone,
-}: { label: string; value: number; tone: "ok" | "warn" | "info" | "danger" | "muted" }) {
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "ok" | "warn" | "info" | "danger" | "muted";
+}) {
   const toneMap: Record<string, string> = {
     ok: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     warn: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -54,7 +78,9 @@ function KpiChip({
     muted: "bg-slate-50 text-slate-700 ring-slate-200",
   };
   return (
-    <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-sm ring-1", toneMap[tone])}>
+    <div
+      className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-sm ring-1", toneMap[tone])}
+    >
       <span className="tabular-nums text-lg font-semibold">{value}</span>
       <span className="text-xs opacity-80">{label}</span>
     </div>
@@ -82,7 +108,9 @@ export function SituacaoResumo({ rows }: { rows: ProfConferencia[] }) {
 export type SituacaoFilterValue = "todas" | SituacaoFuncional;
 
 export function SituacaoFilter({
-  value, onChange, className,
+  value,
+  onChange,
+  className,
 }: {
   value: SituacaoFilterValue;
   onChange: (v: SituacaoFilterValue) => void;
@@ -119,7 +147,10 @@ export function SituacaoFilter({
 /* ---------------------------------------------------------------------- */
 export function ElegibilidadePisoBadge({ prof }: { prof: ProfConferencia }) {
   const e = derivarElegibilidadePiso(prof);
-  const meta: Record<Elegibilidade, { label: string; className: string; icon: ReactNode; tip: string }> = {
+  const meta: Record<
+    Elegibilidade,
+    { label: string; className: string; icon: ReactNode; tip: string }
+  > = {
     elegivel: {
       label: "Elegível",
       className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -164,7 +195,9 @@ export function ElegibilidadePisoBadge({ prof }: { prof: ProfConferencia }) {
 /* ProfissionalNomeCell — nome com tooltip rico e clique → drawer dossiê. */
 /* ---------------------------------------------------------------------- */
 export function ProfissionalNomeCell({
-  prof, onOpenDossie, secondary,
+  prof,
+  onOpenDossie,
+  secondary,
 }: {
   prof: ProfConferencia;
   onOpenDossie?: (p: ProfConferencia) => void;
@@ -192,19 +225,27 @@ export function ProfissionalNomeCell({
               {prof.nome ?? "—"}
             </div>
             {secondary && (
-              <div className="text-[11px]" style={{ color: "#475569", textDecoration: "none", fontWeight: 500 }}>{secondary}</div>
+              <div
+                className="text-[11px]"
+                style={{ color: "#475569", textDecoration: "none", fontWeight: 500 }}
+              >
+                {secondary}
+              </div>
             )}
             {alertas.length > 0 && (
               <div className="mt-1 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                 <AlertTriangle className="h-3 w-3" />
-                {alertas.length} pendência{alertas.length > 1 ? "s" : ""} cadastral{alertas.length > 1 ? "is" : ""}
+                {alertas.length} pendência{alertas.length > 1 ? "s" : ""} cadastral
+                {alertas.length > 1 ? "is" : ""}
               </div>
             )}
           </button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <div className="space-y-1 text-xs">
-            <div><strong>{prof.nome ?? "—"}</strong></div>
+            <div>
+              <strong>{prof.nome ?? "—"}</strong>
+            </div>
             {prof.matricula && <div>Matrícula: {prof.matricula}</div>}
             {prof.cpf && <div>CPF: {prof.cpf}</div>}
             {prof.cargo && <div>Cargo: {prof.cargo}</div>}
@@ -228,7 +269,9 @@ export function ProfissionalNomeCell({
 /* DossieDrawer — painel lateral com resumo funcional + link cadastro.    */
 /* ---------------------------------------------------------------------- */
 export function DossieDrawer({
-  prof, open, onOpenChange,
+  prof,
+  open,
+  onOpenChange,
 }: {
   prof: ProfConferencia | null;
   open: boolean;
@@ -326,7 +369,8 @@ function Info({ label, value, mono }: { label: string; value: ReactNode; mono?: 
 /* AlertasDrawer — consolidação de alertas de todas as linhas visíveis.   */
 /* ---------------------------------------------------------------------- */
 export function AlertasBotao({
-  rows, onSelectProfissional,
+  rows,
+  onSelectProfissional,
 }: {
   rows: ProfConferencia[];
   onSelectProfissional?: (p: ProfConferencia) => void;
@@ -354,7 +398,9 @@ export function AlertasBotao({
         )}
       >
         <AlertTriangle className="mr-1.5 h-4 w-4" />
-        {items.length === 0 ? "Sem alertas" : `${items.length} profissional${items.length > 1 ? "is" : ""} com alertas`}
+        {items.length === 0
+          ? "Sem alertas"
+          : `${items.length} profissional${items.length > 1 ? "is" : ""} com alertas`}
         {total > 0 && (
           <Badge variant="outline" className="ml-2 bg-white/70">
             {total}
@@ -432,9 +478,17 @@ export type EdicaoCampo = {
 };
 
 export function ProfissionalEdicaoModal<L extends Record<string, any>>({
-  prof, linha, open, onOpenChange,
-  campos, canEdit = true, statusValue, onStatusChange,
-  onChangeCampo, onSave, saving,
+  prof,
+  linha,
+  open,
+  onOpenChange,
+  campos,
+  canEdit = true,
+  statusValue,
+  onStatusChange,
+  onChangeCampo,
+  onSave,
+  saving,
 }: {
   prof: ProfConferencia | null;
   linha: L | undefined;
@@ -474,14 +528,17 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
             Editar folha — {prof.nome ?? "Profissional"}
           </DialogTitle>
           <DialogDescription>
-            Preencha os campos da folha do profissional. Alterações são gravadas ao clicar em <strong>Salvar Alterações</strong>.
+            Preencha os campos da folha do profissional. Alterações são gravadas ao clicar em{" "}
+            <strong>Salvar Alterações</strong>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-2 space-y-4">
           {/* Dados pessoais / vínculo (somente leitura) */}
           <section>
-            <div style={labelStyle} className="mb-2">Identificação</div>
+            <div style={labelStyle} className="mb-2">
+              Identificação
+            </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {[
                 ["Nome", prof.nome ?? "—"],
@@ -507,15 +564,23 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
           {/* Status da frequência */}
           {onStatusChange && (
             <section>
-              <div style={labelStyle} className="mb-2">Status da Frequência</div>
+              <div style={labelStyle} className="mb-2">
+                Status da Frequência
+              </div>
               <select
                 value={statusValue ?? "rascunho"}
                 disabled={!canEdit}
                 onChange={(e) => onStatusChange(e.target.value)}
                 style={{
-                  color: "#0F172A", fontWeight: 600, background: "#FFFFFF",
-                  border: "1px solid #94A3B8", borderRadius: 6, padding: "8px 10px",
-                  fontSize: 13, width: "100%", maxWidth: 320,
+                  color: "#0F172A",
+                  fontWeight: 600,
+                  background: "#FFFFFF",
+                  border: "1px solid #94A3B8",
+                  borderRadius: 6,
+                  padding: "8px 10px",
+                  fontSize: 13,
+                  width: "100%",
+                  maxWidth: 320,
                 }}
               >
                 <option value="rascunho">Rascunho</option>
@@ -529,7 +594,9 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
 
           {/* Campos numéricos da folha */}
           <section>
-            <div style={labelStyle} className="mb-2">Dados da Folha</div>
+            <div style={labelStyle} className="mb-2">
+              Dados da Folha
+            </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
               {campos.map((c) => {
                 const raw = linha ? (linha as any)[c.key] : 0;
@@ -571,7 +638,9 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
 
           {/* Justificativa / Observações */}
           <section>
-            <Label htmlFor="edm-obs" style={labelStyle}>Justificativa / Observações</Label>
+            <Label htmlFor="edm-obs" style={labelStyle}>
+              Justificativa / Observações
+            </Label>
             <Textarea
               id="edm-obs"
               rows={3}
@@ -579,8 +648,11 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
               value={String(linha?.observacoes ?? "")}
               onChange={(e) => onChangeCampo("observacoes", e.target.value)}
               style={{
-                color: "#0F172A", background: "#FFFFFF",
-                border: "1px solid #94A3B8", borderRadius: 6, fontSize: 13,
+                color: "#0F172A",
+                background: "#FFFFFF",
+                border: "1px solid #94A3B8",
+                borderRadius: 6,
+                fontSize: 13,
               }}
               placeholder="Descreva a justificativa da frequência ou observações relevantes…"
             />

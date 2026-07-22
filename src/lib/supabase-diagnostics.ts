@@ -33,15 +33,12 @@ export function runSupabaseDiagnostics(): void {
 
   const scope = typeof window !== "undefined" ? "browser" : "server";
   const viteUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const viteKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as
-    | string
-    | undefined;
+  const viteKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   const procEnv = typeof process !== "undefined" ? process.env : undefined;
   const procSupaUrl = procEnv?.SUPABASE_URL;
   const procViteUrl = procEnv?.VITE_SUPABASE_URL;
   const procPubKey = procEnv?.SUPABASE_PUBLISHABLE_KEY;
-  const runtime =
-    typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
+  const runtime = typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
 
   // Resolução idêntica à de src/integrations/supabase/client.ts (linha 42-43)
   const resolvedUrl = viteUrl || runtime?.url || procSupaUrl;
@@ -55,7 +52,6 @@ export function runSupabaseDiagnostics(): void {
         ? "process.env.SUPABASE_URL (server-only)"
         : "<nenhuma>";
 
-  /* eslint-disable no-console */
   console.group(`[SUPABASE-DIAG] (${scope})`);
   console.log("import.meta.env.VITE_SUPABASE_URL           =", viteUrl ?? "<vazio>");
   console.log("import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY[0..15] =", short(viteKey));
@@ -68,10 +64,18 @@ export function runSupabaseDiagnostics(): void {
   console.log("Origem da URL resolvida                     =", origem);
   console.log("---");
   console.log("Criadores de client detectados no repo:");
-  console.log("  • src/integrations/supabase/client.ts:39      createSupabaseClient()  → browser + SSR fallback");
-  console.log("  • src/integrations/supabase/client.server.ts:32 createSupabaseAdminClient() → service_role");
-  console.log("  • src/integrations/supabase/auth-middleware.ts:74 createClient() (per-request) → user token");
-  console.log("Fallbacks presentes no client.ts: `||` entre VITE_SUPABASE_URL, window.__SUPABASE_CONFIG__.url e process.env.SUPABASE_URL.");
+  console.log(
+    "  • src/integrations/supabase/client.ts:39      createSupabaseClient()  → browser + SSR fallback",
+  );
+  console.log(
+    "  • src/integrations/supabase/client.server.ts:32 createSupabaseAdminClient() → service_role",
+  );
+  console.log(
+    "  • src/integrations/supabase/auth-middleware.ts:74 createClient() (per-request) → user token",
+  );
+  console.log(
+    "Fallbacks presentes no client.ts: `||` entre VITE_SUPABASE_URL, window.__SUPABASE_CONFIG__.url e process.env.SUPABASE_URL.",
+  );
   console.log("Nenhum literal `seu_project.supabase.co` foi encontrado no código-fonte.");
   console.groupEnd();
 
@@ -88,7 +92,6 @@ export function runSupabaseDiagnostics(): void {
     placeholder_detectado: isPlaceholder(resolvedUrl),
   };
   console.log("[SUPABASE-DIAG] relatório:", JSON.stringify(relatorio));
-  /* eslint-enable no-console */
 
   if (isPlaceholder(resolvedUrl) || isPlaceholder(resolvedKey)) {
     throw new Error(

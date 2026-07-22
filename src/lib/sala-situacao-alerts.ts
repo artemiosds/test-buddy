@@ -60,9 +60,7 @@ export function buildAlertas({
   const list: Alerta[] = [];
 
   for (const p of pendencias) {
-    const dias = Math.floor(
-      (now - new Date(p.created_at).getTime()) / (24 * 3600 * 1000),
-    );
+    const dias = Math.floor((now - new Date(p.created_at).getTime()) / (24 * 3600 * 1000));
     list.push({
       id: `pend-${p.id}`,
       tipo: "pendencia",

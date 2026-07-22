@@ -1,5 +1,45 @@
-import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarRange, ClipboardList, Users, Building2, ShieldCheck, LogOut, UserCog, AlertCircle, CheckCircle2, Signature, FileBarChart, Bell, Settings2, Tag, CalendarDays, Megaphone, Menu, PanelLeftOpen, PanelLeftClose, Search, ChevronDown, ChevronRight, Activity, BarChart3, Briefcase, Network, Wrench, KeyRound, Sun, Moon, Hospital } from "lucide-react";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  CalendarRange,
+  ClipboardList,
+  Users,
+  Building2,
+  ShieldCheck,
+  LogOut,
+  UserCog,
+  AlertCircle,
+  CheckCircle2,
+  Signature,
+  FileBarChart,
+  Bell,
+  Settings2,
+  Tag,
+  CalendarDays,
+  Megaphone,
+  Menu,
+  PanelLeftOpen,
+  PanelLeftClose,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Activity,
+  BarChart3,
+  Briefcase,
+  Network,
+  Wrench,
+  KeyRound,
+  Sun,
+  Moon,
+  Hospital,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +74,9 @@ export const Route = createFileRoute("/_authenticated")({
     // requires envs that may not exist in prerender/SSR environments.
     // The auth check re-runs on the client after hydration.
     if (typeof window === "undefined") {
-      return { user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] };
+      return {
+        user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"],
+      };
     }
     try {
       await supabase.auth.getSession();
@@ -74,12 +116,42 @@ const GROUPS: NavGroup[] = [
     icon: Activity,
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/analitico", label: "Dashboard Analítico", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/competencias", label: "Competências", icon: CalendarRange, perm: "competencia.visualizar" },
-      { to: "/frequencias", label: "Frequências (mensal)", icon: ClipboardList, perm: "frequencia.visualizar" },
-      { to: "/frequencia/contratados", label: "Folha — Contratados", icon: ClipboardList, perm: "frequencia.visualizar" },
-      { to: "/frequencia/efetivos", label: "Folha — Efetivos", icon: ClipboardList, perm: "frequencia.visualizar" },
-      { to: "/piso-enfermagem", label: "Piso Nacional da Enfermagem", icon: ClipboardList, perm: "piso.visualizar" },
+      {
+        to: "/analitico",
+        label: "Dashboard Analítico",
+        icon: BarChart3,
+        perm: ["relatorio.visualizar", "relatorio.exportar"],
+      },
+      {
+        to: "/competencias",
+        label: "Competências",
+        icon: CalendarRange,
+        perm: "competencia.visualizar",
+      },
+      {
+        to: "/frequencias",
+        label: "Frequências (mensal)",
+        icon: ClipboardList,
+        perm: "frequencia.visualizar",
+      },
+      {
+        to: "/frequencia/contratados",
+        label: "Folha — Contratados",
+        icon: ClipboardList,
+        perm: "frequencia.visualizar",
+      },
+      {
+        to: "/frequencia/efetivos",
+        label: "Folha — Efetivos",
+        icon: ClipboardList,
+        perm: "frequencia.visualizar",
+      },
+      {
+        to: "/piso-enfermagem",
+        label: "Piso Nacional da Enfermagem",
+        icon: ClipboardList,
+        perm: "piso.visualizar",
+      },
       { to: "/pendencias", label: "Pendências", icon: AlertCircle, perm: "pendencia.gerenciar" },
       { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2, perm: "frequencia.aprovar" },
       { to: "/assinaturas", label: "Assinaturas", icon: Signature },
@@ -93,23 +165,97 @@ const GROUPS: NavGroup[] = [
     icon: Users,
     items: [
       // 📊 Visão Executiva
-      { to: "/gestao-pessoas", label: "Dashboard Executivo", icon: LayoutDashboard, section: "📊 Visão Executiva" },
-      { to: "/sala-situacao", label: "Sala de Situação", icon: Activity, section: "📊 Visão Executiva" },
+      {
+        to: "/gestao-pessoas",
+        label: "Dashboard Executivo",
+        icon: LayoutDashboard,
+        section: "📊 Visão Executiva",
+      },
+      {
+        to: "/sala-situacao",
+        label: "Sala de Situação",
+        icon: Activity,
+        section: "📊 Visão Executiva",
+      },
       { to: "/gestao-rh", label: "Dashboard RH", icon: BarChart3, section: "📊 Visão Executiva" },
-      { to: "/analitico", label: "Indicadores", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"], section: "📊 Visão Executiva" },
+      {
+        to: "/analitico",
+        label: "Indicadores",
+        icon: BarChart3,
+        perm: ["relatorio.visualizar", "relatorio.exportar"],
+        section: "📊 Visão Executiva",
+      },
       // 👥 Profissionais
-      { to: "/profissionais", label: "Cadastro de Profissionais", icon: Users, perm: "profissional.visualizar", section: "👥 Profissionais" },
-      { to: "/gestao-profissionais", label: "Gestão dos Profissionais", icon: UserCog, perm: "profissional.visualizar", section: "👥 Profissionais" },
-      { to: "/gestao-pessoas/situacao-funcional", label: "Situação Funcional", icon: Activity, section: "👥 Profissionais" },
+      {
+        to: "/profissionais",
+        label: "Cadastro de Profissionais",
+        icon: Users,
+        perm: "profissional.visualizar",
+        section: "👥 Profissionais",
+      },
+      {
+        to: "/gestao-profissionais",
+        label: "Gestão dos Profissionais",
+        icon: UserCog,
+        perm: "profissional.visualizar",
+        section: "👥 Profissionais",
+      },
+      {
+        to: "/gestao-pessoas/situacao-funcional",
+        label: "Situação Funcional",
+        icon: Activity,
+        section: "👥 Profissionais",
+      },
       // 🏥 Estrutura Organizacional
-      { to: "/unidades", label: "Unidades", icon: Building2, perm: "unidade.visualizar", section: "🏥 Estrutura Organizacional" },
-      { to: "/setores", label: "Setores", icon: Network, perm: "unidade.editar", section: "🏥 Estrutura Organizacional" },
-      { to: "/cargos-funcoes", label: "Cargos", icon: Briefcase, perm: "configuracao.editar", section: "🏥 Estrutura Organizacional", hash: "cargos" },
-      { to: "/cargos-funcoes", label: "Funções", icon: Tag, perm: "configuracao.editar", section: "🏥 Estrutura Organizacional", hash: "funcoes" },
+      {
+        to: "/unidades",
+        label: "Unidades",
+        icon: Building2,
+        perm: "unidade.visualizar",
+        section: "🏥 Estrutura Organizacional",
+      },
+      {
+        to: "/setores",
+        label: "Setores",
+        icon: Network,
+        perm: "unidade.editar",
+        section: "🏥 Estrutura Organizacional",
+      },
+      {
+        to: "/cargos-funcoes",
+        label: "Cargos",
+        icon: Briefcase,
+        perm: "configuracao.editar",
+        section: "🏥 Estrutura Organizacional",
+        hash: "cargos",
+      },
+      {
+        to: "/cargos-funcoes",
+        label: "Funções",
+        icon: Tag,
+        perm: "configuracao.editar",
+        section: "🏥 Estrutura Organizacional",
+        hash: "funcoes",
+      },
       // 📍 Gestão Operacional
-      { to: "/controle-forca-trabalho", label: "Controle da Força de Trabalho", icon: Activity, section: "📍 Gestão Operacional" },
-      { to: "/gestao-pessoas/lotacao", label: "Lotação das Unidades", icon: Building2, section: "📍 Gestão Operacional" },
-      { to: "/gestao-pessoas/distribuicao-setor", label: "Distribuição por Setor", icon: Network, section: "📍 Gestão Operacional" },
+      {
+        to: "/controle-forca-trabalho",
+        label: "Controle da Força de Trabalho",
+        icon: Activity,
+        section: "📍 Gestão Operacional",
+      },
+      {
+        to: "/gestao-pessoas/lotacao",
+        label: "Lotação das Unidades",
+        icon: Building2,
+        section: "📍 Gestão Operacional",
+      },
+      {
+        to: "/gestao-pessoas/distribuicao-setor",
+        label: "Distribuição por Setor",
+        icon: Network,
+        section: "📍 Gestão Operacional",
+      },
     ],
   },
   {
@@ -117,8 +263,18 @@ const GROUPS: NavGroup[] = [
     label: "Relatórios",
     icon: FileBarChart,
     items: [
-      { to: "/relatorios", label: "Visão geral", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
-      { to: "/relatorios-gerenciais", label: "Gerenciais (Secretaria)", icon: FileBarChart, perm: ["relatorio.visualizar", "relatorio.exportar"] },
+      {
+        to: "/relatorios",
+        label: "Visão geral",
+        icon: FileBarChart,
+        perm: ["relatorio.visualizar", "relatorio.exportar"],
+      },
+      {
+        to: "/relatorios-gerenciais",
+        label: "Gerenciais (Secretaria)",
+        icon: FileBarChart,
+        perm: ["relatorio.visualizar", "relatorio.exportar"],
+      },
     ],
   },
   {
@@ -136,15 +292,24 @@ const GROUPS: NavGroup[] = [
     label: "Administração",
     icon: Wrench,
     items: [
-      { to: "/usuarios", label: "Usuários e Permissões", icon: UserCog, perm: "usuario.visualizar" },
+      {
+        to: "/usuarios",
+        label: "Usuários e Permissões",
+        icon: UserCog,
+        perm: "usuario.visualizar",
+      },
       { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, perm: "auditoria.visualizar" },
       { to: "/saude", label: "Saúde do Sistema", icon: Activity, masterOnly: true },
-      { to: "/configuracao", label: "Configuração Municipal", icon: Settings2, perm: "configuracao.editar" },
+      {
+        to: "/configuracao",
+        label: "Configuração Municipal",
+        icon: Settings2,
+        perm: "configuracao.editar",
+      },
       { to: "/seguranca", label: "Segurança (MFA)", icon: KeyRound },
     ],
   },
 ];
-
 
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
@@ -200,7 +365,12 @@ function AuthenticatedLayout() {
       .channel(`notif-${userCtx.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notificacoes", filter: `usuario_id=eq.${userCtx.id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "notificacoes",
+          filter: `usuario_id=eq.${userCtx.id}`,
+        },
         (payload) => {
           refetchUnread();
           if (
@@ -217,12 +387,16 @@ function AuthenticatedLayout() {
                 icon: "/icon-192.png",
                 badge: "/icon-192.png",
               });
-            } catch { /* noop */ }
+            } catch {
+              /* noop */
+            }
           }
         },
       )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [userCtx?.id, refetchUnread]);
   const { data: mfaMissing } = useQuery({
     queryKey: ["mfa-status", userCtx?.id],
@@ -312,12 +486,15 @@ function AuthenticatedLayout() {
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   useEffect(() => {
-    setOpenGroups((prev) => (activeGroupId && !prev[activeGroupId] ? { ...prev, [activeGroupId]: true } : prev));
+    setOpenGroups((prev) =>
+      activeGroupId && !prev[activeGroupId] ? { ...prev, [activeGroupId]: true } : prev,
+    );
   }, [activeGroupId]);
   const isGroupOpen = (id: string) => !!search.trim() || !!openGroups[id];
   const toggleGroup = (id: string) => setOpenGroups((p) => ({ ...p, [id]: !p[id] }));
 
-  const isItemActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"));
+  const isItemActive = (to: string) =>
+    to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
 
   // ---- Breadcrumbs ----
   // Constrói mapa plano rota -> label a partir dos GROUPS declarados acima.
@@ -347,7 +524,11 @@ function AuthenticatedLayout() {
 
   const currentGroupLabel = useMemo(() => {
     for (const g of GROUPS) {
-      if (g.items.some((it) => (it.to === "/" ? pathname === "/" : pathname === it.to || pathname.startsWith(it.to + "/")))) {
+      if (
+        g.items.some((it) =>
+          it.to === "/" ? pathname === "/" : pathname === it.to || pathname.startsWith(it.to + "/"),
+        )
+      ) {
         return g.label;
       }
     }
@@ -380,7 +561,11 @@ function AuthenticatedLayout() {
               >
                 <GroupIcon className="h-3.5 w-3.5" />
                 <span className="flex-1 text-left">{g.label}</span>
-                {open ? <ChevronDown className="sb-chevron h-3.5 w-3.5" /> : <ChevronRight className="sb-chevron h-3.5 w-3.5" />}
+                {open ? (
+                  <ChevronDown className="sb-chevron h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="sb-chevron h-3.5 w-3.5" />
+                )}
               </button>
             )}
             {open && (
@@ -407,10 +592,12 @@ function AuthenticatedLayout() {
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                       {!compact && <span className="flex-1 leading-tight">{item.label}</span>}
                       {showBadge && (
-                        <span className={
-                          (compact ? "absolute -right-0.5 -top-0.5 " : "ml-auto ") +
-                          "flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground"
-                        }>
+                        <span
+                          className={
+                            (compact ? "absolute -right-0.5 -top-0.5 " : "ml-auto ") +
+                            "flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground"
+                          }
+                        >
                           {pendAbertasCount > 99 ? "99+" : pendAbertasCount}
                         </span>
                       )}
@@ -440,7 +627,11 @@ function AuthenticatedLayout() {
 
   const sidebarInner = (compact: boolean) => (
     <>
-      <div className={"sb-logo flex items-center gap-2 " + (compact ? "justify-center px-2" : "justify-between")}>
+      <div
+        className={
+          "sb-logo flex items-center gap-2 " + (compact ? "justify-center px-2" : "justify-between")
+        }
+      >
         {!compact ? (
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="sb-logo-mark">
@@ -512,7 +703,6 @@ function AuthenticatedLayout() {
         </div>
       )}
 
-
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           onOpenMobile={() => setMobileOpen(true)}
@@ -539,7 +729,9 @@ function AuthenticatedLayout() {
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               Seu perfil exige verificação em duas etapas (MFA).{" "}
-              <Link to="/seguranca" className="font-semibold underline">Ativar agora</Link>
+              <Link to="/seguranca" className="font-semibold underline">
+                Ativar agora
+              </Link>
             </span>
           </div>
         )}
@@ -587,8 +779,8 @@ function TopBar({
     competencia?.status === "aberta"
       ? "Aberta"
       : competencia?.status === "em_processamento"
-      ? "Em processamento"
-      : competencia?.status ?? "";
+        ? "Em processamento"
+        : (competencia?.status ?? "");
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -720,10 +912,17 @@ function TopBar({
                   {initial}
                 </span>
                 <span className="hidden flex-col justify-center text-left leading-tight sm:flex">
-                  <span className="block max-w-[180px] truncate text-sm font-semibold text-foreground">{nome}</span>
-                  <span className="block truncate text-[11px] font-normal text-muted-foreground">{perfil}</span>
+                  <span className="block max-w-[180px] truncate text-sm font-semibold text-foreground">
+                    {nome}
+                  </span>
+                  <span className="block truncate text-[11px] font-normal text-muted-foreground">
+                    {perfil}
+                  </span>
                 </span>
-                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" strokeWidth={2} />
+                <ChevronDown
+                  className="hidden h-3.5 w-3.5 text-muted-foreground sm:block"
+                  strokeWidth={2}
+                />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -740,13 +939,20 @@ function TopBar({
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onToggleTheme}>
                 {theme === "dark" ? (
-                  <><Sun className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema claro</>
+                  <>
+                    <Sun className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema claro
+                  </>
                 ) : (
-                  <><Moon className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema escuro</>
+                  <>
+                    <Moon className="mr-2 h-4 w-4" strokeWidth={1.75} /> Tema escuro
+                  </>
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => void onSignOut()} className="text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onSelect={() => void onSignOut()}
+                className="text-destructive focus:text-destructive"
+              >
                 <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Sair
               </DropdownMenuItem>

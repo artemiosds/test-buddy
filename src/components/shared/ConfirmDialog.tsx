@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,10 +67,7 @@ export function ConfirmDialog({
               e.preventDefault();
               onConfirm();
             }}
-            className={cn(
-              tone === "destructive" &&
-                buttonVariants({ variant: "destructive" }),
-            )}
+            className={cn(tone === "destructive" && buttonVariants({ variant: "destructive" }))}
           >
             {confirmLabel}
           </AlertDialogAction>

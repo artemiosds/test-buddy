@@ -27,7 +27,11 @@ import { EmptyState, KpiCard, PageHeader, StatusBadge, FilterBar } from "@/compo
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   SemaforoCard,
@@ -52,13 +56,20 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
   head: () => ({
     meta: [
       { title: "Dashboard Executivo — Gestão da Saúde" },
-      { name: "description", content: "Visão executiva consolidada de pessoas, estrutura e operação." },
+      {
+        name: "description",
+        content: "Visão executiva consolidada de pessoas, estrutura e operação.",
+      },
     ],
   }),
   component: () => (
     <PermissionGate
       permission="dashboard.visualizar"
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <DashboardExecutivo />
     </PermissionGate>
@@ -93,8 +104,7 @@ function DashboardExecutivo() {
   const intel = useIntelligence(a);
   const navigate = useNavigate();
 
-  const competenciaLabel = (mes: number, ano: number) =>
-    `${String(mes).padStart(2, "0")}/${ano}`;
+  const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
@@ -143,11 +153,15 @@ function DashboardExecutivo() {
               value={unidadeSel}
               onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todas</SelectItem>
                 {(unidadesQ.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -157,7 +171,9 @@ function DashboardExecutivo() {
               value={statusSel}
               onValueChange={(v) => patchFilter({ status: v === "__all__" ? "" : v })}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todos</SelectItem>
                 <SelectItem value="ativo">Ativos</SelectItem>
@@ -173,14 +189,20 @@ function DashboardExecutivo() {
               value={compSel}
               onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__ativa__">
-                  Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+                  Ativa{" "}
+                  {competenciaAtiva
+                    ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})`
+                    : ""}
                 </SelectItem>
                 {(competenciasQ.data ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                    {competenciaLabel(c.mes, c.ano)}
+                    {c.status ? ` · ${c.status}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -226,39 +248,127 @@ function DashboardExecutivo() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <TendenciaKpi label="Horas extras" tendencia={intel.tendencias.horasExtras} invertBad />
           <TendenciaKpi label="Faltas" tendencia={intel.tendencias.faltas} invertBad />
-          <TendenciaKpi label="Pendências abertas" tendencia={intel.tendencias.pendencias} invertBad />
+          <TendenciaKpi
+            label="Pendências abertas"
+            tendencia={intel.tendencias.pendencias}
+            invertBad
+          />
           <TendenciaKpi label="Frequências aprovadas" tendencia={intel.tendencias.aprovadas} />
         </div>
       </Section>
 
       <Section title="Pessoas">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Total de profissionais" value={n(a.totalProfessionals.data)} loading={a.totalProfessionals.isLoading} icon={<Users className="h-4 w-4" />} />
-          <KpiCard label="Ativos" value={n(status["ativo"])} loading={a.statusBreakdown.isLoading} tone="success" icon={<UserCheck className="h-4 w-4" />} />
-          <KpiCard label="Afastados" value={n(status["afastado"])} loading={a.statusBreakdown.isLoading} tone="warning" icon={<UserMinus className="h-4 w-4" />} />
-          <KpiCard label="Férias" value={n(status["ferias"])} loading={a.statusBreakdown.isLoading} icon={<Umbrella className="h-4 w-4" />} />
-          <KpiCard label="Licenças" value={n(status["licenca"])} loading={a.statusBreakdown.isLoading} icon={<FileText className="h-4 w-4" />} />
-          <KpiCard label="Desligados" value={n(status["desligado"])} loading={a.statusBreakdown.isLoading} tone="danger" icon={<UserX className="h-4 w-4" />} />
-          <KpiCard label="Efetivos" value={n(vinc?.efetivos)} loading={a.vinculoBreakdown.isLoading} icon={<Briefcase className="h-4 w-4" />} />
-          <KpiCard label="Temporários" value={n(vinc?.temporarios)} loading={a.vinculoBreakdown.isLoading} icon={<Briefcase className="h-4 w-4" />} />
+          <KpiCard
+            label="Total de profissionais"
+            value={n(a.totalProfessionals.data)}
+            loading={a.totalProfessionals.isLoading}
+            icon={<Users className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Ativos"
+            value={n(status["ativo"])}
+            loading={a.statusBreakdown.isLoading}
+            tone="success"
+            icon={<UserCheck className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Afastados"
+            value={n(status["afastado"])}
+            loading={a.statusBreakdown.isLoading}
+            tone="warning"
+            icon={<UserMinus className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Férias"
+            value={n(status["ferias"])}
+            loading={a.statusBreakdown.isLoading}
+            icon={<Umbrella className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Licenças"
+            value={n(status["licenca"])}
+            loading={a.statusBreakdown.isLoading}
+            icon={<FileText className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Desligados"
+            value={n(status["desligado"])}
+            loading={a.statusBreakdown.isLoading}
+            tone="danger"
+            icon={<UserX className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Efetivos"
+            value={n(vinc?.efetivos)}
+            loading={a.vinculoBreakdown.isLoading}
+            icon={<Briefcase className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Temporários"
+            value={n(vinc?.temporarios)}
+            loading={a.vinculoBreakdown.isLoading}
+            icon={<Briefcase className="h-4 w-4" />}
+          />
         </div>
       </Section>
 
       <Section title="Estrutura">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Total de unidades" value={n(a.totalUnidades.data)} loading={a.totalUnidades.isLoading} icon={<Building2 className="h-4 w-4" />} />
-          <KpiCard label="Total de setores" value={n(a.totalSetores.data)} loading={a.totalSetores.isLoading} icon={<Network className="h-4 w-4" />} />
-          <KpiCard label="Total de cargos" value={n(a.totalCargos.data)} loading={a.totalCargos.isLoading} icon={<Briefcase className="h-4 w-4" />} />
-          <KpiCard label="Total de funções" value={n(a.totalFuncoes.data)} loading={a.totalFuncoes.isLoading} icon={<Tag className="h-4 w-4" />} />
+          <KpiCard
+            label="Total de unidades"
+            value={n(a.totalUnidades.data)}
+            loading={a.totalUnidades.isLoading}
+            icon={<Building2 className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Total de setores"
+            value={n(a.totalSetores.data)}
+            loading={a.totalSetores.isLoading}
+            icon={<Network className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Total de cargos"
+            value={n(a.totalCargos.data)}
+            loading={a.totalCargos.isLoading}
+            icon={<Briefcase className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Total de funções"
+            value={n(a.totalFuncoes.data)}
+            loading={a.totalFuncoes.isLoading}
+            icon={<Tag className="h-4 w-4" />}
+          />
         </div>
       </Section>
 
       <Section title="Operação">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Pendências abertas" value={n(a.pendencias.data)} loading={a.pendencias.isLoading} icon={<AlertCircle className="h-4 w-4" />} />
-          <KpiCard label="Horas extras (total)" value={n(a.totalHorasExtras)} loading={a.frequencias.isLoading} hint="Somatório do período ativo" icon={<Clock className="h-4 w-4" />} />
-          <KpiCard label="Faltas (total)" value={n(a.totalFaltas)} loading={a.frequencias.isLoading} hint="Somatório do período ativo" icon={<AlertCircle className="h-4 w-4" />} />
-          <KpiCard label="Período ativo" value={a.competenciaAtiva?.label ?? "—"} icon={<CalendarRange className="h-4 w-4" />} />
+          <KpiCard
+            label="Pendências abertas"
+            value={n(a.pendencias.data)}
+            loading={a.pendencias.isLoading}
+            icon={<AlertCircle className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Horas extras (total)"
+            value={n(a.totalHorasExtras)}
+            loading={a.frequencias.isLoading}
+            hint="Somatório do período ativo"
+            icon={<Clock className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Faltas (total)"
+            value={n(a.totalFaltas)}
+            loading={a.frequencias.isLoading}
+            hint="Somatório do período ativo"
+            icon={<AlertCircle className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Período ativo"
+            value={a.competenciaAtiva?.label ?? "—"}
+            icon={<CalendarRange className="h-4 w-4" />}
+          />
         </div>
       </Section>
 
@@ -288,9 +398,14 @@ function DashboardExecutivo() {
 
       <Section title="Alertas de Força de Trabalho" icon={<ShieldAlert className="h-4 w-4" />}>
         {a.alertas.isLoading ? (
-          <div className="rounded-md border p-4 text-sm text-muted-foreground">Carregando alertas…</div>
+          <div className="rounded-md border p-4 text-sm text-muted-foreground">
+            Carregando alertas…
+          </div>
         ) : alertItems.every((i) => i.count === 0) ? (
-          <EmptyState title="Nenhum alerta ativo" description="Todos os cadastros críticos estão preenchidos." />
+          <EmptyState
+            title="Nenhum alerta ativo"
+            description="Todos os cadastros críticos estão preenchidos."
+          />
         ) : (
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
             {alertItems.map((i) => (
@@ -302,7 +417,12 @@ function DashboardExecutivo() {
                 }
               >
                 <span className="flex-1 text-foreground">{i.label}</span>
-                <span className={"font-semibold tabular-nums " + (i.count > 0 ? "text-warning-soft-foreground" : "text-muted-foreground")}>
+                <span
+                  className={
+                    "font-semibold tabular-nums " +
+                    (i.count > 0 ? "text-warning-soft-foreground" : "text-muted-foreground")
+                  }
+                >
                   {n(i.count)}
                 </span>
                 <Button
@@ -395,7 +515,9 @@ function Section({
     <section className="mt-6">
       <div className="mb-2 flex items-center gap-2">
         {icon}
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </h2>
       </div>
       {children}
     </section>
@@ -427,7 +549,9 @@ function DistribuicaoTable({
               <tr key={r.id} className="border-b last:border-0">
                 <td className="w-10 px-3 py-2 text-muted-foreground">{i + 1}</td>
                 <td className="px-3 py-2">{r.nome}</td>
-                <td className="w-24 px-3 py-2 text-right font-medium tabular-nums">{r.total.toLocaleString("pt-BR")}</td>
+                <td className="w-24 px-3 py-2 text-right font-medium tabular-nums">
+                  {r.total.toLocaleString("pt-BR")}
+                </td>
               </tr>
             ))}
           </tbody>

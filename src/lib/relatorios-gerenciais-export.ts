@@ -8,7 +8,11 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 
-export type ExportColumn<T> = { header: string; value: (r: T) => string | number | null | undefined; width?: number };
+export type ExportColumn<T> = {
+  header: string;
+  value: (r: T) => string | number | null | undefined;
+  width?: number;
+};
 
 export async function exportarPdfInstitucional<T>(opts: {
   filename: string;
@@ -40,10 +44,12 @@ export async function exportarPdfInstitucional<T>(opts: {
   autoTable(doc, {
     startY: y,
     head: [opts.colunas.map((c) => c.header)],
-    body: opts.linhas.map((r) => opts.colunas.map((c) => {
-      const v = c.value(r);
-      return v == null ? "" : String(v);
-    })),
+    body: opts.linhas.map((r) =>
+      opts.colunas.map((c) => {
+        const v = c.value(r);
+        return v == null ? "" : String(v);
+      }),
+    ),
     styles: { fontSize: 7, cellPadding: 1.2 },
     headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [250, 246, 240] },
@@ -55,7 +61,9 @@ export async function exportarPdfInstitucional<T>(opts: {
       const h = doc.internal.pageSize.getHeight();
       doc.setFontSize(8);
       doc.setTextColor(120);
-      doc.text(`Página ${current} de ${pageCount}${current > 1 ? " (cont.)" : ""}`, w - 14, h - 6, { align: "right" });
+      doc.text(`Página ${current} de ${pageCount}${current > 1 ? " (cont.)" : ""}`, w - 14, h - 6, {
+        align: "right",
+      });
       doc.text(new Date().toLocaleString("pt-BR"), 14, h - 6);
       doc.setTextColor(0);
     },
@@ -63,13 +71,20 @@ export async function exportarPdfInstitucional<T>(opts: {
   doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
 }
 
-export function exportarExcel<T>(opts: { filename: string; sheet?: string; colunas: ExportColumn<T>[]; linhas: T[] }) {
+export function exportarExcel<T>(opts: {
+  filename: string;
+  sheet?: string;
+  colunas: ExportColumn<T>[];
+  linhas: T[];
+}) {
   const aoa: (string | number)[][] = [opts.colunas.map((c) => c.header)];
   for (const r of opts.linhas) {
-    aoa.push(opts.colunas.map((c) => {
-      const v = c.value(r);
-      return v == null ? "" : (typeof v === "number" ? v : String(v));
-    }));
+    aoa.push(
+      opts.colunas.map((c) => {
+        const v = c.value(r);
+        return v == null ? "" : typeof v === "number" ? v : String(v);
+      }),
+    );
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = opts.colunas.map((c) => ({ wch: c.width ?? Math.max(12, c.header.length + 2) }));

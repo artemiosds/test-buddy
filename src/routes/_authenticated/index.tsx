@@ -1,8 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CalendarRange, ClipboardList, CheckSquare, Users2, AlertTriangle,
-  FileClock, Building2, Bell, Clock, ArrowUpRight,
+  CalendarRange,
+  ClipboardList,
+  CheckSquare,
+  Users2,
+  AlertTriangle,
+  FileClock,
+  Building2,
+  Bell,
+  Clock,
+  ArrowUpRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
@@ -11,7 +19,6 @@ import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import { KpiCard, KpiGridSkeleton, EmptyState } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-
 
 export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
@@ -72,7 +79,9 @@ function Dashboard() {
 
   const diasAviso = parametros?.dias_aviso_prazo_fechamento ?? 5;
   const prazoDate = compFull?.prazo_envio ? new Date(compFull.prazo_envio + "T23:59:59") : null;
-  const diasParaFechamento = prazoDate ? Math.ceil((prazoDate.getTime() - Date.now()) / 86400000) : null;
+  const diasParaFechamento = prazoDate
+    ? Math.ceil((prazoDate.getTime() - Date.now()) / 86400000)
+    : null;
   const showPrazoAviso =
     isDiretor &&
     prazoDate !== null &&
@@ -80,7 +89,6 @@ function Dashboard() {
     diasParaFechamento >= 0 &&
     diasParaFechamento <= diasAviso &&
     minhasUnidadesSemEnvio > 0;
-
 
   // === Métricas GESTOR / MASTER ===
   const { data: pendAprovacao = 0 } = useQuery({
@@ -102,7 +110,11 @@ function Dashboard() {
     enabled: canApprove && !!compId,
     queryFn: async () => {
       const [{ count: totalUnidades }, { count: comEnvio }] = await Promise.all([
-        supabase.from("unidades").select("id", { count: "exact", head: true }).eq("status", "ativa").is("deleted_at", null),
+        supabase
+          .from("unidades")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ativa")
+          .is("deleted_at", null),
         supabase
           .from("competencia_unidades")
           .select("unidade_id", { count: "exact", head: true })
@@ -127,7 +139,6 @@ function Dashboard() {
   });
 
   // === Métricas DIRETOR / ADMINISTRATIVO ===
-
 
   const { data: rascunhos = 0 } = useQuery({
     queryKey: ["dash", "rascunhos", compId, userCtx?.id],
@@ -279,8 +290,8 @@ function Dashboard() {
               <div className="mt-1">
                 {diasParaFechamento === 0
                   ? `O prazo de envio da competência ${competencia.label} vence hoje`
-                  : `Faltam ${diasParaFechamento} dia${diasParaFechamento === 1 ? "" : "s"} para o fechamento da competência ${competencia.label}`}
-                {" "}e sua folha ainda não foi enviada.
+                  : `Faltam ${diasParaFechamento} dia${diasParaFechamento === 1 ? "" : "s"} para o fechamento da competência ${competencia.label}`}{" "}
+                e sua folha ainda não foi enviada.
               </div>
             </div>
           </div>
@@ -294,10 +305,13 @@ function Dashboard() {
           {cards.map((c) => {
             const Icon = c.icon;
             const kpiTone =
-              c.tone === "danger" ? "danger"
-              : c.tone === "warning" ? "warning"
-              : c.tone === "success" ? "success"
-              : "default";
+              c.tone === "danger"
+                ? "danger"
+                : c.tone === "warning"
+                  ? "warning"
+                  : c.tone === "success"
+                    ? "success"
+                    : "default";
             const card = (
               <KpiCard
                 label={c.label}
@@ -331,7 +345,15 @@ function Dashboard() {
   );
 }
 
-function QuickLinks({ canApprove, canDraft, isMaster }: { canApprove: boolean; canDraft: boolean; isMaster: boolean }) {
+function QuickLinks({
+  canApprove,
+  canDraft,
+  isMaster,
+}: {
+  canApprove: boolean;
+  canDraft: boolean;
+  isMaster: boolean;
+}) {
   const links: { to: string; label: string }[] = [];
   if (canDraft) links.push({ to: "/frequencias", label: "Lançar frequências" });
   if (canApprove) links.push({ to: "/aprovacoes", label: "Aprovar folhas enviadas" });
@@ -348,7 +370,10 @@ function QuickLinks({ canApprove, canDraft, isMaster }: { canApprove: boolean; c
               to={l.to}
               className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground/80 transition hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
             >
-              <ArrowUpRight className="h-3.5 w-3.5 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2} />
+              <ArrowUpRight
+                className="h-3.5 w-3.5 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                strokeWidth={2}
+              />
               <span>{l.label}</span>
             </Link>
           </li>
@@ -403,7 +428,9 @@ function RecentActivity() {
         <ul className="space-y-2">
           {data.map((n) => (
             <li key={n.id} className="flex items-start gap-2 text-sm">
-              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.lida ? "bg-muted-foreground/40" : "bg-primary"}`} />
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.lida ? "bg-muted-foreground/40" : "bg-primary"}`}
+              />
               <div className="min-w-0 flex-1">
                 <div className={`truncate ${n.lida ? "text-muted-foreground" : "font-medium"}`}>
                   {n.titulo}

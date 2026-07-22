@@ -103,9 +103,9 @@ export function diasDesde(iso: string | null | undefined, ref: Date = new Date()
 /** Extrai lotações (eventos que trocam unidade/setor/cargo/função) ordenadas do
  *  mais recente para o mais antigo. `data_fim` é o `data_inicio` do próximo
  *  evento quando ausente. */
-export function deriveLotacoes(historico: HistoricoEvento[]): Array<
-  HistoricoEvento & { data_fim_efetiva: string | null }
-> {
+export function deriveLotacoes(
+  historico: HistoricoEvento[],
+): Array<HistoricoEvento & { data_fim_efetiva: string | null }> {
   const relevantes = historico.filter(
     (e) =>
       e.unidade_novo_id ||
@@ -156,8 +156,7 @@ export function computeDossieResumo(input: {
   for (const l of linhas) {
     if (l.competencia_key) competenciaSet.add(l.competencia_key);
     totalHe += Number(l.he_50 ?? 0) + Number(l.he_100 ?? 0);
-    totalFaltas +=
-      Number(l.faltas_injustificadas ?? 0) + Number(l.faltas_justificadas ?? 0);
+    totalFaltas += Number(l.faltas_injustificadas ?? 0) + Number(l.faltas_justificadas ?? 0);
     if (l.status_linha === "aprovada") aprovadas += 1;
   }
 

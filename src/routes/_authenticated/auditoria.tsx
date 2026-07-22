@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -105,9 +107,7 @@ function AuditoriaPage() {
       if (tabela !== "todas") q = q.eq("tabela", tabela);
       if (busca.trim()) {
         const b = busca.trim();
-        q = q.or(
-          `usuario_email.ilike.%${b}%,registro_id.ilike.%${b}%,tabela.ilike.%${b}%`,
-        );
+        q = q.or(`usuario_email.ilike.%${b}%,registro_id.ilike.%${b}%,tabela.ilike.%${b}%`);
       }
       const { data, count, error } = await q.range(from, to);
       if (error) throw error;
@@ -144,10 +144,7 @@ function AuditoriaPage() {
     if (total > 5000) {
       toast.warning(`Exportação limitada a 5000 registros (total filtrado: ${total}).`);
     }
-    const header = [
-      "ocorrido_em", "operacao", "tabela", "registro_id",
-      "usuario_email", "ip",
-    ];
+    const header = ["ocorrido_em", "operacao", "tabela", "registro_id", "usuario_email", "ip"];
     const csv = [
       "\ufeff" + header.join(";"),
       ...(exportRows as AuditRow[]).map((r) =>
@@ -210,28 +207,36 @@ function AuditoriaPage() {
             onChange={(e) => setBusca(e.target.value)}
           />
           <Select value={operacao} onValueChange={(v) => setOperacao(v as Operacao | "todas")}>
-            <SelectTrigger><SelectValue placeholder="Operação" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Operação" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas operações</SelectItem>
               <SelectItem value="insert">Inserção</SelectItem>
               <SelectItem value="update">Atualização</SelectItem>
               <SelectItem value="delete">Exclusão</SelectItem>
-            <SelectItem value="login">Login</SelectItem>
-            <SelectItem value="logout">Logout</SelectItem>
-            <SelectItem value="custom">Ação (cliente)</SelectItem>
+              <SelectItem value="login">Login</SelectItem>
+              <SelectItem value="logout">Logout</SelectItem>
+              <SelectItem value="custom">Ação (cliente)</SelectItem>
             </SelectContent>
           </Select>
           <Select value={tabela} onValueChange={setTabela}>
-            <SelectTrigger><SelectValue placeholder="Tabela" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Tabela" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas tabelas</SelectItem>
               {(tabelas ?? []).map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={dias} onValueChange={setDias}>
-            <SelectTrigger><SelectValue placeholder="Período" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="1">Últimas 24h</SelectItem>
               <SelectItem value="7">Últimos 7 dias</SelectItem>
@@ -257,27 +262,41 @@ function AuditoriaPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
-                ) : rows.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado.</td></tr>
-                ) : rows.map((r) => (
-                  <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="p-3 whitespace-nowrap">
-                      {new Date(r.ocorrido_em).toLocaleString("pt-BR")}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant={OP_VARIANT[r.operacao]}>{OP_LABEL[r.operacao]}</Badge>
-                    </td>
-                    <td className="p-3 font-mono text-xs">{r.tabela}</td>
-                    <td className="p-3 font-mono text-xs truncate max-w-[200px]">{r.registro_id ?? "—"}</td>
-                    <td className="p-3">{r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}</td>
-                    <td className="p-3">
-                      <Button size="icon" variant="ghost" onClick={() => setDetalhe(r)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      Carregando...
                     </td>
                   </tr>
-                ))}
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      Nenhum registro encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((r) => (
+                    <tr key={r.id} className="border-t hover:bg-muted/30">
+                      <td className="p-3 whitespace-nowrap">
+                        {new Date(r.ocorrido_em).toLocaleString("pt-BR")}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={OP_VARIANT[r.operacao]}>{OP_LABEL[r.operacao]}</Badge>
+                      </td>
+                      <td className="p-3 font-mono text-xs">{r.tabela}</td>
+                      <td className="p-3 font-mono text-xs truncate max-w-[200px]">
+                        {r.registro_id ?? "—"}
+                      </td>
+                      <td className="p-3">
+                        {r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}
+                      </td>
+                      <td className="p-3">
+                        <Button size="icon" variant="ghost" onClick={() => setDetalhe(r)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -300,7 +319,10 @@ function AuditoriaPage() {
             {detalhe && (
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <Info label="Data/Hora" value={new Date(detalhe.ocorrido_em).toLocaleString("pt-BR")} />
+                  <Info
+                    label="Data/Hora"
+                    value={new Date(detalhe.ocorrido_em).toLocaleString("pt-BR")}
+                  />
                   <Info label="Operação" value={OP_LABEL[detalhe.operacao]} />
                   <Info label="Tabela" value={detalhe.tabela} mono />
                   <Info label="Registro" value={detalhe.registro_id ?? "—"} mono />
@@ -313,9 +335,7 @@ function AuditoriaPage() {
                 {detalhe.valor_novo != null && (
                   <JsonBlock title="Valor novo" data={detalhe.valor_novo} />
                 )}
-                {detalhe.contexto != null && (
-                  <JsonBlock title="Contexto" data={detalhe.contexto} />
-                )}
+                {detalhe.contexto != null && <JsonBlock title="Contexto" data={detalhe.contexto} />}
               </div>
             )}
           </DialogContent>

@@ -37,10 +37,22 @@ const EnviarSchema = z.object({
 });
 
 const PAYLOAD_FIELDS = [
-  "dias_trabalhados","faltas_injustificadas","atestado","he_50","he_100",
-  "ferias_terco","ferias_integral","sal_sub_h","adicional_noturno",
-  "aulas_suplementares","sobreaviso","plantoes_extras","incentivo",
-  "ferias","licenca_premio","observacoes",
+  "dias_trabalhados",
+  "faltas_injustificadas",
+  "atestado",
+  "he_50",
+  "he_100",
+  "ferias_terco",
+  "ferias_integral",
+  "sal_sub_h",
+  "adicional_noturno",
+  "aulas_suplementares",
+  "sobreaviso",
+  "plantoes_extras",
+  "incentivo",
+  "ferias",
+  "licenca_premio",
+  "observacoes",
 ] as const;
 
 type SupabaseCtx = { supabase: any; userId: string };
@@ -49,11 +61,7 @@ type SupabaseCtx = { supabase: any; userId: string };
  * Garante que exista uma competencia_unidades para (comp, unidade) e uma
  * frequencias(tipo='efetivos') vinculada, retornando ambos os ids.
  */
-async function ensureFolhaEfetivos(
-  ctx: SupabaseCtx,
-  competencia_id: string,
-  unidade_id: string,
-) {
+async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, unidade_id: string) {
   const { supabase, userId } = ctx;
 
   let { data: cu, error: cuErr } = await supabase
@@ -104,16 +112,22 @@ async function ensureFolhaEfetivos(
     freq = ins as any;
   }
 
-  return { competencia_unidade_id: cu!.id, frequencia_id: freq!.id, frequencia_status: freq!.status as string };
+  return {
+    competencia_unidade_id: cu!.id,
+    frequencia_id: freq!.id,
+    frequencia_status: freq!.status as string,
+  };
 }
 
 export const listarFolhaEfetivos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: { competencia_id: string; unidade_id: string }) =>
-    z.object({
-      competencia_id: z.string().uuid(),
-      unidade_id: z.string().uuid(),
-    }).parse(d),
+    z
+      .object({
+        competencia_id: z.string().uuid(),
+        unidade_id: z.string().uuid(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -127,7 +141,8 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const { data: profs, error: pErr } = await supabase
       .from("profissionais")
-      .select(`
+      .select(
+        `
         id, matricula, nome_completo, nome_social,
         proj, h_p, c_h, jorn,
         cargo_id, funcao_id, setor_id,
@@ -135,7 +150,8 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
         funcoes ( nome ),
         setores!profissionais_setor_id_fkey ( nome ),
         vinculos!inner ( id, natureza )
-      `)
+      `,
+      )
       .eq("unidade_id", data.unidade_id)
       .eq("status", "ativo")
       .is("deleted_at", null)
@@ -205,7 +221,11 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       data.competencia_id,
       data.unidade_id,
     );
-    if (frequencia_status !== "rascunho" && frequencia_status !== "com_pendencias" && frequencia_status !== "rejeitada") {
+    if (
+      frequencia_status !== "rascunho" &&
+      frequencia_status !== "com_pendencias" &&
+      frequencia_status !== "rejeitada"
+    ) {
       throw new Error("Folha já enviada — não é possível editar.");
     }
 
@@ -227,7 +247,8 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       if (ex && ex.status_linha === "aprovada") continue;
 
       const payload: Record<string, unknown> = {};
-      for (const f of PAYLOAD_FIELDS) payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
+      for (const f of PAYLOAD_FIELDS)
+        payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
 
       if (ex) {
         toUpdate.push({ id: ex.id, patch: { ...payload, updated_by: userId } });

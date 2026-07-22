@@ -26,7 +26,15 @@ export function FilterBar({ children, actions, className }: Props) {
  * Helper para padronizar campo de filtro: rótulo + controle.
  * Uso: <FilterBar.Field label="Unidade"><Select .../></FilterBar.Field>
  */
-function FilterBarField({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+function FilterBarField({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={className}>
       <label className="mb-1 block text-xs text-muted-foreground">{label}</label>

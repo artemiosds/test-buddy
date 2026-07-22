@@ -1,7 +1,17 @@
 import { createFileRoute, useNavigate, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, RefreshCw, Clock, Users, Layers, UserCheck, UserMinus, Umbrella, FileText } from "lucide-react";
+import {
+  Building2,
+  RefreshCw,
+  Clock,
+  Users,
+  Layers,
+  UserCheck,
+  UserMinus,
+  Umbrella,
+  FileText,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -16,14 +26,16 @@ import {
   WORKFORCE_FILTER_KEYS,
   type WorkforceFilters,
 } from "@/lib/workforce-filters";
-import {
-  PageHeader, KpiCard, StatusBadge, EmptyState, FilterBar,
-} from "@/components/shared";
+import { PageHeader, KpiCard, StatusBadge, EmptyState, FilterBar } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")({
@@ -32,7 +44,11 @@ export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")(
   component: () => (
     <PermissionGate
       anyOf={["dashboard.visualizar", "unidade.visualizar"]}
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <ControleForcaTrabalhoPage />
     </PermissionGate>
@@ -173,12 +189,13 @@ function ControleForcaTrabalhoPage() {
     return unidades.map((u) => {
       const uProfs = profs.filter((p) => p.unidade_id === u.id);
       const rank = rankByUnit.get(u.id);
-      const uPends = pends.filter(
-        (p) => p.frequencias?.competencia_unidades?.unidade_id === u.id,
-      );
+      const uPends = pends.filter((p) => p.frequencias?.competencia_unidades?.unidade_id === u.id);
       const uFreqs = freqs.filter((f) => f.competencia_unidades?.unidade_id === u.id);
 
-      let ativos = 0, afastados = 0, ferias = 0, licencas = 0;
+      let ativos = 0,
+        afastados = 0,
+        ferias = 0,
+        licencas = 0;
       let last: string | null = u.updated_at ?? null;
       for (const p of uProfs) {
         if (p.status === "ativo") ativos += 1;
@@ -195,14 +212,23 @@ function ControleForcaTrabalhoPage() {
         nome: u.nome,
         sigla: u.sigla,
         total: uProfs.length,
-        ativos, afastados, ferias, licencas,
+        ativos,
+        afastados,
+        ferias,
+        licencas,
         horas_extras: rank?.total_horas_extras ?? 0,
         faltas: rank?.total_faltas ?? 0,
         pendencias: uPends.length,
         ultima_atualizacao: last,
       };
     });
-  }, [unidadesQ.data, profsPorUnidadeQ.data, pendenciasPorUnidadeQ.data, freqMetaQ.data, a.ranking]);
+  }, [
+    unidadesQ.data,
+    profsPorUnidadeQ.data,
+    pendenciasPorUnidadeQ.data,
+    freqMetaQ.data,
+    a.ranking,
+  ]);
 
   const totalProf = cards.reduce((s, r) => s + r.total, 0);
   const totalAtivos = cards.reduce((s, r) => s + r.ativos, 0);
@@ -215,8 +241,11 @@ function ControleForcaTrabalhoPage() {
   );
 
   const loading =
-    unidadesQ.isLoading || profsPorUnidadeQ.isLoading ||
-    (effectiveCompId ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.frequencias.isLoading : false);
+    unidadesQ.isLoading ||
+    profsPorUnidadeQ.isLoading ||
+    (effectiveCompId
+      ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.frequencias.isLoading
+      : false);
 
   const refetchAll = () => {
     unidadesQ.refetch();
@@ -226,8 +255,7 @@ function ControleForcaTrabalhoPage() {
     a.refetch();
   };
 
-  const competenciaLabel = (mes: number, ano: number) =>
-    `${String(mes).padStart(2, "0")}/${ano}`;
+  const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -247,14 +275,20 @@ function ControleForcaTrabalhoPage() {
             value={competenciaSel}
             onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__ativa__">
-                Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+                Ativa{" "}
+                {competenciaAtiva
+                  ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})`
+                  : ""}
               </SelectItem>
               {(competenciasQ.data ?? []).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                  {competenciaLabel(c.mes, c.ano)}
+                  {c.status ? ` · ${c.status}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -264,13 +298,48 @@ function ControleForcaTrabalhoPage() {
 
       {/* Visão geral */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <KpiCard label="Profissionais" value={totalProf.toLocaleString("pt-BR")} icon={<Users className="h-4 w-4" />} loading={loading && cards.length === 0} />
-        <KpiCard label="Ativos" value={totalAtivos.toLocaleString("pt-BR")} icon={<UserCheck className="h-4 w-4" />} loading={loading && cards.length === 0} />
-        <KpiCard label="Afastados" value={totalAfast.toLocaleString("pt-BR")} icon={<UserMinus className="h-4 w-4" />} loading={loading && cards.length === 0} />
-        <KpiCard label="Férias" value={totalFerias.toLocaleString("pt-BR")} icon={<Umbrella className="h-4 w-4" />} loading={loading && cards.length === 0} />
-        <KpiCard label="Licenças" value={totalLic.toLocaleString("pt-BR")} icon={<FileText className="h-4 w-4" />} loading={loading && cards.length === 0} />
-        <KpiCard label="Unidades" value={(a.totalUnidades.data ?? cards.length).toLocaleString("pt-BR")} icon={<Building2 className="h-4 w-4" />} loading={a.totalUnidades.isLoading} />
-        <KpiCard label="Setores" value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")} icon={<Layers className="h-4 w-4" />} loading={a.totalSetores.isLoading} />
+        <KpiCard
+          label="Profissionais"
+          value={totalProf.toLocaleString("pt-BR")}
+          icon={<Users className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+        <KpiCard
+          label="Ativos"
+          value={totalAtivos.toLocaleString("pt-BR")}
+          icon={<UserCheck className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+        <KpiCard
+          label="Afastados"
+          value={totalAfast.toLocaleString("pt-BR")}
+          icon={<UserMinus className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+        <KpiCard
+          label="Férias"
+          value={totalFerias.toLocaleString("pt-BR")}
+          icon={<Umbrella className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+        <KpiCard
+          label="Licenças"
+          value={totalLic.toLocaleString("pt-BR")}
+          icon={<FileText className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+        <KpiCard
+          label="Unidades"
+          value={(a.totalUnidades.data ?? cards.length).toLocaleString("pt-BR")}
+          icon={<Building2 className="h-4 w-4" />}
+          loading={a.totalUnidades.isLoading}
+        />
+        <KpiCard
+          label="Setores"
+          value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}
+          icon={<Layers className="h-4 w-4" />}
+          loading={a.totalSetores.isLoading}
+        />
       </section>
 
       <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground flex items-center gap-2">
@@ -309,8 +378,12 @@ function ControleForcaTrabalhoPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
-                    <span className="text-2xl font-semibold tabular-nums">{c.total.toLocaleString("pt-BR")}</span>
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Total
+                    </span>
+                    <span className="text-2xl font-semibold tabular-nums">
+                      {c.total.toLocaleString("pt-BR")}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <StatusBadge domain="profissional" value="ativo" />
@@ -325,22 +398,36 @@ function ControleForcaTrabalhoPage() {
                   <div className="grid grid-cols-3 gap-2 border-t pt-2 text-xs">
                     <div>
                       <div className="text-muted-foreground">Horas extras</div>
-                      <div className="tabular-nums font-medium">{c.horas_extras.toLocaleString("pt-BR")}</div>
+                      <div className="tabular-nums font-medium">
+                        {c.horas_extras.toLocaleString("pt-BR")}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Faltas</div>
-                      <div className="tabular-nums font-medium">{c.faltas.toLocaleString("pt-BR")}</div>
+                      <div className="tabular-nums font-medium">
+                        {c.faltas.toLocaleString("pt-BR")}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Pendências</div>
-                      <div className={"tabular-nums font-medium " + (c.pendencias > 0 ? "text-destructive" : "")}>
+                      <div
+                        className={
+                          "tabular-nums font-medium " + (c.pendencias > 0 ? "text-destructive" : "")
+                        }
+                      >
                         {c.pendencias.toLocaleString("pt-BR")}
                       </div>
                     </div>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {c.ultima_atualizacao ? (
-                      <>Atualizado {formatDistanceToNow(new Date(c.ultima_atualizacao), { addSuffix: true, locale: ptBR })}</>
+                      <>
+                        Atualizado{" "}
+                        {formatDistanceToNow(new Date(c.ultima_atualizacao), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </>
                     ) : (
                       "Sem atualização registrada"
                     )}

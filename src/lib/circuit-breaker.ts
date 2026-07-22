@@ -38,7 +38,10 @@ export interface BreakerConfig {
 
 export class CircuitOpenError extends Error {
   readonly code = "CIRCUIT_OPEN";
-  constructor(public readonly breakerKey: string, public readonly nextAttemptAt: number) {
+  constructor(
+    public readonly breakerKey: string,
+    public readonly nextAttemptAt: number,
+  ) {
     super(`Circuit '${breakerKey}' is open`);
     this.name = "CircuitOpenError";
   }
@@ -57,7 +60,10 @@ export class CircuitBreaker {
   readonly rollingWindowMs: number;
   readonly cooldownMs: number;
 
-  constructor(readonly key: string, cfg: BreakerConfig = {}) {
+  constructor(
+    readonly key: string,
+    cfg: BreakerConfig = {},
+  ) {
     this.failureThreshold = cfg.failureThreshold ?? 5;
     this.rollingWindowMs = cfg.rollingWindowMs ?? 30_000;
     this.cooldownMs = cfg.cooldownMs ?? 60_000;
@@ -161,7 +167,11 @@ export class CircuitBreaker {
       nextAttemptAt: this.nextAttemptAt,
     });
     for (const cb of subscribers) {
-      try { cb(); } catch { /* ignore */ }
+      try {
+        cb();
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -195,7 +205,9 @@ export function listBreakers(): BreakerSnapshot[] {
 
 export function subscribeBreakers(cb: () => void): () => void {
   subscribers.add(cb);
-  return () => { subscribers.delete(cb); };
+  return () => {
+    subscribers.delete(cb);
+  };
 }
 
 /**

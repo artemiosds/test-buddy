@@ -3,7 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { KpiCard } from "@/components/shared/KpiCard";
@@ -35,10 +41,13 @@ function SetoresGerencial() {
     staleTime: 60_000,
   });
 
-  const totais = useMemo(() => ({
-    total: rows.length,
-    profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
-  }), [rows]);
+  const totais = useMemo(
+    () => ({
+      total: rows.length,
+      profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
+    }),
+    [rows],
+  );
 
   function exportCsv() {
     downloadCsv(`setores-${preset}.csv`, rows, [
@@ -56,19 +65,36 @@ function SetoresGerencial() {
       <IntelligencePanel foco="setores" titulo="Setores" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as SetorPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
-          {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}
+          {PRESETS.map((p) => (
+            <TabsTrigger key={p.value} value={p.value} className="text-xs">
+              {p.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
       <FilterBar
-        actions={<Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="mr-1 h-4 w-4" /> CSV</Button>}
+        actions={
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+            <Download className="mr-1 h-4 w-4" /> CSV
+          </Button>
+        }
       >
         <FilterBar.Field label="Unidade">
-          <Select value={unidadeId || "__all__"} onValueChange={(v) => setUnidadeId(v === "__all__" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+          <Select
+            value={unidadeId || "__all__"}
+            onValueChange={(v) => setUnidadeId(v === "__all__" ? "" : v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todas as unidades</SelectItem>
-              {(unidades.data ?? []).map((u) => (<SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>))}
+              {(unidades.data ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.nome}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </FilterBar.Field>
@@ -91,11 +117,28 @@ function SetoresGerencial() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (<tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Carregando…</td></tr>)}
-            {!isLoading && rows.length === 0 && (<tr><td colSpan={5}><EmptyState title="Nenhum setor encontrado" description="Ajuste os filtros." /></td></tr>)}
+            {isLoading && (
+              <tr>
+                <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState title="Nenhum setor encontrado" description="Ajuste os filtros." />
+                </td>
+              </tr>
+            )}
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
-                <td className="p-2 font-medium">{r.nome}{r.sigla ? <span className="ml-1 text-xs text-muted-foreground">({r.sigla})</span> : null}</td>
+                <td className="p-2 font-medium">
+                  {r.nome}
+                  {r.sigla ? (
+                    <span className="ml-1 text-xs text-muted-foreground">({r.sigla})</span>
+                  ) : null}
+                </td>
                 <td className="p-2 text-xs">{r.unidade_nome ?? "—"}</td>
                 <td className="p-2 text-xs">{r.status}</td>
                 <td className="p-2 text-xs">{r.responsavel_nome ?? "—"}</td>

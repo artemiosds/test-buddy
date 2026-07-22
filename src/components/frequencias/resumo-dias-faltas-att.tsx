@@ -5,10 +5,7 @@ import { useEffect, useState } from "react";
 /** Breadcrumb de ações rápidas para as telas de folha. */
 export function FolhaBreadcrumb({ current }: { current: string }) {
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className="flex items-center gap-1.5 text-[12.5px] text-slate-500"
-    >
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[12.5px] text-slate-500">
       <Link
         to="/"
         className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-slate-100 hover:text-slate-800"
@@ -24,9 +21,7 @@ export function FolhaBreadcrumb({ current }: { current: string }) {
         Gestão de Pessoas
       </Link>
       <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
-      <span className="rounded px-1.5 py-0.5 font-medium text-slate-800">
-        {current}
-      </span>
+      <span className="rounded px-1.5 py-0.5 font-medium text-slate-800">{current}</span>
     </nav>
   );
 }
@@ -95,9 +90,7 @@ export function ResumoDiasFaltasAtt({
                 <div className="text-[10.5px] font-medium uppercase tracking-wider opacity-80">
                   {c.label}
                 </div>
-                <div className="text-lg font-bold tabular-nums">
-                  {c.value ?? 0}
-                </div>
+                <div className="text-lg font-bold tabular-nums">{c.value ?? 0}</div>
               </div>
             </div>
           );
@@ -112,9 +105,7 @@ export function useSelectedErpRow() {
   const [id, setId] = useState<string | null>(null);
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      const tr = (e.target as HTMLElement | null)?.closest?.(
-        ".erp-grid tr[data-row-id]",
-      );
+      const tr = (e.target as HTMLElement | null)?.closest?.(".erp-grid tr[data-row-id]");
       if (tr) {
         const rid = (tr as HTMLElement).getAttribute("data-row-id");
         if (rid) setId((cur) => (cur === rid ? null : rid));

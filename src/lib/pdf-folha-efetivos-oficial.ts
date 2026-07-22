@@ -15,10 +15,7 @@
  */
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
-import {
-  resolverAssinaturasDocumento,
-  drawAssinaturasBlock,
-} from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 
 export type ProfissionalFolha = {
   id: string;
@@ -120,7 +117,10 @@ function fmt(v: number | null | undefined): string {
   return v.toFixed(2).replace(".", ",");
 }
 
-function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; logoData: string | null }) {
+function drawInstitutionalBox(
+  doc: jsPDF,
+  info: { data: MunicipioInfo | null; logoData: string | null },
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = MARGEM;
   const y = 8;
@@ -134,7 +134,9 @@ function drawInstitutionalBox(doc: jsPDF, info: { data: MunicipioInfo | null; lo
   if (info.logoData) {
     try {
       doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   const uf = info.data?.uf ?? "PA";
@@ -174,11 +176,7 @@ function drawHierBar(
   return y + h;
 }
 
-function drawFooter(
-  doc: jsPDF,
-  emitidoPor: string,
-  emissaoStr: string,
-) {
+function drawFooter(doc: jsPDF, emitidoPor: string, emissaoStr: string) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
   const total = doc.getNumberOfPages();
@@ -201,12 +199,9 @@ function drawFooter(
     doc.setFontSize(7);
     doc.setTextColor(90, 90, 90);
     doc.text(`Data da emissão: ${emissaoStr}`, MARGEM, y2);
-    doc.text(
-      "ÁGILIBlue Recursos Humanos - Ágili Software Brasil",
-      pageWidth / 2,
-      y2,
-      { align: "center" },
-    );
+    doc.text("ÁGILIBlue Recursos Humanos - Ágili Software Brasil", pageWidth / 2, y2, {
+      align: "center",
+    });
     doc.text(`Emitido por: ${emitidoPor}`, pageWidth - MARGEM, y2, { align: "right" });
   }
 }
@@ -284,11 +279,7 @@ function drawTableHeader(doc: jsPDF, y: number): number {
 
 /* -------------------- Linha do profissional -------------------- */
 
-function drawProfissionalRow(
-  doc: jsPDF,
-  y: number,
-  item: ItemFolha,
-): number {
+function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
   const startX = MARGEM;
   let xCursor = startX;
   const h = LINHA_ALTURA;
@@ -327,7 +318,9 @@ function drawProfissionalRow(
       doc.line(xCursor, y + halfH, xCursor + c.w, y + halfH);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
-      doc.text(String(item.profissional.matricula ?? ""), xCursor + c.w / 2, y + halfH - 1.5, { align: "center" });
+      doc.text(String(item.profissional.matricula ?? ""), xCursor + c.w / 2, y + halfH - 1.5, {
+        align: "center",
+      });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.text("Cargo", xCursor + 1, y + halfH + 4);
@@ -337,17 +330,15 @@ function drawProfissionalRow(
       doc.setFontSize(8);
       const nome = item.profissional.nome ?? "";
       const nomeLinhas = doc.splitTextToSize(nome, c.w - 2) as string[];
-      const nomeShow = nomeLinhas.length > 1
-        ? (nomeLinhas[0].trimEnd() + "…")
-        : nomeLinhas[0] ?? "";
+      const nomeShow =
+        nomeLinhas.length > 1 ? nomeLinhas[0].trimEnd() + "…" : (nomeLinhas[0] ?? "");
       doc.text(nomeShow, xCursor + c.w / 2, y + halfH - 1.5, { align: "center" });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       const cargo = item.profissional.cargo ?? "";
       const cargoLinhas = doc.splitTextToSize(cargo, c.w - 2) as string[];
-      const cargoShow = cargoLinhas.length > 1
-        ? (cargoLinhas[0].trimEnd() + "…")
-        : cargoLinhas[0] ?? "";
+      const cargoShow =
+        cargoLinhas.length > 1 ? cargoLinhas[0].trimEnd() + "…" : (cargoLinhas[0] ?? "");
       doc.text(cargoShow, xCursor + c.w / 2, y + halfH + 4, { align: "center" });
     } else {
       // valor numérico centralizado verticalmente na célula
@@ -388,8 +379,18 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     // 4 barras hierárquicas — ⚠ placeholders para os códigos
     y = drawHierBar(doc, y, COR_NIVEL_1, "1 - Raiz");
     y = drawHierBar(doc, y, COR_NIVEL_2, "1.18 - SECRETARIA MUNICIPAL DE SAUDE");
-    y = drawHierBar(doc, y, COR_NIVEL_3, `${unidade.codigo_unidade} - ${unidade.nome_unidade.toUpperCase()}`);
-    y = drawHierBar(doc, y, COR_NIVEL_4, `${grupo.codigo_setor} - ${grupo.nome_setor.toUpperCase()}`);
+    y = drawHierBar(
+      doc,
+      y,
+      COR_NIVEL_3,
+      `${unidade.codigo_unidade} - ${unidade.nome_unidade.toUpperCase()}`,
+    );
+    y = drawHierBar(
+      doc,
+      y,
+      COR_NIVEL_4,
+      `${grupo.codigo_setor} - ${grupo.nome_setor.toUpperCase()}`,
+    );
     // linha "Qtd funcionários"
     y += 1.5;
     doc.setFont("helvetica", "normal");
@@ -415,8 +416,18 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
           y = desenhaTopo();
           y = drawHierBar(doc, y, COR_NIVEL_1, "1 - Raiz");
           y = drawHierBar(doc, y, COR_NIVEL_2, "1.18 - SECRETARIA MUNICIPAL DE SAUDE");
-          y = drawHierBar(doc, y, COR_NIVEL_3, `${unidade.codigo_unidade} - ${unidade.nome_unidade.toUpperCase()}`);
-          y = drawHierBar(doc, y, COR_NIVEL_4, `${grupo.codigo_setor} - ${grupo.nome_setor.toUpperCase()} (cont.)`);
+          y = drawHierBar(
+            doc,
+            y,
+            COR_NIVEL_3,
+            `${unidade.codigo_unidade} - ${unidade.nome_unidade.toUpperCase()}`,
+          );
+          y = drawHierBar(
+            doc,
+            y,
+            COR_NIVEL_4,
+            `${grupo.codigo_setor} - ${grupo.nome_setor.toUpperCase()} (cont.)`,
+          );
           y += 1.5;
           doc.setFont("helvetica", "normal");
           doc.setFontSize(8);

@@ -28,7 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AlertCircle, Pencil, Search, Settings2, Trash2, UserPlus } from "lucide-react";
-import { createUsuario, updateUsuario, deleteUsuario, alterarPerfilStatusUsuario } from "@/lib/users-admin.functions";
+import {
+  createUsuario,
+  updateUsuario,
+  deleteUsuario,
+  alterarPerfilStatusUsuario,
+} from "@/lib/users-admin.functions";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsuariosPage,
@@ -97,7 +102,9 @@ function UsuariosList() {
     queryFn: async (): Promise<UsuarioRow[]> => {
       const { data, error } = await supabase
         .from("usuarios")
-        .select("id, nome_completo, email, status, perfil_id, acesso_todas_unidades, acesso_todas_secretarias, perfil:perfis(nome, codigo)")
+        .select(
+          "id, nome_completo, email, status, perfil_id, acesso_todas_unidades, acesso_todas_secretarias, perfil:perfis(nome, codigo)",
+        )
         .is("deleted_at", null)
         .order("nome_completo");
       if (error) throw error;
@@ -129,11 +136,7 @@ function UsuariosList() {
 
   const filtered = users.filter((u) => {
     const t = q.toLowerCase();
-    return (
-      !t ||
-      u.nome_completo?.toLowerCase().includes(t) ||
-      u.email?.toLowerCase().includes(t)
-    );
+    return !t || u.nome_completo?.toLowerCase().includes(t) || u.email?.toLowerCase().includes(t);
   });
 
   const createFn = useServerFn(createUsuario);
@@ -141,7 +144,12 @@ function UsuariosList() {
   const deleteFn = useServerFn(deleteUsuario);
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<UsuarioRow | null>(null);
-  const [editForm, setEditForm] = useState({ nome_completo: "", email: "", telefone: "", password: "" });
+  const [editForm, setEditForm] = useState({
+    nome_completo: "",
+    email: "",
+    telefone: "",
+    password: "",
+  });
   const [editError, setEditError] = useState<string | null>(null);
 
   const editMut = useMutation({
@@ -212,7 +220,15 @@ function UsuariosList() {
       qc.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Usuário criado");
       if (!form.password) setTempPass(res.password);
-      setForm({ nome_completo: "", email: "", telefone: "", perfil_id: "", password: "", unidade_ids: [], unidade_principal_id: "" });
+      setForm({
+        nome_completo: "",
+        email: "",
+        telefone: "",
+        perfil_id: "",
+        password: "",
+        unidade_ids: [],
+        unidade_principal_id: "",
+      });
       setOpenNew(false);
     },
     onError: (e: Error) => {
@@ -312,7 +328,9 @@ function UsuariosList() {
                   </p>
                   <div className="max-h-40 overflow-auto rounded-md border p-2 space-y-1">
                     {unidades.length === 0 ? (
-                      <div className="text-xs text-muted-foreground">Nenhuma unidade cadastrada.</div>
+                      <div className="text-xs text-muted-foreground">
+                        Nenhuma unidade cadastrada.
+                      </div>
                     ) : (
                       unidades.map((u) => {
                         const checked = form.unidade_ids.includes(u.id);
@@ -329,9 +347,10 @@ function UsuariosList() {
                                   ...form,
                                   unidade_ids: next,
                                   unidade_principal_id:
-                                    form.unidade_principal_id && next.includes(form.unidade_principal_id)
+                                    form.unidade_principal_id &&
+                                    next.includes(form.unidade_principal_id)
                                       ? form.unidade_principal_id
-                                      : next[0] ?? "",
+                                      : (next[0] ?? ""),
                                 });
                               }}
                             />
@@ -391,7 +410,8 @@ function UsuariosList() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Acesso administrativo restrito</AlertTitle>
           <AlertDescription>
-            Somente usuário MASTER pode criar usuários, alterar perfil, alterar status ou conceder permissões individuais.
+            Somente usuário MASTER pode criar usuários, alterar perfil, alterar status ou conceder
+            permissões individuais.
           </AlertDescription>
         </Alert>
       )}
@@ -399,12 +419,7 @@ function UsuariosList() {
       {tempPass && (
         <div className="rounded-md border border-warning/40 bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           Usuário criado. Senha temporária: <code className="font-mono">{tempPass}</code>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="ml-2"
-            onClick={() => setTempPass(null)}
-          >
+          <Button size="sm" variant="ghost" className="ml-2" onClick={() => setTempPass(null)}>
             Ocultar
           </Button>
         </div>
@@ -458,21 +473,22 @@ function UsuariosList() {
                             const oldCod = u.perfil?.codigo;
                             const newCod = perfis.find((p) => p.id === v)?.codigo;
                             const needConfirm =
-                              (newCod === "MASTER" && oldCod !== "MASTER")
+                              newCod === "MASTER" && oldCod !== "MASTER"
                                 ? {
                                     title: `Conceder acesso Master a ${u.nome_completo}?`,
-                                    description: "Isso concede acesso irrestrito a TODAS as unidades e secretarias.",
+                                    description:
+                                      "Isso concede acesso irrestrito a TODAS as unidades e secretarias.",
                                     tone: "destructive" as const,
                                     confirmLabel: "Conceder Master",
                                   }
-                                : (oldCod === "MASTER" && newCod !== "MASTER")
-                                ? {
-                                    title: `Remover acesso Master de ${u.nome_completo}?`,
-                                    description: "O usuário perderá o acesso total ao sistema.",
-                                    tone: "destructive" as const,
-                                    confirmLabel: "Remover Master",
-                                  }
-                                : null;
+                                : oldCod === "MASTER" && newCod !== "MASTER"
+                                  ? {
+                                      title: `Remover acesso Master de ${u.nome_completo}?`,
+                                      description: "O usuário perderá o acesso total ao sistema.",
+                                      tone: "destructive" as const,
+                                      confirmLabel: "Remover Master",
+                                    }
+                                  : null;
                             if (!needConfirm) {
                               updateUser.mutate({ id: u.id, perfil_id: v });
                               return;
@@ -509,7 +525,9 @@ function UsuariosList() {
                     {isMaster ? (
                       <Select
                         value={u.status}
-                        onValueChange={(v) => updateUser.mutate({ id: u.id, status: v as (typeof STATUS_OPTS)[number] })}
+                        onValueChange={(v) =>
+                          updateUser.mutate({ id: u.id, status: v as (typeof STATUS_OPTS)[number] })
+                        }
                       >
                         <SelectTrigger className="h-8 w-[140px]">
                           <SelectValue />
@@ -559,7 +577,8 @@ function UsuariosList() {
                             void (async () => {
                               const ok = await askConfirm({
                                 title: `Excluir usuário ${u.nome_completo}?`,
-                                description: "Esta ação remove definitivamente o acesso ao sistema.",
+                                description:
+                                  "Esta ação remove definitivamente o acesso ao sistema.",
                                 tone: "destructive",
                                 confirmLabel: "Excluir",
                               });
@@ -627,7 +646,9 @@ function UsuariosList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Cancelar
+            </Button>
             <Button disabled={editMut.isPending} onClick={() => editMut.mutate()}>
               {editMut.isPending ? "Salvando..." : "Salvar"}
             </Button>

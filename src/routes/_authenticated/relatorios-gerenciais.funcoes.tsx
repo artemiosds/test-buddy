@@ -28,12 +28,21 @@ function FuncoesGerencial() {
     staleTime: 60_000,
   });
 
-  const ordenadas = useMemo(() => [...rows].sort((a, b) => b.qtd_profissionais - a.qtd_profissionais || a.nome.localeCompare(b.nome)), [rows]);
-  const totais = useMemo(() => ({
-    total: rows.length,
-    ocupadas: rows.filter((r) => r.qtd_profissionais > 0).length,
-    profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
-  }), [rows]);
+  const ordenadas = useMemo(
+    () =>
+      [...rows].sort(
+        (a, b) => b.qtd_profissionais - a.qtd_profissionais || a.nome.localeCompare(b.nome),
+      ),
+    [rows],
+  );
+  const totais = useMemo(
+    () => ({
+      total: rows.length,
+      ocupadas: rows.filter((r) => r.qtd_profissionais > 0).length,
+      profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
+    }),
+    [rows],
+  );
 
   function exportCsv() {
     downloadCsv(`funcoes-${preset}.csv`, ordenadas, [
@@ -50,12 +59,18 @@ function FuncoesGerencial() {
       <IntelligencePanel foco="funcoes" titulo="Funções" />
       <Tabs value={preset} onValueChange={(v) => setPreset(v as FuncaoPreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
-          {PRESETS.map((p) => (<TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>))}
+          {PRESETS.map((p) => (
+            <TabsTrigger key={p.value} value={p.value} className="text-xs">
+              {p.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
       <div className="flex justify-end">
-        <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="mr-1 h-4 w-4" /> CSV</Button>
+        <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+          <Download className="mr-1 h-4 w-4" /> CSV
+        </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -76,8 +91,20 @@ function FuncoesGerencial() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (<tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Carregando…</td></tr>)}
-            {!isLoading && rows.length === 0 && (<tr><td colSpan={5}><EmptyState title="Nenhuma função encontrada" description="Ajuste os filtros." /></td></tr>)}
+            {isLoading && (
+              <tr>
+                <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState title="Nenhuma função encontrada" description="Ajuste os filtros." />
+                </td>
+              </tr>
+            )}
             {ordenadas.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-2 font-medium">{r.nome}</td>

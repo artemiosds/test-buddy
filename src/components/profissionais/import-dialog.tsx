@@ -225,7 +225,11 @@ export function ImportProfissionaisDialog() {
         email: String(get("email") ?? "").trim() || null,
         telefone: String(get("telefone") ?? "").trim() || null,
         data_nascimento: parseDate(get("data_nascimento")),
-        sexo: String(get("sexo") ?? "").trim().toUpperCase().slice(0, 1) || null,
+        sexo:
+          String(get("sexo") ?? "")
+            .trim()
+            .toUpperCase()
+            .slice(0, 1) || null,
         data_admissao: parseDate(get("data_admissao")),
         carga_semanal_horas: Number.isFinite(ch) && ch > 0 ? ch : null,
         status: VALID_STATUS.includes(status) ? status : "ativo",
@@ -251,7 +255,13 @@ export function ImportProfissionaisDialog() {
   };
 
   const resolve = (
-    list: Array<{ id: string; nome: string; sigla?: string | null; codigo?: string | null; natureza?: string | null }>,
+    list: Array<{
+      id: string;
+      nome: string;
+      sigla?: string | null;
+      codigo?: string | null;
+      natureza?: string | null;
+    }>,
     key: string | null,
   ) => {
     if (!key) return null;
@@ -286,11 +296,10 @@ export function ImportProfissionaisDialog() {
       const funcao_id = resolve(lookups.funcoes, r.funcao_key);
       const vinculo_id = resolve(lookups.vinculos, r.vinculo_key);
       const vinculoNat = vinculo_id
-        ? lookups.vinculos.find((v) => v.id === vinculo_id)?.natureza ?? null
+        ? (lookups.vinculos.find((v) => v.id === vinculo_id)?.natureza ?? null)
         : null;
       const isEfetivo = vinculoNat === "efetivo" || vinculoNat === "comissionado";
-      const hasAgili =
-        r.proj != null || r.h_p != null || r.c_h != null || r.jorn != null;
+      const hasAgili = r.proj != null || r.h_p != null || r.c_h != null || r.jorn != null;
       if (hasAgili && !isEfetivo) {
         erros.push(
           `Linha ${r.linha} (${r.nome_completo}): Proj/H.P/C.H/Jorn ignorados — vínculo não é efetivo`,
@@ -348,9 +357,7 @@ export function ImportProfissionaisDialog() {
             .eq("id", existing.id);
           opErr = upErr;
         } else {
-          const { error: insErr } = await supabase
-            .from("profissionais")
-            .insert(payload);
+          const { error: insErr } = await supabase.from("profissionais").insert(payload);
           opErr = insErr;
         }
       }
@@ -507,10 +514,8 @@ export function ImportProfissionaisDialog() {
             <div className="rounded-md border p-3 text-sm">
               <p>
                 <strong>{result.ok}</strong> importados ·{" "}
-                <strong className={result.fail ? "text-destructive" : ""}>
-                  {result.fail}
-                </strong>{" "}
-                com erro
+                <strong className={result.fail ? "text-destructive" : ""}>{result.fail}</strong> com
+                erro
               </p>
               {result.erros.length > 0 && (
                 <ul className="mt-2 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-5 text-xs text-destructive">
