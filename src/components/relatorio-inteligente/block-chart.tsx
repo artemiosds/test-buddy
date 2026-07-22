@@ -78,7 +78,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               nameKey="name"
               innerRadius={spec.tipo === "rosca" ? 40 : 0}
               outerRadius={80}
-              label={(d) => `${d.name}`}
+              labelLine={false}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
@@ -89,15 +89,20 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
                 typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
               }
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 11 }} verticalAlign="bottom" align="center" />
           </PieChart>
         );
       case "linha":
         return (
-          <LineChart data={data}>
+          <LineChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" fontSize={10} />
-            <YAxis fontSize={10} />
+            <XAxis
+              dataKey="name"
+              fontSize={10}
+              interval="preserveStartEnd"
+              minTickGap={16}
+            />
+            <YAxis fontSize={10} width={36} />
             <Tooltip
               formatter={(v: unknown) =>
                 typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
@@ -108,10 +113,15 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         );
       case "area":
         return (
-          <AreaChart data={data}>
+          <AreaChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" fontSize={10} />
-            <YAxis fontSize={10} />
+            <XAxis
+              dataKey="name"
+              fontSize={10}
+              interval="preserveStartEnd"
+              minTickGap={16}
+            />
+            <YAxis fontSize={10} width={36} />
             <Tooltip
               formatter={(v: unknown) =>
                 typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
@@ -122,17 +132,18 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         );
       default:
         return (
-          <BarChart data={data}>
+          <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="name"
               fontSize={10}
               interval={0}
-              angle={-25}
+              angle={-28}
               textAnchor="end"
-              height={60}
+              height={64}
+              tickFormatter={(v: string) => (v && v.length > 14 ? v.slice(0, 13) + "…" : v)}
             />
-            <YAxis fontSize={10} />
+            <YAxis fontSize={10} width={36} />
             <Tooltip
               formatter={(v: unknown) =>
                 typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")

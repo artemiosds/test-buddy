@@ -410,9 +410,16 @@ export function BarChartH({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
-        <XAxis type="number" />
-        <YAxis type="category" dataKey={nameKey} width={140} tick={{ fontSize: 11 }} />
+      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+        <XAxis type="number" tick={{ fontSize: 11 }} />
+        <YAxis
+          type="category"
+          dataKey={nameKey}
+          width={160}
+          tick={{ fontSize: 11 }}
+          interval={0}
+          tickFormatter={(v: string) => (v && v.length > 22 ? v.slice(0, 21) + "…" : v)}
+        />
         <Tooltip />
         <Bar dataKey={dataKey} fill={color} />
       </BarChart>
@@ -435,9 +442,17 @@ export function BarChartV({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data}>
-        <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
-        <YAxis />
+      <BarChart data={data} margin={{ top: 8, right: 16, bottom: 56, left: 8 }}>
+        <XAxis
+          dataKey={nameKey}
+          tick={{ fontSize: 11 }}
+          interval={0}
+          angle={-28}
+          textAnchor="end"
+          height={64}
+          tickFormatter={(v: string) => (v && v.length > 14 ? v.slice(0, 13) + "…" : v)}
+        />
+        <YAxis tick={{ fontSize: 11 }} width={36} />
         <Tooltip />
         <Bar dataKey={dataKey} fill={color} />
       </BarChart>
@@ -464,13 +479,18 @@ export function PieChartCard({
           nameKey={nameKey}
           dataKey={dataKey}
           outerRadius={80}
-          label={{ fontSize: 10 }}
+          labelLine={false}
         >
           {data.map((_, i) => (
             <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
           ))}
         </Pie>
-        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Legend
+          wrapperStyle={{ fontSize: 11 }}
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+        />
         <Tooltip />
       </PieChart>
     </ResponsiveContainer>
@@ -492,9 +512,14 @@ export function LineChartCard({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data}>
-        <XAxis dataKey={nameKey} tick={{ fontSize: 10 }} />
-        <YAxis />
+      <LineChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+        <XAxis
+          dataKey={nameKey}
+          tick={{ fontSize: 10 }}
+          interval="preserveStartEnd"
+          minTickGap={16}
+        />
+        <YAxis tick={{ fontSize: 11 }} width={36} />
         <Tooltip />
         <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
       </LineChart>
