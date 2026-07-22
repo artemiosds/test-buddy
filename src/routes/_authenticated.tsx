@@ -596,7 +596,7 @@ function TopBar({
         <button
           type="button"
           onClick={onOpenMobile}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md transition hover:bg-accent md:hidden"
+          className="inline-flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-md transition hover:bg-accent md:hidden"
           aria-label="Abrir menu"
         >
           <Menu className="h-5 w-5" strokeWidth={1.75} />
@@ -608,7 +608,7 @@ function TopBar({
             <button
               type="button"
               onClick={onToggleCollapsed}
-              className="hidden h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent md:inline-flex"
+              className="hidden h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-md text-foreground transition hover:bg-accent md:inline-flex"
               aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
             >
               {collapsed ? (
@@ -674,7 +674,7 @@ function TopBar({
               <button
                 type="button"
                 onClick={onToggleTheme}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                className="inline-flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-full transition hover:bg-accent"
                 aria-label={theme === "dark" ? "Tema claro" : "Tema escuro"}
               >
                 {theme === "dark" ? (
@@ -694,7 +694,7 @@ function TopBar({
             <TooltipTrigger asChild>
               <Link
                 to="/notificacoes"
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-accent"
+                className="relative inline-flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-full transition hover:bg-accent"
                 aria-label="Notificações"
               >
                 <Bell className="h-4 w-4" strokeWidth={1.75} />
@@ -713,7 +713,7 @@ function TopBar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="ml-1 flex items-center gap-2 rounded-full pl-1 pr-2 py-1 transition hover:bg-accent"
+                className="ml-1 flex min-h-11 items-center gap-2 rounded-full pl-1 pr-2 py-1 transition hover:bg-accent"
                 aria-label="Menu do usuário"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
