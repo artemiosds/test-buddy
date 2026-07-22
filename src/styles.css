@@ -3408,3 +3408,74 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
 .erp-grid tfoot td.erp-sticky {
   position: sticky !important;
 }
+
+/* =====================================================================
+ * ERP-GRID STICKY OPACITY FIX — colunas fixas precisam ter fundo OPACO
+ * próprio em todos os estados (normal, zebra, hover, situacao, ativa),
+ * senão o texto das colunas roláveis "vaza" por baixo. Usa cores
+ * concretas (sem canal alpha, sem color-mix com transparent) e vence
+ * qualquer utilitário Tailwind aplicado inline nas células.
+ * ===================================================================== */
+.erp-grid thead th.erp-sticky {
+  background-color: oklch(0.22 0.03 250) !important;
+}
+.erp-grid tfoot td.erp-sticky {
+  background-color: oklch(0.96 0.005 250) !important;
+}
+.erp-grid tbody td.erp-sticky {
+  background-color: var(--card) !important;
+}
+.erp-grid tbody tr:nth-child(even) td.erp-sticky {
+  background-color: oklch(0.975 0.005 250) !important;
+}
+.erp-grid tbody tr:hover td.erp-sticky {
+  background-color: oklch(0.94 0.03 240) !important;
+}
+.erp-grid tbody tr[data-situacao="ferias"] td.erp-sticky {
+  background-color: oklch(0.955 0.03 235) !important;
+}
+.erp-grid tbody tr[data-situacao="licenca"] td.erp-sticky {
+  background-color: oklch(0.96 0.04 85) !important;
+}
+.erp-grid tbody tr[data-situacao="afastado"] td.erp-sticky,
+.erp-grid tbody tr[data-situacao="cedido"] td.erp-sticky {
+  background-color: oklch(0.94 0.05 40) !important;
+}
+.erp-grid tbody tr[data-situacao="desligado"] td.erp-sticky,
+.erp-grid tbody tr[data-situacao="inativo"] td.erp-sticky {
+  background-color: oklch(0.94 0.005 250) !important;
+}
+.erp-grid tbody tr[data-row-id][data-active="true"] td.erp-sticky {
+  background-color: oklch(0.92 0.05 250) !important;
+}
+
+/* Dark mode — repete a mesma matriz com tons escuros opacos. */
+.dark .erp-grid tbody td.erp-sticky {
+  background-color: oklch(0.208 0.042 265.755) !important;
+}
+.dark .erp-grid tbody tr:nth-child(even) td.erp-sticky {
+  background-color: oklch(0.24 0.04 265) !important;
+}
+.dark .erp-grid tbody tr:hover td.erp-sticky {
+  background-color: oklch(0.30 0.05 250) !important;
+}
+.dark .erp-grid tfoot td.erp-sticky {
+  background-color: oklch(0.22 0.04 265) !important;
+}
+.dark .erp-grid tbody tr[data-situacao="ferias"] td.erp-sticky {
+  background-color: oklch(0.28 0.05 235) !important;
+}
+.dark .erp-grid tbody tr[data-situacao="licenca"] td.erp-sticky {
+  background-color: oklch(0.30 0.06 85) !important;
+}
+.dark .erp-grid tbody tr[data-situacao="afastado"] td.erp-sticky,
+.dark .erp-grid tbody tr[data-situacao="cedido"] td.erp-sticky {
+  background-color: oklch(0.30 0.07 40) !important;
+}
+.dark .erp-grid tbody tr[data-situacao="desligado"] td.erp-sticky,
+.dark .erp-grid tbody tr[data-situacao="inativo"] td.erp-sticky {
+  background-color: oklch(0.24 0.02 265) !important;
+}
+.dark .erp-grid tbody tr[data-row-id][data-active="true"] td.erp-sticky {
+  background-color: oklch(0.32 0.08 250) !important;
+}
