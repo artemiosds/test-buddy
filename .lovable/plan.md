@@ -1,68 +1,58 @@
-## Objetivo
+## Escopo
+Congelar as 4 primeiras colunas de identificação nas duas telas de folha, para que ao rolar horizontalmente os campos numéricos, o usuário mantenha visível quem é o profissional daquela linha.
 
-Transformar as telas **Folha – Efetivos**, **Folha – Contratados** e **Piso da Enfermagem** em um ambiente de conferência gerencial, apenas na camada de UI, sem tocar em regras de negócio, cálculos, APIs, permissões ou banco.
+**Arquivos que serão tocados:**
+- `src/components/erp-grid/index.tsx` — reativar utilitário sticky (hoje é no-op).
+- `src/styles.css` — reativar as classes `.erp-sticky` e `.erp-sticky-last` (hoje comentadas como no-op) com `position: sticky`, `left`, `z-index` e sombra à direita.
+- `src/components/frequencias/frequencias-efetivos-page.tsx` — aplicar classe sticky nas 4 primeiras colunas do `<thead>`, `<tbody>` e `<tfoot>`.
+- `src/components/frequencias/frequencias-contratados-page.tsx` — idem.
 
-Todos os dados usados já existem no cadastro do profissional (`profissionais`, `frequencias`, `frequencias_contratados`, `piso_enfermagem`) e serão apenas enriquecidos/derivados no frontend.
+**Não tocar:** Piso Nacional da Enfermagem, cálculos, RLS, server functions, aprovação, ordem das colunas.
 
-## Escopo (o que muda)
+## Colunas fixas (4 primeiras de cada tela)
 
-Somente arquivos de UI/frontend:
+**Folha — Efetivos:** Matrícula, Profissional, Situação, Proj.
+**Folha — Contratados:** Nº, Matrícula, Nome, CPF.
 
-- `src/components/frequencias/frequencias-efetivos-page.tsx`
-- `src/components/frequencias/frequencias-contratados-page.tsx`
-- `src/routes/_authenticated/piso-enfermagem.index.tsx`
-- Novos componentes compartilhados em `src/components/shared/gerencial/`
-- Um helper puro em `src/lib/situacao-funcional.ts` (derivações a partir dos campos já existentes)
+Nas duas, a 4ª coluna ganha `.erp-sticky-last` (sombra à direita indicando o limite da área rolável).
 
-**Fora de escopo (não será tocado):** migrations, RPCs, `.functions.ts` de folha/piso, cálculos financeiros, permissões, regras de competência, fluxos de importação/aprovação.
+## Implementação técnica
 
-## Componentes novos (compartilhados)
+**CSS (`src/styles.css`, bloco `.erp-grid .erp-sticky*` já existente, hoje no-op):**
+```css
+.erp-grid .erp-sticky {
+  position: sticky;
+  background: var(--card);         /* mesma cor da linha para cobrir o scroll */
+  z-index: 5;
+}
+.erp-grid thead .erp-sticky { z-index: 25; background: oklch(0.22 0.03 250); }
+.erp-grid tfoot .erp-sticky { z-index: 18; }
+.erp-grid .erp-sticky-last {
+  box-shadow: 4px 0 6px -4px rgba(15,23,42,0.18);
+  border-right: 1px solid oklch(0.86 0.01 250);
+}
+/* zebra/hover/situação já pintam <td>; sticky herda porque usa a mesma cor
+   via background: inherit em uma regra específica para tbody. */
+.erp-grid tbody tr:nth-child(even) td.erp-sticky { background: oklch(0.98 0.005 250); }
+.erp-grid tbody tr:hover td.erp-sticky           { background: oklch(0.96 0.03 240); }
+```
+Nas linhas coloridas por `data-situacao=…`, adicionar seletor equivalente para o `td.erp-sticky` manter o mesmo tom.
 
-Criados em `src/components/shared/gerencial/`, reutilizando `KpiCard`, `StatusBadge`, `DataTable`, `EmptyState`, `FilterBar`, `Tooltip`, `Sheet` (drawer) e `PermissionGate` já existentes:
+**JSX (Efetivos e Contratados):** para cada uma das 4 primeiras `<th>` / `<td>` / `<td>` de rodapé, adicionar:
+```tsx
+className="erp-sticky [erp-sticky-last quando for a 4ª]"
+style={{ left: L[key], ...estiloAtual }}
+```
+`L` é o mapa já produzido por `frozenLeftMap(FROZEN)`. O array `FROZEN` de cada tela passa a listar exatamente as 4 colunas fixas com suas larguras já usadas hoje.
 
-1. **`SituacaoBadge`** — badge colorido por situação funcional (Ativo/Férias/Licença/Afastado/Desligado). Usa `StatusBadge` com um novo domínio `situacao_funcional` registrado em `src/lib/status.ts`.
-2. **`SituacaoResumo`** — faixa de KPIs (Ativos, Férias, Licença, Afastados, Pendências, Não Elegíveis) usando `KpiCard`.
-3. **`SituacaoFilter`** — chips de filtro rápido por situação, plugado no `FilterBar` de cada página.
-4. **`ProfissionalNomeCell`** — célula fixa com nome + `SituacaoBadge` + ícone de alerta quando há pendências cadastrais; envolvida em `Tooltip` com resumo (CPF, cargo, função, unidade, banco).
-5. **`ElegibilidadePisoBadge`** — badge Elegível / Revisar / Não elegível, derivado de regras puras (cargo pertence a Enfermagem, tem CPF, tem vínculo ativo, tem dados bancários). Puramente visual — **não altera nenhum cálculo do piso**.
-6. **`AlertasDrawer`** — `Sheet` lateral com lista consolidada de inconsistências da competência (sem banco, sem lotação, sem cargo, sem função, sem CPF, pendências).
-7. **`DossieDrawer`** — `Sheet` lateral que reaproveita o dossiê já existente (`src/lib/dossie.ts` + `src/components/profissionais/dossie`) em modo compacto ao clicar no nome.
+## Comportamento esperado
+- Ao rolar horizontalmente, as 4 primeiras colunas ficam paradas no lado esquerdo.
+- Sombra suave marca onde termina a área fixa e começa a área rolável.
+- Nome do profissional continua clicável (só herda `position: sticky`, nada muda no handler).
+- Hover, zebra e tint por situação continuam pintando corretamente as colunas fixas.
+- Cabeçalho continua sticky no topo (comportamento atual) — combinado com o sticky lateral, o canto superior esquerdo trava nas duas direções.
 
-## Helper de derivação
-
-`src/lib/situacao-funcional.ts` — funções puras:
-
-- `derivarSituacao(prof)` → `'ativo' | 'ferias' | 'licenca' | 'afastado' | 'desligado'` a partir dos campos já existentes em `profissionais` / `profissional_historico_funcional`.
-- `derivarAlertas(prof)` → lista tipada de pendências cadastrais.
-- `derivarElegibilidadePiso(prof, contexto)` → `'elegivel' | 'revisar' | 'nao_elegivel'` conforme regras configuráveis (constantes no topo do arquivo, fáceis de ajustar).
-- `contarSituacoes(linhas)` → totais para os KPIs.
-
-Cobertura por testes unitários em `situacao-funcional.test.ts`.
-
-## Integração nas 3 páginas
-
-Em cada página, na mesma ordem:
-
-1. Adicionar `SituacaoResumo` acima do `FilterBar` (Efetivos e Contratados usam os totais da folha carregada; Piso usa os totais da competência ativa).
-2. Adicionar `SituacaoFilter` dentro do `FilterBar` existente.
-3. Substituir a coluna "Nome" pela `ProfissionalNomeCell` (nome + `SituacaoBadge` + ícone de alerta + tooltip). Coluna fica sticky à esquerda via classe utilitária.
-4. Adicionar coluna "Elegibilidade ao Piso" com `ElegibilidadePisoBadge` (nas 3 telas — nas de folha aparece como informativo).
-5. Destacar a linha (borda/ background suave) quando `derivarAlertas(prof).length > 0` — reforço visual de "precisa conferência".
-6. Adicionar botão flutuante "Alertas da competência" que abre `AlertasDrawer`.
-7. Clique no nome abre `DossieDrawer` com o resumo do profissional.
-
-Nenhuma query, mutation, cálculo ou RLS é alterado — o enriquecimento acontece no `useMemo` sobre as linhas já retornadas.
-
-## Design System
-
-- Cores: `SituacaoBadge` usa tokens semânticos já existentes (`--success`, `--warning`, `--destructive`, `--info`, `--muted`) — se algum faltar, é adicionado em `src/styles.css` via `@theme inline` mapeando para variáveis existentes.
-- Sem hardcode de cores nos componentes. Sem quebra de responsividade — a coluna sticky usa `md:` breakpoints.
-- Ícones via `lucide-react` (já em uso).
-
-## Entregáveis
-
-- 1 helper + testes: `src/lib/situacao-funcional.ts` (+ `.test.ts`).
-- 7 componentes em `src/components/shared/gerencial/`.
-- Ajustes nas 3 páginas listadas.
-- Registro do domínio `situacao_funcional` em `src/lib/status.ts`.
-- Nenhuma migration, nenhuma edge function, nenhuma alteração em `.functions.ts`.
+## Validação
+- Build + lint (colar saída real).
+- Verificação visual: rolar horizontalmente em Efetivos e Contratados, redimensionar para largura de notebook (~1280px) e conferir que as 4 colunas ficam fixas e o restante rola.
+- Confirmar que Piso Nacional (`/piso-enfermagem`) segue idêntico.
