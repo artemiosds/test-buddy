@@ -3433,6 +3433,7 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
  * ===================================================================== */
 .erp-grid thead th.erp-sticky {
   background-color: oklch(0.22 0.03 250) !important;
+  color: #ffffff !important;
 }
 .erp-grid tfoot td.erp-sticky {
   background-color: oklch(0.96 0.005 250) !important;
