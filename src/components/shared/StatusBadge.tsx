@@ -39,7 +39,7 @@ export function StatusBadge({ domain, value, className, title }: Props) {
   return (
     <Badge
       variant={m.variant}
-      className={cn(m.className, className)}
+      className={cn("tabular-nums", m.className, className)}
       title={title ?? m.description}
     >
       {m.label}

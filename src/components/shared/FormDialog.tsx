@@ -61,7 +61,13 @@ export function FormDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(SIZE_CLASS[size], contentClassName)}>
+      <DialogContent
+        className={cn(
+          SIZE_CLASS[size],
+          "rounded-xl shadow-[var(--shadow-card-hover)]",
+          contentClassName,
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

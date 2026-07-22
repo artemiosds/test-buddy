@@ -3577,3 +3577,54 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
     z-index: auto !important;
   }
 }
+
+/* ==========================================================================
+   POLIMENTO FINAL — Consistência visual (sem alterar layout/densidade)
+   ========================================================================== */
+
+/* Foco visível padronizado em todos os elementos interativos (WCAG AA).
+   Substitui o ring 1px currentColor default do Tailwind v4 por anel azul
+   consistente com o design system. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="tab"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--ring, var(--primary));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Alvos de toque ≥ 44×44px apenas em dispositivos mobile (≤ 639px).
+   Preserva densidade em desktop/tablet. */
+@media (max-width: 639.98px) {
+  button:not(.erp-cell):not([data-slot="sidebar-menu-button"]),
+  a[role="button"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* KPIs críticos: barra lateral esquerda para priorização visual imediata.
+   Aplicar via `<Card className="kpi-critical">` quando aplicável. */
+.kpi-critical {
+  border-left: 4px solid var(--destructive) !important;
+}
+.kpi-warning {
+  border-left: 4px solid var(--warning, hsl(38 92% 50%)) !important;
+}
+.kpi-success {
+  border-left: 4px solid var(--success, hsl(142 76% 36%)) !important;
+}
+
+/* Skeleton — ritmo de pulso unificado (2s cubic-bezier) para casar com
+   o utility `.pulse` custom já definido acima. */
+[data-slot="skeleton"],
+.skeleton {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
