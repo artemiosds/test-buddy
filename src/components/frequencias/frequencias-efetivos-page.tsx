@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
-import { gerarFolhaEfetivosOficial, type UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
+import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
@@ -586,6 +586,9 @@ export function FrequenciasEfetivosPage() {
                     grupos: Object.values(grupos),
                   },
                 ];
+                const { gerarFolhaEfetivosOficial } = await import(
+                  "@/lib/pdf-folha-efetivos-oficial"
+                );
                 await gerarFolhaEfetivosOficial({
                   competencia: {
                     mes: compSel?.mes ?? 1,

@@ -14,11 +14,8 @@ import {
 import { Download, FileSpreadsheet } from "lucide-react";
 import { KpiCard } from "@/components/shared";
 import { formatNumber as fmt } from "@/lib/formatters";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { toast } from "sonner";
+import { loadPdfKit, loadXlsxKit } from "@/lib/lazy-exports";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import {
@@ -205,6 +202,7 @@ function RelatorioExecutivoPage() {
 
   async function exportarXLSX() {
     if (!consolidado) return;
+    const { XLSX } = await loadXlsxKit();
     const wb = XLSX.utils.book_new();
     const wsUn = XLSX.utils.json_to_sheet(
       consolidado.map((r) => ({
@@ -234,6 +232,8 @@ function RelatorioExecutivoPage() {
 
   async function exportarPDF() {
     if (!consolidado) return;
+    const { jsPDF, autoTable, drawInstitutionalHeader, loadMunicipioInfo } =
+      await loadPdfKit();
     const doc = new jsPDF();
     const mun = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(doc, mun, `Relatório Executivo — ${compLabel}`);
