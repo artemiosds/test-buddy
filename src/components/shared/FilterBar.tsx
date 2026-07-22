@@ -13,8 +13,8 @@ type Props = {
  */
 export function FilterBar({ children, actions, className }: Props) {
   return (
-    <div className={"mb-4 flex flex-wrap items-end gap-2 " + (className ?? "")}>
-      <div className="grid flex-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className={"mb-4 flex flex-wrap items-end gap-3 " + (className ?? "")}>
+      <div className="grid flex-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {children}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -37,7 +37,9 @@ function FilterBarField({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1 block text-xs text-muted-foreground">{label}</label>
+      <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </label>
       {children}
     </div>
   );
