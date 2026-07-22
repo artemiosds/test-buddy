@@ -50,8 +50,6 @@ import {
   Flag,
   AlertCircle,
 } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   drawInstitutionalHeader,
   drawSignatureFooter,
@@ -802,6 +800,10 @@ function FrequenciaDetalhe() {
       documento: `Folha de Frequência ${frequencia.tipo.toUpperCase()} — ${unidadeNome0} — ${compLabel0}`,
     });
     if (!ok) return;
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const unidade = cu?.unidades?.nome ?? "—";
     const compLabel = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
