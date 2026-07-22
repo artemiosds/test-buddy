@@ -72,9 +72,9 @@ export async function gerarExcelFolhaContratadosModeloCer(
     c.value = text;
     c.font = { name: "Calibri", bold: true, size };
     c.alignment = { horizontal: "center", vertical, wrapText: true };
-    c.border = cell === "A4" || cell === "A5"
-      ? { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
-      : undefined;
+    if (cell === "A4" || cell === "A5") {
+      c.border = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+    }
   });
 
   const anchor = (nativeCol: number, nativeColOff: number, nativeRow: number, nativeRowOff: number) => ({
