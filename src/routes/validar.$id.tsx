@@ -113,7 +113,7 @@ function ValidarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+    <div className="min-h-dvh bg-muted flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border overflow-hidden">
         <header className="bg-success text-success-foreground px-6 py-4 flex items-center gap-3">
           <ShieldCheck className="h-7 w-7" />

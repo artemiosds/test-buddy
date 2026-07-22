@@ -1117,6 +1117,7 @@ function FrequenciaDetalhe() {
                         variant="ghost"
                         disabled={!l.id}
                         title={l.id ? "Gerenciar anexos" : "Salve a linha antes de anexar"}
+                        aria-label={l.id ? "Gerenciar anexos" : "Salve a linha antes de anexar"}
                         onClick={() => setAnexosOpenFor(l)}
                       >
                         <Paperclip className="h-4 w-4" />
@@ -1132,6 +1133,13 @@ function FrequenciaDetalhe() {
                               variant={n > 0 ? "destructive" : "ghost"}
                               disabled={!l.id}
                               title={
+                                l.id
+                                  ? n > 0
+                                    ? `${n} pendência(s) — abrir nova`
+                                    : "Abrir pendência para esta linha"
+                                  : "Salve a linha antes de abrir pendência"
+                              }
+                              aria-label={
                                 l.id
                                   ? n > 0
                                     ? `${n} pendência(s) — abrir nova`
@@ -1161,7 +1169,7 @@ function FrequenciaDetalhe() {
                     </td>
                     <td className="p-2 text-right">
                       {editable && canEditar && l.status_linha === "pendente" && (
-                        <Button size="icon" variant="ghost" onClick={() => removeLinha(idx)}>
+                        <Button size="icon" variant="ghost" aria-label="Remover linha" onClick={() => removeLinha(idx)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
@@ -1484,7 +1492,7 @@ function AnexosDialog({
                       </Badge>
                     )}
                     {canEdit && (
-                      <Button size="icon" variant="ghost" onClick={() => removerAnexo(a)}>
+                      <Button size="icon" variant="ghost" aria-label="Remover anexo" onClick={() => removerAnexo(a)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
