@@ -821,6 +821,7 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label="Remover evento"
                       onClick={() => {
                         void (async () => {
                           const ok = await askConfirm({
