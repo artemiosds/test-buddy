@@ -84,34 +84,57 @@ export async function gerarExcelFolhaContratadosModeloCer(
     nativeRowOff,
   }) as unknown as ExcelJS.Anchor;
 
-  // 3 logos institucionais — ancoragem igual ao modelo oficial de referência.
-  // A logo central fica na primeira linha, acima do texto "ESTADO DO PARÁ".
+  // 3 logos institucionais — layout timbre oficial:
+  //  • Centro (brasao-alt): empilhada acima de "ESTADO DO PARÁ", centralizada
+  //    horizontalmente na largura do bloco (A1:O1 mesclado).
+  //  • Esquerda (brasao) e Direita (logo-sms): centralizadas verticalmente na
+  //    altura combinada do bloco (row1 alta + 3 linhas de texto).
+  //
+  // Referência de larguras (EMU, 1 char ≈ 7px, 1px = 9525 EMU):
+  //  A=352k B=2124k C=1219k D=1352k E=1533k … Total sheet ≈ 13.411M EMU.
+  //  Centro horizontal do bloco A1:O1 ≈ 6.705M EMU → cai dentro da coluna E.
+  // Altura row1 = 83.25pt ≈ 1.057M EMU. Rows 2-4 = 15.6pt ≈ 198k EMU cada.
+  // Bloco total (row1..row4) ≈ 1.651M EMU.
   const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
     fetchAsBuffer(brasaoOriximina.url),
     fetchAsBuffer(brasaoOriximinaAlt.url),
     fetchAsBuffer(logoSms.url),
   ]);
+  // Tamanhos-alvo em px (ExcelJS converte px → EMU internamente via *9525).
+  const SIDE = 80;   // logos laterais ~80x80px
+  const CENTER_W = 70;
+  const CENTER_H = 80;
+  // Centralização vertical das laterais no bloco (row1..row4 ≈ 1.651M EMU).
+  // rowOff (topo) = (1.651M − 80px*9525) / 9525 px = ~93px em row 1 (1.057M EMU tall).
+  // Como cabe dentro de row 1, usamos nativeRow=0 e nativeRowOff em EMU.
+  const SIDE_ROW_OFF = 444817; // (blocoTotal − alturaLogo)/2 desde o topo de row 1
+
   if (brasaoBuf) {
     const id = wb.addImage({ buffer: brasaoBuf, extension: "png" });
+    // Centralizada horizontalmente dentro da coluna B (col idx 1, ~2.124M EMU larga).
     ws.addImage(id, {
-      tl: anchor(1, 725805, 0, 217170),
-      br: anchor(1, 1463040, 0, 953313),
+      tl: anchor(1, 681037, 0, SIDE_ROW_OFF),
+      ext: { width: SIDE, height: SIDE },
       editAs: "oneCell",
     });
   }
   if (brasaoAltBuf) {
     const id = wb.addImage({ buffer: brasaoAltBuf, extension: "png" });
+    // Centro horizontal do sheet ≈ 6.705M EMU → col E (idx 4, começa em 5.048M),
+    // offset dentro de E = 6.705M − CENTER_W/2*9525 − 5.048M ≈ 1.323M EMU.
+    // Topo em row 1 (rowOff pequeno) para encostar acima do texto (vertical bottom).
     ws.addImage(id, {
-      tl: anchor(4, 1551680, 0, 213360),
-      br: anchor(6, 22859, 0, 815340),
+      tl: anchor(4, 1323975, 0, 12700),
+      ext: { width: CENTER_W, height: CENTER_H },
       editAs: "oneCell",
     });
   }
   if (smsBuf) {
     const id = wb.addImage({ buffer: smsBuf, extension: "png" });
+    // Centralizada horizontalmente na coluna N (idx 13, ~1.019M EMU larga).
     ws.addImage(id, {
-      tl: anchor(13, 480061, 0, 274320),
-      ext: { width: 746760 / 9525, height: 609600 / 9525 },
+      tl: anchor(13, 128587, 0, SIDE_ROW_OFF),
+      ext: { width: SIDE, height: SIDE },
       editAs: "oneCell",
     });
   }
