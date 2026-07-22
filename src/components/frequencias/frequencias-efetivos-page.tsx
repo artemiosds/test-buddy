@@ -499,6 +499,15 @@ export function FrequenciasEfetivosPage() {
 
   const [selectedRowId] = useSelectedErpRow();
 
+  if (!canView) {
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
+        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
