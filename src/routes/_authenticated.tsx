@@ -527,6 +527,14 @@ function AuthenticatedLayout() {
     return null;
   }, [pathname]);
 
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/20 px-4">
+        <div className="text-sm text-muted-foreground">Validando sessão...</div>
+      </div>
+    );
+  }
+
   const renderNav = (compact: boolean) => (
     <nav className="flex-1 overflow-y-auto p-2">
       {!compact && (
