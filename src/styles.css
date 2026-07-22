@@ -3553,3 +3553,24 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
 .dark .erp-grid .erp-sticky-last {
   border-right-color: oklch(0.45 0.025 265) !important;
 }
+
+/* ==========================================================================
+   SPRINT FINAL DE RESPONSIVIDADE — Ajustes mobile-first
+   ========================================================================== */
+
+/* Em telas <640px, mantém no máximo 2 colunas "sticky" da grade ERP
+   (Nome + Matrícula). As demais colunas voltam a rolar horizontalmente
+   junto com a tabela para não ocupar toda a largura útil do celular. */
+@media (max-width: 639.98px) {
+  .erp-grid thead th.erp-sticky,
+  .erp-grid tbody td.erp-sticky,
+  .erp-grid tfoot td.erp-sticky,
+  .erp-grid thead th.erp-sticky.erp-sticky-last,
+  .erp-grid tbody td.erp-sticky.erp-sticky-last,
+  .erp-grid tfoot td.erp-sticky.erp-sticky-last {
+    position: static !important;
+    left: auto !important;
+    box-shadow: none !important;
+    z-index: auto !important;
+  }
+}
