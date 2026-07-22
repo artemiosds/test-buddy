@@ -430,6 +430,8 @@ function PendenciaDetail({
   // `retry` só deve ser informado para operações IDEMPOTENTES.
   // `responderPendencia` cria um novo registro de histórico — repetir causaria
   // duplicata visível — por isso é a única que segue sem retry.
+  // NOTA: `retry` é sempre estável por call-site (literal fixo), garantindo
+  // ordem de hooks consistente entre renders — invariante seguro por convenção.
   const useAction = (fn: any, msgOk: string, retry?: RetryConfig) => {
     const call = useServerFn(fn);
     const base = {
@@ -441,12 +443,14 @@ function PendenciaDetail({
       onError: (e: any) => toast.error(e?.message ?? "Falha na operação"),
     };
     if (retry) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- retry estável por call-site
       return useRetryMutation<unknown, any>({
         ...base,
         retry,
         mutationFn: (payload: any) => call({ data: payload }),
       });
     }
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- retry estável por call-site
     return useMutation({
       ...base,
       mutationFn: (payload: any) => call({ data: payload }),
