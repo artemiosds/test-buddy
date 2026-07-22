@@ -26,11 +26,7 @@ import {
 import { KpiCard } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 import { formatNumber } from "@/lib/formatters";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
-import autoTable from "jspdf-autotable";
-import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
+import { loadPdfKit, loadXlsxKit } from "@/lib/lazy-exports";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
@@ -406,9 +402,10 @@ function RelatorioPisoPage() {
     toast.success("CSV exportado.");
   }
 
-  function exportarXLSX() {
+  async function exportarXLSX() {
     const data = tabularExport();
     if (!data.length) return toast.error("Nada para exportar.");
+    const { XLSX } = await loadXlsxKit();
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, "Piso Enfermagem");
@@ -465,6 +462,14 @@ function RelatorioPisoPage() {
 
   async function exportarPDF() {
     if (!atualRows.length) return toast.error("Nada para exportar.");
+    const {
+      jsPDF,
+      autoTable,
+      drawInstitutionalHeader,
+      loadMunicipioInfo,
+      resolverAssinaturasDocumento,
+      drawAssinaturasBlock,
+    } = await loadPdfKit();
     const doc = new jsPDF({ orientation: "landscape" });
     const info = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(
