@@ -495,9 +495,10 @@ export function FrequenciasContratadosPage() {
 
   /* ------- ERP grid derivados de UI ------- */
   const FROZEN: FrozenCol[] = [
-    { key: "num",       label: "Nº",           width: 48  },
+    { key: "num",       label: "Nº",           width: 40  },
     { key: "matricula", label: "Matrícula",    width: 96  },
-    { key: "nome",      label: "Profissional", width: 240 },
+    { key: "nome",      label: "Nome",         width: 240 },
+    { key: "cpf",       label: "CPF",          width: 120 },
   ];
   const L = frozenLeftMap(FROZEN);
   const colKeysAll = useMemo(() => [...CAMPOS_NUM] as string[], []);
@@ -832,10 +833,10 @@ export function FrequenciasContratadosPage() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 40, textAlign: "center" }}>Nº</th>
-                <th style={{ width: 80, textAlign: "center" }}>Matrícula</th>
-                <th style={{ minWidth: 200, maxWidth: 250, textAlign: "left" }}>Nome</th>
-                <th style={{ textAlign: "center", width: 112 }}>CPF</th>
+                <th className="erp-sticky" style={{ width: 40, textAlign: "center", left: L.num }}>Nº</th>
+                <th className="erp-sticky" style={{ width: 96, textAlign: "center", left: L.matricula }}>Matrícula</th>
+                <th className="erp-sticky" style={{ width: 240, textAlign: "left", left: L.nome }}>Nome</th>
+                <th className="erp-sticky erp-sticky-last" style={{ textAlign: "center", width: 120, left: L.cpf }}>CPF</th>
                 <th style={{ textAlign: "left", minWidth: 140 }}>Cargo</th>
                 <th style={{ textAlign: "left", minWidth: 140 }}>Lotação</th>
                 <th style={{ textAlign: "center", width: 48 }}>Dias</th>
@@ -873,15 +874,15 @@ export function FrequenciasContratadosPage() {
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
-                      className="text-center text-muted-foreground font-mono tabular-nums"
-                      style={{ width: 40 }}
+                      className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
+                      style={{ width: 40, left: L.num }}
                     >
                       {idx + 1}
                     </td>
-                    <td className="text-center font-mono" style={{ width: 80 }}>
+                    <td className="erp-sticky text-center font-mono" style={{ width: 96, left: L.matricula }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="font-medium text-slate-900" style={{ minWidth: 200, maxWidth: 250 }}>
+                    <td className="erp-sticky font-medium text-slate-900" style={{ width: 240, left: L.nome }}>
                       <div className="flex items-center gap-1.5">
                         <IconeSituacao situ={situ} />
                         <div className="min-w-0 flex-1 truncate">
@@ -889,7 +890,7 @@ export function FrequenciasContratadosPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="text-center text-muted-foreground font-mono">{p.cpf ?? "—"}</td>
+                    <td className="erp-sticky erp-sticky-last text-center text-muted-foreground font-mono" style={{ width: 120, left: L.cpf }}>{p.cpf ?? "—"}</td>
                     <td className="text-slate-700 truncate" style={{ maxWidth: 200 }} title={p.cargo ?? undefined}>{p.cargo ?? "—"}</td>
                     {(() => {
                       const lot = lotacaoDe(conf);
@@ -941,10 +942,11 @@ export function FrequenciasContratadosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
-                <td></td>
-                <td></td>
-                <td>Totais</td>
-                <td colSpan={3}></td>
+                <td className="erp-sticky" style={{ width: 40, left: L.num }}></td>
+                <td className="erp-sticky" style={{ width: 96, left: L.matricula }}></td>
+                <td className="erp-sticky" style={{ width: 240, left: L.nome }}>Totais</td>
+                <td className="erp-sticky erp-sticky-last" style={{ width: 120, left: L.cpf }}></td>
+                <td colSpan={2}></td>
                 {CAMPOS_NUM.map((c) => (
                   <td key={c} className="text-center font-mono">
                     {(totCampo[c] ?? 0).toLocaleString("pt-BR")}
