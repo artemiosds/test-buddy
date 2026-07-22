@@ -6,6 +6,7 @@
  */
 import ExcelJS from "exceljs";
 import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
+import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
 import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 
@@ -70,25 +71,37 @@ export async function gerarExcelFolhaContratadosModeloCer(
   };
   headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
-  // Logos travados em 80x80 px
-  const [brasaoBuf, smsBuf] = await Promise.all([
+  // 3 logos institucionais — posições/tamanhos do modelo de referência
+  // (mm → px a 96 DPI: 1mm ≈ 3.7795 px).
+  //  Esquerda  — col B         — brasão prefeitura   (~20,7 mm ≈ 78 px)
+  //  Centro    — cols E–G      — brasão alternativo  (~14,6 × 16,5 mm ≈ 55×62 px)
+  //  Direita   — col N         — logo SMS            (~20,4 mm ≈ 77 px)
+  const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
     fetchAsBuffer(brasaoOriximina.url),
+    fetchAsBuffer(brasaoOriximinaAlt.url),
     fetchAsBuffer(logoSms.url),
   ]);
   if (brasaoBuf) {
     const id = wb.addImage({ buffer: brasaoBuf, extension: "png" });
     ws.addImage(id, {
-      tl: { col: 0.1, row: 0.1 },
-      ext: { width: 80, height: 80 },
+      tl: { col: 1.05, row: 0.1 },
+      ext: { width: 78, height: 78 },
+      editAs: "oneCell",
+    });
+  }
+  if (brasaoAltBuf) {
+    const id = wb.addImage({ buffer: brasaoAltBuf, extension: "png" });
+    ws.addImage(id, {
+      tl: { col: 4.2, row: 0.15 },
+      ext: { width: 55, height: 62 },
       editAs: "oneCell",
     });
   }
   if (smsBuf) {
     const id = wb.addImage({ buffer: smsBuf, extension: "png" });
-    // Coluna O = índice 14 (0-based)
     ws.addImage(id, {
-      tl: { col: 14.05, row: 0.1 },
-      ext: { width: 80, height: 80 },
+      tl: { col: 13.05, row: 0.1 },
+      ext: { width: 77, height: 77 },
       editAs: "oneCell",
     });
   }
