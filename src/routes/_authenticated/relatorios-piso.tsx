@@ -6,9 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Download, FileSpreadsheet, FileText, TrendingUp, Users, DollarSign, Award, PiggyBank, BadgePercent } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Award,
+  PiggyBank,
+  BadgePercent,
+} from "lucide-react";
 import { KpiCard } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 import { formatNumber } from "@/lib/formatters";
@@ -21,15 +35,36 @@ import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/relatorios-piso")({
   component: RelatorioPisoPage,
 });
 
-const COLORS = ["hsl(var(--primary))", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899"];
+const COLORS = [
+  "hsl(var(--primary))",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+];
 
 type Row = {
   id: string;
@@ -58,7 +93,7 @@ type Row = {
 };
 
 function brl(n: number | null | undefined) {
-  return (Number(n ?? 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return Number(n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 function pct(part: number, total: number) {
   if (!total) return "—";
@@ -69,7 +104,20 @@ function fmtCompetencia(c: string | null | undefined) {
   // aceita "YYYY-MM" ou "YYYY-MM-01"
   const m = /^(\d{4})-(\d{2})/.exec(c);
   if (!m) return c;
-  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const meses = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+  ];
   return `${meses[Number(m[2]) - 1]}/${m[1]}`;
 }
 
@@ -114,7 +162,7 @@ function RelatorioPisoPage() {
   const competenciaAnterior = useMemo(() => {
     if (!competenciaAtual) return null;
     const idx = competencias.indexOf(competenciaAtual);
-    return idx >= 0 ? competencias[idx + 1] ?? null : null;
+    return idx >= 0 ? (competencias[idx + 1] ?? null) : null;
   }, [competencias, competenciaAtual]);
 
   const vinculos = useMemo(() => {
@@ -192,11 +240,19 @@ function RelatorioPisoPage() {
 
   // Evolução por competência (linha)
   const evolucao = useMemo(() => {
-    const map = new Map<string, { competencia: string; complementacao: number; valor_final: number; beneficiados: number }>();
+    const map = new Map<
+      string,
+      { competencia: string; complementacao: number; valor_final: number; beneficiados: number }
+    >();
     for (const r of filtered) {
       const k = r.competencia ?? "";
       if (!k) continue;
-      const cur = map.get(k) ?? { competencia: k, complementacao: 0, valor_final: 0, beneficiados: 0 };
+      const cur = map.get(k) ?? {
+        competencia: k,
+        complementacao: 0,
+        valor_final: 0,
+        beneficiados: 0,
+      };
       cur.complementacao += Number(r.piso_complementacao ?? 0);
       cur.valor_final += Number(r.valor_final ?? 0);
       if (Number(r.piso_complementacao ?? 0) > 0) cur.beneficiados += 1;
@@ -217,7 +273,9 @@ function RelatorioPisoPage() {
       if (Number(r.piso_complementacao ?? 0) > 0) cur.beneficiados += 1;
       map.set(k, cur);
     }
-    return Array.from(map.values()).sort((a, b) => b.complementacao - a.complementacao).slice(0, 10);
+    return Array.from(map.values())
+      .sort((a, b) => b.complementacao - a.complementacao)
+      .slice(0, 10);
   }, [atualRows]);
 
   // Distribuição por vínculo (pizza)
@@ -232,7 +290,10 @@ function RelatorioPisoPage() {
 
   // Top unidades (barras horizontais)
   const topUnidades = useMemo(() => {
-    const map = new Map<string, { unidade: string; complementacao: number; profissionais: number }>();
+    const map = new Map<
+      string,
+      { unidade: string; complementacao: number; profissionais: number }
+    >();
     for (const r of atualRows) {
       const k = r.unidade ?? "—";
       const cur = map.get(k) ?? { unidade: k, complementacao: 0, profissionais: 0 };
@@ -240,7 +301,9 @@ function RelatorioPisoPage() {
       cur.profissionais += 1;
       map.set(k, cur);
     }
-    return Array.from(map.values()).sort((a, b) => b.complementacao - a.complementacao).slice(0, 10);
+    return Array.from(map.values())
+      .sort((a, b) => b.complementacao - a.complementacao)
+      .slice(0, 10);
   }, [atualRows]);
 
   // Top 10 profissionais beneficiados
@@ -253,13 +316,31 @@ function RelatorioPisoPage() {
 
   // Composição salarial (stacked) na competência ativa por cargo
   const composicao = useMemo(() => {
-    const map = new Map<string, {
-      cargo: string; salario_base: number; adicional_noturno: number; insalubridade: number;
-      gratificacao: number; horas_extras: number; ferias: number; complementacao: number;
-    }>();
+    const map = new Map<
+      string,
+      {
+        cargo: string;
+        salario_base: number;
+        adicional_noturno: number;
+        insalubridade: number;
+        gratificacao: number;
+        horas_extras: number;
+        ferias: number;
+        complementacao: number;
+      }
+    >();
     for (const r of atualRows) {
       const k = r.cargo ?? "—";
-      const cur = map.get(k) ?? { cargo: k, salario_base: 0, adicional_noturno: 0, insalubridade: 0, gratificacao: 0, horas_extras: 0, ferias: 0, complementacao: 0 };
+      const cur = map.get(k) ?? {
+        cargo: k,
+        salario_base: 0,
+        adicional_noturno: 0,
+        insalubridade: 0,
+        gratificacao: 0,
+        horas_extras: 0,
+        ferias: 0,
+        complementacao: 0,
+      };
       cur.salario_base += Number(r.salario_base ?? 0);
       cur.adicional_noturno += Number(r.adicional_noturno ?? 0);
       cur.insalubridade += Number(r.insalubridade ?? 0);
@@ -269,7 +350,9 @@ function RelatorioPisoPage() {
       cur.complementacao += Number(r.piso_complementacao ?? 0);
       map.set(k, cur);
     }
-    return Array.from(map.values()).sort((a, b) => (b.salario_base + b.complementacao) - (a.salario_base + a.complementacao)).slice(0, 8);
+    return Array.from(map.values())
+      .sort((a, b) => b.salario_base + b.complementacao - (a.salario_base + a.complementacao))
+      .slice(0, 8);
   }, [atualRows]);
 
   // Tabela paginada
@@ -343,30 +426,36 @@ function RelatorioPisoPage() {
 
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(evolucao.map((r) => ({
-        Competência: r.label,
-        Complementação: r.complementacao,
-        "Valor Final": r.valor_final,
-        Beneficiados: r.beneficiados,
-      }))),
+      XLSX.utils.json_to_sheet(
+        evolucao.map((r) => ({
+          Competência: r.label,
+          Complementação: r.complementacao,
+          "Valor Final": r.valor_final,
+          Beneficiados: r.beneficiados,
+        })),
+      ),
       "Evolução",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(porCargo.map((r) => ({
-        Cargo: r.cargo,
-        Complementação: r.complementacao,
-        Beneficiados: r.beneficiados,
-      }))),
+      XLSX.utils.json_to_sheet(
+        porCargo.map((r) => ({
+          Cargo: r.cargo,
+          Complementação: r.complementacao,
+          Beneficiados: r.beneficiados,
+        })),
+      ),
       "Por cargo",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(topUnidades.map((r) => ({
-        Unidade: r.unidade,
-        Complementação: r.complementacao,
-        Profissionais: r.profissionais,
-      }))),
+      XLSX.utils.json_to_sheet(
+        topUnidades.map((r) => ({
+          Unidade: r.unidade,
+          Complementação: r.complementacao,
+          Profissionais: r.profissionais,
+        })),
+      ),
       "Top unidades",
     );
 
@@ -407,7 +496,11 @@ function RelatorioPisoPage() {
 
     autoTable(doc, {
       head: [["Top Unidades", "Complementação", "Profissionais"]],
-      body: topUnidades.map((r) => [r.unidade, brl(r.complementacao), formatNumber(r.profissionais)]),
+      body: topUnidades.map((r) => [
+        r.unidade,
+        brl(r.complementacao),
+        formatNumber(r.profissionais),
+      ]),
       styles: { fontSize: 9 },
       headStyles: { fillColor: [30, 64, 175] },
     });
@@ -415,7 +508,10 @@ function RelatorioPisoPage() {
     autoTable(doc, {
       head: [["Top Profissionais Beneficiados", "Cargo", "Unidade", "Complementação"]],
       body: topProfissionais.map((r) => [
-        r.nome ?? "—", r.cargo ?? "—", r.unidade ?? "—", brl(r.piso_complementacao),
+        r.nome ?? "—",
+        r.cargo ?? "—",
+        r.unidade ?? "—",
+        brl(r.piso_complementacao),
       ]),
       styles: { fontSize: 9 },
       headStyles: { fillColor: [30, 64, 175] },
@@ -437,7 +533,9 @@ function RelatorioPisoPage() {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold">Relatórios</h1>
-        <p className="mt-2 text-muted-foreground">Você não tem permissão para visualizar relatórios.</p>
+        <p className="mt-2 text-muted-foreground">
+          Você não tem permissão para visualizar relatórios.
+        </p>
       </div>
     );
   }
@@ -448,17 +546,27 @@ function RelatorioPisoPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold">
-              <TrendingUp className="h-6 w-6 text-primary" /> Relatório — Piso Nacional da Enfermagem
+              <TrendingUp className="h-6 w-6 text-primary" /> Relatório — Piso Nacional da
+              Enfermagem
             </h1>
             <p className="text-sm text-muted-foreground">
-              Análise executiva com evolução mensal, distribuição por cargo/vínculo/unidade e composição salarial.
+              Análise executiva com evolução mensal, distribuição por cargo/vínculo/unidade e
+              composição salarial.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={exportarCSV} disabled={!canExport || !atualRows.length}>
+            <Button
+              variant="outline"
+              onClick={exportarCSV}
+              disabled={!canExport || !atualRows.length}
+            >
               <Download className="mr-2 h-4 w-4" /> CSV
             </Button>
-            <Button variant="outline" onClick={exportarXLSX} disabled={!canExport || !atualRows.length}>
+            <Button
+              variant="outline"
+              onClick={exportarXLSX}
+              disabled={!canExport || !atualRows.length}
+            >
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
             </Button>
             <Button onClick={exportarPDF} disabled={!canExport || !atualRows.length}>
@@ -472,44 +580,92 @@ function RelatorioPisoPage() {
         {/* Filtros */}
         <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Competência</label>
-            <Select value={competencia} onValueChange={(v) => { setCompetencia(v); setPage(1); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Competência
+            </label>
+            <Select
+              value={competencia}
+              onValueChange={(v) => {
+                setCompetencia(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__latest__">Mais recente</SelectItem>
                 {competencias.map((c) => (
-                  <SelectItem key={c} value={c}>{fmtCompetencia(c)}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {fmtCompetencia(c)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Vínculo</label>
-            <Select value={vinculo} onValueChange={(v) => { setVinculo(v); setPage(1); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={vinculo}
+              onValueChange={(v) => {
+                setVinculo(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {vinculos.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                {vinculos.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Cargo</label>
-            <Select value={cargo} onValueChange={(v) => { setCargo(v); setPage(1); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={cargo}
+              onValueChange={(v) => {
+                setCargo(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {cargos.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                {cargos.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Unidade</label>
-            <Select value={unidade} onValueChange={(v) => { setUnidade(v); setPage(1); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={unidade}
+              onValueChange={(v) => {
+                setUnidade(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
-                {unidades.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                {unidades.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -518,23 +674,50 @@ function RelatorioPisoPage() {
             <Input
               placeholder="Nome, CPF ou matrícula"
               value={busca}
-              onChange={(e) => { setBusca(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setBusca(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </div>
 
         {/* KPIs */}
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <KpiCard icon={<Users className="h-4 w-4" />} label="Profissionais" value={formatNumber(kpi.profissionais)}
-            trend={trendOf(kpi.profissionais, kpi.profissionaisTrend)} />
-          <KpiCard icon={<DollarSign className="h-4 w-4" />} label="Valor final total" value={brl(kpi.valorFinal)}
-            trend={trendOf(kpi.valorFinal, kpi.valorFinalTrend)} />
-          <KpiCard icon={<PiggyBank className="h-4 w-4" />} label="Complementação piso" value={brl(kpi.complementacao)}
-            trend={trendOf(kpi.complementacao, kpi.complementacaoTrend)} />
-          <KpiCard icon={<Award className="h-4 w-4" />} label="Beneficiados" value={formatNumber(kpi.beneficiados)}
-            trend={trendOf(kpi.beneficiados, kpi.beneficiadosTrend)} />
-          <KpiCard icon={<BadgePercent className="h-4 w-4" />} label="Cobertura" value={`${kpi.cobertura.toFixed(1)}%`} />
-          <KpiCard icon={<DollarSign className="h-4 w-4" />} label="Ticket médio" value={brl(kpi.ticketMedio)} />
+          <KpiCard
+            icon={<Users className="h-4 w-4" />}
+            label="Profissionais"
+            value={formatNumber(kpi.profissionais)}
+            trend={trendOf(kpi.profissionais, kpi.profissionaisTrend)}
+          />
+          <KpiCard
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Valor final total"
+            value={brl(kpi.valorFinal)}
+            trend={trendOf(kpi.valorFinal, kpi.valorFinalTrend)}
+          />
+          <KpiCard
+            icon={<PiggyBank className="h-4 w-4" />}
+            label="Complementação piso"
+            value={brl(kpi.complementacao)}
+            trend={trendOf(kpi.complementacao, kpi.complementacaoTrend)}
+          />
+          <KpiCard
+            icon={<Award className="h-4 w-4" />}
+            label="Beneficiados"
+            value={formatNumber(kpi.beneficiados)}
+            trend={trendOf(kpi.beneficiados, kpi.beneficiadosTrend)}
+          />
+          <KpiCard
+            icon={<BadgePercent className="h-4 w-4" />}
+            label="Cobertura"
+            value={`${kpi.cobertura.toFixed(1)}%`}
+          />
+          <KpiCard
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Ticket médio"
+            value={brl(kpi.ticketMedio)}
+          />
         </div>
 
         {/* Evolução mensal */}
@@ -565,8 +748,20 @@ function RelatorioPisoPage() {
                   <YAxis tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v) => brl(Number(v))} />
                   <Legend />
-                  <Area type="monotone" dataKey="valor_final" name="Valor final" stroke="hsl(var(--primary))" fill="url(#pisoValFinal)" />
-                  <Area type="monotone" dataKey="complementacao" name="Complementação" stroke="#22c55e" fill="url(#pisoCompl)" />
+                  <Area
+                    type="monotone"
+                    dataKey="valor_final"
+                    name="Valor final"
+                    stroke="hsl(var(--primary))"
+                    fill="url(#pisoValFinal)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="complementacao"
+                    name="Complementação"
+                    stroke="#22c55e"
+                    fill="url(#pisoCompl)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -576,16 +771,28 @@ function RelatorioPisoPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {/* Complementação por cargo */}
           <Card>
-            <CardHeader><CardTitle>Complementação por cargo (Top 10)</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Complementação por cargo (Top 10)</CardTitle>
+            </CardHeader>
             <CardContent style={{ height: 320 }}>
-              {porCargo.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : (
+              {porCargo.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={porCargo} layout="vertical" margin={{ left: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis type="number" tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
+                    <XAxis
+                      type="number"
+                      tickFormatter={(v) => v.toLocaleString("pt-BR")}
+                      tick={{ fontSize: 11 }}
+                    />
                     <YAxis dataKey="cargo" type="category" tick={{ fontSize: 11 }} width={140} />
                     <Tooltip formatter={(v) => brl(Number(v))} />
-                    <Bar dataKey="complementacao" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    <Bar
+                      dataKey="complementacao"
+                      fill="hsl(var(--primary))"
+                      radius={[0, 4, 4, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -594,12 +801,23 @@ function RelatorioPisoPage() {
 
           {/* Distribuição por vínculo */}
           <Card>
-            <CardHeader><CardTitle>Distribuição do valor final por vínculo</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Distribuição do valor final por vínculo</CardTitle>
+            </CardHeader>
             <CardContent style={{ height: 320 }}>
-              {porVinculo.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : (
+              {porVinculo.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={porVinculo} dataKey="value" nameKey="name" innerRadius={60} outerRadius={110} paddingAngle={2}>
+                    <Pie
+                      data={porVinculo}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={60}
+                      outerRadius={110}
+                      paddingAngle={2}
+                    >
                       {porVinculo.map((_, i) => (
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
@@ -614,13 +832,21 @@ function RelatorioPisoPage() {
 
           {/* Top unidades */}
           <Card>
-            <CardHeader><CardTitle>Top unidades por complementação</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Top unidades por complementação</CardTitle>
+            </CardHeader>
             <CardContent style={{ height: 320 }}>
-              {topUnidades.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : (
+              {topUnidades.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={topUnidades} layout="vertical" margin={{ left: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis type="number" tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
+                    <XAxis
+                      type="number"
+                      tickFormatter={(v) => v.toLocaleString("pt-BR")}
+                      tick={{ fontSize: 11 }}
+                    />
                     <YAxis dataKey="unidade" type="category" tick={{ fontSize: 11 }} width={160} />
                     <Tooltip formatter={(v) => brl(Number(v))} />
                     <Bar dataKey="complementacao" fill="#22c55e" radius={[0, 4, 4, 0]} />
@@ -632,16 +858,26 @@ function RelatorioPisoPage() {
 
           {/* Beneficiados por competência (linha) */}
           <Card>
-            <CardHeader><CardTitle>Beneficiados por competência</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Beneficiados por competência</CardTitle>
+            </CardHeader>
             <CardContent style={{ height: 320 }}>
-              {evolucao.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : (
+              {evolucao.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={evolucao}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="beneficiados" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="beneficiados"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -651,18 +887,41 @@ function RelatorioPisoPage() {
 
         {/* Composição salarial */}
         <Card>
-          <CardHeader><CardTitle>Composição salarial por cargo — {fmtCompetencia(competenciaAtual)}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>
+              Composição salarial por cargo — {fmtCompetencia(competenciaAtual)}
+            </CardTitle>
+          </CardHeader>
           <CardContent style={{ height: 360 }}>
-            {composicao.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : (
+            {composicao.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem dados.</p>
+            ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={composicao}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="cargo" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={60} />
+                  <XAxis
+                    dataKey="cargo"
+                    tick={{ fontSize: 11 }}
+                    interval={0}
+                    angle={-15}
+                    textAnchor="end"
+                    height={60}
+                  />
                   <YAxis tickFormatter={(v) => v.toLocaleString("pt-BR")} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v) => brl(Number(v))} />
                   <Legend />
-                  <Bar dataKey="salario_base" stackId="a" name="Salário base" fill="hsl(var(--primary))" />
-                  <Bar dataKey="adicional_noturno" stackId="a" name="Adic. noturno" fill="#8b5cf6" />
+                  <Bar
+                    dataKey="salario_base"
+                    stackId="a"
+                    name="Salário base"
+                    fill="hsl(var(--primary))"
+                  />
+                  <Bar
+                    dataKey="adicional_noturno"
+                    stackId="a"
+                    name="Adic. noturno"
+                    fill="#8b5cf6"
+                  />
                   <Bar dataKey="insalubridade" stackId="a" name="Insalubridade" fill="#06b6d4" />
                   <Bar dataKey="gratificacao" stackId="a" name="Gratificação" fill="#f59e0b" />
                   <Bar dataKey="horas_extras" stackId="a" name="Horas extras" fill="#ef4444" />
@@ -677,7 +936,9 @@ function RelatorioPisoPage() {
         {/* Top 10 profissionais beneficiados */}
         <Card>
           <CardHeader>
-            <CardTitle>Top 10 profissionais beneficiados — {fmtCompetencia(competenciaAtual)}</CardTitle>
+            <CardTitle>
+              Top 10 profissionais beneficiados — {fmtCompetencia(competenciaAtual)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-hidden rounded-lg border">
@@ -702,7 +963,9 @@ function RelatorioPisoPage() {
                       <td className="px-3 py-2">{r.vinculo ?? "—"}</td>
                       <td className="px-3 py-2">{r.unidade ?? "—"}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{brl(r.salario_base)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{brl(r.piso_complementacao)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold">
+                        {brl(r.piso_complementacao)}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         {pct(Number(r.piso_complementacao ?? 0), Number(r.salario_base ?? 0))}
                       </td>
@@ -710,7 +973,11 @@ function RelatorioPisoPage() {
                     </tr>
                   ))}
                   {topProfissionais.length === 0 && (
-                    <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Nenhum beneficiado.</td></tr>
+                    <tr>
+                      <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
+                        Nenhum beneficiado.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -721,7 +988,10 @@ function RelatorioPisoPage() {
         {/* Tabela detalhada */}
         <Card>
           <CardHeader>
-            <CardTitle>Detalhamento — {fmtCompetencia(competenciaAtual)} ({formatNumber(atualRows.length)} registros)</CardTitle>
+            <CardTitle>
+              Detalhamento — {fmtCompetencia(competenciaAtual)} ({formatNumber(atualRows.length)}{" "}
+              registros)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-lg border">
@@ -747,12 +1017,18 @@ function RelatorioPisoPage() {
                       <td className="px-3 py-2">{r.vinculo ?? "—"}</td>
                       <td className="px-3 py-2">{r.unidade ?? "—"}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{brl(r.salario_base)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{brl(r.piso_complementacao)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {brl(r.piso_complementacao)}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{brl(r.valor_final)}</td>
                     </tr>
                   ))}
                   {pageRows.length === 0 && (
-                    <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Nenhum registro.</td></tr>
+                    <tr>
+                      <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
+                        Nenhum registro.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -762,10 +1038,20 @@ function RelatorioPisoPage() {
                 Página {page} de {totalPages}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
                   Anterior
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
                   Próxima
                 </Button>
               </div>

@@ -63,7 +63,5 @@ export function buildRanking(rows: readonly FrequenciaRow[]): RankingRow[] {
     if (r.status === "aprovada") cur.aprovadas += 1;
     map.set(u.id, cur);
   }
-  return Array.from(map.values()).sort(
-    (a, b) => b.total_horas_extras - a.total_horas_extras,
-  );
+  return Array.from(map.values()).sort((a, b) => b.total_horas_extras - a.total_horas_extras);
 }

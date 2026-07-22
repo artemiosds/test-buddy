@@ -87,7 +87,10 @@ function envMinLevel(): LogLevel {
     /* ignore */
   }
   try {
-    if (typeof import.meta !== "undefined" && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
+    if (
+      typeof import.meta !== "undefined" &&
+      (import.meta as { env?: { DEV?: boolean } }).env?.DEV
+    ) {
       return "debug";
     }
   } catch {

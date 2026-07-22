@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +40,9 @@ export function TermoAceiteProvider({ children }: { children: ReactNode }) {
   const pedir = useCallback<PedirTermo>((info) => {
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
-      setC1(false); setC2(false); setC3(false);
+      setC1(false);
+      setC2(false);
+      setC3(false);
       setState({ open: true, info: info ?? {} });
     });
   }, []);
@@ -50,7 +60,12 @@ export function TermoAceiteProvider({ children }: { children: ReactNode }) {
   return (
     <TermoAceiteContext.Provider value={value}>
       {children}
-      <Dialog open={!!state?.open} onOpenChange={(o) => { if (!o) close(false); }}>
+      <Dialog
+        open={!!state?.open}
+        onOpenChange={(o) => {
+          if (!o) close(false);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -63,10 +78,24 @@ export function TermoAceiteProvider({ children }: { children: ReactNode }) {
 
           <div className="space-y-3 text-sm">
             <div className="rounded-md border bg-muted/40 p-3">
-              <p><span className="font-medium">Signatário:</span> {info.nome ?? "—"}</p>
-              {info.cargo && <p><span className="font-medium">Cargo/Perfil:</span> {info.cargo}</p>}
-              {info.unidade && <p><span className="font-medium">Unidade:</span> {info.unidade}</p>}
-              {info.documento && <p><span className="font-medium">Documento:</span> {info.documento}</p>}
+              <p>
+                <span className="font-medium">Signatário:</span> {info.nome ?? "—"}
+              </p>
+              {info.cargo && (
+                <p>
+                  <span className="font-medium">Cargo/Perfil:</span> {info.cargo}
+                </p>
+              )}
+              {info.unidade && (
+                <p>
+                  <span className="font-medium">Unidade:</span> {info.unidade}
+                </p>
+              )}
+              {info.documento && (
+                <p>
+                  <span className="font-medium">Documento:</span> {info.documento}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -86,8 +115,10 @@ export function TermoAceiteProvider({ children }: { children: ReactNode }) {
             </div>
 
             <p className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-2">
-              Esta assinatura eletrônica tem validade conforme a <strong>Lei nº 14.063/2020, Art. 4º, I</strong>
-              &nbsp;(assinatura eletrônica simples), acompanhada de trilha de auditoria (IP, timestamp e hash SHA-256).
+              Esta assinatura eletrônica tem validade conforme a{" "}
+              <strong>Lei nº 14.063/2020, Art. 4º, I</strong>
+              &nbsp;(assinatura eletrônica simples), acompanhada de trilha de auditoria (IP,
+              timestamp e hash SHA-256).
             </p>
 
             {!allChecked && (
@@ -99,7 +130,9 @@ export function TermoAceiteProvider({ children }: { children: ReactNode }) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => close(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => close(false)}>
+              Cancelar
+            </Button>
             <Button disabled={!allChecked} onClick={() => close(true)}>
               Aceito e assino
             </Button>

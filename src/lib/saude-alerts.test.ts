@@ -18,8 +18,9 @@ describe("computeSaudeAlerts", () => {
       eventos: { por_status: { falhou: 2 } },
       sla: { vencidas: 5, proximas_24h: 0 },
     });
-    expect(alerts.filter((a) => a.severity === "critical").map((a) => a.id))
-      .toEqual(expect.arrayContaining(["eventos.falhou", "sla.vencidas"]));
+    expect(alerts.filter((a) => a.severity === "critical").map((a) => a.id)).toEqual(
+      expect.arrayContaining(["eventos.falhou", "sla.vencidas"]),
+    );
   });
 
   it("classifica fila alta, retry alto e SLA próximo como warn", () => {
@@ -28,9 +29,9 @@ describe("computeSaudeAlerts", () => {
       sla: { vencidas: 0, proximas_24h: 4 },
     });
     const ids = alerts.map((a) => a.id);
-    expect(ids).toEqual(expect.arrayContaining([
-      "eventos.pendentes_altos", "eventos.retry_alto", "sla.proximas",
-    ]));
+    expect(ids).toEqual(
+      expect.arrayContaining(["eventos.pendentes_altos", "eventos.retry_alto", "sla.proximas"]),
+    );
     expect(alerts.every((a) => a.severity === "warn")).toBe(true);
   });
 
@@ -47,9 +48,33 @@ describe("computeSaudeAlerts", () => {
   it("sinaliza disjuntores abertos como crítico e meia-abertura como warn", () => {
     const alerts = computeSaudeAlerts({
       breakers: [
-        { key: "rpc.a", state: "open", failures: 5, totalTrips: 1, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
-        { key: "rpc.b", state: "half_open", failures: 0, totalTrips: 2, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
-        { key: "rpc.c", state: "closed", failures: 0, totalTrips: 0, nextAttemptAt: 0, lastFailureAt: 0, openedAt: 0 },
+        {
+          key: "rpc.a",
+          state: "open",
+          failures: 5,
+          totalTrips: 1,
+          nextAttemptAt: 0,
+          lastFailureAt: 0,
+          openedAt: 0,
+        },
+        {
+          key: "rpc.b",
+          state: "half_open",
+          failures: 0,
+          totalTrips: 2,
+          nextAttemptAt: 0,
+          lastFailureAt: 0,
+          openedAt: 0,
+        },
+        {
+          key: "rpc.c",
+          state: "closed",
+          failures: 0,
+          totalTrips: 0,
+          nextAttemptAt: 0,
+          lastFailureAt: 0,
+          openedAt: 0,
+        },
       ],
     });
     expect(alerts.find((a) => a.id === "breakers.abertos")?.severity).toBe("critical");

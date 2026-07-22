@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { getIndicadoresResumo } from "@/lib/relatorios-gerenciais";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
@@ -9,7 +20,18 @@ export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/indi
   component: IndicadoresPage,
 });
 
-const COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#22D3EE"];
+const COLORS = [
+  "#6366F1",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#3B82F6",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#F97316",
+  "#22D3EE",
+];
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -47,7 +69,9 @@ function IndicadoresPage() {
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={data.porVinculo} dataKey="qtd" nameKey="nome" outerRadius={90} label>
-                {data.porVinculo.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                {data.porVinculo.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
               </Pie>
               <Legend />
               <Tooltip />
@@ -59,7 +83,9 @@ function IndicadoresPage() {
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={data.porSexo} dataKey="qtd" nameKey="sexo" outerRadius={90} label>
-                {data.porSexo.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                {data.porSexo.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
               </Pie>
               <Legend />
               <Tooltip />

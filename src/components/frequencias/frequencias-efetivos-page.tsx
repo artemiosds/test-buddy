@@ -12,7 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
@@ -22,25 +26,46 @@ import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
-  SituacaoResumo, SituacaoFilter, ProfissionalNomeCell, SituacaoBadge,
-  ProfissionalEdicaoModal, type EdicaoCampo, type SituacaoFilterValue,
+  SituacaoResumo,
+  SituacaoFilter,
+  ProfissionalNomeCell,
+  SituacaoBadge,
+  ProfissionalEdicaoModal,
+  type EdicaoCampo,
+  type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
+import { contarSituacoes, derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 import {
-  contarSituacoes, derivarSituacao, type ProfConferencia,
-} from "@/lib/situacao-funcional";
-import {
-  ErpGridProvider, ErpTbody, NumberCell, TextCell,
-  KpiFolhaBar, InconsistenciasPanel, frozenLeftMap, type FrozenCol,
+  ErpGridProvider,
+  ErpTbody,
+  NumberCell,
+  TextCell,
+  KpiFolhaBar,
+  InconsistenciasPanel,
+  frozenLeftMap,
+  type FrozenCol,
 } from "@/components/erp-grid";
 import {
-  FolhaBreadcrumb, ResumoDiasFaltasAtt, useSelectedErpRow,
+  FolhaBreadcrumb,
+  ResumoDiasFaltasAtt,
+  useSelectedErpRow,
 } from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
 const MESES = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 type LinhaState = {
@@ -85,10 +110,7 @@ const CAMPOS_SMS = [
   { key: "licenca_premio", label: "Lic-Prêmio" },
 ] as const;
 
-const CAMPOS_NUM = [
-  ...CAMPOS_OFICIAIS.map((c) => c.key),
-  ...CAMPOS_SMS.map((c) => c.key),
-] as const;
+const CAMPOS_NUM = [...CAMPOS_OFICIAIS.map((c) => c.key), ...CAMPOS_SMS.map((c) => c.key)] as const;
 
 export function FrequenciasEfetivosPage() {
   const qc = useQueryClient();
@@ -109,16 +131,24 @@ export function FrequenciasEfetivosPage() {
   const { data: cargosOpts } = useQuery({
     queryKey: ["cargos-filter"],
     queryFn: async () => {
-      const { data } = await supabase.from("cargos").select("id, nome")
-        .is("deleted_at", null).eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("cargos")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
       return data ?? [];
     },
   });
   const { data: funcoesOpts } = useQuery({
     queryKey: ["funcoes-filter"],
     queryFn: async () => {
-      const { data } = await supabase.from("funcoes").select("id, nome")
-        .is("deleted_at", null).eq("status", "ativa").order("nome");
+      const { data } = await supabase
+        .from("funcoes")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .order("nome");
       return data ?? [];
     },
   });
@@ -126,14 +156,20 @@ export function FrequenciasEfetivosPage() {
     queryKey: ["setores-filter", unidadeId],
     enabled: !!unidadeId,
     queryFn: async () => {
-      const { data } = await supabase.from("setores").select("id, nome")
-        .eq("unidade_id", unidadeId).is("deleted_at", null).order("nome");
+      const { data } = await supabase
+        .from("setores")
+        .select("id, nome")
+        .eq("unidade_id", unidadeId)
+        .is("deleted_at", null)
+        .order("nome");
       return data ?? [];
     },
   });
 
   // reset setor filter when unidade changes
-  useEffect(() => { setSetorFilter("todos"); }, [unidadeId]);
+  useEffect(() => {
+    setSetorFilter("todos");
+  }, [unidadeId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
@@ -230,9 +266,7 @@ export function FrequenciasEfetivosPage() {
 
   const folhaStatus = (folha?.frequencia_status as StatusFreq) ?? "rascunho";
   const folhaEditavel =
-    folhaStatus === "rascunho" ||
-    folhaStatus === "com_pendencias" ||
-    folhaStatus === "rejeitada";
+    folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada";
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel;
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
@@ -279,7 +313,9 @@ export function FrequenciasEfetivosPage() {
     mutationFn: async () => {
       const list = payloadDirty();
       if (!list.length) return { ok: true, sem_alteracoes: true };
-      return salvarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list } });
+      return salvarFn({
+        data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
+      });
     },
     onSuccess: (r: any) => {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
@@ -293,7 +329,9 @@ export function FrequenciasEfetivosPage() {
     mutationFn: async () => {
       const list = payloadDirty();
       if (list.length) {
-        await salvarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list } });
+        await salvarFn({
+          data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
+        });
       }
       return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId } });
     },
@@ -313,9 +351,11 @@ export function FrequenciasEfetivosPage() {
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
       if (setorFilter !== "todos" && p.setor_id !== setorFilter) return false;
       if (!q) return true;
-      return p.nome.toLowerCase().includes(q)
-        || (p.matricula ?? "").toLowerCase().includes(q)
-        || (p.cargo ?? "").toLowerCase().includes(q);
+      return (
+        p.nome.toLowerCase().includes(q) ||
+        (p.matricula ?? "").toLowerCase().includes(q) ||
+        (p.cargo ?? "").toLowerCase().includes(q)
+      );
     });
   }, [folha, busca, cargoFilter, funcaoFilter, setorFilter]);
 
@@ -371,10 +411,10 @@ export function FrequenciasEfetivosPage() {
 
   /* ------- ERP grid: derivados de UI (sem impacto em back-end) ------- */
   const FROZEN: FrozenCol[] = [
-    { key: "matricula", label: "Matrícula",    width: 100 },
-    { key: "nome",      label: "Profissional", width: 260 },
-    { key: "situacao",  label: "Situação",     width: 130 },
-    { key: "proj",      label: "Proj",         width: 72  },
+    { key: "matricula", label: "Matrícula", width: 100 },
+    { key: "nome", label: "Profissional", width: 260 },
+    { key: "situacao", label: "Situação", width: 130 },
+    { key: "proj", label: "Proj", width: 72 },
   ];
   const L = frozenLeftMap(FROZEN);
 
@@ -393,7 +433,8 @@ export function FrequenciasEfetivosPage() {
     const acc: Record<string, number> = {};
     for (const k of colKeysAll) acc[k] = 0;
     for (const { it } of linhasFinais) {
-      const l = linhas[it.profissional.id]; if (!l) continue;
+      const l = linhas[it.profissional.id];
+      if (!l) continue;
       for (const k of colKeysAll) {
         const v = Number((l as any)[k] ?? 0);
         if (Number.isFinite(v)) acc[k] += v;
@@ -432,8 +473,12 @@ export function FrequenciasEfetivosPage() {
             const rId = rowIdsAll[rStart + dr];
             const cKey = colKeysAll[cStart + dc];
             if (!rId || !cKey) return;
-            const cur = next[rId]; if (!cur) return;
-            const raw = String(cell ?? "").trim().replace(/\./g, "").replace(",", ".");
+            const cur = next[rId];
+            if (!cur) return;
+            const raw = String(cell ?? "")
+              .trim()
+              .replace(/\./g, "")
+              .replace(",", ".");
             const n = Number(raw.replace(/[^\d.-]/g, ""));
             if (!Number.isFinite(n)) return;
             next[rId] = { ...cur, [cKey]: n, _dirty: true };
@@ -447,8 +492,8 @@ export function FrequenciasEfetivosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateFalta   = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
-  const validateHoras   = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
+  const validateFalta = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
+  const validateHoras = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
   const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
 
   function focarLinha(rowId: string) {
@@ -471,7 +516,8 @@ export function FrequenciasEfetivosPage() {
             <h1 className="text-2xl font-semibold">Folha — Efetivos</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Folha oficial de servidores estatutários (efetivos), com campos adicionais da SMS ao lado.
+            Folha oficial de servidores estatutários (efetivos), com campos adicionais da SMS ao
+            lado.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -485,18 +531,28 @@ export function FrequenciasEfetivosPage() {
           </Button>
           <Button
             onClick={() => mEnviar.mutate()}
-            disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.itens?.length}
+            disabled={
+              !canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.itens?.length
+            }
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
           </Button>
           <Button
             variant="secondary"
             disabled={folhaStatus !== "aprovada" || !folha?.itens?.length}
-            title={folhaStatus !== "aprovada" ? "Disponível somente após aprovação" : "Gerar PDF no padrão oficial"}
+            title={
+              folhaStatus !== "aprovada"
+                ? "Disponível somente após aprovação"
+                : "Gerar PDF no padrão oficial"
+            }
             onClick={async () => {
               try {
-                const unidadeNome = unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
-                const grupos: Record<string, { codigo_setor: string; nome_setor: string; itens: any[] }> = {};
+                const unidadeNome =
+                  unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
+                const grupos: Record<
+                  string,
+                  { codigo_setor: string; nome_setor: string; itens: any[] }
+                > = {};
                 let seq = 1;
                 for (const it of folha!.itens as any[]) {
                   const setor = it.profissional.setor ?? "SEM SETOR";
@@ -531,7 +587,10 @@ export function FrequenciasEfetivosPage() {
                   },
                 ];
                 await gerarFolhaEfetivosOficial({
-                  competencia: { mes: compSel?.mes ?? 1, ano: compSel?.ano ?? new Date().getFullYear() },
+                  competencia: {
+                    mes: compSel?.mes ?? 1,
+                    ano: compSel?.ano ?? new Date().getFullYear(),
+                  },
                   unidades: unidadesInput,
                   emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
                   unidadeId: unidadeId ?? null,
@@ -551,7 +610,9 @@ export function FrequenciasEfetivosPage() {
         <div>
           <label className="text-xs text-muted-foreground">Competência</label>
           <Select value={competenciaId} onValueChange={setCompetenciaId}>
-            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar" />
+            </SelectTrigger>
             <SelectContent>
               {competencias?.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
@@ -565,11 +626,14 @@ export function FrequenciasEfetivosPage() {
           <label className="text-xs text-muted-foreground">Unidade</label>
           {isGestor ? (
             <Select value={unidadeId} onValueChange={setUnidadeId}>
-              <SelectTrigger><SelectValue placeholder="Selecionar unidade" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar unidade" />
+              </SelectTrigger>
               <SelectContent>
                 {unidadesVisiveis.map((u: any) => (
                   <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                    {u.sigla ? `${u.sigla} — ` : ""}
+                    {u.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -586,18 +650,26 @@ export function FrequenciasEfetivosPage() {
           <label className="text-xs text-muted-foreground">Buscar</label>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)}
-              placeholder="Nome, matrícula ou cargo" className="pl-8" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Nome, matrícula ou cargo"
+              className="pl-8"
+            />
           </div>
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Cargo</label>
           <Select value={cargoFilter} onValueChange={setCargoFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {cargosOpts?.map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -605,11 +677,15 @@ export function FrequenciasEfetivosPage() {
         <div>
           <label className="text-xs text-muted-foreground">Função</label>
           <Select value={funcaoFilter} onValueChange={setFuncaoFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas</SelectItem>
               {funcoesOpts?.map((f: any) => (
-                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                <SelectItem key={f.id} value={f.id}>
+                  {f.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -617,11 +693,15 @@ export function FrequenciasEfetivosPage() {
         <div>
           <label className="text-xs text-muted-foreground">Setor</label>
           <Select value={setorFilter} onValueChange={setSetorFilter} disabled={!unidadeId}>
-            <SelectTrigger><SelectValue placeholder={unidadeId ? "Todos" : "Selecione uma unidade"} /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder={unidadeId ? "Todos" : "Selecione uma unidade"} />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {setoresOpts?.map((s: any) => (
-                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -670,35 +750,125 @@ export function FrequenciasEfetivosPage() {
           <table>
             <thead>
               <tr>
-                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.matricula, width: 100 }} rowSpan={2}>Matrícula</th>
-                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.nome, width: 260 }} rowSpan={2}>Profissional</th>
-                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.situacao, width: 130 }} rowSpan={2}>Situação</th>
-                <th className="erp-sticky erp-sticky-last bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right", left: L.proj, width: 72 }} rowSpan={2}>Proj</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Jorn</th>
-                <th className="bg-teal-900! text-teal-100! font-bold text-xs uppercase tracking-wider border-x border-teal-700" colSpan={CAMPOS_OFICIAIS.length} style={{ textAlign: "center" }}>Lançamentos — Modelo Oficial</th>
-                <th className="bg-amber-900! text-amber-100! font-bold text-xs uppercase tracking-wider border-x border-amber-700" colSpan={CAMPOS_SMS.length} style={{ textAlign: "center" }}>Controles SMS</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-x border-slate-700" rowSpan={2} style={{ textAlign: "left", minWidth: 200 }}>Observações</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider" rowSpan={2} style={{ textAlign: "center" }}>Status</th>
+                <th
+                  className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "left", left: L.matricula, width: 100 }}
+                  rowSpan={2}
+                >
+                  Matrícula
+                </th>
+                <th
+                  className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "left", left: L.nome, width: 260 }}
+                  rowSpan={2}
+                >
+                  Profissional
+                </th>
+                <th
+                  className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "left", left: L.situacao, width: 130 }}
+                  rowSpan={2}
+                >
+                  Situação
+                </th>
+                <th
+                  className="erp-sticky erp-sticky-last bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "right", left: L.proj, width: 72 }}
+                  rowSpan={2}
+                >
+                  Proj
+                </th>
+                <th
+                  className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "right" }}
+                  rowSpan={2}
+                >
+                  H.P
+                </th>
+                <th
+                  className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "right" }}
+                  rowSpan={2}
+                >
+                  C.H
+                </th>
+                <th
+                  className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
+                  style={{ textAlign: "right" }}
+                  rowSpan={2}
+                >
+                  Jorn
+                </th>
+                <th
+                  className="bg-teal-900! text-teal-100! font-bold text-xs uppercase tracking-wider border-x border-teal-700"
+                  colSpan={CAMPOS_OFICIAIS.length}
+                  style={{ textAlign: "center" }}
+                >
+                  Lançamentos — Modelo Oficial
+                </th>
+                <th
+                  className="bg-amber-900! text-amber-100! font-bold text-xs uppercase tracking-wider border-x border-amber-700"
+                  colSpan={CAMPOS_SMS.length}
+                  style={{ textAlign: "center" }}
+                >
+                  Controles SMS
+                </th>
+                <th
+                  className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-x border-slate-700"
+                  rowSpan={2}
+                  style={{ textAlign: "left", minWidth: 200 }}
+                >
+                  Observações
+                </th>
+                <th
+                  className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider"
+                  rowSpan={2}
+                  style={{ textAlign: "center" }}
+                >
+                  Status
+                </th>
               </tr>
               <tr>
                 {CAMPOS_OFICIAIS.map((c) => (
-                  <th key={c.key} className="bg-teal-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
+                  <th
+                    key={c.key}
+                    className="bg-teal-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700"
+                    style={{ textAlign: "right" }}
+                  >
+                    {c.label}
+                  </th>
                 ))}
                 {CAMPOS_SMS.map((c) => (
-                  <th key={c.key} className="bg-amber-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700" style={{ textAlign: "right" }}>{c.label}</th>
+                  <th
+                    key={c.key}
+                    className="bg-amber-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700"
+                    style={{ textAlign: "right" }}
+                  >
+                    {c.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <ErpTbody>
               {isFetching && (
-                <tr><td colSpan={colCount} className="bg-slate-50 text-slate-600 font-medium py-8 text-center text-sm">Carregando…</td></tr>
+                <tr>
+                  <td
+                    colSpan={colCount}
+                    className="bg-slate-50 text-slate-600 font-medium py-8 text-center text-sm"
+                  >
+                    Carregando…
+                  </td>
+                </tr>
               )}
               {!isFetching && linhasFinais.length === 0 && (
-                <tr><td colSpan={colCount} className="bg-slate-50 text-slate-600 font-medium py-8 text-center text-sm">
-                  Nenhum servidor efetivo nesta unidade.
-                </td></tr>
+                <tr>
+                  <td
+                    colSpan={colCount}
+                    className="bg-slate-50 text-slate-600 font-medium py-8 text-center text-sm"
+                  >
+                    Nenhum servidor efetivo nesta unidade.
+                  </td>
+                </tr>
               )}
               {linhasFinais.map(({ it, conf }) => {
                 const p = it.profissional;
@@ -709,30 +879,60 @@ export function FrequenciasEfetivosPage() {
                 const situ = derivarSituacao(conf);
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
-                    <td className="erp-sticky" style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, left: L.matricula, width: 100 }}>
+                    <td
+                      className="erp-sticky"
+                      style={{
+                        fontFamily: "var(--font-mono, monospace)",
+                        fontSize: 11,
+                        left: L.matricula,
+                        width: 100,
+                      }}
+                    >
                       {p.matricula ?? "—"}
                     </td>
                     <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>
-                      <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cargo} />
+                      <ProfissionalNomeCell
+                        prof={conf}
+                        onOpenDossie={openDossie}
+                        secondary={p.cargo}
+                      />
                     </td>
                     <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}>
                       <SituacaoBadge prof={conf} />
                     </td>
-                    <td className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums" style={{ left: L.proj, width: 72 }}>{p.proj ?? "-"}</td>
-                    <td className="text-right text-muted-foreground tabular-nums">{p.h_p ?? "-"}</td>
-                    <td className="text-right text-muted-foreground tabular-nums">{p.c_h ?? "-"}</td>
-                    <td className="text-right text-muted-foreground tabular-nums">{p.jorn ?? "-"}</td>
+                    <td
+                      className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums"
+                      style={{ left: L.proj, width: 72 }}
+                    >
+                      {p.proj ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.h_p ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.c_h ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.jorn ?? "-"}
+                    </td>
                     {CAMPOS_OFICIAIS.map((c) => {
                       const isFalta = c.key === "faltas_injustificadas";
-                      const isHora  = c.key === "he_50" || c.key === "he_100" || c.key === "sal_sub_h" || c.key === "adicional_noturno";
+                      const isHora =
+                        c.key === "he_50" ||
+                        c.key === "he_100" ||
+                        c.key === "sal_sub_h" ||
+                        c.key === "adicional_noturno";
                       return (
                         <td key={c.key} className="erp-group-lanc">
                           <NumberCell
-                            rowId={p.id} colKey={c.key}
+                            rowId={p.id}
+                            colKey={c.key}
                             value={Number((l as any)[c.key] ?? 0)}
                             disabled={ro}
                             decimals={0}
-                            validate={isFalta ? validateFalta : isHora ? validateHoras : validateGeneric}
+                            validate={
+                              isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
+                            }
                             onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
                           />
                         </td>
@@ -741,7 +941,8 @@ export function FrequenciasEfetivosPage() {
                     {CAMPOS_SMS.map((c) => (
                       <td key={c.key} className="erp-group-sms">
                         <NumberCell
-                          rowId={p.id} colKey={c.key}
+                          rowId={p.id}
+                          colKey={c.key}
                           value={Number((l as any)[c.key] ?? 0)}
                           disabled={ro}
                           validate={validateGeneric}
@@ -770,7 +971,9 @@ export function FrequenciasEfetivosPage() {
             <tfoot>
               <tr>
                 <td className="erp-sticky" style={{ left: L.matricula, width: 100 }}></td>
-                <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>Totais</td>
+                <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>
+                  Totais
+                </td>
                 <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}></td>
                 <td className="erp-sticky erp-sticky-last" style={{ left: L.proj, width: 72 }}></td>
                 <td colSpan={3}></td>
@@ -793,9 +996,10 @@ export function FrequenciasEfetivosPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        <strong>Proj</strong>, <strong>H.P</strong>, <strong>C.H</strong> e <strong>Jorn</strong> são somente leitura —
-        vêm do cadastro do profissional. Os campos em amarelo (<em>Férias indicativo</em>, <em>Licença-Prêmio</em>)
-        são controles internos da SMS e não fazem parte do modelo oficial da Prefeitura.
+        <strong>Proj</strong>, <strong>H.P</strong>, <strong>C.H</strong> e <strong>Jorn</strong>{" "}
+        são somente leitura — vêm do cadastro do profissional. Os campos em amarelo (
+        <em>Férias indicativo</em>, <em>Licença-Prêmio</em>) são controles internos da SMS e não
+        fazem parte do modelo oficial da Prefeitura.
       </p>
 
       <ProfissionalEdicaoModal
@@ -806,12 +1010,16 @@ export function FrequenciasEfetivosPage() {
         canEdit={canEdit}
         campos={[
           ...CAMPOS_OFICIAIS.map((c) => ({
-            key: c.key, label: c.label,
+            key: c.key,
+            label: c.label,
             decimals: 0,
             group: "oficial" as const,
           })),
           ...CAMPOS_SMS.map((c) => ({
-            key: c.key, label: c.label, decimals: 0, group: "sms" as const,
+            key: c.key,
+            label: c.label,
+            decimals: 0,
+            group: "sms" as const,
           })),
         ]}
         onChangeCampo={(campo, valor) => {

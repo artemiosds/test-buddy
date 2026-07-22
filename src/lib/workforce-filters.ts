@@ -44,7 +44,7 @@ export function resolveWorkforceFilters(
   const unidadeRaw = s?.unidade ?? "";
   const statusRaw = s?.status ?? "";
   return {
-    competenciaId: compRaw === "" ? competenciaAtivaId ?? null : compRaw,
+    competenciaId: compRaw === "" ? (competenciaAtivaId ?? null) : compRaw,
     unidadeId: unidadeRaw === "" ? null : unidadeRaw,
     status: statusRaw === "" ? null : statusRaw,
   };

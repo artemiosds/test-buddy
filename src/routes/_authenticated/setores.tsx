@@ -93,7 +93,9 @@ function SetoresPage() {
       if (!unidadeId) return [] as Setor[];
       const { data, error } = await supabase
         .from("setores")
-        .select("id, unidade_id, nome, sigla, status, gestor_id, observacoes, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)")
+        .select(
+          "id, unidade_id, nome, sigla, status, gestor_id, observacoes, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
+        )
         .eq("unidade_id", unidadeId)
         .is("deleted_at", null)
         .order("nome");
@@ -139,7 +141,9 @@ function SetoresPage() {
         const { error } = await supabase.from("setores").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("setores").insert({ ...payload, unidade_id: unidadeId });
+        const { error } = await supabase
+          .from("setores")
+          .insert({ ...payload, unidade_id: unidadeId });
         if (error) throw error;
       }
     },
@@ -278,17 +282,25 @@ function SetoresPage() {
               <div className="grid gap-3">
                 <div>
                   <Label>Nome *</Label>
-                  <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                  <Input
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Sigla</Label>
-                  <Input value={form.sigla} onChange={(e) => setForm({ ...form, sigla: e.target.value })} />
+                  <Input
+                    value={form.sigla}
+                    onChange={(e) => setForm({ ...form, sigla: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Gestor do setor</Label>
                   <Select
                     value={form.gestor_id || "__none__"}
-                    onValueChange={(v) => setForm({ ...form, gestor_id: v === "__none__" ? "" : v })}
+                    onValueChange={(v) =>
+                      setForm({ ...form, gestor_id: v === "__none__" ? "" : v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um profissional" />
@@ -296,7 +308,9 @@ function SetoresPage() {
                     <SelectContent>
                       <SelectItem value="__none__">— não informado —</SelectItem>
                       {gestoresOpt.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome_completo}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -327,7 +341,9 @@ function SetoresPage() {
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : setores.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">Nenhum setor cadastrado para esta unidade.</div>
+            <div className="p-6 text-sm text-muted-foreground">
+              Nenhum setor cadastrado para esta unidade.
+            </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left">
@@ -351,12 +367,20 @@ function SetoresPage() {
                     >
                       <td className="p-3 font-medium">{s.nome}</td>
                       <td className="p-3 text-muted-foreground">{s.sigla ?? "—"}</td>
-                      <td className="p-3 text-muted-foreground">{s.gestor?.nome_completo ?? "—"}</td>
-                      <td className="p-3">
-                        {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
+                      <td className="p-3 text-muted-foreground">
+                        {s.gestor?.nome_completo ?? "—"}
                       </td>
                       <td className="p-3">
-                        <Badge variant={s.status === "ativa" ? "default" : "outline"}>{s.status}</Badge>
+                        {usoCount > 0 ? (
+                          <Badge variant="secondary">{usoCount}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={s.status === "ativa" ? "default" : "outline"}>
+                          {s.status}
+                        </Badge>
                       </td>
                       <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">

@@ -63,7 +63,12 @@ describe("deriveLotacoes", () => {
   it("mantém apenas eventos com destino de unidade/setor/cargo/função ou admissão, ordenados desc, com data_fim inferida", () => {
     const h: HistoricoEvento[] = [
       ev({ id: "a", tipo_evento: "admissao", data_inicio: "2020-01-01" }),
-      ev({ id: "b", tipo_evento: "transferencia", data_inicio: "2022-05-10", unidade_novo_id: "u1" }),
+      ev({
+        id: "b",
+        tipo_evento: "transferencia",
+        data_inicio: "2022-05-10",
+        unidade_novo_id: "u1",
+      }),
       ev({ id: "c", tipo_evento: "mudanca_cargo", data_inicio: "2024-02-01", cargo_novo_id: "c1" }),
       ev({ id: "d", tipo_evento: "ferias", data_inicio: "2024-06-01" }),
     ];
@@ -91,15 +96,57 @@ describe("computeDossieResumo", () => {
   it("agrega contagens, HE, faltas, % aprovadas e dias desde última movimentação", () => {
     const ref = new Date("2026-07-17T12:00:00Z");
     const h: HistoricoEvento[] = [
-      ev({ tipo_evento: "admissao", data_inicio: "2020-01-01", unidade_novo_id: "u1", setor_novo_id: "s1", cargo_novo_id: "c1", funcao_novo_id: "f1" }),
-      ev({ tipo_evento: "transferencia", data_inicio: "2024-06-01", unidade_novo_id: "u2", setor_novo_id: "s2" }),
+      ev({
+        tipo_evento: "admissao",
+        data_inicio: "2020-01-01",
+        unidade_novo_id: "u1",
+        setor_novo_id: "s1",
+        cargo_novo_id: "c1",
+        funcao_novo_id: "f1",
+      }),
+      ev({
+        tipo_evento: "transferencia",
+        data_inicio: "2024-06-01",
+        unidade_novo_id: "u2",
+        setor_novo_id: "s2",
+      }),
     ];
     const linhas: LinhaFrequenciaMin[] = [
-      { status_linha: "aprovada", faltas_injustificadas: 0, faltas_justificadas: 1, he_50: 2, he_100: 0, competencia_key: "2025-01", unidade_id: "u1" },
-      { status_linha: "aprovada", faltas_injustificadas: 1, faltas_justificadas: 0, he_50: 0, he_100: 4, competencia_key: "2025-02", unidade_id: "u2" },
-      { status_linha: "pendente", faltas_injustificadas: 2, faltas_justificadas: 0, he_50: 0, he_100: 0, competencia_key: "2025-02", unidade_id: "u2" },
+      {
+        status_linha: "aprovada",
+        faltas_injustificadas: 0,
+        faltas_justificadas: 1,
+        he_50: 2,
+        he_100: 0,
+        competencia_key: "2025-01",
+        unidade_id: "u1",
+      },
+      {
+        status_linha: "aprovada",
+        faltas_injustificadas: 1,
+        faltas_justificadas: 0,
+        he_50: 0,
+        he_100: 4,
+        competencia_key: "2025-02",
+        unidade_id: "u2",
+      },
+      {
+        status_linha: "pendente",
+        faltas_injustificadas: 2,
+        faltas_justificadas: 0,
+        he_50: 0,
+        he_100: 0,
+        competencia_key: "2025-02",
+        unidade_id: "u2",
+      },
     ];
-    const r = computeDossieResumo({ historico: h, linhas, pendenciasAbertas: 1, pendenciasResolvidas: 3, ref });
+    const r = computeDossieResumo({
+      historico: h,
+      linhas,
+      pendenciasAbertas: 1,
+      pendenciasResolvidas: 3,
+      ref,
+    });
     expect(r.totalCompetencias).toBe(2);
     expect(r.totalFrequencias).toBe(3);
     expect(r.totalHorasExtras).toBe(6);

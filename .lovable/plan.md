@@ -1,58 +1,64 @@
-## Escopo
-Congelar as 4 primeiras colunas de identificação nas duas telas de folha, para que ao rolar horizontalmente os campos numéricos, o usuário mantenha visível quem é o profissional daquela linha.
+# Sprint Final de Qualidade — Plano em Ondas
 
-**Arquivos que serão tocados:**
-- `src/components/erp-grid/index.tsx` — reativar utilitário sticky (hoje é no-op).
-- `src/styles.css` — reativar as classes `.erp-sticky` e `.erp-sticky-last` (hoje comentadas como no-op) com `position: sticky`, `left`, `z-index` e sombra à direita.
-- `src/components/frequencias/frequencias-efetivos-page.tsx` — aplicar classe sticky nas 4 primeiras colunas do `<thead>`, `<tbody>` e `<tfoot>`.
-- `src/components/frequencias/frequencias-contratados-page.tsx` — idem.
+**Restrições fixas** (todas as ondas): não altero regras de negócio, schema/RLS, permissões, rotas, autenticação. Identidade visual (paleta Hospital Clean v14, sidebar navy, botões Blue Royal) fica intacta. Só padronizo tokens globais em `src/styles.css` (espaçamento, sombra, radius, tipografia, alturas de controle, hover/focus).
 
-**Não tocar:** Piso Nacional da Enfermagem, cálculos, RLS, server functions, aprovação, ordem das colunas.
+Cada onda é **um turno seu** para eu executar. No fim de cada onda entrego: o que mudou, evidências (build/lint/screenshots), e o que fica pendente para a próxima.
 
-## Colunas fixas (4 primeiras de cada tela)
+---
 
-**Folha — Efetivos:** Matrícula, Profissional, Situação, Proj.
-**Folha — Contratados:** Nº, Matrícula, Nome, CPF.
+## Onda 1 — Baseline & Higiene de Código
+Sem mudança visual. Estabelece o ponto de partida.
 
-Nas duas, a 4ª coluna ganha `.erp-sticky-last` (sombra à direita indicando o limite da área rolável).
+- Rodar `tsgo`, ESLint, `vite build`, `vitest` — capturar contagens.
+- Varredura de código morto: imports não usados, arquivos órfãos, `console.log`, `TODO`, dependências não usadas (`depcheck`).
+- Detectar duplicações óbvias (hooks, utils, estilos repetidos).
+- Remover só o que for seguro (dead code puro). Duplicações viram lista para Onda 4.
 
-## Implementação técnica
+Entrega: relatório de baseline + PR de limpeza mínima.
 
-**CSS (`src/styles.css`, bloco `.erp-grid .erp-sticky*` já existente, hoje no-op):**
-```css
-.erp-grid .erp-sticky {
-  position: sticky;
-  background: var(--card);         /* mesma cor da linha para cobrir o scroll */
-  z-index: 5;
-}
-.erp-grid thead .erp-sticky { z-index: 25; background: oklch(0.22 0.03 250); }
-.erp-grid tfoot .erp-sticky { z-index: 18; }
-.erp-grid .erp-sticky-last {
-  box-shadow: 4px 0 6px -4px rgba(15,23,42,0.18);
-  border-right: 1px solid oklch(0.86 0.01 250);
-}
-/* zebra/hover/situação já pintam <td>; sticky herda porque usa a mesma cor
-   via background: inherit em uma regra específica para tbody. */
-.erp-grid tbody tr:nth-child(even) td.erp-sticky { background: oklch(0.98 0.005 250); }
-.erp-grid tbody tr:hover td.erp-sticky           { background: oklch(0.96 0.03 240); }
-```
-Nas linhas coloridas por `data-situacao=…`, adicionar seletor equivalente para o `td.erp-sticky` manter o mesmo tom.
+## Onda 2 — Performance
+Foco: reduzir JS enviado e re-renders.
 
-**JSX (Efetivos e Contratados):** para cada uma das 4 primeiras `<th>` / `<td>` / `<td>` de rodapé, adicionar:
-```tsx
-className="erp-sticky [erp-sticky-last quando for a 4ª]"
-style={{ left: L[key], ...estiloAtual }}
-```
-`L` é o mapa já produzido por `frozenLeftMap(FROZEN)`. O array `FROZEN` de cada tela passa a listar exatamente as 4 colunas fixas com suas larguras já usadas hoje.
+- Analisar bundle (`vite build` com stats), identificar chunks pesados.
+- Converter rotas/páginas grandes em `React.lazy` / `.lazy.tsx` quando fizer sentido.
+- Verificar `React.memo`, `useMemo`, `useCallback` onde há re-render em cascata mensurável (dev-tools profiler nas telas críticas: Folhas, Dossiê, Sala de Situação).
+- Consultas repetidas → consolidar em `queryKey` compartilhado; garantir `staleTime` sensato.
+- Imagens em `src/assets/` → verificar tamanhos e formato.
+- CSS duplicado → consolidar.
 
-## Comportamento esperado
-- Ao rolar horizontalmente, as 4 primeiras colunas ficam paradas no lado esquerdo.
-- Sombra suave marca onde termina a área fixa e começa a área rolável.
-- Nome do profissional continua clicável (só herda `position: sticky`, nada muda no handler).
-- Hover, zebra e tint por situação continuam pintando corretamente as colunas fixas.
-- Cabeçalho continua sticky no topo (comportamento atual) — combinado com o sticky lateral, o canto superior esquerdo trava nas duas direções.
+Corrijo só quando houver ganho mensurável (Δ bundle ou Δ render).
 
-## Validação
-- Build + lint (colar saída real).
-- Verificação visual: rolar horizontalmente em Efetivos e Contratados, redimensionar para largura de notebook (~1280px) e conferir que as 4 colunas ficam fixas e o restante rola.
-- Confirmar que Piso Nacional (`/piso-enfermagem`) segue idêntico.
+## Onda 3 — Acessibilidade (WCAG AA)
+- Contraste: rodar checagem nos tokens contra fundo (`text-muted-foreground` sobre `card`, badges pastel, etc.).
+- Touch targets ≥ 44×44 em todos os controles interativos.
+- `aria-label` em botões-ícone; `label` associado a todo input; ordem de tab; foco visível consistente.
+- `<main>` único por página; landmarks corretos.
+- `role`/`aria` onde há widget custom.
+
+## Onda 4 — Consistência Visual & Tokens
+Padroniza tokens globais mantendo a identidade v14.
+
+- Escala de espaçamento (4/8/12/16/24/32) — auditar `p-*`/`m-*` fora da escala.
+- Radius: um valor para cards, outro para inputs/buttons, outro para badges. Consolidar.
+- Sombras: 3 níveis (sm/md/lg) só.
+- Tipografia: escala de tamanhos e pesos consolidada.
+- Alturas de controle: input 40px, button md 40px, sm 32px, icon 40px.
+- Hover/focus: um único padrão em `@utility`.
+- Componentes fora do padrão (cards artesanais, tabelas hand-rolled) migram para `DataTable`/`KpiCard`/`PageHeader` já existentes.
+
+## Onda 5 — Responsividade & Auditoria Final
+Playwright headless nas viewports pedidas: **320, 360, 375, 390, 412, 430, 768, 820, 912, 1024, 1366, 1440, 1600, 1920, 2560**.
+
+**Rotas críticas (screenshots em todas as viewports):** Painel Executivo, Sala de Situação, Competências, Frequências, Folha Contratados, Folha Efetivos, Cadastro Profissional, Dossiê, Quadro de Lotação, Unidades, Setores, Aprovações, Relatórios, Piso Enfermagem, Configurações, Login, Recuperar Senha.
+
+**Rotas secundárias:** só gero evidência quando há overflow, quebra, botão inacessível, tabela quebrada, modal quebrado, erro. Caso contrário: ✅ Aprovada.
+
+Desktop wide (1600/1920/2560): garantir uso de 95–97% da largura útil sem esticar demais tipografia.
+
+**Relatório final** com notas 0–100 para Performance / UX / Responsividade / Acessibilidade / Consistência Visual / Qualidade de Código, e a resposta **✅ Sim** ou **❌ Não** para pronto-produção (se ❌, lista dos bloqueadores).
+
+---
+
+## Como quero prosseguir
+
+Este plano fica salvo. **Responda "executar onda 1"** (ou 2/3/4/5) para eu rodar a onda correspondente. Se preferir que eu emende as ondas 1→2→3→4→5 automaticamente sem confirmar entre elas, diga "executar todas as ondas" — nesse caso vou parar só se aparecer regressão ou algo que exija sua decisão.

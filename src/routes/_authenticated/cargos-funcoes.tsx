@@ -97,7 +97,8 @@ function CargosFuncoesPage() {
         <div>
           <h1 className="text-xl font-semibold">Cargos e Funções</h1>
           <p className="text-sm text-muted-foreground">
-            Base utilizada no cadastro de profissionais. Itens em uso não podem ser excluídos — apenas inativados.
+            Base utilizada no cadastro de profissionais. Itens em uso não podem ser excluídos —
+            apenas inativados.
           </p>
         </div>
       </div>
@@ -194,7 +195,14 @@ function CargosTab() {
       toast.success(editing ? "Cargo atualizado" : "Cargo criado");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
+      setForm({
+        nome: "",
+        codigo: "",
+        cbo: "",
+        nivel: null,
+        area_profissional: "",
+        exige_conselho: false,
+      });
       qc.invalidateQueries({ queryKey: ["cargos-admin"] });
       qc.invalidateQueries({ queryKey: ["cargos-select"] });
     },
@@ -217,7 +225,14 @@ function CargosTab() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", codigo: "", cbo: "", nivel: null, area_profissional: "", exige_conselho: false });
+    setForm({
+      nome: "",
+      codigo: "",
+      cbo: "",
+      nivel: null,
+      area_profissional: "",
+      exige_conselho: false,
+    });
     setOpen(true);
   };
 
@@ -250,16 +265,25 @@ function CargosTab() {
             <div className="grid gap-3">
               <div>
                 <Label>Nome *</Label>
-                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Código</Label>
-                  <Input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
+                  <Input
+                    value={form.codigo}
+                    onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>CBO</Label>
-                  <Input value={form.cbo} onChange={(e) => setForm({ ...form, cbo: e.target.value })} />
+                  <Input
+                    value={form.cbo}
+                    onChange={(e) => setForm({ ...form, cbo: e.target.value })}
+                  />
                 </div>
               </div>
               <div>
@@ -273,7 +297,9 @@ function CargosTab() {
                   </SelectTrigger>
                   <SelectContent>
                     {NIVEIS.map((n) => (
-                      <SelectItem key={n.v} value={n.v}>{n.l}</SelectItem>
+                      <SelectItem key={n.v} value={n.v}>
+                        {n.l}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -298,8 +324,12 @@ function CargosTab() {
               </label>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+                Salvar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -340,13 +370,23 @@ function CargosTab() {
                     <td className="p-3 text-muted-foreground">{c.nivel ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.area_profissional ?? "—"}</td>
                     <td className="p-3">
-                      {c.exige_conselho ? <Badge variant="secondary">Sim</Badge> : <span className="text-muted-foreground">—</span>}
+                      {c.exige_conselho ? (
+                        <Badge variant="secondary">Sim</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="p-3">
-                      {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
+                      {usoCount > 0 ? (
+                        <Badge variant="secondary">{usoCount}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="p-3">
-                      <Badge variant={c.status === "ativa" ? "default" : "outline"}>{c.status}</Badge>
+                      <Badge variant={c.status === "ativa" ? "default" : "outline"}>
+                        {c.status}
+                      </Badge>
                     </td>
                     <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
@@ -383,7 +423,12 @@ function FuncoesTab() {
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Funcao | null>(null);
-  const [form, setForm] = useState<{ nome: string; codigo: string; gratificacao: string; cargo_id: string | null }>({
+  const [form, setForm] = useState<{
+    nome: string;
+    codigo: string;
+    gratificacao: string;
+    cargo_id: string | null;
+  }>({
     nome: "",
     codigo: "",
     gratificacao: "",
@@ -514,12 +559,18 @@ function FuncoesTab() {
             <div className="grid gap-3">
               <div>
                 <Label>Nome *</Label>
-                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Código</Label>
-                  <Input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
+                  <Input
+                    value={form.codigo}
+                    onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>% Gratificação</Label>
@@ -543,15 +594,21 @@ function FuncoesTab() {
                   <SelectContent>
                     <SelectItem value="__none__">Sem vínculo</SelectItem>
                     {cargosAtivos.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Salvar</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+                Salvar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -591,10 +648,16 @@ function FuncoesTab() {
                       {f.gratificacao_percentual !== null ? `${f.gratificacao_percentual}%` : "—"}
                     </td>
                     <td className="p-3">
-                      {usoCount > 0 ? <Badge variant="secondary">{usoCount}</Badge> : <span className="text-muted-foreground">—</span>}
+                      {usoCount > 0 ? (
+                        <Badge variant="secondary">{usoCount}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="p-3">
-                      <Badge variant={f.status === "ativa" ? "default" : "outline"}>{f.status}</Badge>
+                      <Badge variant={f.status === "ativa" ? "default" : "outline"}>
+                        {f.status}
+                      </Badge>
                     </td>
                     <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">

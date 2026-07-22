@@ -50,9 +50,7 @@ describe("CircuitBreaker", () => {
   it("withBreaker aciona fallback quando circuito está aberto", async () => {
     const key = "wb1";
     getBreaker(key, { failureThreshold: 1, cooldownMs: 60_000 });
-    await expect(
-      withBreaker(key, () => Promise.reject(new Error("nope"))),
-    ).rejects.toThrow("nope");
+    await expect(withBreaker(key, () => Promise.reject(new Error("nope")))).rejects.toThrow("nope");
     const val = await withBreaker(key, () => Promise.reject(new Error("nope")), {
       fallback: () => "safe",
     });

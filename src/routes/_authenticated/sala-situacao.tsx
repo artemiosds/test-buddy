@@ -6,17 +6,27 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Users, Building2, Network, ClipboardList, AlertCircle, Clock, CalendarRange,
-  RefreshCw, ShieldAlert, UserCheck, UserMinus, Umbrella, FileText, ArrowRight,
+  Users,
+  Building2,
+  Network,
+  ClipboardList,
+  AlertCircle,
+  Clock,
+  CalendarRange,
+  RefreshCw,
+  ShieldAlert,
+  UserCheck,
+  UserMinus,
+  Umbrella,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
-import {
-  useCompetenciasLookup, useUnidadesLookup,
-} from "@/hooks/use-lookups";
+import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";
 import { ALERT_RULES } from "@/lib/sala-situacao-alerts";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import {
@@ -27,21 +37,25 @@ import {
   type WorkforceFilters,
 } from "@/lib/workforce-filters";
 import {
-  PageHeader, KpiCard, DataTable, EmptyState, FilterBar,
+  PageHeader,
+  KpiCard,
+  DataTable,
+  EmptyState,
+  FilterBar,
   type DataTableColumn,
 } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
-import {
-  SemaforoCard,
-  TendenciaKpi,
-  InsightsCard,
-} from "@/components/intelligence";
+import { SemaforoCard, TendenciaKpi, InsightsCard } from "@/components/intelligence";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/sala-situacao")({
@@ -50,7 +64,11 @@ export const Route = createFileRoute("/_authenticated/sala-situacao")({
   component: () => (
     <PermissionGate
       permission="dashboard.visualizar"
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <SalaSituacaoPage />
     </PermissionGate>
@@ -97,7 +115,9 @@ function SalaSituacaoPage() {
       ).toISOString();
       let q = supabase
         .from("frequencia_pendencias")
-        .select("id, titulo, status, created_at, frequencias!inner(competencia_unidades!inner(unidade_id, unidades(nome, sigla)))")
+        .select(
+          "id, titulo, status, created_at, frequencias!inner(competencia_unidades!inner(unidade_id, unidades(nome, sigla)))",
+        )
         .in("status", ["aberta", "respondida"])
         .is("deleted_at", null)
         .lt("created_at", cutoff)
@@ -135,9 +155,7 @@ function SalaSituacaoPage() {
         .order("data_inicio", { ascending: false })
         .limit(10);
       if (unidadeId) {
-        q = q.or(
-          `unidade_novo_id.eq.${unidadeId},unidade_anterior_id.eq.${unidadeId}`,
-        );
+        q = q.or(`unidade_novo_id.eq.${unidadeId},unidade_anterior_id.eq.${unidadeId}`);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -165,7 +183,10 @@ function SalaSituacaoPage() {
   );
   // "Unidades críticas" — mais pendências vencidas.
   const rankingCriticas = useMemo(() => {
-    const map = new Map<string, { unidade_id: string; unidade_nome: string; sigla: string | null; total: number }>();
+    const map = new Map<
+      string,
+      { unidade_id: string; unidade_nome: string; sigla: string | null; total: number }
+    >();
     for (const p of pendCriticasQ.data ?? []) {
       const cu = p.frequencias?.competencia_unidades;
       if (!cu?.unidade_id) continue;
@@ -178,80 +199,169 @@ function SalaSituacaoPage() {
       cur.total += 1;
       map.set(cu.unidade_id, cur);
     }
-    return Array.from(map.values()).sort((x, y) => y.total - x.total).slice(0, 10);
+    return Array.from(map.values())
+      .sort((x, y) => y.total - x.total)
+      .slice(0, 10);
   }, [pendCriticasQ.data]);
 
   // KPIs de status — quando "Todos", derivamos do statusBreakdown.
   const sb = a.statusBreakdown.data ?? {};
-  const kpiAtivos = status ? (status === "ativo" ? a.totalProfessionals.data ?? 0 : 0) : sb["ativo"] ?? 0;
-  const kpiAfast = status ? (status === "afastado" ? a.totalProfessionals.data ?? 0 : 0) : sb["afastado"] ?? 0;
-  const kpiFerias = status ? (status === "ferias" ? a.totalProfessionals.data ?? 0 : 0) : sb["ferias"] ?? 0;
-  const kpiLic = status ? (status === "licenca" ? a.totalProfessionals.data ?? 0 : 0) : sb["licenca"] ?? 0;
+  const kpiAtivos = status
+    ? status === "ativo"
+      ? (a.totalProfessionals.data ?? 0)
+      : 0
+    : (sb["ativo"] ?? 0);
+  const kpiAfast = status
+    ? status === "afastado"
+      ? (a.totalProfessionals.data ?? 0)
+      : 0
+    : (sb["afastado"] ?? 0);
+  const kpiFerias = status
+    ? status === "ferias"
+      ? (a.totalProfessionals.data ?? 0)
+      : 0
+    : (sb["ferias"] ?? 0);
+  const kpiLic = status
+    ? status === "licenca"
+      ? (a.totalProfessionals.data ?? 0)
+      : 0
+    : (sb["licenca"] ?? 0);
 
   const alertas = a.alertas.data;
   void alertas;
 
-  const competenciaLabel = (mes: number, ano: number) =>
-    `${String(mes).padStart(2, "0")}/${ano}`;
+  const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   // ---- Column defs ----
   const colsUnidades: DataTableColumn<(typeof a.ranking)[number]>[] = [
-    { key: "u", header: "Unidade", cell: (r) => (
-      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
-        {r.unidade_nome}
-      </Link>
-    ) },
-    { key: "p", header: "Profissionais", cell: (r) => r.total_profissionais.toLocaleString("pt-BR") },
+    {
+      key: "u",
+      header: "Unidade",
+      cell: (r) => (
+        <Link
+          to="/unidades/$id"
+          params={{ id: r.unidade_id }}
+          className="font-medium hover:underline"
+        >
+          {r.unidade_nome}
+        </Link>
+      ),
+    },
+    {
+      key: "p",
+      header: "Profissionais",
+      cell: (r) => r.total_profissionais.toLocaleString("pt-BR"),
+    },
     { key: "f", header: "Folhas", cell: (r) => `${r.aprovadas}/${r.total_folhas}` },
   ];
   const colsSetores: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
-    { key: "s", header: "Setor", cell: (r) => (
-      <Link to="/setores/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
-    ) },
+    {
+      key: "s",
+      header: "Setor",
+      cell: (r) => (
+        <Link to="/setores/$id" params={{ id: r.id }} className="font-medium hover:underline">
+          {r.nome}
+        </Link>
+      ),
+    },
     { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
   ];
   const colsCargos: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
-    { key: "c", header: "Cargo", cell: (r) => (
-      <Link to="/cargos/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
-    ) },
+    {
+      key: "c",
+      header: "Cargo",
+      cell: (r) => (
+        <Link to="/cargos/$id" params={{ id: r.id }} className="font-medium hover:underline">
+          {r.nome}
+        </Link>
+      ),
+    },
     { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
   ];
   const colsFuncoes: DataTableColumn<{ id: string; nome: string; total: number }>[] = [
-    { key: "f", header: "Função", cell: (r) => (
-      <Link to="/funcoes/$id" params={{ id: r.id }} className="font-medium hover:underline">{r.nome}</Link>
-    ) },
+    {
+      key: "f",
+      header: "Função",
+      cell: (r) => (
+        <Link to="/funcoes/$id" params={{ id: r.id }} className="font-medium hover:underline">
+          {r.nome}
+        </Link>
+      ),
+    },
     { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
   ];
   const colsHe: DataTableColumn<(typeof a.ranking)[number]>[] = [
-    { key: "u", header: "Unidade", cell: (r) => (
-      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
-        {r.unidade_nome}
-      </Link>
-    ) },
-    { key: "he", header: "Horas extras", cell: (r) => <span className="tabular-nums">{r.total_horas_extras.toLocaleString("pt-BR")}</span> },
-    { key: "fl", header: "Faltas", cell: (r) => <span className="tabular-nums">{r.total_faltas.toLocaleString("pt-BR")}</span> },
+    {
+      key: "u",
+      header: "Unidade",
+      cell: (r) => (
+        <Link
+          to="/unidades/$id"
+          params={{ id: r.unidade_id }}
+          className="font-medium hover:underline"
+        >
+          {r.unidade_nome}
+        </Link>
+      ),
+    },
+    {
+      key: "he",
+      header: "Horas extras",
+      cell: (r) => (
+        <span className="tabular-nums">{r.total_horas_extras.toLocaleString("pt-BR")}</span>
+      ),
+    },
+    {
+      key: "fl",
+      header: "Faltas",
+      cell: (r) => <span className="tabular-nums">{r.total_faltas.toLocaleString("pt-BR")}</span>,
+    },
   ];
   const colsCriticas: DataTableColumn<(typeof rankingCriticas)[number]>[] = [
-    { key: "u", header: "Unidade", cell: (r) => (
-      <Link to="/unidades/$id" params={{ id: r.unidade_id }} className="font-medium hover:underline">
-        {r.unidade_nome}{r.sigla ? ` (${r.sigla})` : ""}
-      </Link>
-    ) },
-    { key: "t", header: "Pendências vencidas", cell: (r) => <Badge variant="destructive">{r.total}</Badge> },
+    {
+      key: "u",
+      header: "Unidade",
+      cell: (r) => (
+        <Link
+          to="/unidades/$id"
+          params={{ id: r.unidade_id }}
+          className="font-medium hover:underline"
+        >
+          {r.unidade_nome}
+          {r.sigla ? ` (${r.sigla})` : ""}
+        </Link>
+      ),
+    },
+    {
+      key: "t",
+      header: "Pendências vencidas",
+      cell: (r) => <Badge variant="destructive">{r.total}</Badge>,
+    },
   ];
 
   const colsMov: DataTableColumn<NonNullable<typeof movQ.data>[number]>[] = [
-    { key: "d", header: "Data", cell: (m) => (
-      <span className="text-xs text-muted-foreground" title={new Date(m.data_inicio).toLocaleString("pt-BR")}>
-        {formatDistanceToNow(new Date(m.data_inicio), { addSuffix: true, locale: ptBR })}
-      </span>
-    ) },
+    {
+      key: "d",
+      header: "Data",
+      cell: (m) => (
+        <span
+          className="text-xs text-muted-foreground"
+          title={new Date(m.data_inicio).toLocaleString("pt-BR")}
+        >
+          {formatDistanceToNow(new Date(m.data_inicio), { addSuffix: true, locale: ptBR })}
+        </span>
+      ),
+    },
     { key: "p", header: "Profissional", cell: (m) => m.profissional?.nome_completo ?? "—" },
-    { key: "de", header: "De → Para", cell: (m) => (
-      <span className="text-xs">
-        {m.unidade_anterior?.nome ?? "—"} → <strong>{m.unidade_novo?.nome ?? "—"}</strong>
-      </span>
-    ) },
+    {
+      key: "de",
+      header: "De → Para",
+      cell: (m) => (
+        <span className="text-xs">
+          {m.unidade_anterior?.nome ?? "—"} → <strong>{m.unidade_novo?.nome ?? "—"}</strong>
+        </span>
+      ),
+    },
     { key: "t", header: "Tipo", cell: (m) => <Badge variant="outline">{m.tipo_evento}</Badge> },
   ];
 
@@ -287,11 +397,15 @@ function SalaSituacaoPage() {
             value={unidadeSel}
             onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todas</SelectItem>
               {(unidadesQ.data ?? []).map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}</SelectItem>
+                <SelectItem key={u.id} value={u.id}>
+                  {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -301,11 +415,15 @@ function SalaSituacaoPage() {
             value={statusSel}
             onValueChange={(v) => patchFilter({ status: v === "__all__" ? "" : v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todos</SelectItem>
               {STATUS_VALUE.map((v, i) => (
-                <SelectItem key={v} value={v}>{STATUS_LABEL[i]}</SelectItem>
+                <SelectItem key={v} value={v}>
+                  {STATUS_LABEL[i]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -315,14 +433,20 @@ function SalaSituacaoPage() {
             value={compSel}
             onValueChange={(v) => patchFilter({ competencia: v === "__ativa__" ? "" : v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__ativa__">
-                Ativa {competenciaAtiva ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})` : ""}
+                Ativa{" "}
+                {competenciaAtiva
+                  ? `(${competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)})`
+                  : ""}
               </SelectItem>
               {(competenciasQ.data ?? []).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {competenciaLabel(c.mes, c.ano)}{c.status ? ` · ${c.status}` : ""}
+                  {competenciaLabel(c.mes, c.ano)}
+                  {c.status ? ` · ${c.status}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -332,16 +456,53 @@ function SalaSituacaoPage() {
 
       {/* Resumo Geral */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Profissionais" value={(a.totalProfessionals.data ?? 0).toLocaleString("pt-BR")} icon={<Users className="h-4 w-4" />} loading={a.totalProfessionals.isLoading} />
-        <KpiCard label="Ativos" value={kpiAtivos.toLocaleString("pt-BR")} icon={<UserCheck className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Afastados" value={kpiAfast.toLocaleString("pt-BR")} icon={<UserMinus className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Férias" value={kpiFerias.toLocaleString("pt-BR")} icon={<Umbrella className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Licenças" value={kpiLic.toLocaleString("pt-BR")} icon={<FileText className="h-4 w-4" />} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Pendências críticas" value={(pendCriticasQ.data?.length ?? 0).toLocaleString("pt-BR")} icon={<AlertCircle className="h-4 w-4" />} loading={pendCriticasQ.isLoading} />
-        <KpiCard label="Horas extras (comp.)" value={a.totalHorasExtras.toLocaleString("pt-BR")} icon={<Clock className="h-4 w-4" />} hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`} />
+        <KpiCard
+          label="Profissionais"
+          value={(a.totalProfessionals.data ?? 0).toLocaleString("pt-BR")}
+          icon={<Users className="h-4 w-4" />}
+          loading={a.totalProfessionals.isLoading}
+        />
+        <KpiCard
+          label="Ativos"
+          value={kpiAtivos.toLocaleString("pt-BR")}
+          icon={<UserCheck className="h-4 w-4" />}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Afastados"
+          value={kpiAfast.toLocaleString("pt-BR")}
+          icon={<UserMinus className="h-4 w-4" />}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Férias"
+          value={kpiFerias.toLocaleString("pt-BR")}
+          icon={<Umbrella className="h-4 w-4" />}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Licenças"
+          value={kpiLic.toLocaleString("pt-BR")}
+          icon={<FileText className="h-4 w-4" />}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Pendências críticas"
+          value={(pendCriticasQ.data?.length ?? 0).toLocaleString("pt-BR")}
+          icon={<AlertCircle className="h-4 w-4" />}
+          loading={pendCriticasQ.isLoading}
+        />
+        <KpiCard
+          label="Horas extras (comp.)"
+          value={a.totalHorasExtras.toLocaleString("pt-BR")}
+          icon={<Clock className="h-4 w-4" />}
+          hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`}
+        />
         <KpiCard
           label="Período ativo"
-          value={competenciaAtiva ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano) : "—"}
+          value={
+            competenciaAtiva ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano) : "—"
+          }
           icon={<CalendarRange className="h-4 w-4" />}
         />
       </section>
@@ -355,7 +516,11 @@ function SalaSituacaoPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <TendenciaKpi label="Horas extras" tendencia={intel.tendencias.horasExtras} invertBad />
             <TendenciaKpi label="Faltas" tendencia={intel.tendencias.faltas} invertBad />
-            <TendenciaKpi label="Pendências abertas" tendencia={intel.tendencias.pendencias} invertBad />
+            <TendenciaKpi
+              label="Pendências abertas"
+              tendencia={intel.tendencias.pendencias}
+              invertBad
+            />
             <TendenciaKpi label="Frequências aprovadas" tendencia={intel.tendencias.aprovadas} />
           </div>
         </CardContent>
@@ -372,43 +537,84 @@ function SalaSituacaoPage() {
         <CardContent>
           <Tabs defaultValue="unidades">
             <TabsList className="mb-3 flex flex-wrap">
-              <TabsTrigger value="unidades"><Building2 className="mr-1 h-3.5 w-3.5" />Unidades</TabsTrigger>
-              <TabsTrigger value="setores"><Network className="mr-1 h-3.5 w-3.5" />Setores</TabsTrigger>
+              <TabsTrigger value="unidades">
+                <Building2 className="mr-1 h-3.5 w-3.5" />
+                Unidades
+              </TabsTrigger>
+              <TabsTrigger value="setores">
+                <Network className="mr-1 h-3.5 w-3.5" />
+                Setores
+              </TabsTrigger>
               <TabsTrigger value="cargos">Cargos</TabsTrigger>
               <TabsTrigger value="funcoes">Funções</TabsTrigger>
-              <TabsTrigger value="he"><Clock className="mr-1 h-3.5 w-3.5" />Horas Extras</TabsTrigger>
-              <TabsTrigger value="criticas"><ShieldAlert className="mr-1 h-3.5 w-3.5" />Críticas</TabsTrigger>
+              <TabsTrigger value="he">
+                <Clock className="mr-1 h-3.5 w-3.5" />
+                Horas Extras
+              </TabsTrigger>
+              <TabsTrigger value="criticas">
+                <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+                Críticas
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="unidades">
-              {rankingUnidades.length === 0 ? <EmptyState title="Sem dados" description="Nenhuma folha processada no período." /> :
-                <DataTable rows={rankingUnidades} columns={colsUnidades} getRowKey={(r) => r.unidade_id} />}
+              {rankingUnidades.length === 0 ? (
+                <EmptyState title="Sem dados" description="Nenhuma folha processada no período." />
+              ) : (
+                <DataTable
+                  rows={rankingUnidades}
+                  columns={colsUnidades}
+                  getRowKey={(r) => r.unidade_id}
+                />
+              )}
             </TabsContent>
             <TabsContent value="setores">
-              {rankingSetores.length === 0 ? <EmptyState title="Sem dados" /> :
-                <DataTable rows={rankingSetores} columns={colsSetores} getRowKey={(r) => r.id} />}
+              {rankingSetores.length === 0 ? (
+                <EmptyState title="Sem dados" />
+              ) : (
+                <DataTable rows={rankingSetores} columns={colsSetores} getRowKey={(r) => r.id} />
+              )}
             </TabsContent>
             <TabsContent value="cargos">
-              {rankingCargos.length === 0 ? <EmptyState title="Sem dados" /> :
-                <DataTable rows={rankingCargos} columns={colsCargos} getRowKey={(r) => r.id} />}
+              {rankingCargos.length === 0 ? (
+                <EmptyState title="Sem dados" />
+              ) : (
+                <DataTable rows={rankingCargos} columns={colsCargos} getRowKey={(r) => r.id} />
+              )}
             </TabsContent>
             <TabsContent value="funcoes">
-              {rankingFuncoes.length === 0 ? <EmptyState title="Sem dados" /> :
-                <DataTable rows={rankingFuncoes} columns={colsFuncoes} getRowKey={(r) => r.id} />}
+              {rankingFuncoes.length === 0 ? (
+                <EmptyState title="Sem dados" />
+              ) : (
+                <DataTable rows={rankingFuncoes} columns={colsFuncoes} getRowKey={(r) => r.id} />
+              )}
             </TabsContent>
             <TabsContent value="he">
-              {rankingHe.length === 0 ? <EmptyState title="Sem dados" /> : (
+              {rankingHe.length === 0 ? (
+                <EmptyState title="Sem dados" />
+              ) : (
                 <>
                   <DataTable rows={rankingHe} columns={colsHe} getRowKey={(r) => r.unidade_id} />
                   <div className="mt-2 text-xs text-muted-foreground">
-                    HE agregada por unidade — o modelo atual não sustenta HE por profissional (limitação documentada no Módulo 05).
+                    HE agregada por unidade — o modelo atual não sustenta HE por profissional
+                    (limitação documentada no Módulo 05).
                   </div>
                 </>
               )}
             </TabsContent>
             <TabsContent value="criticas">
-              {rankingCriticas.length === 0 ? <EmptyState title="Nenhuma unidade crítica" description={`Nenhuma pendência aberta há mais de ${ALERT_RULES.pendenciaDiasCritico} dias.`} /> :
-                <DataTable rows={rankingCriticas} columns={colsCriticas} getRowKey={(r) => r.unidade_id} />}
+              {rankingCriticas.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma unidade crítica"
+                  description={`Nenhuma pendência aberta há mais de ${ALERT_RULES.pendenciaDiasCritico} dias.`}
+                />
+              ) : (
+                <DataTable
+                  rows={rankingCriticas}
+                  columns={colsCriticas}
+                  getRowKey={(r) => r.unidade_id}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -424,9 +630,16 @@ function SalaSituacaoPage() {
         <CardContent>
           <ul className="grid gap-2 md:grid-cols-2">
             {alertaItems.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+              <li
+                key={it.id}
+                className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
+              >
                 <span className="flex-1">{it.label}</span>
-                <Badge variant={it.count === 0 ? "outline" : it.tone === "danger" ? "destructive" : "secondary"}>
+                <Badge
+                  variant={
+                    it.count === 0 ? "outline" : it.tone === "danger" ? "destructive" : "secondary"
+                  }
+                >
                   {it.count.toLocaleString("pt-BR")}
                 </Badge>
                 <Button asChild size="sm" variant="ghost" disabled={it.count === 0}>
@@ -459,7 +672,10 @@ function SalaSituacaoPage() {
         </CardHeader>
         <CardContent>
           {(movQ.data ?? []).length === 0 ? (
-            <EmptyState title="Sem movimentações recentes" description="Nenhuma alteração funcional registrada." />
+            <EmptyState
+              title="Sem movimentações recentes"
+              description="Nenhuma alteração funcional registrada."
+            />
           ) : (
             <DataTable rows={movQ.data ?? []} columns={colsMov} getRowKey={(m) => m.id} />
           )}

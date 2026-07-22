@@ -32,7 +32,7 @@ function pendRow(rotulo: string, qtd: number, total: number): Row {
   return {
     indicador: rotulo,
     quantidade: qtd,
-    "percentual": total ? Math.round((qtd / total) * 1000) / 10 : 0,
+    percentual: total ? Math.round((qtd / total) * 1000) / 10 : 0,
   };
 }
 
@@ -75,28 +75,91 @@ export const CATALOG: BlockDef[] = [
   },
 
   /* ===== Distribuições ===== */
-  { id: "indicadores_unidade", label: "Indicadores por Unidade", categoria: "Distribuição", fields: distField, graficos: ["barra", "pizza"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porUnidade) },
-  { id: "indicadores_setor", label: "Indicadores por Setor", categoria: "Distribuição", fields: distField, graficos: ["barra"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porSetor) },
-  { id: "indicadores_cargo", label: "Indicadores por Cargo", categoria: "Distribuição", fields: distField, graficos: ["barra", "pizza"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porCargo) },
-  { id: "indicadores_funcao", label: "Indicadores por Função", categoria: "Distribuição", fields: distField,
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porFuncao) },
-  { id: "distribuicao_vinculo", label: "Distribuição por Vínculo", categoria: "Distribuição", fields: distField, graficos: ["pizza", "rosca"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porVinculo) },
-  { id: "situacao_funcional", label: "Situação Funcional", categoria: "Distribuição", fields: distField, graficos: ["pizza"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porStatus) },
-  { id: "distribuicao_sexo", label: "Distribuição por Sexo", categoria: "Distribuição", fields: distField, graficos: ["pizza"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porSexo) },
-  { id: "distribuicao_faixa_etaria", label: "Distribuição por Faixa Etária", categoria: "Distribuição", fields: distField, graficos: ["barra"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porFaixaEtaria) },
-  { id: "distribuicao_tempo_servico", label: "Distribuição por Tempo de Serviço", categoria: "Distribuição", fields: distField, graficos: ["barra"],
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porTempoServico) },
-  { id: "distribuicao_tipo_unidade", label: "Distribuição por Tipo de Unidade", categoria: "Distribuição", fields: distField,
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porTipoUnidade) },
-  { id: "distribuicao_porte", label: "Distribuição por Porte de Unidade", categoria: "Distribuição", fields: distField,
-    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porPorte) },
+  {
+    id: "indicadores_unidade",
+    label: "Indicadores por Unidade",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["barra", "pizza"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porUnidade),
+  },
+  {
+    id: "indicadores_setor",
+    label: "Indicadores por Setor",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["barra"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porSetor),
+  },
+  {
+    id: "indicadores_cargo",
+    label: "Indicadores por Cargo",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["barra", "pizza"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porCargo),
+  },
+  {
+    id: "indicadores_funcao",
+    label: "Indicadores por Função",
+    categoria: "Distribuição",
+    fields: distField,
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porFuncao),
+  },
+  {
+    id: "distribuicao_vinculo",
+    label: "Distribuição por Vínculo",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["pizza", "rosca"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porVinculo),
+  },
+  {
+    id: "situacao_funcional",
+    label: "Situação Funcional",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["pizza"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porStatus),
+  },
+  {
+    id: "distribuicao_sexo",
+    label: "Distribuição por Sexo",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["pizza"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porSexo),
+  },
+  {
+    id: "distribuicao_faixa_etaria",
+    label: "Distribuição por Faixa Etária",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["barra"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porFaixaEtaria),
+  },
+  {
+    id: "distribuicao_tempo_servico",
+    label: "Distribuição por Tempo de Serviço",
+    categoria: "Distribuição",
+    fields: distField,
+    graficos: ["barra"],
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porTempoServico),
+  },
+  {
+    id: "distribuicao_tipo_unidade",
+    label: "Distribuição por Tipo de Unidade",
+    categoria: "Distribuição",
+    fields: distField,
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porTipoUnidade),
+  },
+  {
+    id: "distribuicao_porte",
+    label: "Distribuição por Porte de Unidade",
+    categoria: "Distribuição",
+    fields: distField,
+    build: ({ aggregate: a }) => fromNameCount(a.distribuicoes.porPorte),
+  },
 
   /* ===== Cadastro Geral ===== */
   {
@@ -129,7 +192,8 @@ export const CATALOG: BlockDef[] = [
     id: "profissionais_sem_dados",
     label: "Profissionais com Cadastro Incompleto",
     categoria: "Pendências",
-    descricao: "Sem Unidade, Setor, Cargo, Função, Matrícula, CPF, Telefone, E-mail, Nascimento, CH.",
+    descricao:
+      "Sem Unidade, Setor, Cargo, Função, Matrícula, CPF, Telefone, E-mail, Nascimento, CH.",
     fields: [
       { id: "indicador", label: "Campo faltante", default: true },
       { id: "quantidade", label: "Quantidade", default: true, tipo: "number" },
@@ -193,21 +257,62 @@ export const CATALOG: BlockDef[] = [
   },
 
   /* ===== Rankings ===== */
-  { id: "ranking_unidades_maiores", label: "Ranking · Maiores Unidades", categoria: "Rankings",
-    fields: [{ id: "nome", label: "Unidade", default: true }, { id: "quantidade", label: "Profissionais", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.rankings.maioresUnidades.map((r) => ({ nome: r.nome, quantidade: r.valor })), graficos: ["barra"] },
-  { id: "ranking_unidades_menores", label: "Ranking · Menores Unidades", categoria: "Rankings",
-    fields: [{ id: "nome", label: "Unidade", default: true }, { id: "quantidade", label: "Profissionais", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.rankings.menoresUnidades.map((r) => ({ nome: r.nome, quantidade: r.valor })) },
-  { id: "ranking_setores_maiores", label: "Ranking · Maiores Setores", categoria: "Rankings",
-    fields: [{ id: "nome", label: "Setor", default: true }, { id: "quantidade", label: "Profissionais", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.rankings.maioresSetores.map((r) => ({ nome: r.nome, quantidade: r.valor })) },
-  { id: "ranking_cargos", label: "Ranking · Cargos mais utilizados", categoria: "Rankings",
-    fields: [{ id: "nome", label: "Cargo", default: true }, { id: "quantidade", label: "Profissionais", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.rankings.cargosMaisUtilizados.map((r) => ({ nome: r.nome, quantidade: r.valor })) },
-  { id: "ranking_funcoes", label: "Ranking · Funções mais utilizadas", categoria: "Rankings",
-    fields: [{ id: "nome", label: "Função", default: true }, { id: "quantidade", label: "Profissionais", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.rankings.funcoesMaisUtilizadas.map((r) => ({ nome: r.nome, quantidade: r.valor })) },
+  {
+    id: "ranking_unidades_maiores",
+    label: "Ranking · Maiores Unidades",
+    categoria: "Rankings",
+    fields: [
+      { id: "nome", label: "Unidade", default: true },
+      { id: "quantidade", label: "Profissionais", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) =>
+      a.rankings.maioresUnidades.map((r) => ({ nome: r.nome, quantidade: r.valor })),
+    graficos: ["barra"],
+  },
+  {
+    id: "ranking_unidades_menores",
+    label: "Ranking · Menores Unidades",
+    categoria: "Rankings",
+    fields: [
+      { id: "nome", label: "Unidade", default: true },
+      { id: "quantidade", label: "Profissionais", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) =>
+      a.rankings.menoresUnidades.map((r) => ({ nome: r.nome, quantidade: r.valor })),
+  },
+  {
+    id: "ranking_setores_maiores",
+    label: "Ranking · Maiores Setores",
+    categoria: "Rankings",
+    fields: [
+      { id: "nome", label: "Setor", default: true },
+      { id: "quantidade", label: "Profissionais", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) =>
+      a.rankings.maioresSetores.map((r) => ({ nome: r.nome, quantidade: r.valor })),
+  },
+  {
+    id: "ranking_cargos",
+    label: "Ranking · Cargos mais utilizados",
+    categoria: "Rankings",
+    fields: [
+      { id: "nome", label: "Cargo", default: true },
+      { id: "quantidade", label: "Profissionais", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) =>
+      a.rankings.cargosMaisUtilizados.map((r) => ({ nome: r.nome, quantidade: r.valor })),
+  },
+  {
+    id: "ranking_funcoes",
+    label: "Ranking · Funções mais utilizadas",
+    categoria: "Rankings",
+    fields: [
+      { id: "nome", label: "Função", default: true },
+      { id: "quantidade", label: "Profissionais", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) =>
+      a.rankings.funcoesMaisUtilizadas.map((r) => ({ nome: r.nome, quantidade: r.valor })),
+  },
 
   /* ===== Qualidade ===== */
   {
@@ -220,25 +325,59 @@ export const CATALOG: BlockDef[] = [
       { id: "total", label: "Total", default: true, tipo: "number" },
       { id: "percentual", label: "%", default: true, tipo: "number" },
     ],
-    build: ({ aggregate: a }) => a.qualidade.metricas.map((m) => ({
-      rotulo: m.rotulo, ok: m.ok, total: m.total, percentual: m.percentual,
-    })),
+    build: ({ aggregate: a }) =>
+      a.qualidade.metricas.map((m) => ({
+        rotulo: m.rotulo,
+        ok: m.ok,
+        total: m.total,
+        percentual: m.percentual,
+      })),
     graficos: ["barra"],
   },
 
   /* ===== Auditoria ===== */
-  { id: "auditoria_operacao", label: "Auditoria · por Operação (30 dias)", categoria: "Auditoria",
-    fields: [{ id: "nome", label: "Operação", default: true }, { id: "qtd", label: "Eventos", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.auditoria.porOperacao.map((r) => ({ nome: r.nome, qtd: r.qtd })), graficos: ["pizza"] },
-  { id: "auditoria_tabela", label: "Auditoria · por Tabela (30 dias)", categoria: "Auditoria",
-    fields: [{ id: "nome", label: "Tabela", default: true }, { id: "qtd", label: "Eventos", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.auditoria.porTabela.map((r) => ({ nome: r.nome, qtd: r.qtd })) },
-  { id: "auditoria_usuario", label: "Auditoria · por Usuário (30 dias)", categoria: "Auditoria",
-    fields: [{ id: "nome", label: "Usuário", default: true }, { id: "qtd", label: "Eventos", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.auditoria.porUsuario.map((r) => ({ nome: r.nome, qtd: r.qtd })) },
-  { id: "auditoria_dia", label: "Auditoria · por Dia", categoria: "Auditoria",
-    fields: [{ id: "dia", label: "Dia", default: true }, { id: "qtd", label: "Eventos", default: true, tipo: "number" }],
-    build: ({ aggregate: a }) => a.auditoria.porDia.map((r) => ({ dia: r.dia, qtd: r.qtd })), graficos: ["linha", "area"] },
+  {
+    id: "auditoria_operacao",
+    label: "Auditoria · por Operação (30 dias)",
+    categoria: "Auditoria",
+    fields: [
+      { id: "nome", label: "Operação", default: true },
+      { id: "qtd", label: "Eventos", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) => a.auditoria.porOperacao.map((r) => ({ nome: r.nome, qtd: r.qtd })),
+    graficos: ["pizza"],
+  },
+  {
+    id: "auditoria_tabela",
+    label: "Auditoria · por Tabela (30 dias)",
+    categoria: "Auditoria",
+    fields: [
+      { id: "nome", label: "Tabela", default: true },
+      { id: "qtd", label: "Eventos", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) => a.auditoria.porTabela.map((r) => ({ nome: r.nome, qtd: r.qtd })),
+  },
+  {
+    id: "auditoria_usuario",
+    label: "Auditoria · por Usuário (30 dias)",
+    categoria: "Auditoria",
+    fields: [
+      { id: "nome", label: "Usuário", default: true },
+      { id: "qtd", label: "Eventos", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) => a.auditoria.porUsuario.map((r) => ({ nome: r.nome, qtd: r.qtd })),
+  },
+  {
+    id: "auditoria_dia",
+    label: "Auditoria · por Dia",
+    categoria: "Auditoria",
+    fields: [
+      { id: "dia", label: "Dia", default: true },
+      { id: "qtd", label: "Eventos", default: true, tipo: "number" },
+    ],
+    build: ({ aggregate: a }) => a.auditoria.porDia.map((r) => ({ dia: r.dia, qtd: r.qtd })),
+    graficos: ["linha", "area"],
+  },
 ];
 
 export function findBlock(id: string): BlockDef | undefined {
@@ -253,27 +392,43 @@ export function defaultFields(b: BlockDef): string[] {
 /** Presets por tipo de relatório. */
 export const PRESETS: Record<string, string[]> = {
   executivo: [
-    "resumo_executivo", "indicadores_gerais", "situacao_funcional",
-    "indicadores_unidade", "ranking_cargos", "profissionais_sem_dados",
-    "integridade_cadastral", "auditoria_operacao",
+    "resumo_executivo",
+    "indicadores_gerais",
+    "situacao_funcional",
+    "indicadores_unidade",
+    "ranking_cargos",
+    "profissionais_sem_dados",
+    "integridade_cadastral",
+    "auditoria_operacao",
   ],
   tecnico: [
-    "indicadores_gerais", "cadastro_profissionais", "indicadores_unidade",
-    "indicadores_setor", "indicadores_cargo", "indicadores_funcao",
-    "distribuicao_vinculo", "distribuicao_faixa_etaria",
-    "distribuicao_tempo_servico", "integridade_cadastral",
+    "indicadores_gerais",
+    "cadastro_profissionais",
+    "indicadores_unidade",
+    "indicadores_setor",
+    "indicadores_cargo",
+    "indicadores_funcao",
+    "distribuicao_vinculo",
+    "distribuicao_faixa_etaria",
+    "distribuicao_tempo_servico",
+    "integridade_cadastral",
   ],
   administrativo: [
-    "indicadores_gerais", "unidades_pendencias", "setores_pendencias",
-    "profissionais_sem_dados", "auditoria_tabela",
+    "indicadores_gerais",
+    "unidades_pendencias",
+    "setores_pendencias",
+    "profissionais_sem_dados",
+    "auditoria_tabela",
   ],
   rh: [
-    "cadastro_profissionais", "situacao_funcional", "distribuicao_vinculo",
-    "indicadores_cargo", "indicadores_funcao", "distribuicao_faixa_etaria",
+    "cadastro_profissionais",
+    "situacao_funcional",
+    "distribuicao_vinculo",
+    "indicadores_cargo",
+    "indicadores_funcao",
+    "distribuicao_faixa_etaria",
     "distribuicao_tempo_servico",
   ],
-  auditoria: [
-    "auditoria_operacao", "auditoria_tabela", "auditoria_usuario", "auditoria_dia",
-  ],
+  auditoria: ["auditoria_operacao", "auditoria_tabela", "auditoria_usuario", "auditoria_dia"],
   personalizado: [],
 };

@@ -4,14 +4,26 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listProfissionais, type ProfViewFilters } from "@/lib/relatorios-gerenciais";
-import { useUnidadesLookup, useSetoresLookup, useCargosLookup, useFuncoesLookup, useVinculosLookup } from "@/hooks/use-lookups";
+import {
+  useUnidadesLookup,
+  useSetoresLookup,
+  useCargosLookup,
+  useFuncoesLookup,
+  useVinculosLookup,
+} from "@/hooks/use-lookups";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/profissionais")({
@@ -48,15 +60,18 @@ function RelatoriosProfissionaisGerencial() {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  const filters: ProfViewFilters = useMemo(() => ({
-    preset,
-    q: q || null,
-    unidadeId: unidadeId || null,
-    setorId: setorId || null,
-    cargoId: cargoId || null,
-    funcaoId: funcaoId || null,
-    vinculoId: vinculoId || null,
-  }), [preset, q, unidadeId, setorId, cargoId, funcaoId, vinculoId]);
+  const filters: ProfViewFilters = useMemo(
+    () => ({
+      preset,
+      q: q || null,
+      unidadeId: unidadeId || null,
+      setorId: setorId || null,
+      cargoId: cargoId || null,
+      funcaoId: funcaoId || null,
+      vinculoId: vinculoId || null,
+    }),
+    [preset, q, unidadeId, setorId, cargoId, funcaoId, vinculoId],
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["rel-ger-profs", filters, page],
@@ -94,7 +109,13 @@ function RelatoriosProfissionaisGerencial() {
   return (
     <div className="space-y-4">
       <IntelligencePanel foco="profissionais" titulo="Profissionais" />
-      <Tabs value={preset} onValueChange={(v) => { setPreset(v as typeof preset); setPage(1); }}>
+      <Tabs
+        value={preset}
+        onValueChange={(v) => {
+          setPreset(v as typeof preset);
+          setPage(1);
+        }}
+      >
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (
             <TabsTrigger key={p.value} value={p.value} className="text-xs">
@@ -117,50 +138,118 @@ function RelatoriosProfissionaisGerencial() {
             }
           >
             <FilterBar.Field label="Buscar (nome, CPF, matrícula)">
-              <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Digite..." />
+              <Input
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Digite..."
+              />
             </FilterBar.Field>
             <FilterBar.Field label="Unidade">
-              <Select value={unidadeId || "__all__"} onValueChange={(v) => { setUnidadeId(v === "__all__" ? "" : v); setSetorId(""); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <Select
+                value={unidadeId || "__all__"}
+                onValueChange={(v) => {
+                  setUnidadeId(v === "__all__" ? "" : v);
+                  setSetorId("");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todas as unidades</SelectItem>
-                  {(unidades.data ?? []).map((u) => (<SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>))}
+                  {(unidades.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
             <FilterBar.Field label="Setor">
-              <Select value={setorId || "__all__"} onValueChange={(v) => { setSetorId(v === "__all__" ? "" : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <Select
+                value={setorId || "__all__"}
+                onValueChange={(v) => {
+                  setSetorId(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todos os setores</SelectItem>
-                  {(setores.data ?? []).map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
+                  {(setores.data ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
             <FilterBar.Field label="Cargo">
-              <Select value={cargoId || "__all__"} onValueChange={(v) => { setCargoId(v === "__all__" ? "" : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <Select
+                value={cargoId || "__all__"}
+                onValueChange={(v) => {
+                  setCargoId(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todos os cargos</SelectItem>
-                  {(cargos.data ?? []).map((c) => (<SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>))}
+                  {(cargos.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
             <FilterBar.Field label="Função">
-              <Select value={funcaoId || "__all__"} onValueChange={(v) => { setFuncaoId(v === "__all__" ? "" : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <Select
+                value={funcaoId || "__all__"}
+                onValueChange={(v) => {
+                  setFuncaoId(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todas as funções</SelectItem>
-                  {(funcoes.data ?? []).map((f) => (<SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>))}
+                  {(funcoes.data ?? []).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
             <FilterBar.Field label="Vínculo">
-              <Select value={vinculoId || "__all__"} onValueChange={(v) => { setVinculoId(v === "__all__" ? "" : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <Select
+                value={vinculoId || "__all__"}
+                onValueChange={(v) => {
+                  setVinculoId(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todos os vínculos</SelectItem>
-                  {(vinculos.data ?? []).map((v) => (<SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>))}
+                  {(vinculos.data ?? []).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
@@ -168,8 +257,14 @@ function RelatoriosProfissionaisGerencial() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <KpiCard label="Registros encontrados" value={total} />
-            <KpiCard label="Página" value={`${page} de ${Math.max(1, Math.ceil(total / pageSize))}`} />
-            <KpiCard label="Filtro atual" value={PRESETS.find((p) => p.value === preset)?.label ?? "—"} />
+            <KpiCard
+              label="Página"
+              value={`${page} de ${Math.max(1, Math.ceil(total / pageSize))}`}
+            />
+            <KpiCard
+              label="Filtro atual"
+              value={PRESETS.find((p) => p.value === preset)?.label ?? "—"}
+            />
           </div>
 
           <div className="overflow-auto rounded-md border bg-card">
@@ -189,10 +284,21 @@ function RelatoriosProfissionaisGerencial() {
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">Carregando…</td></tr>
+                  <tr>
+                    <td colSpan={9} className="p-4 text-center text-muted-foreground">
+                      Carregando…
+                    </td>
+                  </tr>
                 )}
                 {!isLoading && rows.length === 0 && (
-                  <tr><td colSpan={9}><EmptyState title="Nenhum profissional encontrado" description="Ajuste os filtros ou selecione outra visão." /></td></tr>
+                  <tr>
+                    <td colSpan={9}>
+                      <EmptyState
+                        title="Nenhum profissional encontrado"
+                        description="Ajuste os filtros ou selecione outra visão."
+                      />
+                    </td>
+                  </tr>
                 )}
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t">
@@ -212,10 +318,26 @@ function RelatoriosProfissionaisGerencial() {
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Mostrando {rows.length} de {total}</span>
+            <span className="text-muted-foreground">
+              Mostrando {rows.length} de {total}
+            </span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
-              <Button size="sm" variant="outline" disabled={page * pageSize >= total} onClick={() => setPage((p) => p + 1)}>Próxima</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page * pageSize >= total}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
             </div>
           </div>
         </TabsContent>

@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  detectarModelo, detectarCompetencia, competenciaAtual,
-  headerConfidence, computeQuality, fingerprint, isCpfValido,
+  detectarModelo,
+  detectarCompetencia,
+  competenciaAtual,
+  headerConfidence,
+  computeQuality,
+  fingerprint,
+  isCpfValido,
 } from "./piso-heuristics";
 
 describe("piso-heuristics", () => {

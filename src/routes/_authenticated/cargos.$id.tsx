@@ -7,15 +7,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { PermissionGate } from "@/components/permission-gate";
 import {
-  PageHeader, KpiCard, DataTable, EmptyState, StatusBadge,
+  PageHeader,
+  KpiCard,
+  DataTable,
+  EmptyState,
+  StatusBadge,
   type DataTableColumn,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
 export const Route = createFileRoute("/_authenticated/cargos/$id")({
@@ -30,7 +38,11 @@ function CargoPainel() {
   return (
     <PermissionGate
       permission="profissional.visualizar"
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <CargoPainelContent />
     </PermissionGate>
@@ -78,66 +90,147 @@ function CargoPainelContent() {
     );
   }, [equipe, q]);
 
-  const cols: DataTableColumn<typeof equipe[number]>[] = [
-    { key: "nome", header: "Nome", cell: (p) => <span className="font-medium">{p.nome_completo}</span> },
+  const cols: DataTableColumn<(typeof equipe)[number]>[] = [
+    {
+      key: "nome",
+      header: "Nome",
+      cell: (p) => <span className="font-medium">{p.nome_completo}</span>,
+    },
     { key: "unidade", header: "Unidade", cell: (p) => p.unidade?.sigla ?? p.unidade?.nome ?? "—" },
     { key: "setor", header: "Setor", cell: (p) => p.setor?.nome ?? "—" },
-    { key: "status", header: "Status", cell: (p) => <StatusBadge domain="profissional" value={p.status} /> },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => <StatusBadge domain="profissional" value={p.status} />,
+    },
   ];
 
   const rankCols = <T extends { nome: string; total: number }>(): DataTableColumn<T>[] => [
     { key: "nome", header: "Nome", cell: (r) => r.nome },
-    { key: "total", header: <span className="block text-right">Total</span>, cell: (r) => <span className="block text-right tabular-nums">{r.total}</span>, className: "text-right" },
+    {
+      key: "total",
+      header: <span className="block text-right">Total</span>,
+      cell: (r) => <span className="block text-right tabular-nums">{r.total}</span>,
+      className: "text-right",
+    },
   ];
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/gestao-pessoas">Gestão da Saúde</Link></BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/gestao-pessoas">Gestão da Saúde</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cargos-funcoes" hash="cargos">Cargos</Link></BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/cargos-funcoes" hash="cargos">
+                Cargos
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>{metaQ.data?.nome ?? "…"}</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbPage>{metaQ.data?.nome ?? "…"}</BreadcrumbPage>
+          </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <PageHeader
         title={metaQ.data?.nome ?? "Cargo"}
-        description={[metaQ.data?.codigo && `Código ${metaQ.data.codigo}`, metaQ.data?.cbo && `CBO ${metaQ.data.cbo}`, metaQ.data?.nivel, metaQ.data?.area_profissional].filter(Boolean).join(" · ") || "Painel do cargo"}
+        description={
+          [
+            metaQ.data?.codigo && `Código ${metaQ.data.codigo}`,
+            metaQ.data?.cbo && `CBO ${metaQ.data.cbo}`,
+            metaQ.data?.nivel,
+            metaQ.data?.area_profissional,
+          ]
+            .filter(Boolean)
+            .join(" · ") || "Painel do cargo"
+        }
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/cargos-funcoes" hash="cargos"><ArrowLeft className="mr-1 h-4 w-4" /> Voltar</Link>
+            <Link to="/cargos-funcoes" hash="cargos">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+            </Link>
           </Button>
         }
       />
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label="Profissionais" value={total.toLocaleString("pt-BR")} loading={a.totalProfessionals.isLoading} icon={<Users className="h-4 w-4" />} />
-        <KpiCard label="Ativos" value={(status.ativo ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Afastados" value={(status.afastado ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Férias" value={(status.ferias ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Licenças" value={(status.licenca ?? 0).toLocaleString("pt-BR")} loading={a.statusBreakdown.isLoading} />
-        <KpiCard label="Unidades" value={unidadesUnicas.toLocaleString("pt-BR")} loading={a.distribuicaoUnidade.isLoading} icon={<Building2 className="h-4 w-4" />} />
-        <KpiCard label="Setores" value={setoresUnicos.toLocaleString("pt-BR")} loading={a.distribuicaoSetor.isLoading} icon={<Layers className="h-4 w-4" />} />
-        <KpiCard label="Efetivos / Temporários" value={`${vinc.efetivos} / ${vinc.temporarios}`} loading={a.vinculoBreakdown.isLoading} icon={<Briefcase className="h-4 w-4" />} />
+        <KpiCard
+          label="Profissionais"
+          value={total.toLocaleString("pt-BR")}
+          loading={a.totalProfessionals.isLoading}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Ativos"
+          value={(status.ativo ?? 0).toLocaleString("pt-BR")}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Afastados"
+          value={(status.afastado ?? 0).toLocaleString("pt-BR")}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Férias"
+          value={(status.ferias ?? 0).toLocaleString("pt-BR")}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Licenças"
+          value={(status.licenca ?? 0).toLocaleString("pt-BR")}
+          loading={a.statusBreakdown.isLoading}
+        />
+        <KpiCard
+          label="Unidades"
+          value={unidadesUnicas.toLocaleString("pt-BR")}
+          loading={a.distribuicaoUnidade.isLoading}
+          icon={<Building2 className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Setores"
+          value={setoresUnicos.toLocaleString("pt-BR")}
+          loading={a.distribuicaoSetor.isLoading}
+          icon={<Layers className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Efetivos / Temporários"
+          value={`${vinc.efetivos} / ${vinc.temporarios}`}
+          loading={a.vinculoBreakdown.isLoading}
+          icon={<Briefcase className="h-4 w-4" />}
+        />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-sm">Profissionais por Unidade (top 10)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Profissionais por Unidade (top 10)</CardTitle>
+          </CardHeader>
           <CardContent>
             <DataTable
               rows={porUnidade.slice(0, 10)}
               getRowKey={(r) => r.id}
-              columns={rankCols<{ id: string; nome: string; sigla: string | null; total: number }>()}
+              columns={rankCols<{
+                id: string;
+                nome: string;
+                sigla: string | null;
+                total: number;
+              }>()}
               loading={a.distribuicaoUnidade.isLoading}
               emptyTitle="Sem lotação"
             />
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Profissionais por Setor (top 10)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Profissionais por Setor (top 10)</CardTitle>
+          </CardHeader>
           <CardContent>
             <DataTable
               rows={porSetor.slice(0, 10)}
@@ -149,15 +242,28 @@ function CargoPainelContent() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Por Vínculo</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Por Vínculo</CardTitle>
+          </CardHeader>
           <CardContent className="text-sm space-y-1">
-            <div className="flex justify-between"><span>Efetivos</span><span className="tabular-nums">{vinc.efetivos}</span></div>
-            <div className="flex justify-between"><span>Temporários</span><span className="tabular-nums">{vinc.temporarios}</span></div>
-            <div className="flex justify-between"><span>Outros</span><span className="tabular-nums">{vinc.outros}</span></div>
+            <div className="flex justify-between">
+              <span>Efetivos</span>
+              <span className="tabular-nums">{vinc.efetivos}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Temporários</span>
+              <span className="tabular-nums">{vinc.temporarios}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Outros</span>
+              <span className="tabular-nums">{vinc.outros}</span>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Por Status</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Por Status</CardTitle>
+          </CardHeader>
           <CardContent className="text-sm space-y-1">
             {Object.entries(status).length === 0 ? (
               <EmptyState title="Sem dados" />
@@ -179,7 +285,12 @@ function CargoPainelContent() {
             <CardTitle className="text-sm">Equipe ({equipeFiltrada.length})</CardTitle>
             <div className="relative w-64">
               <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, matrícula, setor…" className="pl-8" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar por nome, matrícula, setor…"
+                className="pl-8"
+              />
             </div>
           </CardHeader>
           <CardContent>

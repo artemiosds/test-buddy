@@ -5,7 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Bell, BellRing, Check, CheckCheck, Trash2 } from "lucide-react";
@@ -151,10 +155,14 @@ function NotificacoesPage() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={filtro} onValueChange={(v) => setFiltro(v as Filtro)}>
-            <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-52">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {FILTROS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -169,9 +177,7 @@ function NotificacoesPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg border bg-card">
-        {isLoading && (
-          <div className="p-8 text-center text-muted-foreground">Carregando...</div>
-        )}
+        {isLoading && <div className="p-8 text-center text-muted-foreground">Carregando...</div>}
         {!isLoading && !notifs?.length && (
           <div className="p-6">
             <EmptyState
@@ -188,12 +194,18 @@ function NotificacoesPage() {
                 key={n.id}
                 className={`flex items-start gap-3 p-4 ${!n.lida ? "bg-primary/5" : ""}`}
               >
-                <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.lida ? "bg-primary" : "bg-transparent"}`} />
+                <div
+                  className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.lida ? "bg-primary" : "bg-transparent"}`}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={TIPO_VARIANT[n.tipo as Tipo]}>{TIPO_LABEL[n.tipo as Tipo]}</Badge>
+                    <Badge variant={TIPO_VARIANT[n.tipo as Tipo]}>
+                      {TIPO_LABEL[n.tipo as Tipo]}
+                    </Badge>
                     {n.prioridade !== "normal" && (
-                      <Badge variant="outline">Prioridade: {PRIORIDADE_LABEL[n.prioridade as Prioridade]}</Badge>
+                      <Badge variant="outline">
+                        Prioridade: {PRIORIDADE_LABEL[n.prioridade as Prioridade]}
+                      </Badge>
                     )}
                     <span className="text-xs text-muted-foreground">{dt}</span>
                   </div>

@@ -138,7 +138,7 @@ function ConfiguracaoPage() {
       if (!form.nome_municipio.trim()) throw new Error("Nome do município é obrigatório");
       const payload = {
         nome_municipio: form.nome_municipio.trim(),
-        uf: (form.uf.trim().toUpperCase() || "PA"),
+        uf: form.uf.trim().toUpperCase() || "PA",
         codigo_ibge: form.codigo_ibge.trim() || null,
         cnpj_prefeitura: form.cnpj_prefeitura.trim() || null,
         razao_social: form.razao_social.trim() || null,
@@ -317,27 +317,45 @@ function ConfiguracaoPage() {
         <div className="grid gap-4 md:grid-cols-6">
           <div className="md:col-span-4">
             <Label>Logradouro</Label>
-            <Input value={form.endereco.logradouro ?? ""} onChange={(e) => setEnd("logradouro", e.target.value)} />
+            <Input
+              value={form.endereco.logradouro ?? ""}
+              onChange={(e) => setEnd("logradouro", e.target.value)}
+            />
           </div>
           <div>
             <Label>Número</Label>
-            <Input value={form.endereco.numero ?? ""} onChange={(e) => setEnd("numero", e.target.value)} />
+            <Input
+              value={form.endereco.numero ?? ""}
+              onChange={(e) => setEnd("numero", e.target.value)}
+            />
           </div>
           <div>
             <Label>CEP</Label>
-            <Input value={form.endereco.cep ?? ""} onChange={(e) => setEnd("cep", e.target.value)} />
+            <Input
+              value={form.endereco.cep ?? ""}
+              onChange={(e) => setEnd("cep", e.target.value)}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Complemento</Label>
-            <Input value={form.endereco.complemento ?? ""} onChange={(e) => setEnd("complemento", e.target.value)} />
+            <Input
+              value={form.endereco.complemento ?? ""}
+              onChange={(e) => setEnd("complemento", e.target.value)}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Bairro</Label>
-            <Input value={form.endereco.bairro ?? ""} onChange={(e) => setEnd("bairro", e.target.value)} />
+            <Input
+              value={form.endereco.bairro ?? ""}
+              onChange={(e) => setEnd("bairro", e.target.value)}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Cidade</Label>
-            <Input value={form.endereco.cidade ?? ""} onChange={(e) => setEnd("cidade", e.target.value)} />
+            <Input
+              value={form.endereco.cidade ?? ""}
+              onChange={(e) => setEnd("cidade", e.target.value)}
+            />
           </div>
         </div>
       </section>
@@ -349,27 +367,45 @@ function ConfiguracaoPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label>Prefeito(a)</Label>
-            <Input value={form.gestor_nome} onChange={(e) => setForm({ ...form, gestor_nome: e.target.value })} />
+            <Input
+              value={form.gestor_nome}
+              onChange={(e) => setForm({ ...form, gestor_nome: e.target.value })}
+            />
           </div>
           <div>
             <Label>CPF do Prefeito(a)</Label>
-            <Input value={form.gestor_cpf} onChange={(e) => setForm({ ...form, gestor_cpf: e.target.value })} />
+            <Input
+              value={form.gestor_cpf}
+              onChange={(e) => setForm({ ...form, gestor_cpf: e.target.value })}
+            />
           </div>
           <div>
             <Label>Vice-Prefeito(a)</Label>
-            <Input value={form.vice_gestor_nome} onChange={(e) => setForm({ ...form, vice_gestor_nome: e.target.value })} />
+            <Input
+              value={form.vice_gestor_nome}
+              onChange={(e) => setForm({ ...form, vice_gestor_nome: e.target.value })}
+            />
           </div>
           <div>
             <Label>CPF do Vice-Prefeito(a)</Label>
-            <Input value={form.vice_gestor_cpf} onChange={(e) => setForm({ ...form, vice_gestor_cpf: e.target.value })} />
+            <Input
+              value={form.vice_gestor_cpf}
+              onChange={(e) => setForm({ ...form, vice_gestor_cpf: e.target.value })}
+            />
           </div>
           <div>
             <Label>Secretário(a) Municipal de Saúde</Label>
-            <Input value={form.secretario_saude_nome} onChange={(e) => setForm({ ...form, secretario_saude_nome: e.target.value })} />
+            <Input
+              value={form.secretario_saude_nome}
+              onChange={(e) => setForm({ ...form, secretario_saude_nome: e.target.value })}
+            />
           </div>
           <div>
             <Label>CPF do Secretário(a) de Saúde</Label>
-            <Input value={form.secretario_saude_cpf} onChange={(e) => setForm({ ...form, secretario_saude_cpf: e.target.value })} />
+            <Input
+              value={form.secretario_saude_cpf}
+              onChange={(e) => setForm({ ...form, secretario_saude_cpf: e.target.value })}
+            />
           </div>
         </div>
       </section>
@@ -379,14 +415,16 @@ function ConfiguracaoPage() {
           Parâmetros de Fechamento e Alçada
         </h2>
         <p className="text-xs text-muted-foreground">
-          Aviso de prazo no painel do diretor e limites de aprovação por valor (linhas que
-          excederem exigem aprovação por usuário Master).
+          Aviso de prazo no painel do diretor e limites de aprovação por valor (linhas que excederem
+          exigem aprovação por usuário Master).
         </p>
         <div className="grid gap-4 md:grid-cols-4">
           <div>
             <Label>Dias de aviso p/ fechamento</Label>
             <Input
-              type="number" min={0} step={1}
+              type="number"
+              min={0}
+              step={1}
               value={form.dias_aviso_prazo_fechamento}
               onChange={(e) => setForm({ ...form, dias_aviso_prazo_fechamento: e.target.value })}
             />
@@ -394,7 +432,9 @@ function ConfiguracaoPage() {
           <div>
             <Label>Limite HE 50%</Label>
             <Input
-              type="number" min={0} step="0.01"
+              type="number"
+              min={0}
+              step="0.01"
               value={form.limite_he_50}
               placeholder="ilimitado"
               onChange={(e) => setForm({ ...form, limite_he_50: e.target.value })}
@@ -403,7 +443,9 @@ function ConfiguracaoPage() {
           <div>
             <Label>Limite HE 100%</Label>
             <Input
-              type="number" min={0} step="0.01"
+              type="number"
+              min={0}
+              step="0.01"
               value={form.limite_he_100}
               placeholder="ilimitado"
               onChange={(e) => setForm({ ...form, limite_he_100: e.target.value })}
@@ -412,7 +454,9 @@ function ConfiguracaoPage() {
           <div>
             <Label>Limite Plantões</Label>
             <Input
-              type="number" min={0} step="0.01"
+              type="number"
+              min={0}
+              step="0.01"
               value={form.limite_plantoes}
               placeholder="ilimitado"
               onChange={(e) => setForm({ ...form, limite_plantoes: e.target.value })}
@@ -434,7 +478,9 @@ function ConfiguracaoPage() {
               value={form.mensagem_topo}
               onChange={(e) => setForm({ ...form, mensagem_topo: e.target.value })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">Deixe em branco para não exibir aviso.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Deixe em branco para não exibir aviso.
+            </p>
           </div>
           <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
             <input
@@ -446,8 +492,9 @@ function ConfiguracaoPage() {
             <div>
               <div className="text-sm font-medium">Permitir envio de frequência fora do prazo</div>
               <div className="text-xs text-muted-foreground">
-                Se desligado, o botão "Enviar para análise" fica bloqueado após o prazo da competência.
-                Se ligado, o envio é aceito e registrado em auditoria como "fora do prazo".
+                Se desligado, o botão "Enviar para análise" fica bloqueado após o prazo da
+                competência. Se ligado, o envio é aceito e registrado em auditoria como "fora do
+                prazo".
               </div>
             </div>
           </label>
@@ -466,7 +513,9 @@ function ConfiguracaoPage() {
             >
               <div>
                 <div className="text-sm font-medium">Tipos de Unidade</div>
-                <div className="text-xs text-muted-foreground">Gerenciar UBS, Hospital, CAPS, etc.</div>
+                <div className="text-xs text-muted-foreground">
+                  Gerenciar UBS, Hospital, CAPS, etc.
+                </div>
               </div>
               <span className="text-sm text-primary">Abrir →</span>
             </a>
@@ -476,14 +525,15 @@ function ConfiguracaoPage() {
             >
               <div>
                 <div className="text-sm font-medium">Calendário de Feriados</div>
-                <div className="text-xs text-muted-foreground">Feriados municipais, estaduais e nacionais.</div>
+                <div className="text-xs text-muted-foreground">
+                  Feriados municipais, estaduais e nacionais.
+                </div>
               </div>
               <span className="text-sm text-primary">Abrir →</span>
             </a>
           </div>
         </section>
       )}
-
 
       <section className="space-y-4 rounded-lg border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -494,7 +544,11 @@ function ConfiguracaoPage() {
             <Label>Brasão do município</Label>
             <div className="flex items-center gap-3">
               {form.brasao_url ? (
-                <img src={form.brasao_url} alt="Brasão" className="h-16 w-16 rounded border object-contain bg-muted/30" />
+                <img
+                  src={form.brasao_url}
+                  alt="Brasão"
+                  className="h-16 w-16 rounded border object-contain bg-muted/30"
+                />
               ) : (
                 <div className="h-16 w-16 rounded border bg-muted/30" />
               )}
@@ -517,7 +571,11 @@ function ConfiguracaoPage() {
             <Label>Logotipo da SMS</Label>
             <div className="flex items-center gap-3">
               {form.logotipo_url ? (
-                <img src={form.logotipo_url} alt="Logotipo" className="h-16 w-16 rounded border object-contain bg-muted/30" />
+                <img
+                  src={form.logotipo_url}
+                  alt="Logotipo"
+                  className="h-16 w-16 rounded border object-contain bg-muted/30"
+                />
               ) : (
                 <div className="h-16 w-16 rounded border bg-muted/30" />
               )}

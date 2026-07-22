@@ -3,13 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
-import { listUnidadesGerencial, listTiposUnidade, type UnidadePreset } from "@/lib/relatorios-gerenciais";
+import {
+  listUnidadesGerencial,
+  listTiposUnidade,
+  type UnidadePreset,
+} from "@/lib/relatorios-gerenciais";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/unidades")({
@@ -32,18 +42,25 @@ function UnidadesGerencial() {
   const [preset, setPreset] = useState<UnidadePreset>("todas");
   const [tipo, setTipo] = useState<string>("");
 
-  const tipos = useQuery({ queryKey: ["rel-ger", "tipos-unidade"], queryFn: listTiposUnidade, staleTime: 5 * 60_000 });
+  const tipos = useQuery({
+    queryKey: ["rel-ger", "tipos-unidade"],
+    queryFn: listTiposUnidade,
+    staleTime: 5 * 60_000,
+  });
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["rel-ger", "unidades", preset, tipo],
     queryFn: () => listUnidadesGerencial(preset, tipo || null),
     staleTime: 60_000,
   });
 
-  const totais = useMemo(() => ({
-    total: rows.length,
-    profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
-    ativos: rows.reduce((a, r) => a + r.qtd_ativos, 0),
-  }), [rows]);
+  const totais = useMemo(
+    () => ({
+      total: rows.length,
+      profissionais: rows.reduce((a, r) => a + r.qtd_profissionais, 0),
+      ativos: rows.reduce((a, r) => a + r.qtd_ativos, 0),
+    }),
+    [rows],
+  );
 
   function exportCsv() {
     downloadCsv(`unidades-${preset}.csv`, rows, [
@@ -69,20 +86,35 @@ function UnidadesGerencial() {
       <Tabs value={preset} onValueChange={(v) => setPreset(v as UnidadePreset)}>
         <TabsList className="flex h-auto flex-wrap gap-1">
           {PRESETS.map((p) => (
-            <TabsTrigger key={p.value} value={p.value} className="text-xs">{p.label}</TabsTrigger>
+            <TabsTrigger key={p.value} value={p.value} className="text-xs">
+              {p.label}
+            </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
 
       <FilterBar
-        actions={<Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="mr-1 h-4 w-4" /> CSV</Button>}
+        actions={
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+            <Download className="mr-1 h-4 w-4" /> CSV
+          </Button>
+        }
       >
         <FilterBar.Field label="Tipo de Unidade">
-          <Select value={tipo || "__all__"} onValueChange={(v) => setTipo(v === "__all__" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+          <Select
+            value={tipo || "__all__"}
+            onValueChange={(v) => setTipo(v === "__all__" ? "" : v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todos os tipos</SelectItem>
-              {(tipos.data ?? []).map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+              {(tipos.data ?? []).map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </FilterBar.Field>
@@ -109,8 +141,20 @@ function UnidadesGerencial() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (<tr><td colSpan={8} className="p-4 text-center text-muted-foreground">Carregando…</td></tr>)}
-            {!isLoading && rows.length === 0 && (<tr><td colSpan={8}><EmptyState title="Nenhuma unidade encontrada" description="Ajuste os filtros." /></td></tr>)}
+            {isLoading && (
+              <tr>
+                <td colSpan={8} className="p-4 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={8}>
+                  <EmptyState title="Nenhuma unidade encontrada" description="Ajuste os filtros." />
+                </td>
+              </tr>
+            )}
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-2">

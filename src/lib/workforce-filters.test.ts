@@ -23,10 +23,7 @@ describe("workforce-filters", () => {
   });
 
   it("unidade e status preenchidos passam adiante", () => {
-    const r = resolveWorkforceFilters(
-      { unidade: "u-1", status: "ativo" },
-      null,
-    );
+    const r = resolveWorkforceFilters({ unidade: "u-1", status: "ativo" }, null);
     expect(r.unidadeId).toBe("u-1");
     expect(r.status).toBe("ativo");
   });

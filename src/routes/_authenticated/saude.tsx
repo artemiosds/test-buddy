@@ -5,10 +5,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, Bell, CheckCircle2, Clock, Info, RefreshCw, ShieldAlert, Timer, Users, Zap, RotateCcw, Trash2, Inbox } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  CheckCircle2,
+  Clock,
+  Info,
+  RefreshCw,
+  ShieldAlert,
+  Timer,
+  Users,
+  Zap,
+  RotateCcw,
+  Trash2,
+  Inbox,
+} from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { formatDateTime } from "@/lib/formatters";
-import { withBreaker, listBreakers, subscribeBreakers, getBreaker, type BreakerSnapshot } from "@/lib/circuit-breaker";
+import {
+  withBreaker,
+  listBreakers,
+  subscribeBreakers,
+  getBreaker,
+  type BreakerSnapshot,
+} from "@/lib/circuit-breaker";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -38,7 +60,14 @@ type SlaResp = {
 type CronResp = {
   disponivel: boolean;
   jobs: Array<{ jobid: number; jobname: string | null; schedule: string; active: boolean }>;
-  falhas_24h: Array<{ jobid: number; jobname: string | null; status: string; start_time: string; end_time: string | null; return_message: string | null }>;
+  falhas_24h: Array<{
+    jobid: number;
+    jobname: string | null;
+    status: string;
+    start_time: string;
+    end_time: string | null;
+    return_message: string | null;
+  }>;
   gerado_em: string;
 };
 type UsoResp = {
@@ -51,17 +80,25 @@ type UsoResp = {
   gerado_em: string;
 };
 
-function KpiCard({ icon: Icon, label, value, tone = "default" }: {
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  tone = "default",
+}: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: React.ReactNode;
   tone?: "default" | "warn" | "danger" | "ok";
 }) {
   const toneCls =
-    tone === "danger" ? "text-destructive"
-    : tone === "warn" ? "text-amber-600 dark:text-amber-400"
-    : tone === "ok" ? "text-emerald-600 dark:text-emerald-400"
-    : "text-foreground";
+    tone === "danger"
+      ? "text-destructive"
+      : tone === "warn"
+        ? "text-amber-600 dark:text-amber-400"
+        : tone === "ok"
+          ? "text-emerald-600 dark:text-emerald-400"
+          : "text-foreground";
   return (
     <Card className="p-4">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
@@ -125,12 +162,28 @@ function SaudePage() {
     },
   });
 
+  const travadosQ = useQuery({
+    queryKey: ["saude", "eventos-travados"],
+    enabled: isMaster,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "eventos_travados" as never,
+        { _limit: 100 } as never,
+      );
+      if (error) throw error;
+      return data as unknown as { rows: unknown[]; gerado_em: string };
+    },
+  });
+
   if (!me) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!isMaster) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold">Saúde do sistema</h1>
-        <p className="mt-2 text-muted-foreground">Somente usuários Master podem acessar este painel.</p>
+        <p className="mt-2 text-muted-foreground">
+          Somente usuários Master podem acessar este painel.
+        </p>
       </div>
     );
   }
@@ -140,22 +193,14 @@ function SaudePage() {
   const cron = cronQ.data;
   const uso = usoQ.data;
   const refetchAll = () => {
-    void eventosQ.refetch(); void slaQ.refetch(); void cronQ.refetch(); void usoQ.refetch();
+    void eventosQ.refetch();
+    void slaQ.refetch();
+    void cronQ.refetch();
+    void usoQ.refetch();
   };
 
   const pendentes = (ev?.por_status?.["pendente"] ?? 0) + (ev?.por_status?.["falhou_retry"] ?? 0);
   const falhou = ev?.por_status?.["falhou"] ?? 0;
-
-  const travadosQ = useQuery({
-    queryKey: ["saude", "eventos-travados"],
-    enabled: isMaster,
-    refetchInterval: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("eventos_travados" as never, { _limit: 100 } as never);
-      if (error) throw error;
-      return data as unknown as { rows: unknown[]; gerado_em: string };
-    },
-  });
 
   return (
     <div className="p-6 space-y-6">
@@ -165,7 +210,8 @@ function SaudePage() {
             <Activity className="h-6 w-6" /> Saúde do sistema
           </h1>
           <p className="text-sm text-muted-foreground">
-            Atualiza automaticamente. Última leitura de eventos: {ev ? formatDateTime(ev.gerado_em) : "—"}.
+            Atualiza automaticamente. Última leitura de eventos:{" "}
+            {ev ? formatDateTime(ev.gerado_em) : "—"}.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refetchAll}>
@@ -184,28 +230,48 @@ function SaudePage() {
         <h2 className="text-lg font-semibold">Barramento de eventos</h2>
         {eventosQ.isError && <p className="text-sm text-destructive">Falha ao carregar eventos.</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard icon={Clock} label="Pendentes / retry" value={pendentes}
-            tone={pendentes > 50 ? "warn" : "default"} />
-          <KpiCard icon={AlertTriangle} label="Retry alto (≥5)" value={ev?.retry_alto ?? "—"}
-            tone={(ev?.retry_alto ?? 0) > 0 ? "warn" : "ok"} />
-          <KpiCard icon={ShieldAlert} label="Falhou (definitivo)" value={falhou}
-            tone={falhou > 0 ? "danger" : "ok"} />
-          <KpiCard icon={Timer} label="Mais antigo pendente"
-            value={ev?.mais_antigo_pendente ? formatDateTime(ev.mais_antigo_pendente) : "—"} />
+          <KpiCard
+            icon={Clock}
+            label="Pendentes / retry"
+            value={pendentes}
+            tone={pendentes > 50 ? "warn" : "default"}
+          />
+          <KpiCard
+            icon={AlertTriangle}
+            label="Retry alto (≥5)"
+            value={ev?.retry_alto ?? "—"}
+            tone={(ev?.retry_alto ?? 0) > 0 ? "warn" : "ok"}
+          />
+          <KpiCard
+            icon={ShieldAlert}
+            label="Falhou (definitivo)"
+            value={falhou}
+            tone={falhou > 0 ? "danger" : "ok"}
+          />
+          <KpiCard
+            icon={Timer}
+            label="Mais antigo pendente"
+            value={ev?.mais_antigo_pendente ? formatDateTime(ev.mais_antigo_pendente) : "—"}
+          />
         </div>
         <Card className="p-4">
           <div className="text-sm font-medium mb-2">Top falhas por tipo</div>
           {ev?.top_falhas?.length ? (
             <ul className="space-y-2 text-sm">
               {ev.top_falhas.map((f, i) => (
-                <li key={i} className="flex flex-col border-b border-border last:border-0 pb-2 last:pb-0">
+                <li
+                  key={i}
+                  className="flex flex-col border-b border-border last:border-0 pb-2 last:pb-0"
+                >
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{f.qtd}</Badge>
                     <span className="font-mono text-xs">{f.tipo}</span>
                     <span className="text-muted-foreground text-xs">/ {f.agregado}</span>
                   </div>
                   {f.ultimo_erro && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{f.ultimo_erro}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {f.ultimo_erro}
+                    </p>
                   )}
                 </li>
               ))}
@@ -221,18 +287,32 @@ function SaudePage() {
         {slaQ.isError && <p className="text-sm text-destructive">Falha ao carregar SLA.</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard icon={Clock} label="Abertas" value={sla?.abertas ?? "—"} />
-          <KpiCard icon={AlertTriangle} label="Vencidas" value={sla?.vencidas ?? "—"}
-            tone={(sla?.vencidas ?? 0) > 0 ? "danger" : "ok"} />
-          <KpiCard icon={Timer} label="Vencem em 24h" value={sla?.proximas_24h ?? "—"}
-            tone={(sla?.proximas_24h ?? 0) > 0 ? "warn" : "ok"} />
+          <KpiCard
+            icon={AlertTriangle}
+            label="Vencidas"
+            value={sla?.vencidas ?? "—"}
+            tone={(sla?.vencidas ?? 0) > 0 ? "danger" : "ok"}
+          />
+          <KpiCard
+            icon={Timer}
+            label="Vencem em 24h"
+            value={sla?.proximas_24h ?? "—"}
+            tone={(sla?.proximas_24h ?? 0) > 0 ? "warn" : "ok"}
+          />
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
               <ShieldAlert className="h-4 w-4" /> Por prioridade
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
-              {sla && Object.keys(sla.por_prioridade).length ? Object.entries(sla.por_prioridade).map(([k, v]) => (
-                <Badge key={k} variant="outline">{k}: {v}</Badge>
-              )) : <span className="text-sm text-muted-foreground">—</span>}
+              {sla && Object.keys(sla.por_prioridade).length ? (
+                Object.entries(sla.por_prioridade).map(([k, v]) => (
+                  <Badge key={k} variant="outline">
+                    {k}: {v}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
             </div>
           </Card>
         </div>
@@ -250,14 +330,24 @@ function SaudePage() {
               {cron?.jobs?.length ? (
                 <table className="w-full text-sm">
                   <thead className="text-xs text-muted-foreground">
-                    <tr><th className="text-left py-1">Nome</th><th className="text-left">Agenda</th><th className="text-left">Ativo</th></tr>
+                    <tr>
+                      <th className="text-left py-1">Nome</th>
+                      <th className="text-left">Agenda</th>
+                      <th className="text-left">Ativo</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {cron.jobs.map((j) => (
                       <tr key={j.jobid} className="border-t border-border">
                         <td className="py-1 font-mono text-xs">{j.jobname ?? `#${j.jobid}`}</td>
                         <td className="font-mono text-xs">{j.schedule}</td>
-                        <td>{j.active ? <Badge variant="secondary">ativo</Badge> : <Badge variant="outline">inativo</Badge>}</td>
+                        <td>
+                          {j.active ? (
+                            <Badge variant="secondary">ativo</Badge>
+                          ) : (
+                            <Badge variant="outline">inativo</Badge>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -275,10 +365,14 @@ function SaudePage() {
                       <div className="flex items-center gap-2">
                         <Badge variant="destructive">{f.status}</Badge>
                         <span className="font-mono text-xs">{f.jobname ?? `#${f.jobid}`}</span>
-                        <span className="text-xs text-muted-foreground">{formatDateTime(f.start_time)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(f.start_time)}
+                        </span>
                       </div>
                       {f.return_message && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{f.return_message}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {f.return_message}
+                        </p>
                       )}
                     </li>
                   ))}
@@ -293,19 +387,23 @@ function SaudePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Uso do sistema (7 dias — anônimo)</h2>
-        {usoQ.isError && <p className="text-sm text-destructive">Falha ao carregar métricas de uso.</p>}
+        {usoQ.isError && (
+          <p className="text-sm text-destructive">Falha ao carregar métricas de uso.</p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard icon={BarChart3} label="Eventos" value={uso?.total_eventos ?? "—"} />
           <KpiCard
             icon={Users}
             label="Sessões únicas (7d)"
-            value={uso ? new Set(uso.dau.map((d) => d.dia)).size ? uso.dau.reduce((s, d) => s + d.sessoes, 0) : 0 : "—"}
+            value={
+              uso
+                ? new Set(uso.dau.map((d) => d.dia)).size
+                  ? uso.dau.reduce((s, d) => s + d.sessoes, 0)
+                  : 0
+                : "—"
+            }
           />
-          <KpiCard
-            icon={Activity}
-            label="Rotas distintas"
-            value={uso?.top_rotas?.length ?? "—"}
-          />
+          <KpiCard icon={Activity} label="Rotas distintas" value={uso?.top_rotas?.length ?? "—"} />
           <KpiCard
             icon={Clock}
             label="Última leitura"
@@ -318,7 +416,10 @@ function SaudePage() {
             {uso?.top_rotas?.length ? (
               <ul className="space-y-1 text-sm">
                 {uso.top_rotas.slice(0, 10).map((r, i) => (
-                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                  <li
+                    key={i}
+                    className="flex items-center justify-between border-b border-border last:border-0 py-1"
+                  >
                     <span className="font-mono text-xs truncate">{r.rota}</span>
                     <Badge variant="secondary">{r.qtd}</Badge>
                   </li>
@@ -333,7 +434,10 @@ function SaudePage() {
             {uso?.por_evento?.length ? (
               <ul className="space-y-1 text-sm">
                 {uso.por_evento.map((e, i) => (
-                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                  <li
+                    key={i}
+                    className="flex items-center justify-between border-b border-border last:border-0 py-1"
+                  >
                     <span className="font-mono text-xs">{e.evento}</span>
                     <Badge variant="outline">{e.qtd}</Badge>
                   </li>
@@ -348,7 +452,10 @@ function SaudePage() {
             {uso?.dau?.length ? (
               <ul className="space-y-1 text-sm">
                 {uso.dau.map((d, i) => (
-                  <li key={i} className="flex items-center justify-between border-b border-border last:border-0 py-1">
+                  <li
+                    key={i}
+                    className="flex items-center justify-between border-b border-border last:border-0 py-1"
+                  >
                     <span className="font-mono text-xs">{d.dia}</span>
                     <Badge variant="secondary">{d.sessoes}</Badge>
                   </li>
@@ -363,7 +470,9 @@ function SaudePage() {
             {uso?.por_perfil?.length ? (
               <div className="flex flex-wrap gap-2">
                 {uso.por_perfil.map((p, i) => (
-                  <Badge key={i} variant="outline">{p.perfil}: {p.qtd}</Badge>
+                  <Badge key={i} variant="outline">
+                    {p.perfil}: {p.qtd}
+                  </Badge>
                 ))}
               </div>
             ) : (
@@ -408,7 +517,10 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
     refetchInterval: 60_000,
     queryFn: async () => {
       return withBreaker("rpc.eventos_travados", async () => {
-        const { data, error } = await supabase.rpc("eventos_travados" as never, { _limit: 100 } as never);
+        const { data, error } = await supabase.rpc(
+          "eventos_travados" as never,
+          { _limit: 100 } as never,
+        );
         if (error) throw error;
         return data as unknown as TravadosResp;
       });
@@ -417,7 +529,10 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
 
   const reprocessar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("reprocessar_evento_dominio" as never, { _id: id } as never);
+      const { error } = await supabase.rpc(
+        "reprocessar_evento_dominio" as never,
+        { _id: id } as never,
+      );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -483,7 +598,9 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
       <Card className="p-4">
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nenhum evento travado. (Considerados travados: <span className="font-mono">falhou_retry</span> com ≥5 tentativas ou <span className="font-mono">falhou</span> definitivo.)
+            Nenhum evento travado. (Considerados travados:{" "}
+            <span className="font-mono">falhou_retry</span> com ≥5 tentativas ou{" "}
+            <span className="font-mono">falhou</span> definitivo.)
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -504,7 +621,8 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
                     <td className="py-2">
                       <div className="font-mono text-xs">{ev.tipo}</div>
                       <div className="text-xs text-muted-foreground">
-                        {ev.agregado}{ev.agregado_id ? ` · ${ev.agregado_id}` : ""}
+                        {ev.agregado}
+                        {ev.agregado_id ? ` · ${ev.agregado_id}` : ""}
                       </div>
                     </td>
                     <td>
@@ -548,7 +666,8 @@ function EventosTravadosSection({ isMaster }: { isMaster: boolean }) {
           </div>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
-          Ações restritas a MASTER. Cada reprocessamento/descartamento é registrado em <span className="font-mono">audit_log</span>.
+          Ações restritas a MASTER. Cada reprocessamento/descartamento é registrado em{" "}
+          <span className="font-mono">audit_log</span>.
         </p>
       </Card>
     </section>
@@ -582,8 +701,16 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
   const qc = useQueryClient();
   const fetchPerf = useServerFn(getPerfMetrics);
   const [snap, setSnap] = useState<PerfSnapshot | null>(null);
-  const [cacheStats, setCacheStats] = useState<{ total: number; fresh: number; stale: number; hitRate: number }>({
-    total: 0, fresh: 0, stale: 0, hitRate: 0,
+  const [cacheStats, setCacheStats] = useState<{
+    total: number;
+    fresh: number;
+    stale: number;
+    hitRate: number;
+  }>({
+    total: 0,
+    fresh: 0,
+    stale: 0,
+    hitRate: 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -643,7 +770,8 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
           <h2 className="text-lg font-semibold">Performance</h2>
           {snap && (
             <span className="text-xs text-muted-foreground">
-              amostra: {snap.sample_size} · desde {formatDateTime(new Date(snap.booted_at).toISOString())}
+              amostra: {snap.sample_size} · desde{" "}
+              {formatDateTime(new Date(snap.booted_at).toISOString())}
             </span>
           )}
         </div>
@@ -662,7 +790,8 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
       {!snap && !error && (
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">
-            Clique em <span className="font-mono">Atualizar métricas</span> para capturar o estado atual do runtime.
+            Clique em <span className="font-mono">Atualizar métricas</span> para capturar o estado
+            atual do runtime.
           </p>
         </Card>
       )}
@@ -670,7 +799,11 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
       {snap && (
         <>
           <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-            <KpiCard icon={Activity} label="Total de requests" value={snap.total_requests.toLocaleString("pt-BR")} />
+            <KpiCard
+              icon={Activity}
+              label="Total de requests"
+              value={snap.total_requests.toLocaleString("pt-BR")}
+            />
             <KpiCard
               icon={Timer}
               label="p95 latência"
@@ -717,8 +850,9 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
               </table>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              Métricas em memória do runtime (buffer circular, últimas 1000 requests). Zeram a cada reciclagem do isolate.
-              Cache hit é estimado por queries com dados no cache do React Query.
+              Métricas em memória do runtime (buffer circular, últimas 1000 requests). Zeram a cada
+              reciclagem do isolate. Cache hit é estimado por queries com dados no cache do React
+              Query.
             </p>
           </Card>
         </>
@@ -727,7 +861,12 @@ function PerformanceSection({ isMaster }: { isMaster: boolean }) {
   );
 }
 
-function AlertsBanner({ eventos, sla, cron, travados }: {
+function AlertsBanner({
+  eventos,
+  sla,
+  cron,
+  travados,
+}: {
   eventos: EventosResp | null;
   sla: SlaResp | null;
   cron: CronResp | null;
@@ -738,7 +877,10 @@ function AlertsBanner({ eventos, sla, cron, travados }: {
     setBreakers(listBreakers());
     const off = subscribeBreakers(() => setBreakers(listBreakers()));
     const iv = setInterval(() => setBreakers(listBreakers()), 5_000);
-    return () => { off(); clearInterval(iv); };
+    return () => {
+      off();
+      clearInterval(iv);
+    };
   }, []);
 
   const alerts = computeSaudeAlerts({ eventos, sla, cron, travados, breakers });
@@ -755,13 +897,19 @@ function AlertsBanner({ eventos, sla, cron, travados }: {
   }
 
   const iconFor = (s: SaudeAlert["severity"]) =>
-    s === "critical" ? <ShieldAlert className="h-4 w-4" />
-    : s === "warn" ? <AlertTriangle className="h-4 w-4" />
-    : <Info className="h-4 w-4" />;
+    s === "critical" ? (
+      <ShieldAlert className="h-4 w-4" />
+    ) : s === "warn" ? (
+      <AlertTriangle className="h-4 w-4" />
+    ) : (
+      <Info className="h-4 w-4" />
+    );
   const toneFor = (s: SaudeAlert["severity"]) =>
-    s === "critical" ? "border-destructive/50 bg-destructive/5 text-destructive"
-    : s === "warn" ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300"
-    : "border-border bg-muted/40 text-muted-foreground";
+    s === "critical"
+      ? "border-destructive/50 bg-destructive/5 text-destructive"
+      : s === "warn"
+        ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300"
+        : "border-border bg-muted/40 text-muted-foreground";
 
   return (
     <section className="space-y-2">
@@ -792,7 +940,10 @@ function BreakersSection() {
     tick();
     const off = subscribeBreakers(tick);
     const iv = setInterval(tick, 5_000);
-    return () => { off(); clearInterval(iv); };
+    return () => {
+      off();
+      clearInterval(iv);
+    };
   }, []);
 
   const badgeFor = (s: BreakerSnapshot) => {
@@ -865,7 +1016,9 @@ function BreakersSection() {
                   <td>{s.failures}</td>
                   <td>{s.totalTrips}</td>
                   <td className="text-xs text-muted-foreground">
-                    {s.state === "open" && s.nextAttemptAt ? formatDateTime(new Date(s.nextAttemptAt).toISOString()) : "—"}
+                    {s.state === "open" && s.nextAttemptAt
+                      ? formatDateTime(new Date(s.nextAttemptAt).toISOString())
+                      : "—"}
                   </td>
                   <td className="text-right">
                     <Button
@@ -873,9 +1026,11 @@ function BreakersSection() {
                       variant="outline"
                       onClick={() => onReset(s)}
                       disabled={cooldownRemaining(s.key) > 0}
-                      title={cooldownRemaining(s.key) > 0
-                        ? `Aguarde ${Math.ceil(cooldownRemaining(s.key) / 1000)}s`
-                        : "Zerar contador e fechar circuito"}
+                      title={
+                        cooldownRemaining(s.key) > 0
+                          ? `Aguarde ${Math.ceil(cooldownRemaining(s.key) / 1000)}s`
+                          : "Zerar contador e fechar circuito"
+                      }
                     >
                       <RotateCcw className="h-3.5 w-3.5 mr-1" /> Forçar reset
                     </Button>
@@ -886,10 +1041,11 @@ function BreakersSection() {
           </table>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
-          Regra: 5 falhas em 30s abrem o disjuntor por 60s. Em meia-abertura, uma requisição de teste decide se ele
-          volta a fechar ou reabre por mais 60s. Fallback degradado seguro é aplicado quando disponível.
-          Ações de <span className="font-mono">Forçar reset</span> são registradas em auditoria
-          (<span className="font-mono">circuit_breaker.reset</span>) e limitadas a 1 por breaker a cada 5 minutos no cliente.
+          Regra: 5 falhas em 30s abrem o disjuntor por 60s. Em meia-abertura, uma requisição de
+          teste decide se ele volta a fechar ou reabre por mais 60s. Fallback degradado seguro é
+          aplicado quando disponível. Ações de <span className="font-mono">Forçar reset</span> são
+          registradas em auditoria (<span className="font-mono">circuit_breaker.reset</span>) e
+          limitadas a 1 por breaker a cada 5 minutos no cliente.
         </p>
       </Card>
     </section>

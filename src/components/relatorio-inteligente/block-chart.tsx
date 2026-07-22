@@ -4,15 +4,37 @@
  */
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  Legend,
 } from "recharts";
 import type { ChartSpec, Row } from "@/lib/relatorio-inteligente/tipos";
 
 const PALETTE = [
-  "#5C4020", "#B7873B", "#D4A24C", "#7B5A2A", "#E4C57A",
-  "#8C6D3F", "#A87F45", "#C8A55A", "#66492A", "#DDB86A",
-  "#4E361A", "#EBD79A",
+  "#5C4020",
+  "#B7873B",
+  "#D4A24C",
+  "#7B5A2A",
+  "#E4C57A",
+  "#8C6D3F",
+  "#A87F45",
+  "#C8A55A",
+  "#66492A",
+  "#DDB86A",
+  "#4E361A",
+  "#EBD79A",
 ];
 
 export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
@@ -51,15 +73,22 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         return (
           <PieChart>
             <Pie
-              data={data} dataKey="value" nameKey="name"
+              data={data}
+              dataKey="value"
+              nameKey="name"
               innerRadius={spec.tipo === "rosca" ? 40 : 0}
-              outerRadius={80} label={(d) => `${d.name}`}
+              outerRadius={80}
+              label={(d) => `${d.name}`}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
+            <Tooltip
+              formatter={(v: unknown) =>
+                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
+              }
+            />
             <Legend />
           </PieChart>
         );
@@ -69,7 +98,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={10} />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
+            <Tooltip
+              formatter={(v: unknown) =>
+                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
+              }
+            />
             <Line type="monotone" dataKey="value" stroke={PALETTE[0]} strokeWidth={2} />
           </LineChart>
         );
@@ -79,7 +112,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={10} />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
+            <Tooltip
+              formatter={(v: unknown) =>
+                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
+              }
+            />
             <Area type="monotone" dataKey="value" stroke={PALETTE[0]} fill={PALETTE[2]} />
           </AreaChart>
         );
@@ -87,9 +124,20 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         return (
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
+            <XAxis
+              dataKey="name"
+              fontSize={10}
+              interval={0}
+              angle={-25}
+              textAnchor="end"
+              height={60}
+            />
             <YAxis fontSize={10} />
-            <Tooltip formatter={(v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? ""))} />
+            <Tooltip
+              formatter={(v: unknown) =>
+                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
+              }
+            />
             <Bar dataKey="value" fill={PALETTE[0]} />
           </BarChart>
         );

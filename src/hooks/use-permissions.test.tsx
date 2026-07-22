@@ -11,9 +11,7 @@ const RPC = "http://supabase.test/rest/v1/rpc/get_my_permissions";
 describe("usePermissions", () => {
   it("mapeia RPC em Set e has()/hasAny() funcionam", async () => {
     server.use(
-      http.post(RPC, () =>
-        HttpResponse.json(["frequencia.aprovar", "frequencia.rejeitar"]),
-      ),
+      http.post(RPC, () => HttpResponse.json(["frequencia.aprovar", "frequencia.rejeitar"])),
     );
     const { result } = renderHookWithQuery(() => usePermissions());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -41,9 +39,7 @@ describe("usePermissions", () => {
 
   it("erro do supabase vira estado de erro (sem exception não tratada)", async () => {
     server.use(
-      http.post(RPC, () =>
-        HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
-      ),
+      http.post(RPC, () => HttpResponse.json({ message: "boom", code: "500" }, { status: 500 })),
     );
     const { result } = renderHookWithQuery(() => usePermissions());
     await waitFor(() => expect(result.current.isError).toBe(true));

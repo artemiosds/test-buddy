@@ -10,7 +10,16 @@ const CAMPOS_NAO_MONETARIOS = new Set(["cpf", "nome", "matricula"]);
 function fmtPreviewCell(v: unknown, destino?: PisoDestino | null): string {
   if (v == null || v === "") return "—";
   const isMoney = destino != null && !CAMPOS_NAO_MONETARIOS.has(destino);
-  const num = typeof v === "number" ? v : isMoney ? Number(String(v).replace(/[R$\s.]/g, "").replace(",", ".")) : NaN;
+  const num =
+    typeof v === "number"
+      ? v
+      : isMoney
+        ? Number(
+            String(v)
+              .replace(/[R$\s.]/g, "")
+              .replace(",", "."),
+          )
+        : NaN;
   if (Number.isFinite(num) && (typeof v === "number" || isMoney)) return BRL.format(num);
   return String(v);
 }
@@ -203,7 +212,10 @@ function ImportarPage() {
   useEffect(() => {
     const el = dropRef.current;
     if (!el) return;
-    const onOver = (e: DragEvent) => { e.preventDefault(); setDragOver(true); };
+    const onOver = (e: DragEvent) => {
+      e.preventDefault();
+      setDragOver(true);
+    };
     const onLeave = () => setDragOver(false);
     const onDrop = (e: DragEvent) => {
       e.preventDefault();
@@ -227,11 +239,18 @@ function ImportarPage() {
       const cpfCol = Object.entries(mapeamento).find(([, d]) => d === "cpf")?.[0];
       const matCol = Object.entries(mapeamento).find(([, d]) => d === "matricula")?.[0];
       const nomeCol = Object.entries(mapeamento).find(([, d]) => d === "nome")?.[0];
-      const cpfs = cpfCol ? rawRows.map((r) => String(r[cpfCol] ?? "").replace(/\D+/g, "")).filter(Boolean) : [];
+      const cpfs = cpfCol
+        ? rawRows.map((r) => String(r[cpfCol] ?? "").replace(/\D+/g, "")).filter(Boolean)
+        : [];
       const mats = matCol ? rawRows.map((r) => String(r[matCol] ?? "").trim()).filter(Boolean) : [];
-      const nomes = nomeCol ? rawRows.map((r) => String(r[nomeCol] ?? "").trim()).filter(Boolean) : [];
+      const nomes = nomeCol
+        ? rawRows.map((r) => String(r[nomeCol] ?? "").trim()).filter(Boolean)
+        : [];
       const maps = await matchProfissionaisImport({ data: { cpfs, matriculas: mats, nomes } });
-      const rows = resolveRows(rawRows, mapeamento, { byCpf: maps.byCpf, byMatricula: maps.byMatricula });
+      const rows = resolveRows(rawRows, mapeamento, {
+        byCpf: maps.byCpf,
+        byMatricula: maps.byMatricula,
+      });
       // Fase 2: complementa com fuzzy por nome quando não localizado por CPF/matrícula
       const candidatos = maps.candidatos ?? [];
       const enriched = rows.map((r) => {
@@ -242,7 +261,8 @@ function ImportarPage() {
       setResolved(enriched);
       setPasso(3);
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao consultar profissionais"),
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao consultar profissionais"),
   });
 
   const commitMut = useMutation({
@@ -267,7 +287,13 @@ function ImportarPage() {
       for (let i = 0; i < resolved.length; i += CHUNK) {
         if (cancelRef.current) {
           await finalizeImportPiso({
-            data: { historico_id, importados: 0, divergentes: 0, naoLocalizados: 0, cancelado: true },
+            data: {
+              historico_id,
+              importados: 0,
+              divergentes: 0,
+              naoLocalizados: 0,
+              cancelado: true,
+            },
           });
           throw new Error("Importação cancelada.");
         }
@@ -347,7 +373,9 @@ function ImportarPage() {
           <div className="space-y-2">
             <Label>Modelo</Label>
             <Select value={modelo} onValueChange={(v) => setModelo(v as Modelo)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Efetivos">Efetivos (FOPAG)</SelectItem>
                 <SelectItem value="Contratados">Contratados</SelectItem>
@@ -359,7 +387,9 @@ function ImportarPage() {
           <div className="space-y-2">
             <Label>Tipo de vínculo a importar</Label>
             <Select value={vinculo} onValueChange={(v) => setVinculo(v as typeof vinculo)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Efetivos">Efetivos</SelectItem>
                 <SelectItem value="Contratados">Contratados</SelectItem>
@@ -369,7 +399,11 @@ function ImportarPage() {
           </div>
           <div className="space-y-2">
             <Label>Competência (opcional)</Label>
-            <Input placeholder="ex: Janeiro 2026" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
+            <Input
+              placeholder="ex: Janeiro 2026"
+              value={competencia}
+              onChange={(e) => setCompetencia(e.target.value)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Arquivo (Excel, CSV ou PDF — até 50MB)</Label>
@@ -392,7 +426,9 @@ function ImportarPage() {
                 }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">Arquivos PDF serão suportados em versão futura.</p>
+            <p className="text-xs text-muted-foreground">
+              Arquivos PDF serão suportados em versão futura.
+            </p>
           </div>
         </div>
       )}
@@ -407,32 +443,48 @@ function ImportarPage() {
                   value={String(headerRowIndex)}
                   onValueChange={(v) => changeHeaderRow(Number(v))}
                 >
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: Math.min(aoa.length, 10) }).map((_, i) => (
-                      <SelectItem key={i} value={String(i)}>Linha {i + 1}</SelectItem>
+                      <SelectItem key={i} value={String(i)}>
+                        Linha {i + 1}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">
-                Detectado automaticamente na <strong>linha {headerRowIndex + 1}</strong>.
-                Ajuste se as colunas abaixo estiverem incorretas.
+                Detectado automaticamente na <strong>linha {headerRowIndex + 1}</strong>. Ajuste se
+                as colunas abaixo estiverem incorretas.
               </p>
             </div>
           )}
           {preview5.length > 0 && (
             <details className="rounded-md border bg-muted/30 p-2 text-xs">
-              <summary className="cursor-pointer font-medium">Pré-visualização (5 primeiras linhas)</summary>
+              <summary className="cursor-pointer font-medium">
+                Pré-visualização (5 primeiras linhas)
+              </summary>
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-background text-left">
-                    <tr>{headers.map((h) => <th key={h} className="px-2 py-1 font-mono">{h}</th>)}</tr>
+                    <tr>
+                      {headers.map((h) => (
+                        <th key={h} className="px-2 py-1 font-mono">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
                   </thead>
                   <tbody>
                     {preview5.map((r, i) => (
                       <tr key={i} className="border-t">
-                        {headers.map((h) => <td key={h} className="px-2 py-1 tabular-nums">{fmtPreviewCell(r[h], mapeamento[h])}</td>)}
+                        {headers.map((h) => (
+                          <td key={h} className="px-2 py-1 tabular-nums">
+                            {fmtPreviewCell(r[h], mapeamento[h])}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -451,7 +503,8 @@ function ImportarPage() {
                 <ul className="list-disc pl-5">
                   {calculatedCols.map((c) => (
                     <li key={c.header}>
-                      <span className="font-mono">{c.header}</span> — o sistema recalcula {c.destino.replace("_", " ")} automaticamente.
+                      <span className="font-mono">{c.header}</span> — o sistema recalcula{" "}
+                      {c.destino.replace("_", " ")} automaticamente.
                     </li>
                   ))}
                 </ul>
@@ -471,10 +524,14 @@ function ImportarPage() {
                   if (item) setMapeamento(item.mapeamento as Mapeamento);
                 }}
               >
-                <SelectTrigger><SelectValue placeholder="Carregar modelo…" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Carregar modelo…" />
+                </SelectTrigger>
                 <SelectContent>
                   {(savedQ.data?.rows ?? []).map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -502,27 +559,46 @@ function ImportarPage() {
                 {headers.map((h) => {
                   const conf = headerConfidence(h);
                   const dest = mapeamento[h];
-                  const showConf = dest && conf.destino === dest ? conf : { ...conf, destino: dest, score: dest ? 0.5 : 0, tone: (dest ? "low" : "none") as ConfidenceTone };
+                  const showConf =
+                    dest && conf.destino === dest
+                      ? conf
+                      : {
+                          ...conf,
+                          destino: dest,
+                          score: dest ? 0.5 : 0,
+                          tone: (dest ? "low" : "none") as ConfidenceTone,
+                        };
                   return (
                     <tr key={h} className="border-t">
                       <td className="px-3 py-2 font-mono text-xs">{h}</td>
                       <td className="px-3 py-2">
                         <Select
                           value={(mapeamento[h] ?? "") as string}
-                          onValueChange={(v) => setMapeamento({ ...mapeamento, [h]: (v || null) as PisoDestino | null })}
+                          onValueChange={(v) =>
+                            setMapeamento({ ...mapeamento, [h]: (v || null) as PisoDestino | null })
+                          }
                         >
-                          <SelectTrigger className="w-64"><SelectValue placeholder="— Ignorar —" /></SelectTrigger>
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder="— Ignorar —" />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="">— Ignorar —</SelectItem>
                             {CAMPOS_SISTEMA.map((c) => (
-                              <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                              <SelectItem key={c.key} value={c.key}>
+                                {c.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </td>
                       <td className="px-3 py-2">
                         {dest ? (
-                          <span className={"inline-flex items-center rounded-full border px-2 py-0.5 text-xs " + TONE_CLASSES[showConf.tone]}>
+                          <span
+                            className={
+                              "inline-flex items-center rounded-full border px-2 py-0.5 text-xs " +
+                              TONE_CLASSES[showConf.tone]
+                            }
+                          >
                             {Math.round(showConf.score * 100)}%
                           </span>
                         ) : (
@@ -540,13 +616,18 @@ function ImportarPage() {
             <div className="mb-2 flex items-center justify-between">
               <p className="text-sm font-medium">Campos a atualizar no cadastro</p>
               <p className="text-xs text-muted-foreground">
-                Financeiros marcados por padrão. Marque cadastrais somente se a folha deve sobrescrevê-los.
+                Financeiros marcados por padrão. Marque cadastrais somente se a folha deve
+                sobrescrevê-los.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
               {CAMPOS_SISTEMA.filter(
-                (c) => c.key !== "cpf" && c.key !== "nome" && c.key !== "matricula" &&
-                       c.key !== "competencia" && !CAMPOS_CALCULADOS.has(c.key),
+                (c) =>
+                  c.key !== "cpf" &&
+                  c.key !== "nome" &&
+                  c.key !== "matricula" &&
+                  c.key !== "competencia" &&
+                  !CAMPOS_CALCULADOS.has(c.key),
               ).map((c) => (
                 <label key={c.key} className="flex items-center gap-2 text-sm">
                   <Checkbox
@@ -564,7 +645,9 @@ function ImportarPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPasso(1)}>Voltar</Button>
+            <Button variant="outline" onClick={() => setPasso(1)}>
+              Voltar
+            </Button>
             <Button onClick={() => matchMut.mutate()} disabled={matchMut.isPending}>
               {matchMut.isPending ? "Localizando profissionais…" : "Continuar"}
             </Button>
@@ -591,7 +674,8 @@ function ImportarPage() {
                   {(() => {
                     const pct = progresso.total > 0 ? progresso.feito / progresso.total : 0;
                     const elapsed = (Date.now() - progresso.inicio) / 1000;
-                    const eta = pct > 0.05 ? Math.max(0, Math.round(elapsed / pct - elapsed)) : null;
+                    const eta =
+                      pct > 0.05 ? Math.max(0, Math.round(elapsed / pct - elapsed)) : null;
                     return eta != null ? `Tempo estimado: ${eta}s` : "Estimando…";
                   })()}
                 </span>
@@ -600,14 +684,22 @@ function ImportarPage() {
                 value={progresso.total > 0 ? (progresso.feito / progresso.total) * 100 : 0}
               />
               <div className="flex justify-end">
-                <Button size="sm" variant="destructive" onClick={() => { cancelRef.current = true; }}>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    cancelRef.current = true;
+                  }}
+                >
                   Cancelar importação
                 </Button>
               </div>
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPasso(2)}>Voltar</Button>
+            <Button variant="outline" onClick={() => setPasso(2)}>
+              Voltar
+            </Button>
             <Button onClick={() => commitMut.mutate()} disabled={commitMut.isPending}>
               {commitMut.isPending ? "Gravando…" : "Confirmar importação"}
             </Button>
@@ -618,11 +710,23 @@ function ImportarPage() {
   );
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone?: "success" | "warning" | "danger" }) {
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "success" | "warning" | "danger";
+}) {
   const color =
-    tone === "success" ? "text-emerald-600" :
-    tone === "warning" ? "text-amber-600" :
-    tone === "danger" ? "text-red-600" : "text-foreground";
+    tone === "success"
+      ? "text-emerald-600"
+      : tone === "warning"
+        ? "text-amber-600"
+        : tone === "danger"
+          ? "text-red-600"
+          : "text-foreground";
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs uppercase text-muted-foreground">{label}</div>
@@ -654,7 +758,11 @@ function ProgressSteps({ passo }: { passo: Passo }) {
                     : "border-border bg-muted text-muted-foreground")
               }
             >
-              {done ? <CheckCircle2 className="h-3 w-3" /> : <span className="font-semibold">{it.n}</span>}
+              {done ? (
+                <CheckCircle2 className="h-3 w-3" />
+              ) : (
+                <span className="font-semibold">{it.n}</span>
+              )}
               {it.label}
             </span>
             {i < items.length - 1 && <span className="h-px w-6 bg-border" />}
@@ -683,7 +791,8 @@ function QualityCard({ q }: { q: ReturnType<typeof computeQuality> }) {
   if (q.total === 0) return null;
   const dot = (tone: ConfidenceTone) =>
     tone === "high" ? "🟢" : tone === "medium" ? "🟡" : tone === "low" ? "🔴" : "⚪";
-  const toneFor = (pct: number): ConfidenceTone => (pct >= 0.9 ? "high" : pct >= 0.7 ? "medium" : "low");
+  const toneFor = (pct: number): ConfidenceTone =>
+    pct >= 0.9 ? "high" : pct >= 0.7 ? "medium" : "low";
   const items = [
     { label: "CPFs válidos", pct: q.cpfPct, n: q.cpfValidos },
     { label: "Nomes preenchidos", pct: q.nomePct, n: q.nomePreenchido },
@@ -694,10 +803,18 @@ function QualityCard({ q }: { q: ReturnType<typeof computeQuality> }) {
       {items.map((it) => {
         const tone = toneFor(it.pct);
         return (
-          <div key={it.label} className="flex items-center justify-between rounded border bg-background px-3 py-2 text-sm">
-            <span className="text-muted-foreground">{dot(tone)} {it.label}</span>
+          <div
+            key={it.label}
+            className="flex items-center justify-between rounded border bg-background px-3 py-2 text-sm"
+          >
+            <span className="text-muted-foreground">
+              {dot(tone)} {it.label}
+            </span>
             <span className="font-semibold">
-              {Math.round(it.pct * 100)}% <span className="text-xs text-muted-foreground">({it.n}/{q.total})</span>
+              {Math.round(it.pct * 100)}%{" "}
+              <span className="text-xs text-muted-foreground">
+                ({it.n}/{q.total})
+              </span>
             </span>
           </div>
         );
@@ -714,9 +831,13 @@ function PreviewTable({ rows }: { rows: ResolvedRow[] }) {
       cell: (r) => (
         <Badge
           variant={
-            r.status_match === "cpf" ? "default" :
-            r.status_match === "matricula" ? "secondary" :
-            r.status_match === "nome" ? "outline" : "destructive"
+            r.status_match === "cpf"
+              ? "default"
+              : r.status_match === "matricula"
+                ? "secondary"
+                : r.status_match === "nome"
+                  ? "outline"
+                  : "destructive"
           }
         >
           {r.status_match === "nao_localizado" ? "Não localizado" : r.status_match.toUpperCase()}

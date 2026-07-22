@@ -5,13 +5,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
+import {
+  registrarDocumentoAssinado,
+  drawSignatureStamp,
+  armazenarPdfAssinado,
+} from "@/lib/pdf-signature";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { toast } from "sonner";
@@ -26,7 +36,20 @@ export const Route = createFileRoute("/_authenticated/relatorios-consolidado")({
   component: RelatorioConsolidadoPage,
 });
 
-const MES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MES_LABEL = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 type Row = {
   faltas_injustificadas: number | null;
@@ -96,7 +119,8 @@ function RelatorioConsolidadoPage() {
     queryFn: async () => {
       let q = supabase
         .from("frequencia_profissional")
-        .select(`
+        .select(
+          `
           faltas_injustificadas, atestado, he_50, he_100, adicional_noturno,
           plantoes_extras, sobreaviso, incentivo, status_linha,
           frequencias!inner(
@@ -106,7 +130,8 @@ function RelatorioConsolidadoPage() {
               unidades!inner(id, nome, sigla)
             )
           )
-        `)
+        `,
+        )
         .is("deleted_at", null)
         .eq("frequencias.competencia_unidades.competencia_id", competenciaId);
       if (tipo !== "all") q = q.eq("frequencias.tipo", tipo);
@@ -126,9 +151,18 @@ function RelatorioConsolidadoPage() {
         a = {
           unidade_id: u.id,
           unidade_nome: u.sigla ? `${u.sigla} — ${u.nome}` : u.nome,
-          qtd: 0, faltas: 0, atestado: 0, he_50: 0, he_100: 0, adn: 0,
-          plantoes: 0, sobreaviso: 0, incentivo: 0,
-          pendentes: 0, aprovadas: 0, rejeitadas: 0,
+          qtd: 0,
+          faltas: 0,
+          atestado: 0,
+          he_50: 0,
+          he_100: 0,
+          adn: 0,
+          plantoes: 0,
+          sobreaviso: 0,
+          incentivo: 0,
+          pendentes: 0,
+          aprovadas: 0,
+          rejeitadas: 0,
         };
         map.set(u.id, a);
       }
@@ -150,15 +184,32 @@ function RelatorioConsolidadoPage() {
 
   const totais = useMemo(() => {
     const t: Omit<Agg, "unidade_id" | "unidade_nome"> = {
-      qtd: 0, faltas: 0, atestado: 0, he_50: 0, he_100: 0, adn: 0,
-      plantoes: 0, sobreaviso: 0, incentivo: 0,
-      pendentes: 0, aprovadas: 0, rejeitadas: 0,
+      qtd: 0,
+      faltas: 0,
+      atestado: 0,
+      he_50: 0,
+      he_100: 0,
+      adn: 0,
+      plantoes: 0,
+      sobreaviso: 0,
+      incentivo: 0,
+      pendentes: 0,
+      aprovadas: 0,
+      rejeitadas: 0,
     };
     for (const a of aggregated) {
-      t.qtd += a.qtd; t.faltas += a.faltas; t.atestado += a.atestado;
-      t.he_50 += a.he_50; t.he_100 += a.he_100; t.adn += a.adn;
-      t.plantoes += a.plantoes; t.sobreaviso += a.sobreaviso; t.incentivo += a.incentivo;
-      t.pendentes += a.pendentes; t.aprovadas += a.aprovadas; t.rejeitadas += a.rejeitadas;
+      t.qtd += a.qtd;
+      t.faltas += a.faltas;
+      t.atestado += a.atestado;
+      t.he_50 += a.he_50;
+      t.he_100 += a.he_100;
+      t.adn += a.adn;
+      t.plantoes += a.plantoes;
+      t.sobreaviso += a.sobreaviso;
+      t.incentivo += a.incentivo;
+      t.pendentes += a.pendentes;
+      t.aprovadas += a.aprovadas;
+      t.rejeitadas += a.rejeitadas;
     }
     return t;
   }, [aggregated]);
@@ -169,28 +220,55 @@ function RelatorioConsolidadoPage() {
   }, [competencias, competenciaId]);
 
   const HEADERS = [
-    "Unidade", "Qtd. Profissionais", "Total Dias Falta", "Total Atestado",
-    "Total HE 50%", "Total HE 100%", "Total ADN", "Total Plantões",
-    "Total Sobreaviso", "Total Incentivo", "Pendentes", "Aprovadas", "Rejeitadas",
+    "Unidade",
+    "Qtd. Profissionais",
+    "Total Dias Falta",
+    "Total Atestado",
+    "Total HE 50%",
+    "Total HE 100%",
+    "Total ADN",
+    "Total Plantões",
+    "Total Sobreaviso",
+    "Total Incentivo",
+    "Pendentes",
+    "Aprovadas",
+    "Rejeitadas",
   ];
 
   function exportarXLSX() {
-    if (!aggregated.length) { toast.error("Nada para exportar."); return; }
+    if (!aggregated.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
     const data = aggregated.map((a) => ({
-      "Unidade": a.unidade_nome, "Qtd. Profissionais": a.qtd,
-      "Total Dias Falta": a.faltas, "Total Atestado": a.atestado,
-      "Total HE 50%": a.he_50, "Total HE 100%": a.he_100, "Total ADN": a.adn,
-      "Total Plantões": a.plantoes, "Total Sobreaviso": a.sobreaviso,
-      "Total Incentivo": a.incentivo, "Pendentes": a.pendentes,
-      "Aprovadas": a.aprovadas, "Rejeitadas": a.rejeitadas,
+      Unidade: a.unidade_nome,
+      "Qtd. Profissionais": a.qtd,
+      "Total Dias Falta": a.faltas,
+      "Total Atestado": a.atestado,
+      "Total HE 50%": a.he_50,
+      "Total HE 100%": a.he_100,
+      "Total ADN": a.adn,
+      "Total Plantões": a.plantoes,
+      "Total Sobreaviso": a.sobreaviso,
+      "Total Incentivo": a.incentivo,
+      Pendentes: a.pendentes,
+      Aprovadas: a.aprovadas,
+      Rejeitadas: a.rejeitadas,
     }));
     data.push({
-      "Unidade": "TOTAL GERAL", "Qtd. Profissionais": totais.qtd,
-      "Total Dias Falta": totais.faltas, "Total Atestado": totais.atestado,
-      "Total HE 50%": totais.he_50, "Total HE 100%": totais.he_100, "Total ADN": totais.adn,
-      "Total Plantões": totais.plantoes, "Total Sobreaviso": totais.sobreaviso,
-      "Total Incentivo": totais.incentivo, "Pendentes": totais.pendentes,
-      "Aprovadas": totais.aprovadas, "Rejeitadas": totais.rejeitadas,
+      Unidade: "TOTAL GERAL",
+      "Qtd. Profissionais": totais.qtd,
+      "Total Dias Falta": totais.faltas,
+      "Total Atestado": totais.atestado,
+      "Total HE 50%": totais.he_50,
+      "Total HE 100%": totais.he_100,
+      "Total ADN": totais.adn,
+      "Total Plantões": totais.plantoes,
+      "Total Sobreaviso": totais.sobreaviso,
+      "Total Incentivo": totais.incentivo,
+      Pendentes: totais.pendentes,
+      Aprovadas: totais.aprovadas,
+      Rejeitadas: totais.rejeitadas,
     });
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -200,7 +278,10 @@ function RelatorioConsolidadoPage() {
   }
 
   async function exportarPDF() {
-    if (!aggregated.length) { toast.error("Nada para exportar."); return; }
+    if (!aggregated.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
     const ok = await pedirTermo({
       nome: me?.nome_completo,
       cargo: me?.perfil_nome,
@@ -219,16 +300,37 @@ function RelatorioConsolidadoPage() {
       headStyles: { fillColor: [30, 41, 59] },
       head: [HEADERS],
       body: aggregated.map((a) => [
-        a.unidade_nome, a.qtd, a.faltas, a.atestado, a.he_50, a.he_100,
-        a.adn, a.plantoes, a.sobreaviso, a.incentivo,
-        a.pendentes, a.aprovadas, a.rejeitadas,
+        a.unidade_nome,
+        a.qtd,
+        a.faltas,
+        a.atestado,
+        a.he_50,
+        a.he_100,
+        a.adn,
+        a.plantoes,
+        a.sobreaviso,
+        a.incentivo,
+        a.pendentes,
+        a.aprovadas,
+        a.rejeitadas,
       ]),
-      foot: [[
-        "TOTAL GERAL", totais.qtd, totais.faltas, totais.atestado,
-        totais.he_50, totais.he_100, totais.adn, totais.plantoes,
-        totais.sobreaviso, totais.incentivo,
-        totais.pendentes, totais.aprovadas, totais.rejeitadas,
-      ]],
+      foot: [
+        [
+          "TOTAL GERAL",
+          totais.qtd,
+          totais.faltas,
+          totais.atestado,
+          totais.he_50,
+          totais.he_100,
+          totais.adn,
+          totais.plantoes,
+          totais.sobreaviso,
+          totais.incentivo,
+          totais.pendentes,
+          totais.aprovadas,
+          totais.rejeitadas,
+        ],
+      ],
       footStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: "bold" },
     });
 
@@ -249,9 +351,15 @@ function RelatorioConsolidadoPage() {
       });
       drawSignatureStamp(doc, sig);
       _sigConsolidado = sig;
-    } catch (err) { logger.error("relatorios_consolidado.signature_failed", { error: err }); }
+    } catch (err) {
+      logger.error("relatorios_consolidado.signature_failed", { error: err });
+    }
     if (_sigConsolidado) {
-      try { await armazenarPdfAssinado(_sigConsolidado, doc.output("blob")); } catch { /* best effort */ }
+      try {
+        await armazenarPdfAssinado(_sigConsolidado, doc.output("blob"));
+      } catch {
+        /* best effort */
+      }
     }
     doc.save(`consolidado_${compLabel.replace("/", "-")}.pdf`);
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
@@ -282,7 +390,11 @@ function RelatorioConsolidadoPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportarPDF} disabled={!canExport || !aggregated.length}>
+          <Button
+            variant="outline"
+            onClick={exportarPDF}
+            disabled={!canExport || !aggregated.length}
+          >
             <Download className="mr-2 h-4 w-4" /> PDF
           </Button>
           <Button onClick={exportarXLSX} disabled={!canExport || !aggregated.length}>
@@ -295,9 +407,13 @@ function RelatorioConsolidadoPage() {
 
       <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Competência *</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Competência *
+          </label>
           <Select value={competenciaId} onValueChange={setCompetenciaId}>
-            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
             <SelectContent>
               {competencias?.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
@@ -310,7 +426,9 @@ function RelatorioConsolidadoPage() {
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Tipo</label>
           <Select value={tipo} onValueChange={(v) => setTipo(v as TipoFolha | "all")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Ambos</SelectItem>
               <SelectItem value="contratados">Contratados</SelectItem>
@@ -330,16 +448,32 @@ function RelatorioConsolidadoPage() {
             <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 {HEADERS.map((h) => (
-                  <th key={h} className="whitespace-nowrap px-3 py-2">{h}</th>
+                  <th key={h} className="whitespace-nowrap px-3 py-2">
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={HEADERS.length} className="px-3 py-8 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr>
+                  <td
+                    colSpan={HEADERS.length}
+                    className="px-3 py-8 text-center text-muted-foreground"
+                  >
+                    Carregando...
+                  </td>
+                </tr>
               )}
               {!isLoading && !aggregated.length && (
-                <tr><td colSpan={HEADERS.length} className="px-3 py-8 text-center text-muted-foreground">Nenhum dado encontrado.</td></tr>
+                <tr>
+                  <td
+                    colSpan={HEADERS.length}
+                    className="px-3 py-8 text-center text-muted-foreground"
+                  >
+                    Nenhum dado encontrado.
+                  </td>
+                </tr>
               )}
               {aggregated.map((a) => (
                 <tr key={a.unidade_id} className="border-t">

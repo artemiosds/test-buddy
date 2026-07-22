@@ -126,18 +126,29 @@ const CommitInput = z.object({
 
 // Campos que o usuário pode desmarcar na tela de importação.
 const CAMPOS_ATUALIZAVEIS = [
-  "cargo","unidade","setor","vinculo",
-  "salario_base","piso_complementacao","insalubridade","gratificacao",
-  "hora_extra_50","hora_extra_100","adicional_noturno","auxilio_financeiro",
-  "ferias_1_3","ferias","inss","irrf",
+  "cargo",
+  "unidade",
+  "setor",
+  "vinculo",
+  "salario_base",
+  "piso_complementacao",
+  "insalubridade",
+  "gratificacao",
+  "hora_extra_50",
+  "hora_extra_100",
+  "adicional_noturno",
+  "auxilio_financeiro",
+  "ferias_1_3",
+  "ferias",
+  "inss",
+  "irrf",
 ] as const;
 type CampoAtualizavel = (typeof CAMPOS_ATUALIZAVEIS)[number];
-const CamposAtualizarSchema = z.array(z.enum(CAMPOS_ATUALIZAVEIS)).default([...CAMPOS_ATUALIZAVEIS]);
+const CamposAtualizarSchema = z
+  .array(z.enum(CAMPOS_ATUALIZAVEIS))
+  .default([...CAMPOS_ATUALIZAVEIS]);
 
-function filtraCampos<T extends Record<string, unknown>>(
-  row: T,
-  camposPermitidos: Set<string>,
-): T {
+function filtraCampos<T extends Record<string, unknown>>(row: T, camposPermitidos: Set<string>): T {
   const out = { ...row } as Record<string, unknown>;
   for (const k of CAMPOS_ATUALIZAVEIS) {
     if (!camposPermitidos.has(k)) out[k] = null;
@@ -155,7 +166,9 @@ export const commitImportPiso = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const camposSet = new Set<string>(data.camposAtualizar ?? [...CAMPOS_ATUALIZAVEIS]);
 
-    let importados = 0, divergentes = 0, naoLocalizados = 0;
+    let importados = 0,
+      divergentes = 0,
+      naoLocalizados = 0;
     for (const l of data.linhas) {
       if (l.status_match === "nao_localizado") naoLocalizados++;
       else if (!l.cpf && !l.matricula) divergentes++;
@@ -182,35 +195,40 @@ export const commitImportPiso = createServerFn({ method: "POST" })
     if (histErr || !hist) throw new Error(histErr?.message ?? "Falha ao criar histórico");
 
     if (data.linhas.length > 0) {
-      const rows = data.linhas.map((l) => filtraCampos({
-        historico_id: hist.id,
-        profissional_id: l.profissional_id ?? null,
-        cpf: l.cpf ?? null,
-        nome: l.nome ?? null,
-        matricula: l.matricula ?? null,
-        cargo: l.cargo ?? null,
-        unidade: l.unidade ?? null,
-        setor: l.setor ?? null,
-        vinculo: l.vinculo ?? null,
-        salario_base: l.salario_base ?? null,
-        piso_complementacao: l.piso_complementacao ?? null,
-        insalubridade: l.insalubridade ?? null,
-        gratificacao: l.gratificacao ?? null,
-        hora_extra_50: l.hora_extra_50 ?? null,
-        hora_extra_100: l.hora_extra_100 ?? null,
-        adicional_noturno: l.adicional_noturno ?? null,
-        auxilio_financeiro: l.auxilio_financeiro ?? null,
-        ferias_1_3: l.ferias_1_3 ?? null,
-        ferias: l.ferias ?? null,
-        inss: l.inss ?? null,
-        irrf: l.irrf ?? null,
-        valor_liquido: l.valor_liquido ?? null,
-        valor_final: l.valor_final ?? null,
-        competencia: l.competencia ?? data.competencia ?? null,
-        origem_arquivo: data.nome_arquivo,
-        importado_por: userId,
-        status_match: l.status_match,
-      }, camposSet));
+      const rows = data.linhas.map((l) =>
+        filtraCampos(
+          {
+            historico_id: hist.id,
+            profissional_id: l.profissional_id ?? null,
+            cpf: l.cpf ?? null,
+            nome: l.nome ?? null,
+            matricula: l.matricula ?? null,
+            cargo: l.cargo ?? null,
+            unidade: l.unidade ?? null,
+            setor: l.setor ?? null,
+            vinculo: l.vinculo ?? null,
+            salario_base: l.salario_base ?? null,
+            piso_complementacao: l.piso_complementacao ?? null,
+            insalubridade: l.insalubridade ?? null,
+            gratificacao: l.gratificacao ?? null,
+            hora_extra_50: l.hora_extra_50 ?? null,
+            hora_extra_100: l.hora_extra_100 ?? null,
+            adicional_noturno: l.adicional_noturno ?? null,
+            auxilio_financeiro: l.auxilio_financeiro ?? null,
+            ferias_1_3: l.ferias_1_3 ?? null,
+            ferias: l.ferias ?? null,
+            inss: l.inss ?? null,
+            irrf: l.irrf ?? null,
+            valor_liquido: l.valor_liquido ?? null,
+            valor_final: l.valor_final ?? null,
+            competencia: l.competencia ?? data.competencia ?? null,
+            origem_arquivo: data.nome_arquivo,
+            importado_por: userId,
+            status_match: l.status_match,
+          },
+          camposSet,
+        ),
+      );
 
       // Batches de 500 para evitar payload muito grande
       for (let i = 0; i < rows.length; i += 500) {
@@ -220,7 +238,10 @@ export const commitImportPiso = createServerFn({ method: "POST" })
       }
     }
 
-    return { historico_id: hist.id, stats: { total: data.linhas.length, importados, divergentes, naoLocalizados } };
+    return {
+      historico_id: hist.id,
+      stats: { total: data.linhas.length, importados, divergentes, naoLocalizados },
+    };
   });
 
 // --------------------- Commit em chunks (com barra de progresso) ---------------------
@@ -275,35 +296,40 @@ export const appendPisoLinhas = createServerFn({ method: "POST" })
     await ensurePermission(context.supabase, context.userId, "piso.importar");
     if (data.linhas.length === 0) return { inserted: 0 };
     const camposSet = new Set<string>(data.camposAtualizar ?? [...CAMPOS_ATUALIZAVEIS]);
-    const rows = data.linhas.map((l) => filtraCampos({
-      historico_id: data.historico_id,
-      profissional_id: l.profissional_id ?? null,
-      cpf: l.cpf ?? null,
-      nome: l.nome ?? null,
-      matricula: l.matricula ?? null,
-      cargo: l.cargo ?? null,
-      unidade: l.unidade ?? null,
-      setor: l.setor ?? null,
-      vinculo: l.vinculo ?? null,
-      salario_base: l.salario_base ?? null,
-      piso_complementacao: l.piso_complementacao ?? null,
-      insalubridade: l.insalubridade ?? null,
-      gratificacao: l.gratificacao ?? null,
-      hora_extra_50: l.hora_extra_50 ?? null,
-      hora_extra_100: l.hora_extra_100 ?? null,
-      adicional_noturno: l.adicional_noturno ?? null,
-      auxilio_financeiro: l.auxilio_financeiro ?? null,
-      ferias_1_3: l.ferias_1_3 ?? null,
-      ferias: l.ferias ?? null,
-      inss: l.inss ?? null,
-      irrf: l.irrf ?? null,
-      valor_liquido: l.valor_liquido ?? null,
-      valor_final: l.valor_final ?? null,
-      competencia: l.competencia ?? data.competencia ?? null,
-      origem_arquivo: data.nome_arquivo,
-      importado_por: context.userId,
-      status_match: l.status_match,
-    }, camposSet));
+    const rows = data.linhas.map((l) =>
+      filtraCampos(
+        {
+          historico_id: data.historico_id,
+          profissional_id: l.profissional_id ?? null,
+          cpf: l.cpf ?? null,
+          nome: l.nome ?? null,
+          matricula: l.matricula ?? null,
+          cargo: l.cargo ?? null,
+          unidade: l.unidade ?? null,
+          setor: l.setor ?? null,
+          vinculo: l.vinculo ?? null,
+          salario_base: l.salario_base ?? null,
+          piso_complementacao: l.piso_complementacao ?? null,
+          insalubridade: l.insalubridade ?? null,
+          gratificacao: l.gratificacao ?? null,
+          hora_extra_50: l.hora_extra_50 ?? null,
+          hora_extra_100: l.hora_extra_100 ?? null,
+          adicional_noturno: l.adicional_noturno ?? null,
+          auxilio_financeiro: l.auxilio_financeiro ?? null,
+          ferias_1_3: l.ferias_1_3 ?? null,
+          ferias: l.ferias ?? null,
+          inss: l.inss ?? null,
+          irrf: l.irrf ?? null,
+          valor_liquido: l.valor_liquido ?? null,
+          valor_final: l.valor_final ?? null,
+          competencia: l.competencia ?? data.competencia ?? null,
+          origem_arquivo: data.nome_arquivo,
+          importado_por: context.userId,
+          status_match: l.status_match,
+        },
+        camposSet,
+      ),
+    );
     const { error } = await context.supabase.from("piso_enfermagem").insert(rows);
     if (error) throw new Error(error.message);
     return { inserted: rows.length };
@@ -366,17 +392,26 @@ export const getPisoDistribuicao = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const uMap = new Map<string, { total: number; valor: number }>();
     const cMap = new Map<string, { total: number; valor: number }>();
-    const naoLocalizados: { nome: string | null; cpf: string | null; matricula: string | null }[] = [];
+    const naoLocalizados: { nome: string | null; cpf: string | null; matricula: string | null }[] =
+      [];
     for (const r of rows ?? []) {
       const uKey = r.unidade ?? "—";
       const cKey = r.cargo ?? "—";
       const val = r.piso_complementacao ?? 0;
       const u = uMap.get(uKey) ?? { total: 0, valor: 0 };
-      u.total += 1; u.valor += val; uMap.set(uKey, u);
+      u.total += 1;
+      u.valor += val;
+      uMap.set(uKey, u);
       const c = cMap.get(cKey) ?? { total: 0, valor: 0 };
-      c.total += 1; c.valor += val; cMap.set(cKey, c);
+      c.total += 1;
+      c.valor += val;
+      cMap.set(cKey, c);
       if (r.status_match === "nao_localizado") {
-        naoLocalizados.push({ nome: r.nome ?? null, cpf: r.cpf ?? null, matricula: r.matricula ?? null });
+        naoLocalizados.push({
+          nome: r.nome ?? null,
+          cpf: r.cpf ?? null,
+          matricula: r.matricula ?? null,
+        });
       }
     }
     const porUnidade = Array.from(uMap.entries())
@@ -393,12 +428,18 @@ export const getPisoDistribuicao = createServerFn({ method: "GET" })
 
 export const listHistoricoImportacoes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ page: z.number().default(1), pageSize: z.number().default(25) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ page: z.number().default(1), pageSize: z.number().default(25) }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await ensurePermission(context.supabase, context.userId, "piso.visualizar");
     const from = (data.page - 1) * data.pageSize;
     const to = from + data.pageSize - 1;
-    const { data: rows, count, error } = await context.supabase
+    const {
+      data: rows,
+      count,
+      error,
+    } = await context.supabase
       .from("historico_importacoes")
       .select("*", { count: "exact" })
       .order("data_importacao", { ascending: false })
@@ -436,20 +477,25 @@ export const getHistoricoImportacao = createServerFn({ method: "GET" })
 export const saveMapeamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      nome: z.string().min(1).max(120),
-      modelo: MODELO,
-      mapeamento: z.record(z.string(), z.string().nullable()),
-    }).parse(d),
+    z
+      .object({
+        nome: z.string().min(1).max(120),
+        modelo: MODELO,
+        mapeamento: z.record(z.string(), z.string().nullable()),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await ensurePermission(context.supabase, context.userId, "piso.importar");
-    const { error } = await context.supabase
-      .from("piso_mapeamentos_salvos")
-      .upsert(
-        { nome: data.nome, modelo: data.modelo, mapeamento: data.mapeamento, criado_por: context.userId },
-        { onConflict: "modelo,nome" },
-      );
+    const { error } = await context.supabase.from("piso_mapeamentos_salvos").upsert(
+      {
+        nome: data.nome,
+        modelo: data.modelo,
+        mapeamento: data.mapeamento,
+        criado_por: context.userId,
+      },
+      { onConflict: "modelo,nome" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -528,8 +574,10 @@ export const getDashboardPiso = createServerFn({ method: "GET" })
     return {
       competenciaAtual: atual,
       competenciaAnterior: anterior,
-      totalAtual, totalAnterior,
-      registrosAtual, registrosAnterior,
+      totalAtual,
+      totalAnterior,
+      registrosAtual,
+      registrosAnterior,
       top5,
     };
   });
@@ -605,16 +653,24 @@ export const getPisoCompetenciaResumo = createServerFn({ method: "GET" })
       .not("competencia", "is", null)
       .limit(10000);
     if (cErr) throw new Error(cErr.message);
-    const uniq = Array.from(new Set((allComp ?? []).map((r) => r.competencia as string))).sort().reverse();
+    const uniq = Array.from(new Set((allComp ?? []).map((r) => r.competencia as string)))
+      .sort()
+      .reverse();
     if (!atual) atual = uniq[0] ?? null;
     if (atual) {
       const idx = uniq.indexOf(atual);
-      anterior = idx >= 0 ? uniq[idx + 1] ?? null : null;
+      anterior = idx >= 0 ? (uniq[idx + 1] ?? null) : null;
     }
 
     async function resumoFor(comp: string | null) {
       if (!comp) {
-        return { total: 0, valorFinal: 0, complementacao: 0, beneficiados: 0, top5: [] as { nome: string; valor: number }[] };
+        return {
+          total: 0,
+          valorFinal: 0,
+          complementacao: 0,
+          beneficiados: 0,
+          top5: [] as { nome: string; valor: number }[],
+        };
       }
       const { data: rows, error } = await supabase
         .from("piso_enfermagem")
@@ -623,7 +679,9 @@ export const getPisoCompetenciaResumo = createServerFn({ method: "GET" })
         .limit(20000);
       if (error) throw new Error(error.message);
       const list = rows ?? [];
-      let valorFinal = 0, complementacao = 0, beneficiados = 0;
+      let valorFinal = 0,
+        complementacao = 0,
+        beneficiados = 0;
       const porNome = new Map<string, number>();
       for (const r of list) {
         valorFinal += r.valor_final ?? 0;

@@ -36,7 +36,8 @@ export async function exportarPdfMulti(opts: {
 
   // Sumário
   doc.setFont("helvetica", "bold").setFontSize(11);
-  doc.text("Sumário", 14, y); y += 5;
+  doc.text("Sumário", 14, y);
+  y += 5;
   doc.setFont("helvetica", "normal").setFontSize(9);
   opts.blocos.forEach((b, i) => {
     doc.text(`${i + 1}. ${b.titulo}`, 18, y);
@@ -46,7 +47,8 @@ export async function exportarPdfMulti(opts: {
 
   if (opts.resumo?.length) {
     doc.setFont("helvetica", "bold").setFontSize(10);
-    doc.text("Resumo Executivo", 14, y); y += 4.5;
+    doc.text("Resumo Executivo", 14, y);
+    y += 4.5;
     doc.setFont("helvetica", "normal").setFontSize(8);
     for (const line of opts.resumo) {
       const wrapped = doc.splitTextToSize(`• ${line}`, doc.internal.pageSize.getWidth() - 28);
@@ -62,10 +64,12 @@ export async function exportarPdfMulti(opts: {
       y = 18;
     }
     doc.setFont("helvetica", "bold").setFontSize(11);
-    doc.text(`${idx + 1}. ${b.titulo}`, 14, y); y += 2;
+    doc.text(`${idx + 1}. ${b.titulo}`, 14, y);
+    y += 2;
     if (b.descricao) {
       doc.setFont("helvetica", "italic").setFontSize(8);
-      doc.text(b.descricao, 14, y + 3); y += 5;
+      doc.text(b.descricao, 14, y + 3);
+      y += 5;
     }
     if (b.grupos && b.grupos.length) {
       y = renderGruposPdf(doc, b, y + 2);
@@ -99,7 +103,9 @@ function rodape(doc: jsPDF) {
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   doc.setFontSize(8).setTextColor(120);
-  doc.text(`Página ${current} de ${total}${current > 1 ? " (cont.)" : ""}`, w - 14, h - 6, { align: "right" });
+  doc.text(`Página ${current} de ${total}${current > 1 ? " (cont.)" : ""}`, w - 14, h - 6, {
+    align: "right",
+  });
   doc.text(new Date().toLocaleString("pt-BR"), 14, h - 6);
   doc.setTextColor(0);
 }
@@ -108,18 +114,26 @@ function renderGruposPdf(doc: jsPDF, b: BlocoExport, startY: number): number {
   let y = startY;
   const walk = (nodes: GroupNode[], path: string[]) => {
     for (const n of nodes) {
-      const nome = (b.groupByLabels?.[n.nivel] ?? `Nível ${n.nivel + 1}`);
+      const nome = b.groupByLabels?.[n.nivel] ?? `Nível ${n.nivel + 1}`;
       const trilha = [...path, `${nome}: ${n.label}`].join("  ›  ");
       if (n.children.length) {
-        if (y > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); y = 18; }
+        if (y > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          y = 18;
+        }
         doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(92, 64, 32);
-        doc.text(trilha, 14, y); y += 4;
+        doc.text(trilha, 14, y);
+        y += 4;
         doc.setTextColor(0);
         walk(n.children, [...path, `${nome}: ${n.label}`]);
       } else {
-        if (y > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 18; }
+        if (y > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage();
+          y = 18;
+        }
         doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(92, 64, 32);
-        doc.text(`${trilha}  (${n.rows.length} linha(s))`, 14, y); y += 1;
+        doc.text(`${trilha}  (${n.rows.length} linha(s))`, 14, y);
+        y += 1;
         doc.setTextColor(0);
         autoTable(doc, {
           startY: y + 2,
@@ -146,11 +160,13 @@ function renderGruposPdf(doc: jsPDF, b: BlocoExport, startY: number): number {
 function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
   const numeric = b.colunas.filter((c) => n.stats[c.key]);
   if (!numeric.length) return undefined;
-  return [b.colunas.map((c) => {
-    const s = n.stats[c.key];
-    if (!s) return c === b.colunas[0] ? "Subtotal" : "";
-    return `Σ ${s.soma.toLocaleString("pt-BR")}`;
-  })];
+  return [
+    b.colunas.map((c) => {
+      const s = n.stats[c.key];
+      if (!s) return c === b.colunas[0] ? "Subtotal" : "";
+      return `Σ ${s.soma.toLocaleString("pt-BR")}`;
+    }),
+  ];
 }
 
 export function exportarExcelMulti(opts: { filename: string; blocos: BlocoExport[] }) {
@@ -169,17 +185,21 @@ export function exportarExcelMulti(opts: { filename: string; blocos: BlocoExport
           } else {
             aoa.push([`${trilha.join("  ›  ")}  (${n.rows.length})`]);
             for (const r of n.rows) {
-              aoa.push(b.colunas.map((c) => {
-                const v = r[c.key];
-                return v == null ? "" : typeof v === "number" ? v : String(v);
-              }));
+              aoa.push(
+                b.colunas.map((c) => {
+                  const v = r[c.key];
+                  return v == null ? "" : typeof v === "number" ? v : String(v);
+                }),
+              );
             }
             // subtotal
-            aoa.push(b.colunas.map((c) => {
-              const s = n.stats[c.key];
-              if (!s) return c === b.colunas[0] ? "Subtotal" : "";
-              return s.soma;
-            }));
+            aoa.push(
+              b.colunas.map((c) => {
+                const s = n.stats[c.key];
+                if (!s) return c === b.colunas[0] ? "Subtotal" : "";
+                return s.soma;
+              }),
+            );
             aoa.push([]);
           }
         }
@@ -188,10 +208,12 @@ export function exportarExcelMulti(opts: { filename: string; blocos: BlocoExport
     } else {
       aoa.push(b.colunas.map((c) => c.header));
       for (const r of b.linhas) {
-        aoa.push(b.colunas.map((c) => {
-          const v = r[c.key];
-          return v == null ? "" : typeof v === "number" ? v : String(v);
-        }));
+        aoa.push(
+          b.colunas.map((c) => {
+            const v = r[c.key];
+            return v == null ? "" : typeof v === "number" ? v : String(v);
+          }),
+        );
       }
     }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -211,10 +233,15 @@ export function exportarCsvMulti(opts: { filenamePrefix: string; blocos: BlocoEx
     const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = b.titulo.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    const slug = b.titulo
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
     a.href = url;
     a.download = `${opts.filenamePrefix}-${slug}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     URL.revokeObjectURL(url);
   }
 }

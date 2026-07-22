@@ -21,10 +21,13 @@ export function calcularIndice(params: {
   const { aggregate: a, blocos } = params;
 
   const qualidade = a.qualidade.geral ?? 0;
-  const cobertura = Math.min(100, Math.round(((a.totais.unidadesAtivas || 0) / Math.max(1, a.totais.unidades)) * 100));
+  const cobertura = Math.min(
+    100,
+    Math.round(((a.totais.unidadesAtivas || 0) / Math.max(1, a.totais.unidades)) * 100),
+  );
 
   // Dispersão média (100 - CV médio, clampado).
-  let cvs: number[] = [];
+  const cvs: number[] = [];
   for (const b of blocos) {
     for (const f of numericFields(b.rows).filter((x) => b.fields.includes(x))) {
       const s = statsFor(b.rows, f);
@@ -46,12 +49,17 @@ export function calcularIndice(params: {
   const nivel: IndiceAutomatico["nivel"] =
     score >= 85 ? "excelente" : score >= 70 ? "bom" : score >= 55 ? "regular" : "critico";
 
-  const interpretacao = ({
-    excelente: "Cenário sólido: qualidade cadastral alta, boa cobertura, baixa dispersão e poucos alertas.",
-    bom: "Cenário estável com pontos de atenção pontuais — vale acompanhar os alertas e as concentrações destacadas.",
-    regular: "Requer atenção da gestão: sanear cadastros, equilibrar distribuição e mitigar alertas amarelos/vermelhos.",
-    critico: "Situação crítica — priorizar saneamento cadastral, reforçar cobertura e endereçar alertas vermelhos imediatamente.",
-  } as const)[nivel];
+  const interpretacao = (
+    {
+      excelente:
+        "Cenário sólido: qualidade cadastral alta, boa cobertura, baixa dispersão e poucos alertas.",
+      bom: "Cenário estável com pontos de atenção pontuais — vale acompanhar os alertas e as concentrações destacadas.",
+      regular:
+        "Requer atenção da gestão: sanear cadastros, equilibrar distribuição e mitigar alertas amarelos/vermelhos.",
+      critico:
+        "Situação crítica — priorizar saneamento cadastral, reforçar cobertura e endereçar alertas vermelhos imediatamente.",
+    } as const
+  )[nivel];
 
   return {
     score,

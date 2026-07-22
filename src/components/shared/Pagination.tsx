@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props = {
@@ -33,9 +39,7 @@ export function Pagination({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm text-muted-foreground">
-      <div>
-        {total === 0 ? "0 registros" : `${from}–${to} de ${total}`}
-      </div>
+      <div>{total === 0 ? "0 registros" : `${from}–${to} de ${total}`}</div>
       <div className="flex items-center gap-2">
         {onPageSizeChange ? (
           <div className="flex items-center gap-2">

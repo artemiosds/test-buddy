@@ -35,7 +35,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "totalProfessionals", filters],
     staleTime,
     queryFn: async () => {
-      const q = supabase.from("profissionais").select("id", { head: true, count: "exact" }).is("deleted_at", null);
+      const q = supabase
+        .from("profissionais")
+        .select("id", { head: true, count: "exact" })
+        .is("deleted_at", null);
       if (filters.unidadeId) q.eq("unidade_id", filters.unidadeId);
       if (filters.setorId) q.eq("setor_id", filters.setorId);
       if (filters.cargoId) q.eq("cargo_id", filters.cargoId);
@@ -53,7 +56,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "totalUnidades", filters.secretariaId],
     staleTime,
     queryFn: async () => {
-      const { count, error } = await supabase.from("unidades").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "ativa");
+      const { count, error } = await supabase
+        .from("unidades")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .eq("status", "ativa");
       if (error) throw error;
       return count ?? 0;
     },
@@ -64,7 +71,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "totalSetores"],
     staleTime,
     queryFn: async () => {
-      const { count, error } = await supabase.from("setores").select("id", { count: "exact", head: true }).is("deleted_at", null);
+      const { count, error } = await supabase
+        .from("setores")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -74,7 +84,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "totalCargos"],
     staleTime,
     queryFn: async () => {
-      const { count, error } = await supabase.from("cargos").select("id", { count: "exact", head: true }).is("deleted_at", null);
+      const { count, error } = await supabase
+        .from("cargos")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -84,7 +97,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "totalFuncoes"],
     staleTime,
     queryFn: async () => {
-      const { count, error } = await supabase.from("funcoes").select("id", { count: "exact", head: true }).is("deleted_at", null);
+      const { count, error } = await supabase
+        .from("funcoes")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -96,7 +112,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryFn: async () => {
       const q = supabase
         .from("frequencia_pendencias")
-        .select("id, frequencias!inner(competencia_unidades!inner(unidade_id))", { count: "exact", head: true })
+        .select("id, frequencias!inner(competencia_unidades!inner(unidade_id))", {
+          count: "exact",
+          head: true,
+        })
         .is("deleted_at", null);
 
       if (filters.unidadeId) {
@@ -114,7 +133,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   // de `profissionais`/`unidades`/`setores`, agregados no cliente.
 
   const statusBreakdown = useQuery({
-    queryKey: ["analytics", "statusBreakdown", filters.unidadeId, filters.setorId, filters.cargoId, filters.funcaoId],
+    queryKey: [
+      "analytics",
+      "statusBreakdown",
+      filters.unidadeId,
+      filters.setorId,
+      filters.cargoId,
+      filters.funcaoId,
+    ],
     staleTime,
     queryFn: async () => {
       let q = supabase.from("profissionais").select("status").is("deleted_at", null).limit(5000);
@@ -134,7 +160,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const vinculoBreakdown = useQuery({
-    queryKey: ["analytics", "vinculoBreakdown", filters.unidadeId, filters.setorId, filters.cargoId, filters.funcaoId],
+    queryKey: [
+      "analytics",
+      "vinculoBreakdown",
+      filters.unidadeId,
+      filters.setorId,
+      filters.cargoId,
+      filters.funcaoId,
+    ],
     staleTime,
     queryFn: async () => {
       let q = supabase
@@ -165,10 +198,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "alertas"],
     staleTime,
     queryFn: async () => {
-      const headCount = async (
-        table: "profissionais" | "unidades",
-        col: string,
-      ) => {
+      const headCount = async (table: "profissionais" | "unidades", col: string) => {
         const { count, error } = await supabase
           .from(table)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,7 +219,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
 
       // Setores vazios: setores ativos sem nenhum profissional vinculado.
       const [setoresRes, profSetoresRes, setoresSemRespRes] = await Promise.all([
-        supabase.from("setores").select("id, gestor_id, responsavel_nome").is("deleted_at", null).limit(2000),
+        supabase
+          .from("setores")
+          .select("id, gestor_id, responsavel_nome")
+          .is("deleted_at", null)
+          .limit(2000),
         supabase
           .from("profissionais")
           .select("setor_id")
@@ -216,7 +250,15 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       ).length;
 
       const setoresSemResponsavel = setoresSemRespRes.count ?? 0;
-      return { semUnidade, semSetor, semCargo, semFuncao, unidadesSemGestor, setoresVazios, setoresSemResponsavel };
+      return {
+        semUnidade,
+        semSetor,
+        semCargo,
+        semFuncao,
+        unidadesSemGestor,
+        setoresVazios,
+        setoresSemResponsavel,
+      };
     },
   });
 
@@ -250,14 +292,24 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       const rows = (data ?? []) as R[];
       const total = rows.length;
       const faltas: Record<string, number> = {
-        cargo: 0, funcao: 0, setor: 0, unidade: 0, vinculo: 0,
-        matricula: 0, telefone: 0, email: 0, banco: 0,
+        cargo: 0,
+        funcao: 0,
+        setor: 0,
+        unidade: 0,
+        vinculo: 0,
+        matricula: 0,
+        telefone: 0,
+        email: 0,
+        banco: 0,
       };
       let incompletos = 0;
       for (const r of rows) {
         let temFalta = false;
         const tick = (cond: boolean, k: string) => {
-          if (cond) { faltas[k] += 1; temFalta = true; }
+          if (cond) {
+            faltas[k] += 1;
+            temFalta = true;
+          }
         };
         tick(!r.cargo_id, "cargo");
         tick(!r.funcao_id, "funcao");
@@ -299,7 +351,12 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const frequenciasAnterior = useQuery({
-    queryKey: ["analytics", "frequenciasAnterior", previousCompetenciaId.data, filters.unidadeId ?? null],
+    queryKey: [
+      "analytics",
+      "frequenciasAnterior",
+      previousCompetenciaId.data,
+      filters.unidadeId ?? null,
+    ],
     staleTime,
     enabled: !!previousCompetenciaId.data,
     queryFn: async () => {
@@ -320,19 +377,28 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const pendenciasAnterior = useQuery({
-    queryKey: ["analytics", "pendenciasAnterior", previousCompetenciaId.data, filters.unidadeId ?? null],
+    queryKey: [
+      "analytics",
+      "pendenciasAnterior",
+      previousCompetenciaId.data,
+      filters.unidadeId ?? null,
+    ],
     staleTime,
     enabled: !!previousCompetenciaId.data,
     queryFn: async () => {
       const q = supabase
         .from("frequencia_pendencias")
-        .select(
-          "id, frequencias!inner(competencia_unidades!inner(competencia_id, unidade_id))",
-          { count: "exact", head: true },
-        )
+        .select("id, frequencias!inner(competencia_unidades!inner(competencia_id, unidade_id))", {
+          count: "exact",
+          head: true,
+        })
         .is("deleted_at", null)
-        .eq("frequencias.competencia_unidades.competencia_id" as never, previousCompetenciaId.data as string);
-      if (filters.unidadeId) q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
+        .eq(
+          "frequencias.competencia_unidades.competencia_id" as never,
+          previousCompetenciaId.data as string,
+        );
+      if (filters.unidadeId)
+        q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
@@ -340,7 +406,13 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const distribuicaoUnidade = useQuery({
-    queryKey: ["analytics", "distribuicaoUnidade", filters.cargoId, filters.funcaoId, filters.setorId],
+    queryKey: [
+      "analytics",
+      "distribuicaoUnidade",
+      filters.cargoId,
+      filters.funcaoId,
+      filters.setorId,
+    ],
     staleTime,
     queryFn: async () => {
       let q = supabase
@@ -354,7 +426,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (filters.setorId) q = q.eq("setor_id", filters.setorId);
       const { data, error } = await q;
       if (error) throw error;
-      const map = new Map<string, { id: string; nome: string; sigla: string | null; total: number }>();
+      const map = new Map<
+        string,
+        { id: string; nome: string; sigla: string | null; total: number }
+      >();
       for (const r of (data ?? []) as Array<{
         unidade_id: string | null;
         unidades: { nome: string; sigla: string | null } | null;
@@ -393,7 +468,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         cargos: { nome: string } | null;
       }>) {
         if (!r.cargo_id) continue;
-        const cur = map.get(r.cargo_id) ?? { id: r.cargo_id, nome: r.cargos?.nome ?? "—", total: 0 };
+        const cur = map.get(r.cargo_id) ?? {
+          id: r.cargo_id,
+          nome: r.cargos?.nome ?? "—",
+          total: 0,
+        };
         cur.total += 1;
         map.set(r.cargo_id, cur);
       }
@@ -402,7 +481,13 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const distribuicaoSetor = useQuery({
-    queryKey: ["analytics", "distribuicaoSetor", filters.cargoId, filters.funcaoId, filters.unidadeId],
+    queryKey: [
+      "analytics",
+      "distribuicaoSetor",
+      filters.cargoId,
+      filters.funcaoId,
+      filters.unidadeId,
+    ],
     staleTime,
     queryFn: async () => {
       let q = supabase
@@ -422,7 +507,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         setores: { nome: string } | null;
       }>) {
         if (!r.setor_id) continue;
-        const cur = map.get(r.setor_id) ?? { id: r.setor_id, nome: r.setores?.nome ?? "—", total: 0 };
+        const cur = map.get(r.setor_id) ?? {
+          id: r.setor_id,
+          nome: r.setores?.nome ?? "—",
+          total: 0,
+        };
         cur.total += 1;
         map.set(r.setor_id, cur);
       }
@@ -431,7 +520,13 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const distribuicaoFuncao = useQuery({
-    queryKey: ["analytics", "distribuicaoFuncao", filters.unidadeId, filters.setorId, filters.cargoId],
+    queryKey: [
+      "analytics",
+      "distribuicaoFuncao",
+      filters.unidadeId,
+      filters.setorId,
+      filters.cargoId,
+    ],
     staleTime,
     queryFn: async () => {
       let q = supabase
@@ -451,7 +546,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         funcoes: { nome: string } | null;
       }>) {
         if (!r.funcao_id) continue;
-        const cur = map.get(r.funcao_id) ?? { id: r.funcao_id, nome: r.funcoes?.nome ?? "—", total: 0 };
+        const cur = map.get(r.funcao_id) ?? {
+          id: r.funcao_id,
+          nome: r.funcoes?.nome ?? "—",
+          total: 0,
+        };
         cur.total += 1;
         map.set(r.funcao_id, cur);
       }
@@ -473,8 +572,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.status,
     ],
     staleTime,
-    enabled:
-      !!filters.cargoId || !!filters.funcaoId || !!filters.unidadeId || !!filters.setorId,
+    enabled: !!filters.cargoId || !!filters.funcaoId || !!filters.unidadeId || !!filters.setorId,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -551,23 +649,22 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       >();
       for (const r of (data ?? []) as Row[]) {
         const key = `${r.unidade_id ?? "-"}|${r.setor_id ?? "-"}|${r.cargo_id ?? "-"}|${r.funcao_id ?? "-"}`;
-        const cur =
-          map.get(key) ?? {
-            key,
-            unidadeId: r.unidade_id,
-            setorId: r.setor_id,
-            cargoId: r.cargo_id,
-            funcaoId: r.funcao_id,
-            unidade: r.unidade?.nome ?? "—",
-            setor: r.setor?.nome ?? "—",
-            cargo: r.cargo?.nome ?? "—",
-            funcao: r.funcao?.nome ?? "—",
-            total: 0,
-            ativos: 0,
-            afastados: 0,
-            ferias: 0,
-            licencas: 0,
-          };
+        const cur = map.get(key) ?? {
+          key,
+          unidadeId: r.unidade_id,
+          setorId: r.setor_id,
+          cargoId: r.cargo_id,
+          funcaoId: r.funcao_id,
+          unidade: r.unidade?.nome ?? "—",
+          setor: r.setor?.nome ?? "—",
+          cargo: r.cargo?.nome ?? "—",
+          funcao: r.funcao?.nome ?? "—",
+          total: 0,
+          ativos: 0,
+          afastados: 0,
+          ferias: 0,
+          licencas: 0,
+        };
         cur.total += 1;
         if (r.status === "ativo") cur.ativos += 1;
         else if (r.status === "afastado") cur.afastados += 1;
@@ -583,12 +680,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   // Fonte: `frequencias.total_profissionais/total_faltas/total_horas_extras` já
   // agregados por unidade+competência+tipo. RLS restringe por unidade do usuário.
   const frequencias = useQuery({
-    queryKey: [
-      "analytics",
-      "frequencias",
-      competenciaId,
-      filters.unidadeId ?? null,
-    ],
+    queryKey: ["analytics", "frequencias", competenciaId, filters.unidadeId ?? null],
     staleTime,
     enabled: !!competenciaId,
     queryFn: async () => {
@@ -658,25 +750,26 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     distribuicaoFuncao,
     equipeProfissionais,
     quadroLotacao,
-    refetch: () => Promise.all([
-      totalProfessionals.refetch(),
-      totalUnidades.refetch(),
-      totalSetores.refetch(),
-      totalCargos.refetch(),
-      totalFuncoes.refetch(),
-      pendencias.refetch(),
-      frequencias.refetch(),
-      statusBreakdown.refetch(),
-      vinculoBreakdown.refetch(),
-      alertas.refetch(),
-      distribuicaoUnidade.refetch(),
-      distribuicaoCargo.refetch(),
-      distribuicaoSetor.refetch(),
-      distribuicaoFuncao.refetch(),
-      integridade.refetch(),
-      frequenciasAnterior.refetch(),
-      pendenciasAnterior.refetch(),
-    ]),
+    refetch: () =>
+      Promise.all([
+        totalProfessionals.refetch(),
+        totalUnidades.refetch(),
+        totalSetores.refetch(),
+        totalCargos.refetch(),
+        totalFuncoes.refetch(),
+        pendencias.refetch(),
+        frequencias.refetch(),
+        statusBreakdown.refetch(),
+        vinculoBreakdown.refetch(),
+        alertas.refetch(),
+        distribuicaoUnidade.refetch(),
+        distribuicaoCargo.refetch(),
+        distribuicaoSetor.refetch(),
+        distribuicaoFuncao.refetch(),
+        integridade.refetch(),
+        frequenciasAnterior.refetch(),
+        pendenciasAnterior.refetch(),
+      ]),
     lastUpdated: Date.now(),
   };
 }

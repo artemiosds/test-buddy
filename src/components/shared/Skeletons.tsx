@@ -44,7 +44,12 @@ export function KpiCardSkeleton({ className }: { className?: string }) {
 
 export function KpiGridSkeleton({ count = 6, className }: { count?: number; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3", className)}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3",
+        className,
+      )}
+    >
       {Array.from({ length: count }).map((_, i) => (
         <KpiCardSkeleton key={i} />
       ))}

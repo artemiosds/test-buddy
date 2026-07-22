@@ -7,15 +7,45 @@ import { normalize, onlyDigits, suggestDestino, type PisoDestino } from "./piso-
 export type ModeloDetectado = "Efetivos" | "Contratados" | "Ministério" | null;
 
 const MESES: Record<string, number> = {
-  janeiro: 1, jan: 1, fevereiro: 2, fev: 2, marco: 3, mar: 3, abril: 4, abr: 4,
-  maio: 5, mai: 5, junho: 6, jun: 6, julho: 7, jul: 7, agosto: 8, ago: 8,
-  setembro: 9, set: 9, outubro: 10, out: 10, novembro: 11, nov: 11,
-  dezembro: 12, dez: 12,
+  janeiro: 1,
+  jan: 1,
+  fevereiro: 2,
+  fev: 2,
+  marco: 3,
+  mar: 3,
+  abril: 4,
+  abr: 4,
+  maio: 5,
+  mai: 5,
+  junho: 6,
+  jun: 6,
+  julho: 7,
+  jul: 7,
+  agosto: 8,
+  ago: 8,
+  setembro: 9,
+  set: 9,
+  outubro: 10,
+  out: 10,
+  novembro: 11,
+  nov: 11,
+  dezembro: 12,
+  dez: 12,
 };
 
 const MES_LABELS = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 /** Detecta modelo pelo nome do arquivo (Efetivos/Contratados/Ministério). */
@@ -40,7 +70,9 @@ export function detectarCompetencia(nomeArquivo: string): string | null {
     }
   }
   // padrão "janeiro 2026", "jan 2026"
-  const nome = n.match(/(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[\s\-_/]?(\d{4})/);
+  const nome = n.match(
+    /(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[\s\-_/]?(\d{4})/,
+  );
   if (nome) {
     const mes = MESES[nome[1]];
     const ano = Number(nome[2]);
@@ -115,7 +147,9 @@ export function computeQuality(
   const nomeCol = colDe(mapeamento, "nome");
   const total = rows.length;
 
-  let cpfValidos = 0, matriculaPreenchida = 0, nomePreenchido = 0;
+  let cpfValidos = 0,
+    matriculaPreenchida = 0,
+    nomePreenchido = 0;
   for (const r of rows) {
     if (cpfCol && isCpfValido(r[cpfCol])) cpfValidos++;
     if (matCol && String(r[matCol] ?? "").trim()) matriculaPreenchida++;
@@ -128,9 +162,12 @@ export function computeQuality(
   const media = (cpfPct + nomePct) / 2;
   return {
     total,
-    cpfValidos, cpfPct,
-    matriculaPreenchida, matriculaPct,
-    nomePreenchido, nomePct,
+    cpfValidos,
+    cpfPct,
+    matriculaPreenchida,
+    matriculaPct,
+    nomePreenchido,
+    nomePct,
     overall: toneFor(media),
   };
 }
@@ -144,22 +181,65 @@ function colDe(m: Record<string, PisoDestino | null>, dest: PisoDestino): string
 
 /** Assinatura estável para comparar dois arquivos pelo conjunto de colunas. */
 export function fingerprint(headers: string[]): string {
-  return headers.map((h) => normalize(h)).sort().join("|");
+  return headers
+    .map((h) => normalize(h))
+    .sort()
+    .join("|");
 }
 
 // -------------------- Detecção inteligente de cabeçalho --------------------
 
 /** Palavras-chave que caracterizam uma linha de cabeçalho de folha do Piso. */
 const HEADER_KEYWORDS = [
-  "cpf", "nome", "matricula", "mat", "cargo", "funcao", "unidade", "setor",
-  "vinculo", "regime", "competencia", "referencia",
-  "salario", "vencimento", "base", "piso", "complementacao", "compl",
-  "insalubridade", "insalub", "gratificacao", "gratif", "grat fun",
-  "hora extra", "he 50", "he 100", "he50", "he100", "hr ex", "hr extra",
-  "adicional noturno", "adic noturno", "adn", "ad noturno",
-  "auxilio", "financ", "aux financ", "ferias", "1 3", "terco",
-  "inss", "irrf", "ir", "liquido", "total", "valor", "vale transp",
-  "tempo serv", "tempo de serv",
+  "cpf",
+  "nome",
+  "matricula",
+  "mat",
+  "cargo",
+  "funcao",
+  "unidade",
+  "setor",
+  "vinculo",
+  "regime",
+  "competencia",
+  "referencia",
+  "salario",
+  "vencimento",
+  "base",
+  "piso",
+  "complementacao",
+  "compl",
+  "insalubridade",
+  "insalub",
+  "gratificacao",
+  "gratif",
+  "grat fun",
+  "hora extra",
+  "he 50",
+  "he 100",
+  "he50",
+  "he100",
+  "hr ex",
+  "hr extra",
+  "adicional noturno",
+  "adic noturno",
+  "adn",
+  "ad noturno",
+  "auxilio",
+  "financ",
+  "aux financ",
+  "ferias",
+  "1 3",
+  "terco",
+  "inss",
+  "irrf",
+  "ir",
+  "liquido",
+  "total",
+  "valor",
+  "vale transp",
+  "tempo serv",
+  "tempo de serv",
 ];
 
 function nonEmptyCells(row: unknown[]): number {
@@ -180,7 +260,10 @@ function keywordHits(row: unknown[]): number {
     const s = normalize(String(cell));
     if (!s) continue;
     for (const kw of HEADER_KEYWORDS) {
-      if (s === kw || s.includes(kw)) { hits++; break; }
+      if (s === kw || s.includes(kw)) {
+        hits++;
+        break;
+      }
     }
   }
   return hits;

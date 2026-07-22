@@ -22,8 +22,18 @@ export const Route = createFileRoute("/_authenticated/competencias/$id")({
 type StatusCU = Database["public"]["Enums"]["status_competencia_unidade"];
 
 const MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 const CU_LABEL: Record<StatusCU, string> = {
@@ -58,9 +68,11 @@ function DetalhePage() {
   const { data: competencia } = useQuery({
     queryKey: ["competencia", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("competencias")
+      const { data, error } = await supabase
+        .from("competencias")
         .select("id, ano, mes, status, secretaria_id, data_inicio, data_fim")
-        .eq("id", id).maybeSingle();
+        .eq("id", id)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -70,7 +82,8 @@ function DetalhePage() {
     queryKey: ["unidades-secretaria", competencia?.secretaria_id],
     enabled: !!competencia?.secretaria_id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("unidades")
+      const { data, error } = await supabase
+        .from("unidades")
         .select("id, nome, sigla, cnes")
         .eq("secretaria_id", competencia!.secretaria_id)
         .eq("status", "ativa")
@@ -83,7 +96,8 @@ function DetalhePage() {
   const { data: vinculadas } = useQuery({
     queryKey: ["competencia-unidades", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("competencia_unidades")
+      const { data, error } = await supabase
+        .from("competencia_unidades")
         .select("id, unidade_id, status, data_envio, data_aprovacao, observacoes")
         .eq("competencia_id", id)
         .is("deleted_at", null);
@@ -139,7 +153,10 @@ function DetalhePage() {
       <div className="flex items-center justify-between">
         <div>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/competencias"><ArrowLeft className="mr-1 h-4 w-4" />Voltar</Link>
+            <Link to="/competencias">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Voltar
+            </Link>
           </Button>
           <h1 className="mt-2 text-2xl font-semibold">
             Competência {MESES[competencia.mes - 1]}/{competencia.ano}
@@ -156,7 +173,9 @@ function DetalhePage() {
           <h2 className="font-medium">Unidades vinculadas ({vinculadas?.length ?? 0})</h2>
         </div>
         {!vinculadas?.length ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma unidade vinculada.</div>
+          <div className="p-6 text-center text-sm text-muted-foreground">
+            Nenhuma unidade vinculada.
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
@@ -175,18 +194,28 @@ function DetalhePage() {
                   <tr key={v.id} className="border-b last:border-0">
                     <td className="p-3">
                       <div className="font-medium">{u?.nome ?? v.unidade_id}</div>
-                      <div className="text-xs text-muted-foreground">{u?.sigla} · CNES {u?.cnes ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {u?.sigla} · CNES {u?.cnes ?? "—"}
+                      </div>
                     </td>
-                    <td className="p-3"><Badge variant={CU_VARIANT[v.status]}>{CU_LABEL[v.status]}</Badge></td>
+                    <td className="p-3">
+                      <Badge variant={CU_VARIANT[v.status]}>{CU_LABEL[v.status]}</Badge>
+                    </td>
                     <td className="p-3 text-xs text-muted-foreground">
                       {v.data_envio ? new Date(v.data_envio).toLocaleDateString("pt-BR") : "—"}
                     </td>
                     <td className="p-3 text-xs text-muted-foreground">
-                      {v.data_aprovacao ? new Date(v.data_aprovacao).toLocaleDateString("pt-BR") : "—"}
+                      {v.data_aprovacao
+                        ? new Date(v.data_aprovacao).toLocaleDateString("pt-BR")
+                        : "—"}
                     </td>
                     <td className="p-3 text-right">
                       {canGerenciar && !encerrada && v.status === "nao_iniciada" && (
-                        <Button size="sm" variant="ghost" onClick={() => desvincularMutation.mutate(v.id)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => desvincularMutation.mutate(v.id)}
+                        >
                           Desvincular
                         </Button>
                       )}
@@ -213,18 +242,24 @@ function DetalhePage() {
           </div>
           <div className="max-h-96 overflow-auto p-3 space-y-1">
             {naoVinculadas.map((u) => (
-              <label key={u.id} className="flex items-center gap-3 rounded p-2 hover:bg-muted/50 cursor-pointer">
+              <label
+                key={u.id}
+                className="flex items-center gap-3 rounded p-2 hover:bg-muted/50 cursor-pointer"
+              >
                 <Checkbox
                   checked={selected.has(u.id)}
                   onCheckedChange={(c) => {
                     const s = new Set(selected);
-                    if (c) s.add(u.id); else s.delete(u.id);
+                    if (c) s.add(u.id);
+                    else s.delete(u.id);
                     setSelected(s);
                   }}
                 />
                 <div className="flex-1">
                   <div className="text-sm font-medium">{u.nome}</div>
-                  <div className="text-xs text-muted-foreground">{u.sigla} · CNES {u.cnes ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {u.sigla} · CNES {u.cnes ?? "—"}
+                  </div>
                 </div>
               </label>
             ))}

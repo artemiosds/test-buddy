@@ -189,8 +189,7 @@ function ProfissionalDetailPage() {
             he_50: r.he_50,
             he_100: r.he_100,
             competencia_key: c ? `${c.ano}-${c.mes}` : null,
-            unidade_id:
-              r.frequencias?.competencia_unidades?.unidade_id ?? null,
+            unidade_id: r.frequencias?.competencia_unidades?.unidade_id ?? null,
           };
         }),
         pendenciasAbertas: pendCounts?.abertas ?? 0,
@@ -218,19 +217,15 @@ function ProfissionalDetailPage() {
 
   const handleExport = () => {
     const movs = deriveMovimentacoes(historico);
-    downloadCsv(
-      `dossie-${profissional?.matricula ?? id}`,
-      movs,
-      [
-        { header: "Data", value: (r) => r.data_inicio },
-        {
-          header: "Tipo",
-          value: (r) => EVENTO_LABELS[r.tipo_evento] ?? r.tipo_evento,
-        },
-        { header: "Motivo", value: (r) => r.motivo ?? "" },
-        { header: "Documento", value: (r) => r.documento_referencia ?? "" },
-      ],
-    );
+    downloadCsv(`dossie-${profissional?.matricula ?? id}`, movs, [
+      { header: "Data", value: (r) => r.data_inicio },
+      {
+        header: "Tipo",
+        value: (r) => EVENTO_LABELS[r.tipo_evento] ?? r.tipo_evento,
+      },
+      { header: "Motivo", value: (r) => r.motivo ?? "" },
+      { header: "Documento", value: (r) => r.documento_referencia ?? "" },
+    ]);
   };
 
   return (
@@ -244,9 +239,7 @@ function ProfissionalDetailPage() {
       {headerData ? (
         <ProfissionalHeader p={headerData} />
       ) : (
-        <PageHeader
-          title={loadingProf ? "Carregando…" : "Profissional"}
-        />
+        <PageHeader title={loadingProf ? "Carregando…" : "Profissional"} />
       )}
 
       <DossieToolbar
@@ -329,14 +322,15 @@ function useLookups(ids: {
       cargoIds.join(","),
       funcaoIds.join(","),
     ],
-    enabled:
-      unidadeIds.length + setorIds.length + cargoIds.length + funcaoIds.length >
-      0,
+    enabled: unidadeIds.length + setorIds.length + cargoIds.length + funcaoIds.length > 0,
     queryFn: async () => {
       const [u, s, c, f] = await Promise.all([
         unidadeIds.length
           ? supabase.from("unidades").select("id, nome, sigla").in("id", unidadeIds)
-          : Promise.resolve({ data: [] as { id: string; nome: string; sigla: string | null }[], error: null }),
+          : Promise.resolve({
+              data: [] as { id: string; nome: string; sigla: string | null }[],
+              error: null,
+            }),
         setorIds.length
           ? supabase.from("setores").select("id, nome").in("id", setorIds)
           : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
@@ -537,7 +531,7 @@ const SITUACAO_FUNCIONAL_DETAIL_LABEL: Record<string, string> = {
 };
 
 function DadosFuncionaisCard({ p }: { p: ProfDetail }) {
-  const gestor = Array.isArray(p.gestor) ? p.gestor[0] ?? null : p.gestor;
+  const gestor = Array.isArray(p.gestor) ? (p.gestor[0] ?? null) : p.gestor;
   const hasAnything =
     p.conselho_classe ||
     p.conselho_numero ||
@@ -547,7 +541,7 @@ function DadosFuncionaisCard({ p }: { p: ProfDetail }) {
     gestor;
   if (!hasAnything) return null;
   const situacaoLabel = p.situacao_funcional
-    ? SITUACAO_FUNCIONAL_DETAIL_LABEL[p.situacao_funcional] ?? p.situacao_funcional
+    ? (SITUACAO_FUNCIONAL_DETAIL_LABEL[p.situacao_funcional] ?? p.situacao_funcional)
     : null;
   return (
     <Card className="p-4">

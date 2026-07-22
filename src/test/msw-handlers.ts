@@ -38,15 +38,39 @@ function profissionaisOkBySelect(select: string) {
   if (select.startsWith("status,unidade_id,setor_id")) {
     // quadroLotacao
     return [
-      { status: "ativo", unidade_id: "u1", setor_id: "s1", cargo_id: "c1", funcao_id: "f1",
-        unidade: { nome: "Unidade A", sigla: "UA" }, setor: { nome: "Setor 1" },
-        cargo: { nome: "Enfermeiro" }, funcao: { nome: "Assistencial" } },
-      { status: "ferias", unidade_id: "u1", setor_id: "s1", cargo_id: "c1", funcao_id: "f1",
-        unidade: { nome: "Unidade A", sigla: "UA" }, setor: { nome: "Setor 1" },
-        cargo: { nome: "Enfermeiro" }, funcao: { nome: "Assistencial" } },
-      { status: "ativo", unidade_id: "u2", setor_id: "s2", cargo_id: "c2", funcao_id: "f2",
-        unidade: { nome: "Unidade B", sigla: "UB" }, setor: { nome: "Setor 2" },
-        cargo: { nome: "Médico" }, funcao: { nome: "Gestão" } },
+      {
+        status: "ativo",
+        unidade_id: "u1",
+        setor_id: "s1",
+        cargo_id: "c1",
+        funcao_id: "f1",
+        unidade: { nome: "Unidade A", sigla: "UA" },
+        setor: { nome: "Setor 1" },
+        cargo: { nome: "Enfermeiro" },
+        funcao: { nome: "Assistencial" },
+      },
+      {
+        status: "ferias",
+        unidade_id: "u1",
+        setor_id: "s1",
+        cargo_id: "c1",
+        funcao_id: "f1",
+        unidade: { nome: "Unidade A", sigla: "UA" },
+        setor: { nome: "Setor 1" },
+        cargo: { nome: "Enfermeiro" },
+        funcao: { nome: "Assistencial" },
+      },
+      {
+        status: "ativo",
+        unidade_id: "u2",
+        setor_id: "s2",
+        cargo_id: "c2",
+        funcao_id: "f2",
+        unidade: { nome: "Unidade B", sigla: "UB" },
+        setor: { nome: "Setor 2" },
+        cargo: { nome: "Médico" },
+        funcao: { nome: "Gestão" },
+      },
     ];
   }
   if (select === "status") {
@@ -97,15 +121,36 @@ function profissionaisOkBySelect(select: string) {
   if (select.startsWith("id,nome_completo") || select.startsWith("id, nome_completo")) {
     // equipeProfissionais
     return [
-      { id: "p1", nome_completo: "Ana Silva", matricula: "0001", status: "ativo",
-        unidade: { nome: "Unidade A", sigla: "UA" }, setor: { nome: "Setor 1" },
-        cargo: { nome: "Enfermeiro" }, funcao: { nome: "Assistencial" } },
-      { id: "p2", nome_completo: "Bruno Souza", matricula: "0002", status: "ativo",
-        unidade: { nome: "Unidade A", sigla: "UA" }, setor: { nome: "Setor 1" },
-        cargo: { nome: "Enfermeiro" }, funcao: { nome: "Assistencial" } },
-      { id: "p3", nome_completo: "Carla Dias", matricula: "0003", status: "ferias",
-        unidade: { nome: "Unidade A", sigla: "UA" }, setor: { nome: "Setor 1" },
-        cargo: { nome: "Enfermeiro" }, funcao: { nome: "Assistencial" } },
+      {
+        id: "p1",
+        nome_completo: "Ana Silva",
+        matricula: "0001",
+        status: "ativo",
+        unidade: { nome: "Unidade A", sigla: "UA" },
+        setor: { nome: "Setor 1" },
+        cargo: { nome: "Enfermeiro" },
+        funcao: { nome: "Assistencial" },
+      },
+      {
+        id: "p2",
+        nome_completo: "Bruno Souza",
+        matricula: "0002",
+        status: "ativo",
+        unidade: { nome: "Unidade A", sigla: "UA" },
+        setor: { nome: "Setor 1" },
+        cargo: { nome: "Enfermeiro" },
+        funcao: { nome: "Assistencial" },
+      },
+      {
+        id: "p3",
+        nome_completo: "Carla Dias",
+        matricula: "0003",
+        status: "ferias",
+        unidade: { nome: "Unidade A", sigla: "UA" },
+        setor: { nome: "Setor 1" },
+        cargo: { nome: "Enfermeiro" },
+        funcao: { nome: "Assistencial" },
+      },
     ];
   }
   return [];

@@ -187,8 +187,33 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
 };
 
 const UF_LIST = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
-  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 function getVinculoLabel(
@@ -286,7 +311,11 @@ function ProfissionaisPage() {
     },
   });
 
-  const { data: profissionaisPage, isLoading, isFetching } = useQuery({
+  const {
+    data: profissionaisPage,
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: [
       "profissionais",
       debouncedSearch,
@@ -618,10 +647,8 @@ function ProfissionaisPage() {
       h_p: (p as unknown as { h_p?: number | null }).h_p?.toString() ?? "",
       c_h: (p as unknown as { c_h?: number | null }).c_h?.toString() ?? "",
       jorn: (p as unknown as { jorn?: number | null }).jorn?.toString() ?? "",
-      conselho_classe:
-        (p as unknown as { conselho_classe?: string | null }).conselho_classe ?? "",
-      conselho_numero:
-        (p as unknown as { conselho_numero?: string | null }).conselho_numero ?? "",
+      conselho_classe: (p as unknown as { conselho_classe?: string | null }).conselho_classe ?? "",
+      conselho_numero: (p as unknown as { conselho_numero?: string | null }).conselho_numero ?? "",
       conselho_uf: (p as unknown as { conselho_uf?: string | null }).conselho_uf ?? "",
       conselho_validade:
         (p as unknown as { conselho_validade?: string | null }).conselho_validade ?? "",
@@ -754,8 +781,7 @@ function ProfissionaisPage() {
         // Prioriza a "Situação funcional" (Férias / Licença / Afastado / Cedido /
         // Desligado / Inativo) definida no cadastro; cai para o status geral.
         const situ =
-          (p as unknown as { situacao_funcional?: string | null })
-            .situacao_funcional || p.status;
+          (p as unknown as { situacao_funcional?: string | null }).situacao_funcional || p.status;
         return <StatusBadge domain="profissional" value={situ} />;
       },
     },
@@ -933,11 +959,7 @@ function ProfissionaisPage() {
 
       <FilterBar>
         <FilterBar.Field label="Nome">
-          <Input
-            value={fNome}
-            onChange={(e) => setFNome(e.target.value)}
-            placeholder="Contém..."
-          />
+          <Input value={fNome} onChange={(e) => setFNome(e.target.value)} placeholder="Contém..." />
         </FilterBar.Field>
         <FilterBar.Field label="CPF">
           <Input
@@ -1059,8 +1081,15 @@ function ProfissionaisPage() {
       </FilterBar>
 
       <div className="text-sm text-muted-foreground">
-        Exibindo <span className="font-medium text-foreground">{profissionaisExibidos.toLocaleString("pt-BR")}</span> de{" "}
-        <span className="font-medium text-foreground">{profissionaisTotal.toLocaleString("pt-BR")}</span> profissionais
+        Exibindo{" "}
+        <span className="font-medium text-foreground">
+          {profissionaisExibidos.toLocaleString("pt-BR")}
+        </span>{" "}
+        de{" "}
+        <span className="font-medium text-foreground">
+          {profissionaisTotal.toLocaleString("pt-BR")}
+        </span>{" "}
+        profissionais
       </div>
 
       {viewMode === "tabela" ? (
@@ -1073,10 +1102,7 @@ function ProfissionaisPage() {
           emptyDescription="Ajuste os filtros ou cadastre um novo profissional."
         />
       ) : (
-        <ProfissionalCards
-          rows={profissionais ?? []}
-          loading={isLoading}
-        />
+        <ProfissionalCards rows={profissionais ?? []} loading={isLoading} />
       )}
       <Pagination
         page={page}
@@ -1098,13 +1124,7 @@ function initials(nome: string) {
   return (a + b).toUpperCase();
 }
 
-function ProfissionalCards({
-  rows,
-  loading,
-}: {
-  rows: Profissional[];
-  loading?: boolean;
-}) {
+function ProfissionalCards({ rows, loading }: { rows: Profissional[]; loading?: boolean }) {
   if (loading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1137,9 +1157,7 @@ function ProfissionalCards({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="truncate font-medium">{p.nome_completo}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {p.cargo?.nome ?? "—"}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{p.cargo?.nome ?? "—"}</div>
               </div>
               <StatusBadge domain="profissional" value={p.status} />
             </div>
@@ -1248,9 +1266,7 @@ function ProfissionalFormBody({
             ) : null}
           </div>
           <div className="flex-1 space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Foto do profissional
-            </Label>
+            <Label className="text-xs text-muted-foreground">Foto do profissional</Label>
             <div className="flex gap-2">
               <Input
                 value={form.foto_url}
@@ -1277,7 +1293,11 @@ function ProfissionalFormBody({
                 disabled={uploadingFoto}
                 title="Enviar nova foto"
               >
-                {uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {uploadingFoto ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -1305,9 +1325,7 @@ function ProfissionalFormBody({
               <Label>CPF *</Label>
               <Input
                 value={formatCPF(form.cpf)}
-                onChange={(e) =>
-                  setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })
-                }
+                onChange={(e) => setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })}
                 placeholder="000.000.000-00"
               />
             </div>
@@ -1355,9 +1373,7 @@ function ProfissionalFormBody({
 
         {/* Endereço */}
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
-            Endereço residencial
-          </h3>
+          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Endereço residencial</h3>
           <Label>Endereço completo (por extenso)</Label>
           <Textarea
             value={form.endereco_completo}

@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -23,8 +27,18 @@ export const Route = createFileRoute("/_authenticated/frequencias")({
 type TipoFreq = Database["public"]["Enums"]["tipo_frequencia"];
 
 const MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 function FrequenciasPage() {
@@ -38,7 +52,8 @@ function FrequenciasPage() {
   const { data: competencias } = useQuery({
     queryKey: ["competencias-lista"],
     queryFn: async () => {
-      const { data } = await supabase.from("competencias")
+      const { data } = await supabase
+        .from("competencias")
         .select("id, ano, mes, status")
         .is("deleted_at", null)
         .order("ano", { ascending: false })
@@ -53,7 +68,8 @@ function FrequenciasPage() {
     queryKey: ["competencia-unidades-freq", competenciaId],
     enabled: !!competenciaId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("competencia_unidades")
+      const { data, error } = await supabase
+        .from("competencia_unidades")
         .select("id, unidade_id, status, unidades(id, nome, sigla, cnes)")
         .eq("competencia_id", competenciaId)
         .is("deleted_at", null);
@@ -67,8 +83,11 @@ function FrequenciasPage() {
     enabled: !!competenciaId && !!unidadesComp?.length,
     queryFn: async () => {
       const cuIds = unidadesComp!.map((u) => u.id);
-      const { data, error } = await supabase.from("frequencias")
-        .select("id, competencia_unidade_id, tipo, status, total_profissionais, data_envio, data_aprovacao")
+      const { data, error } = await supabase
+        .from("frequencias")
+        .select(
+          "id, competencia_unidade_id, tipo, status, total_profissionais, data_envio, data_aprovacao",
+        )
         .in("competencia_unidade_id", cuIds)
         .is("deleted_at", null);
       if (error) throw error;
@@ -129,17 +148,23 @@ function FrequenciasPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Frequências Mensais</h1>
-        <p className="text-sm text-muted-foreground">Planilhas de frequência por unidade e vínculo.</p>
+        <p className="text-sm text-muted-foreground">
+          Planilhas de frequência por unidade e vínculo.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
         <div className="flex-1 min-w-[240px]">
           <label className="text-xs text-muted-foreground">Competência</label>
           <Select value={competenciaId} onValueChange={setCompetenciaId}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
             <SelectContent>
               {competencias?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{MESES[c.mes - 1]}/{c.ano} · {c.status}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {MESES[c.mes - 1]}/{c.ano} · {c.status}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -147,7 +172,9 @@ function FrequenciasPage() {
         <div className="w-48">
           <label className="text-xs text-muted-foreground">Tipo</label>
           <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as TipoFreq | "todos")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="contratados">Contratados</SelectItem>
@@ -157,16 +184,23 @@ function FrequenciasPage() {
         </div>
         <div className="flex-1 min-w-[240px]">
           <label className="text-xs text-muted-foreground">Buscar unidade</label>
-          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou sigla..." />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Nome ou sigla..."
+          />
         </div>
       </div>
 
       <div className="rounded-lg border bg-card">
         {!competenciaId ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Selecione uma competência.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Selecione uma competência.
+          </div>
         ) : !unidadesComp?.length ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            Nenhuma unidade vinculada nesta competência. Acesse a competência para vincular unidades.
+            Nenhuma unidade vinculada nesta competência. Acesse a competência para vincular
+            unidades.
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -208,7 +242,8 @@ function FrequenciasPage() {
                     {freq ? (
                       <Button asChild size="sm" variant="ghost">
                         <Link to="/frequencias/$id" params={{ id: freq.id }}>
-                          <FileText className="mr-1 h-4 w-4" />Abrir
+                          <FileText className="mr-1 h-4 w-4" />
+                          Abrir
                         </Link>
                       </Button>
                     ) : canCriar ? (
@@ -218,7 +253,8 @@ function FrequenciasPage() {
                         onClick={() => criarMutation.mutate({ cuId: cu.id, tipo })}
                         disabled={criarMutation.isPending}
                       >
-                        <Plus className="mr-1 h-4 w-4" />Iniciar
+                        <Plus className="mr-1 h-4 w-4" />
+                        Iniciar
                       </Button>
                     ) : null}
                   </td>

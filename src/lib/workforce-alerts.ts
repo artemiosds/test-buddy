@@ -7,14 +7,17 @@
 // a fonte é a mesma query filtrada por RLS).
 
 export type WorkforceAlertsInput = {
-  alertas: {
-    semUnidade: number;
-    semSetor: number;
-    semCargo: number;
-    semFuncao: number;
-    unidadesSemGestor: number;
-    setoresVazios: number;
-  } | null | undefined;
+  alertas:
+    | {
+        semUnidade: number;
+        semSetor: number;
+        semCargo: number;
+        semFuncao: number;
+        unidadesSemGestor: number;
+        setoresVazios: number;
+      }
+    | null
+    | undefined;
   pendenciasVencidas: number;
 };
 
@@ -31,9 +34,7 @@ export type WorkforceAlertItem = {
   search?: Record<string, string>;
 };
 
-export function buildWorkforceAlertItems(
-  input: WorkforceAlertsInput,
-): WorkforceAlertItem[] {
+export function buildWorkforceAlertItems(input: WorkforceAlertsInput): WorkforceAlertItem[] {
   const a = input.alertas;
   return [
     {

@@ -35,11 +35,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Send, CheckCircle2, XCircle, Save, Plus, Trash2, FileDown, Paperclip, Upload, Copy, Flag, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Save,
+  Plus,
+  Trash2,
+  FileDown,
+  Paperclip,
+  Upload,
+  Copy,
+  Flag,
+  AlertCircle,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { drawInstitutionalHeader, drawSignatureFooter, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } from "@/lib/pdf-signature";
+import {
+  drawInstitutionalHeader,
+  drawSignatureFooter,
+  loadMunicipioInfo,
+} from "@/lib/pdf-institucional";
+import {
+  registrarDocumentoAssinado,
+  drawSignatureStamp,
+  armazenarPdfAssinado,
+} from "@/lib/pdf-signature";
 import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
@@ -75,13 +97,26 @@ type NumField =
   | "aulas_suplementares";
 
 const ALL_NUM_FIELDS: NumField[] = [
-  "dias_trabalhados", "faltas_justificadas", "faltas_injustificadas", "ferias",
-  "licencas", "afastamentos", "horas_extras", "plantoes_extras", "adicional_noturno",
-  "atestado", "he_50", "he_100", "sobreaviso", "incentivo", "licenca_premio",
-  "ferias_terco", "ferias_integral", "sal_sub_h", "aulas_suplementares",
+  "dias_trabalhados",
+  "faltas_justificadas",
+  "faltas_injustificadas",
+  "ferias",
+  "licencas",
+  "afastamentos",
+  "horas_extras",
+  "plantoes_extras",
+  "adicional_noturno",
+  "atestado",
+  "he_50",
+  "he_100",
+  "sobreaviso",
+  "incentivo",
+  "licenca_premio",
+  "ferias_terco",
+  "ferias_integral",
+  "sal_sub_h",
+  "aulas_suplementares",
 ];
-
-
 
 type Linha = {
   id?: string;
@@ -125,7 +160,14 @@ const STATUS_LINHA_VARIANT: Record<StatusLinha, "outline" | "secondary" | "destr
 
 type Natureza = Database["public"]["Enums"]["natureza_vinculo"];
 const NATUREZAS_EFETIVOS: Natureza[] = ["efetivo", "comissionado"];
-const NATUREZAS_CONTRATADOS: Natureza[] = ["celetista", "temporario", "terceirizado", "estagiario", "residente", "voluntario"];
+const NATUREZAS_CONTRATADOS: Natureza[] = [
+  "celetista",
+  "temporario",
+  "terceirizado",
+  "estagiario",
+  "residente",
+  "voluntario",
+];
 
 type ColunaDef = { field: NumField; label: string; extra?: boolean };
 
@@ -198,7 +240,11 @@ function FrequenciaDetalhe() {
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [obs, setObs] = useState("");
   const [anexosOpenFor, setAnexosOpenFor] = useState<Linha | null>(null);
-  const [copiarDialog, setCopiarDialog] = useState<null | { prevLabel: string; prevRows: Array<{ profissional_id: string } & Record<string, number>>; prevProfIds: Set<string> }>(null);
+  const [copiarDialog, setCopiarDialog] = useState<null | {
+    prevLabel: string;
+    prevRows: Array<{ profissional_id: string } & Record<string, number>>;
+    prevProfIds: Set<string>;
+  }>(null);
   const [pendFor, setPendFor] = useState<Linha | null>(null);
   const [pendTitulo, setPendTitulo] = useState("");
   const [pendDesc, setPendDesc] = useState("");
@@ -209,9 +255,13 @@ function FrequenciaDetalhe() {
   const { data: frequencia } = useQuery({
     queryKey: ["frequencia", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("frequencias")
-        .select("id, tipo, status, observacoes, competencia_unidade_id, competencia_unidades(id, unidade_id, competencia_id, unidades(id, nome, sigla), competencias(id, ano, mes, prazo_envio))")
-        .eq("id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from("frequencias")
+        .select(
+          "id, tipo, status, observacoes, competencia_unidade_id, competencia_unidades(id, unidade_id, competencia_id, unidades(id, nome, sigla), competencias(id, ano, mes, prazo_envio))",
+        )
+        .eq("id", id)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -233,8 +283,11 @@ function FrequenciaDetalhe() {
     enabled: !!unidadeId && !!tipo,
     queryFn: async () => {
       const naturezas = tipo === "efetivos" ? NATUREZAS_EFETIVOS : NATUREZAS_CONTRATADOS;
-      const { data, error } = await supabase.from("profissionais")
-        .select("id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza)")
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select(
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza)",
+        )
         .eq("unidade_id", unidadeId!)
         .eq("status", "ativo")
         .in("vinculos.natureza", naturezas)
@@ -247,8 +300,11 @@ function FrequenciaDetalhe() {
   const { data: rowsExistentes, isLoading: loadingRows } = useQuery({
     queryKey: ["frequencia-profissional", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("frequencia_profissional")
-        .select("*").eq("frequencia_id", id).is("deleted_at", null);
+      const { data, error } = await supabase
+        .from("frequencia_profissional")
+        .select("*")
+        .eq("frequencia_id", id)
+        .is("deleted_at", null);
       if (error) throw error;
       return data ?? [];
     },
@@ -256,32 +312,36 @@ function FrequenciaDetalhe() {
 
   useEffect(() => {
     if (!rowsExistentes) return;
-    setLinhas(rowsExistentes.map((r) => ({
-      id: r.id,
-      profissional_id: r.profissional_id,
-      dias_trabalhados: Number(r.dias_trabalhados) || 0,
-      faltas_justificadas: Number(r.faltas_justificadas) || 0,
-      faltas_injustificadas: Number(r.faltas_injustificadas) || 0,
-      ferias: Number(r.ferias) || 0,
-      licencas: Number(r.licencas) || 0,
-      afastamentos: Number(r.afastamentos) || 0,
-      horas_extras: Number(r.horas_extras) || 0,
-      plantoes_extras: Number(r.plantoes_extras) || 0,
-      adicional_noturno: Number(r.adicional_noturno) || 0,
-      atestado: Number(r.atestado) || 0,
-      he_50: Number(r.he_50) || 0,
-      he_100: Number(r.he_100) || 0,
-      sobreaviso: Number(r.sobreaviso) || 0,
-      incentivo: Number(r.incentivo) || 0,
-      licenca_premio: Number(r.licenca_premio) || 0,
-      ferias_terco: Number((r as unknown as { ferias_terco?: number }).ferias_terco) || 0,
-      ferias_integral: Number((r as unknown as { ferias_integral?: number }).ferias_integral) || 0,
-      sal_sub_h: Number((r as unknown as { sal_sub_h?: number }).sal_sub_h) || 0,
-      aulas_suplementares: Number((r as unknown as { aulas_suplementares?: number }).aulas_suplementares) || 0,
-      observacoes: r.observacoes,
-      status_linha: r.status_linha,
-      observacao_analise: r.observacao_analise,
-    })));
+    setLinhas(
+      rowsExistentes.map((r) => ({
+        id: r.id,
+        profissional_id: r.profissional_id,
+        dias_trabalhados: Number(r.dias_trabalhados) || 0,
+        faltas_justificadas: Number(r.faltas_justificadas) || 0,
+        faltas_injustificadas: Number(r.faltas_injustificadas) || 0,
+        ferias: Number(r.ferias) || 0,
+        licencas: Number(r.licencas) || 0,
+        afastamentos: Number(r.afastamentos) || 0,
+        horas_extras: Number(r.horas_extras) || 0,
+        plantoes_extras: Number(r.plantoes_extras) || 0,
+        adicional_noturno: Number(r.adicional_noturno) || 0,
+        atestado: Number(r.atestado) || 0,
+        he_50: Number(r.he_50) || 0,
+        he_100: Number(r.he_100) || 0,
+        sobreaviso: Number(r.sobreaviso) || 0,
+        incentivo: Number(r.incentivo) || 0,
+        licenca_premio: Number(r.licenca_premio) || 0,
+        ferias_terco: Number((r as unknown as { ferias_terco?: number }).ferias_terco) || 0,
+        ferias_integral:
+          Number((r as unknown as { ferias_integral?: number }).ferias_integral) || 0,
+        sal_sub_h: Number((r as unknown as { sal_sub_h?: number }).sal_sub_h) || 0,
+        aulas_suplementares:
+          Number((r as unknown as { aulas_suplementares?: number }).aulas_suplementares) || 0,
+        observacoes: r.observacoes,
+        status_linha: r.status_linha,
+        observacao_analise: r.observacao_analise,
+      })),
+    );
   }, [rowsExistentes]);
 
   // Busca dados dos profissionais referenciados nas linhas existentes que
@@ -296,8 +356,11 @@ function FrequenciaDetalhe() {
     queryKey: ["profissionais-linhas", id, linhaProfIds],
     enabled: linhaProfIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profissionais")
-        .select("id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza)")
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select(
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza)",
+        )
         .in("id", linhaProfIds);
       if (error) throw error;
       return data ?? [];
@@ -377,7 +440,9 @@ function FrequenciaDetalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const naoAdicionados = (profissionais ?? []).filter((p) => !linhas.some((l) => l.profissional_id === p.id));
+  const naoAdicionados = (profissionais ?? []).filter(
+    (p) => !linhas.some((l) => l.profissional_id === p.id),
+  );
 
   // Rascunho automático: ao carregar, insere linhas faltantes para todos os profissionais ativos
   const autoInsertFn = useServerFn(inserirLinhasAuto);
@@ -415,7 +480,7 @@ function FrequenciaDetalhe() {
   };
 
   const updateLinha = (idx: number, patch: Partial<Linha>) => {
-    setLinhas((prev) => prev.map((l, i) => i === idx ? { ...l, ...patch, _dirty: true } : l));
+    setLinhas((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch, _dirty: true } : l)));
   };
 
   const removeLinha = (idx: number) => {
@@ -423,9 +488,8 @@ function FrequenciaDetalhe() {
   };
 
   // === Item 10: Copiar mês anterior ===
-  const planilhaVazia = linhas.length > 0 && linhas.every(
-    (l) => ALL_NUM_FIELDS.every((f) => Number(l[f]) === 0),
-  );
+  const planilhaVazia =
+    linhas.length > 0 && linhas.every((l) => ALL_NUM_FIELDS.every((f) => Number(l[f]) === 0));
 
   const abrirCopiarPrevia = async () => {
     if (!frequencia || !comp || !cu?.unidade_id) return;
@@ -436,11 +500,16 @@ function FrequenciaDetalhe() {
       const { data: prevComp, error: e1 } = await supabase
         .from("competencias")
         .select("id")
-        .eq("mes", prevMes).eq("ano", prevAno)
+        .eq("mes", prevMes)
+        .eq("ano", prevAno)
         .is("deleted_at", null)
-        .limit(1).maybeSingle();
+        .limit(1)
+        .maybeSingle();
       if (e1) throw e1;
-      if (!prevComp) { toast.error(`Não há competência anterior (${prevLabel}) cadastrada.`); return; }
+      if (!prevComp) {
+        toast.error(`Não há competência anterior (${prevLabel}) cadastrada.`);
+        return;
+      }
 
       const { data: prevCU, error: e2 } = await supabase
         .from("competencia_unidades")
@@ -448,9 +517,13 @@ function FrequenciaDetalhe() {
         .eq("competencia_id", prevComp.id)
         .eq("unidade_id", cu.unidade_id)
         .is("deleted_at", null)
-        .limit(1).maybeSingle();
+        .limit(1)
+        .maybeSingle();
       if (e2) throw e2;
-      if (!prevCU) { toast.error(`Unidade não teve competência ${prevLabel}.`); return; }
+      if (!prevCU) {
+        toast.error(`Unidade não teve competência ${prevLabel}.`);
+        return;
+      }
 
       const { data: prevFreq, error: e3 } = await supabase
         .from("frequencias")
@@ -458,18 +531,26 @@ function FrequenciaDetalhe() {
         .eq("competencia_unidade_id", prevCU.id)
         .eq("tipo", frequencia.tipo)
         .is("deleted_at", null)
-        .limit(1).maybeSingle();
+        .limit(1)
+        .maybeSingle();
       if (e3) throw e3;
-      if (!prevFreq) { toast.error(`Não há folha ${frequencia.tipo} na competência ${prevLabel}.`); return; }
+      if (!prevFreq) {
+        toast.error(`Não há folha ${frequencia.tipo} na competência ${prevLabel}.`);
+        return;
+      }
 
       const { data: prevRowsRaw, error: e4 } = await supabase
         .from("frequencia_profissional")
-        .select("profissional_id, dias_trabalhados, faltas_justificadas, faltas_injustificadas, ferias, licencas, afastamentos, horas_extras, plantoes_extras, adicional_noturno, atestado, he_50, he_100, sobreaviso, incentivo, licenca_premio, ferias_terco, ferias_integral, sal_sub_h, aulas_suplementares")
+        .select(
+          "profissional_id, dias_trabalhados, faltas_justificadas, faltas_injustificadas, ferias, licencas, afastamentos, horas_extras, plantoes_extras, adicional_noturno, atestado, he_50, he_100, sobreaviso, incentivo, licenca_premio, ferias_terco, ferias_integral, sal_sub_h, aulas_suplementares",
+        )
         .eq("frequencia_id", prevFreq.id)
         .is("deleted_at", null);
       if (e4) throw e4;
 
-      const prevRows = (prevRowsRaw ?? []).map((r) => r as unknown as Record<string, number> & { profissional_id: string });
+      const prevRows = (prevRowsRaw ?? []).map(
+        (r) => r as unknown as Record<string, number> & { profissional_id: string },
+      );
       const prevProfIds = new Set(prevRows.map((r) => r.profissional_id));
       setCopiarDialog({ prevLabel, prevRows, prevProfIds });
     } catch (err) {
@@ -489,11 +570,19 @@ function FrequenciaDetalhe() {
         if (!src) return l;
         const patch: Partial<Linha> = {};
         for (const f of ALL_NUM_FIELDS) patch[f] = Number(src[f]) || 0;
-        return { ...l, ...patch, status_linha: "pendente" as StatusLinha, observacao_analise: null, _dirty: true };
+        return {
+          ...l,
+          ...patch,
+          status_linha: "pendente" as StatusLinha,
+          observacao_analise: null,
+          _dirty: true,
+        };
       });
       // profissionais que existiam antes mas não estão na planilha atual → adicionar zerados
       const idsAtuais = new Set(proximos.map((l) => l.profissional_id));
-      const faltantes = [...copiarDialog.prevProfIds].filter((pid) => !idsAtuais.has(pid) && (profissionais ?? []).some((p) => p.id === pid));
+      const faltantes = [...copiarDialog.prevProfIds].filter(
+        (pid) => !idsAtuais.has(pid) && (profissionais ?? []).some((p) => p.id === pid),
+      );
       for (const pid of faltantes) proximos.push(novaLinha(pid));
       return proximos;
     });
@@ -513,7 +602,10 @@ function FrequenciaDetalhe() {
 
   const focusCell = (r: number, c: number) => {
     const el = inputsRef.current[r]?.[c];
-    if (el) { el.focus(); el.select(); }
+    if (el) {
+      el.focus();
+      el.select();
+    }
   };
 
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
@@ -526,7 +618,10 @@ function FrequenciaDetalhe() {
       // Só interceptamos para pular linhas não-editáveis
       if (!e.shiftKey && c === colunas.length - 1) {
         const nr = findNextEditableRow(r, 1);
-        if (nr >= 0) { e.preventDefault(); focusCell(nr, 0); }
+        if (nr >= 0) {
+          e.preventDefault();
+          focusCell(nr, 0);
+        }
       }
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
       e.preventDefault();
@@ -542,36 +637,46 @@ function FrequenciaDetalhe() {
     const text = e.clipboardData.getData("text");
     if (!text.includes("\t") && !text.includes("\n")) return; // deixa colar valor único normalmente
     e.preventDefault();
-    const rows = text.replace(/\r\n?/g, "\n").replace(/\n$/, "").split("\n").map((line) => line.split("\t"));
+    const rows = text
+      .replace(/\r\n?/g, "\n")
+      .replace(/\n$/, "")
+      .split("\n")
+      .map((line) => line.split("\t"));
     // Valida numéricos
     const errors: string[] = [];
-    rows.forEach((cells, dr) => cells.forEach((raw, dc) => {
-      const v = raw.trim().replace(",", ".");
-      if (v === "") return;
-      if (!Number.isFinite(Number(v))) errors.push(`L${r + dr + 1}·C${colunas[c + dc]?.label ?? c + dc + 1}`);
-    }));
-    if (errors.length) {
-      toast.error(`Valores inválidos em: ${errors.slice(0, 5).join(", ")}${errors.length > 5 ? "..." : ""}`);
-      return;
-    }
-    setLinhas((prev) => prev.map((l, idx) => {
-      const dr = idx - r;
-      if (dr < 0 || dr >= rows.length) return l;
-      if (!isRowEditable(l)) return l;
-      const cells = rows[dr];
-      const patch: Partial<Linha> = {};
+    rows.forEach((cells, dr) =>
       cells.forEach((raw, dc) => {
-        const targetCol = c + dc;
-        if (targetCol >= colunas.length) return;
         const v = raw.trim().replace(",", ".");
         if (v === "") return;
-        patch[colunas[targetCol].field] = Number(v);
-      });
-      return { ...l, ...patch, _dirty: true };
-    }));
+        if (!Number.isFinite(Number(v)))
+          errors.push(`L${r + dr + 1}·C${colunas[c + dc]?.label ?? c + dc + 1}`);
+      }),
+    );
+    if (errors.length) {
+      toast.error(
+        `Valores inválidos em: ${errors.slice(0, 5).join(", ")}${errors.length > 5 ? "..." : ""}`,
+      );
+      return;
+    }
+    setLinhas((prev) =>
+      prev.map((l, idx) => {
+        const dr = idx - r;
+        if (dr < 0 || dr >= rows.length) return l;
+        if (!isRowEditable(l)) return l;
+        const cells = rows[dr];
+        const patch: Partial<Linha> = {};
+        cells.forEach((raw, dc) => {
+          const targetCol = c + dc;
+          if (targetCol >= colunas.length) return;
+          const v = raw.trim().replace(",", ".");
+          if (v === "") return;
+          patch[colunas[targetCol].field] = Number(v);
+        });
+        return { ...l, ...patch, _dirty: true };
+      }),
+    );
     toast.success(`${rows.length} linha(s) coladas.`);
   };
-
 
   const salvarFn = useServerFn(salvarLinhasFrequencia);
   const salvarMutation = useMutation({
@@ -686,8 +791,6 @@ function FrequenciaDetalhe() {
   const permitirForaPrazo = parametros?.permitir_envio_fora_prazo === true;
   const envioBloqueado = foraDoPrazo && !permitirForaPrazo;
 
-
-
   const exportarPDF = async () => {
     if (!frequencia) return;
     const unidadeNome0 = cu?.unidades?.nome ?? "—";
@@ -730,7 +833,8 @@ function FrequenciaDetalhe() {
       }),
     });
 
-    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 60;
+    const finalY =
+      (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 60;
     doc.setFontSize(9);
     if (obs) {
       doc.text("Observações:", 14, finalY + 8);
@@ -774,7 +878,11 @@ function FrequenciaDetalhe() {
       logger.error("frequencia.signature_failed", { error: err });
     }
     if (_sigFreq) {
-      try { await armazenarPdfAssinado(_sigFreq, doc.output("blob")); } catch { /* best effort */ }
+      try {
+        await armazenarPdfAssinado(_sigFreq, doc.output("blob"));
+      } catch {
+        /* best effort */
+      }
     }
 
     doc.save(`frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`);
@@ -793,7 +901,10 @@ function FrequenciaDetalhe() {
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/frequencias"><ArrowLeft className="mr-1 h-4 w-4" />Voltar</Link>
+          <Link to="/frequencias">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Voltar
+          </Link>
         </Button>
         <div className="mt-2 flex items-start justify-between">
           <div>
@@ -801,9 +912,16 @@ function FrequenciaDetalhe() {
               {cu?.unidades?.nome} — <span className="capitalize">{frequencia.tipo}</span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              Competência {comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—"} · {linhas.length} profissional(is)
+              Competência {comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—"} ·{" "}
+              {linhas.length} profissional(is)
               {diasUteis !== null && (
-                <> · <span className="font-medium text-foreground">Dias úteis da competência: {diasUteis}</span></>
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="font-medium text-foreground">
+                    Dias úteis da competência: {diasUteis}
+                  </span>
+                </>
               )}
             </p>
           </div>
@@ -813,8 +931,13 @@ function FrequenciaDetalhe() {
 
       <div className="flex flex-wrap gap-2">
         {canEditar && editable && (
-          <Button size="sm" onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>
-            <Save className="mr-1 h-4 w-4" />Salvar
+          <Button
+            size="sm"
+            onClick={() => salvarMutation.mutate()}
+            disabled={salvarMutation.isPending}
+          >
+            <Save className="mr-1 h-4 w-4" />
+            Salvar
           </Button>
         )}
         {canEnviar && frequencia.status === "rascunho" && (
@@ -826,7 +949,8 @@ function FrequenciaDetalhe() {
               title={envioBloqueado ? "Envio bloqueado: prazo da competência expirado" : undefined}
               onClick={() => statusMutation.mutate("enviada")}
             >
-              <Send className="mr-1 h-4 w-4" />Enviar para análise
+              <Send className="mr-1 h-4 w-4" />
+              Enviar para análise
             </Button>
             {envioBloqueado && (
               <span className="mt-1 text-xs text-destructive">
@@ -843,20 +967,28 @@ function FrequenciaDetalhe() {
         )}
         {canAprovar && (frequencia.status === "enviada" || frequencia.status === "em_analise") && (
           <Button size="sm" variant="default" onClick={() => statusMutation.mutate("aprovada")}>
-            <CheckCircle2 className="mr-1 h-4 w-4" />Aprovar
+            <CheckCircle2 className="mr-1 h-4 w-4" />
+            Aprovar
           </Button>
         )}
         {canRejeitar && (frequencia.status === "enviada" || frequencia.status === "em_analise") && (
-          <Button size="sm" variant="destructive" onClick={() => statusMutation.mutate("com_pendencias")}>
-            <XCircle className="mr-1 h-4 w-4" />Retornar com pendências
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => statusMutation.mutate("com_pendencias")}
+          >
+            <XCircle className="mr-1 h-4 w-4" />
+            Retornar com pendências
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={exportarPDF} disabled={!linhas.length}>
-          <FileDown className="mr-1 h-4 w-4" />Exportar PDF
+          <FileDown className="mr-1 h-4 w-4" />
+          Exportar PDF
         </Button>
         {editable && canEditar && planilhaVazia && (
           <Button size="sm" variant="outline" onClick={abrirCopiarPrevia}>
-            <Copy className="mr-1 h-4 w-4" />Copiar mês anterior
+            <Copy className="mr-1 h-4 w-4" />
+            Copiar mês anterior
           </Button>
         )}
       </div>
@@ -867,7 +999,8 @@ function FrequenciaDetalhe() {
             {naoAdicionados.length} profissional(is) ainda não incluídos.
           </span>
           <Button size="sm" variant="outline" onClick={addTodos}>
-            <Plus className="mr-1 h-4 w-4" />Adicionar todos
+            <Plus className="mr-1 h-4 w-4" />
+            Adicionar todos
           </Button>
         </div>
       )}
@@ -924,10 +1057,18 @@ function FrequenciaDetalhe() {
                     </td>
                     {isEfetivo && (
                       <>
-                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">{fmtRef(p?.proj)}</td>
-                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">{fmtRef(p?.h_p)}</td>
-                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">{fmtRef(p?.c_h)}</td>
-                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">{fmtRef(p?.jorn)}</td>
+                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">
+                          {fmtRef(p?.proj)}
+                        </td>
+                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">
+                          {fmtRef(p?.h_p)}
+                        </td>
+                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">
+                          {fmtRef(p?.c_h)}
+                        </td>
+                        <td className="p-2 bg-muted/20 text-right font-mono text-xs">
+                          {fmtRef(p?.jorn)}
+                        </td>
                       </>
                     )}
                     {colunas.map((c, cIdx) => (
@@ -941,10 +1082,17 @@ function FrequenciaDetalhe() {
                           className="h-8 w-20"
                           disabled={!editable || !canEditar || l.status_linha !== "pendente"}
                           value={l[c.field]}
-                          ref={(el) => { inputsRef.current[idx] ??= []; inputsRef.current[idx][cIdx] = el; }}
+                          ref={(el) => {
+                            inputsRef.current[idx] ??= [];
+                            inputsRef.current[idx][cIdx] = el;
+                          }}
                           onKeyDown={(e) => handleCellKeyDown(e, idx, cIdx)}
                           onPaste={(e) => handleCellPaste(e, idx, cIdx)}
-                          onChange={(e) => updateLinha(idx, { [c.field]: Number(e.target.value) } as Partial<Linha>)}
+                          onChange={(e) =>
+                            updateLinha(idx, {
+                              [c.field]: Number(e.target.value),
+                            } as Partial<Linha>)
+                          }
                         />
                       </td>
                     ))}
@@ -953,7 +1101,10 @@ function FrequenciaDetalhe() {
                         {STATUS_LINHA_LABEL[l.status_linha]}
                       </Badge>
                       {l.observacao_analise && (
-                        <div className="mt-1 max-w-[180px] truncate text-xs text-muted-foreground" title={l.observacao_analise}>
+                        <div
+                          className="mt-1 max-w-[180px] truncate text-xs text-muted-foreground"
+                          title={l.observacao_analise}
+                        >
                           {l.observacao_analise}
                         </div>
                       )}
@@ -971,21 +1122,39 @@ function FrequenciaDetalhe() {
                     </td>
                     <td className="p-2 text-center">
                       {(() => {
-                        const n = l.id ? pendCounts?.get(l.id) ?? 0 : 0;
+                        const n = l.id ? (pendCounts?.get(l.id) ?? 0) : 0;
                         if (canGerenciarPend) {
                           return (
                             <Button
                               size="icon"
                               variant={n > 0 ? "destructive" : "ghost"}
                               disabled={!l.id}
-                              title={l.id ? (n > 0 ? `${n} pendência(s) — abrir nova` : "Abrir pendência para esta linha") : "Salve a linha antes de abrir pendência"}
-                              onClick={() => { setPendFor(l); setPendTitulo(""); setPendDesc(""); }}
+                              title={
+                                l.id
+                                  ? n > 0
+                                    ? `${n} pendência(s) — abrir nova`
+                                    : "Abrir pendência para esta linha"
+                                  : "Salve a linha antes de abrir pendência"
+                              }
+                              onClick={() => {
+                                setPendFor(l);
+                                setPendTitulo("");
+                                setPendDesc("");
+                              }}
                             >
-                              {n > 0 ? <AlertCircle className="h-4 w-4" /> : <Flag className="h-4 w-4" />}
+                              {n > 0 ? (
+                                <AlertCircle className="h-4 w-4" />
+                              ) : (
+                                <Flag className="h-4 w-4" />
+                              )}
                             </Button>
                           );
                         }
-                        return n > 0 ? <Badge variant="destructive">{n}</Badge> : <span className="text-xs text-muted-foreground">—</span>;
+                        return n > 0 ? (
+                          <Badge variant="destructive">{n}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        );
                       })()}
                     </td>
                     <td className="p-2 text-right">
@@ -1009,7 +1178,8 @@ function FrequenciaDetalhe() {
           <div className="flex flex-wrap gap-2">
             {naoAdicionados.map((p) => (
               <Button key={p.id} size="sm" variant="outline" onClick={() => addProfissional(p.id)}>
-                <Plus className="mr-1 h-3 w-3" />{p.nome_completo}
+                <Plus className="mr-1 h-3 w-3" />
+                {p.nome_completo}
               </Button>
             ))}
           </div>
@@ -1031,7 +1201,9 @@ function FrequenciaDetalhe() {
         onClose={() => setAnexosOpenFor(null)}
         canEdit={!!editable && !!canEditar && anexosOpenFor?.status_linha === "pendente"}
         unidadeId={unidadeId}
-        profNome={anexosOpenFor ? profMap.get(anexosOpenFor.profissional_id)?.nome_completo ?? "" : ""}
+        profNome={
+          anexosOpenFor ? (profMap.get(anexosOpenFor.profissional_id)?.nome_completo ?? "") : ""
+        }
         userId={me?.id}
       />
       <Dialog open={!!copiarDialog} onOpenChange={(o) => !o && setCopiarDialog(null)}>
@@ -1039,40 +1211,69 @@ function FrequenciaDetalhe() {
           <DialogHeader>
             <DialogTitle>Copiar competência anterior</DialogTitle>
             <DialogDescription>
-              Serão copiados os valores de <strong>{copiarDialog?.prevLabel}</strong> para as linhas ainda zeradas
-              desta folha ({copiarDialog?.prevRows.length ?? 0} profissional(is) na competência anterior).
-              Linhas já com valores não serão sobrescritas.
+              Serão copiados os valores de <strong>{copiarDialog?.prevLabel}</strong> para as linhas
+              ainda zeradas desta folha ({copiarDialog?.prevRows.length ?? 0} profissional(is) na
+              competência anterior). Linhas já com valores não serão sobrescritas.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCopiarDialog(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setCopiarDialog(null)}>
+              Cancelar
+            </Button>
             <Button onClick={confirmarCopiar}>Copiar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pendFor} onOpenChange={(o) => { if (!o) { setPendFor(null); setPendTitulo(""); setPendDesc(""); } }}>
+      <Dialog
+        open={!!pendFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPendFor(null);
+            setPendTitulo("");
+            setPendDesc("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Abrir pendência da linha</DialogTitle>
             <DialogDescription>
-              {pendFor ? (profMap.get(pendFor.profissional_id)?.nome_completo ?? "Profissional") : ""}
+              {pendFor
+                ? (profMap.get(pendFor.profissional_id)?.nome_completo ?? "Profissional")
+                : ""}
               {pendFor?.id ? "" : " · salve a planilha antes"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-sm font-medium">Título</label>
-              <Input value={pendTitulo} onChange={(e) => setPendTitulo(e.target.value)} placeholder="Ex.: Faltas divergentes do ponto" />
+              <Input
+                value={pendTitulo}
+                onChange={(e) => setPendTitulo(e.target.value)}
+                placeholder="Ex.: Faltas divergentes do ponto"
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Descrição</label>
-              <Textarea rows={4} value={pendDesc} onChange={(e) => setPendDesc(e.target.value)} placeholder="Detalhe o que a unidade deve corrigir..." />
+              <Textarea
+                rows={4}
+                value={pendDesc}
+                onChange={(e) => setPendDesc(e.target.value)}
+                placeholder="Detalhe o que a unidade deve corrigir..."
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendFor(null)}>Cancelar</Button>
-            <Button onClick={() => abrirPendMutation.mutate()} disabled={abrirPendMutation.isPending}>Abrir pendência</Button>
+            <Button variant="outline" onClick={() => setPendFor(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => abrirPendMutation.mutate()}
+              disabled={abrirPendMutation.isPending}
+            >
+              Abrir pendência
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1196,13 +1397,23 @@ function AnexosDialog({
   };
 
   const baixar = async (doc: DocRow) => {
-    const { data, error } = await supabase.storage.from("documentos").createSignedUrl(doc.storage_path, 60);
-    if (error) { toast.error(error.message); return; }
+    const { data, error } = await supabase.storage
+      .from("documentos")
+      .createSignedUrl(doc.storage_path, 60);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     window.open(data.signedUrl, "_blank");
   };
 
   return (
-    <Dialog open={!!linha} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={!!linha}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Anexos — {profNome}</DialogTitle>
@@ -1213,9 +1424,15 @@ function AnexosDialog({
               <div>
                 <label className="mb-1 block text-xs font-medium">Categoria</label>
                 <Select value={categoriaId} onValueChange={setCategoriaId}>
-                  <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {(categorias ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    {(categorias ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1233,30 +1450,47 @@ function AnexosDialog({
                 />
               </div>
             </div>
-            {uploading && <div className="text-xs text-muted-foreground"><Upload className="mr-1 inline h-3 w-3" />Enviando...</div>}
+            {uploading && (
+              <div className="text-xs text-muted-foreground">
+                <Upload className="mr-1 inline h-3 w-3" />
+                Enviando...
+              </div>
+            )}
           </div>
         )}
         <div className="max-h-80 space-y-1 overflow-y-auto">
           {!anexos?.length ? (
             <div className="p-4 text-center text-sm text-muted-foreground">Nenhum anexo.</div>
-          ) : anexos.map((a) => {
-            const cat = categorias?.find((c) => c.id === a.categoria_id);
-            return (
-              <div key={a.id} className="flex items-center justify-between rounded border p-2 text-sm">
-                <button className="flex-1 truncate text-left hover:underline" onClick={() => baixar(a)}>
-                  {a.nome}
-                </button>
-                <div className="ml-2 flex items-center gap-2">
-                  {cat && <Badge variant="outline" className="text-xs">{cat.nome}</Badge>}
-                  {canEdit && (
-                    <Button size="icon" variant="ghost" onClick={() => removerAnexo(a)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+          ) : (
+            anexos.map((a) => {
+              const cat = categorias?.find((c) => c.id === a.categoria_id);
+              return (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded border p-2 text-sm"
+                >
+                  <button
+                    className="flex-1 truncate text-left hover:underline"
+                    onClick={() => baixar(a)}
+                  >
+                    {a.nome}
+                  </button>
+                  <div className="ml-2 flex items-center gap-2">
+                    {cat && (
+                      <Badge variant="outline" className="text-xs">
+                        {cat.nome}
+                      </Badge>
+                    )}
+                    {canEdit && (
+                      <Button size="icon" variant="ghost" onClick={() => removerAnexo(a)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </DialogContent>
     </Dialog>

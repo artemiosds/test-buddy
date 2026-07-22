@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared";
 import { statusLabel } from "@/lib/status";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -23,8 +27,18 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 });
 
 const MES_LABEL = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
 ];
 
 type FreqRow = {
@@ -94,15 +108,13 @@ function RelatoriosPage() {
              id,
              unidade:unidades!inner(id, nome, sigla),
              competencia:competencias!inner(id, ano, mes, status)
-           )`
+           )`,
         )
         .is("deleted_at", null);
 
       if (tipo !== "all") q = q.eq("tipo", tipo);
-      if (competenciaId !== "all")
-        q = q.eq("competencia_unidade.competencia_id", competenciaId);
-      if (unidadeId !== "all")
-        q = q.eq("competencia_unidade.unidade_id", unidadeId);
+      if (competenciaId !== "all") q = q.eq("competencia_unidade.competencia_id", competenciaId);
+      if (unidadeId !== "all") q = q.eq("competencia_unidade.unidade_id", unidadeId);
 
       const { data, error } = await q;
       if (error) throw error;
@@ -139,8 +151,15 @@ function RelatoriosPage() {
       return;
     }
     const header = [
-      "Competência", "Unidade", "Sigla", "Tipo", "Status",
-      "Profissionais", "Dias trabalhados", "Faltas", "Horas extras",
+      "Competência",
+      "Unidade",
+      "Sigla",
+      "Tipo",
+      "Status",
+      "Profissionais",
+      "Dias trabalhados",
+      "Faltas",
+      "Horas extras",
     ];
     const rows = linhas.map((l) => {
       const c = l.competencia_unidade?.competencia;
@@ -179,21 +198,28 @@ function RelatoriosPage() {
       const c = l.competencia_unidade?.competencia;
       const u = l.competencia_unidade?.unidade;
       return {
-        "Competência": c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "",
-        "Unidade": u?.nome ?? "",
-        "Sigla": u?.sigla ?? "",
-        "Tipo": l.tipo === "contratados" ? "Contratados" : "Efetivos",
-        "Status": statusLabel("frequencia", l.status),
-        "Profissionais": l.total_profissionais ?? 0,
+        Competência: c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "",
+        Unidade: u?.nome ?? "",
+        Sigla: u?.sigla ?? "",
+        Tipo: l.tipo === "contratados" ? "Contratados" : "Efetivos",
+        Status: statusLabel("frequencia", l.status),
+        Profissionais: l.total_profissionais ?? 0,
         "Dias trabalhados": l.total_dias_trabalhados ?? 0,
-        "Faltas": l.total_faltas ?? 0,
+        Faltas: l.total_faltas ?? 0,
         "Horas extras": l.total_horas_extras ?? 0,
       };
     });
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [
-      { wch: 12 }, { wch: 32 }, { wch: 10 }, { wch: 14 }, { wch: 16 },
-      { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
+      { wch: 12 },
+      { wch: 32 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 14 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Frequências");
@@ -201,13 +227,14 @@ function RelatoriosPage() {
     toast.success("Planilha exportada.");
   }
 
-
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!canView) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold">Relatórios</h1>
-        <p className="mt-2 text-muted-foreground">Você não tem permissão para visualizar relatórios.</p>
+        <p className="mt-2 text-muted-foreground">
+          Você não tem permissão para visualizar relatórios.
+        </p>
       </div>
     );
   }
@@ -224,10 +251,19 @@ function RelatoriosPage() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={exportarCSV} disabled={!canExport || !linhas?.length}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={exportarCSV}
+            disabled={!canExport || !linhas?.length}
+          >
             <Download className="mr-2 h-4 w-4" /> CSV
           </Button>
-          <Button className="w-full sm:w-auto" onClick={exportarXLSX} disabled={!canExport || !linhas?.length}>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={exportarXLSX}
+            disabled={!canExport || !linhas?.length}
+          >
             <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (XLSX)
           </Button>
         </div>
@@ -236,11 +272,14 @@ function RelatoriosPage() {
       <RelatoriosTabs />
 
       <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-3">
-
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Competência</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Competência
+          </label>
           <Select value={competenciaId} onValueChange={setCompetenciaId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               {competencias?.map((c) => (
@@ -254,21 +293,28 @@ function RelatoriosPage() {
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Unidade</label>
           <Select value={unidadeId} onValueChange={setUnidadeId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               {unidades?.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
-                  {u.sigla ? `${u.sigla} — ` : ""}{u.nome}
+                  {u.sigla ? `${u.sigla} — ` : ""}
+                  {u.nome}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Tipo de folha</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Tipo de folha
+          </label>
           <Select value={tipo} onValueChange={(v) => setTipo(v as TipoFolha | "all")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="contratados">Contratados</SelectItem>
@@ -303,10 +349,18 @@ function RelatoriosPage() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
+                  Carregando...
+                </td>
+              </tr>
             )}
             {!isLoading && !linhas?.length && (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Nenhum registro encontrado.</td></tr>
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
+                  Nenhum registro encontrado.
+                </td>
+              </tr>
             )}
             {linhas?.map((l) => {
               const c = l.competencia_unidade?.competencia;
@@ -326,8 +380,12 @@ function RelatoriosPage() {
                   <td className="px-3 py-2">
                     <StatusBadge domain="frequencia" value={l.status} />
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{l.total_profissionais ?? 0}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{l.total_dias_trabalhados ?? 0}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {l.total_profissionais ?? 0}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {l.total_dias_trabalhados ?? 0}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">{l.total_faltas ?? 0}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{l.total_horas_extras ?? 0}</td>
                 </tr>

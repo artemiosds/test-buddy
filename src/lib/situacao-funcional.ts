@@ -92,7 +92,8 @@ export function derivarAlertas(p: ProfConferencia): AlertaCadastral[] {
 }
 
 /** Cargos considerados elegíveis ao Piso Nacional da Enfermagem. */
-const CARGOS_ENFERMAGEM = /(enfermeir|t[eé]cnic[oa]?\s+de\s+enfermagem|auxiliar\s+de\s+enfermagem|parteir)/i;
+const CARGOS_ENFERMAGEM =
+  /(enfermeir|t[eé]cnic[oa]?\s+de\s+enfermagem|auxiliar\s+de\s+enfermagem|parteir)/i;
 
 export type Elegibilidade = "elegivel" | "revisar" | "nao_elegivel";
 
@@ -106,7 +107,8 @@ export function derivarElegibilidadePiso(p: ProfConferencia): Elegibilidade {
   // pequenas pendências puramente cadastrais viram "revisar" — não bloqueiam
   const bloqueadores: AlertaCadastral[] = ["sem_cpf", "sem_cargo"];
   if (alertas.some((a) => bloqueadores.includes(a))) return "revisar";
-  if (situ === "ferias" || situ === "licenca" || situ === "afastado" || situ === "cedido") return "revisar";
+  if (situ === "ferias" || situ === "licenca" || situ === "afastado" || situ === "cedido")
+    return "revisar";
   if (alertas.length > 0) return "revisar";
   return "elegivel";
 }
@@ -125,8 +127,13 @@ export type ResumoSituacao = {
 export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
   const r: ResumoSituacao = {
     total: rows.length,
-    ativos: 0, ferias: 0, licenca: 0, afastados: 0, desligados: 0,
-    pendencias: 0, nao_elegiveis: 0,
+    ativos: 0,
+    ferias: 0,
+    licenca: 0,
+    afastados: 0,
+    desligados: 0,
+    pendencias: 0,
+    nao_elegiveis: 0,
   };
   for (const p of rows) {
     const s = derivarSituacao(p);
@@ -142,7 +149,13 @@ export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
 }
 
 export const SITUACAO_ORDER: SituacaoFuncional[] = [
-  "ativo", "ferias", "licenca", "afastado", "cedido", "desligado", "inativo",
+  "ativo",
+  "ferias",
+  "licenca",
+  "afastado",
+  "cedido",
+  "desligado",
+  "inativo",
 ];
 
 export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {

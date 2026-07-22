@@ -222,9 +222,7 @@ export function drawAssinaturasBlock(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(90, 90, 90);
-      const cargo =
-        a.titular_cargo ??
-        (a.perfil_codigo ? a.perfil_codigo.replace(/_/g, " ") : "");
+      const cargo = a.titular_cargo ?? (a.perfil_codigo ? a.perfil_codigo.replace(/_/g, " ") : "");
       if (cargo) {
         doc.text(cargo, px + imgW / 2, lineY + 6.8, {
           align: "center",
@@ -286,9 +284,7 @@ export function drawAssinaturasBlock(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(90, 90, 90);
-      const cargo =
-        a.titular_cargo ??
-        (a.perfil_codigo ? a.perfil_codigo.replace(/_/g, " ") : "");
+      const cargo = a.titular_cargo ?? (a.perfil_codigo ? a.perfil_codigo.replace(/_/g, " ") : "");
       if (cargo) {
         doc.text(cargo, cx, lineY + 8, { align: "center", maxWidth: colW - 4 });
       }
@@ -308,9 +304,7 @@ export function drawAssinaturasBlock(
 /**
  * Lista as regras obrigatórias que não possuem assinatura cadastrada.
  */
-export function assinaturasFaltantes(
-  assinaturas: AssinaturaResolvida[],
-): string[] {
+export function assinaturasFaltantes(assinaturas: AssinaturaResolvida[]): string[] {
   return assinaturas
     .filter((a) => a.obrigatoria && a.escopo === "ausente")
     .map((a) => a.perfil_codigo ?? a.tipo_assinatura);

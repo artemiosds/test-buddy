@@ -11,23 +11,23 @@ export type AuditOperacao = "login" | "logout" | "custom";
 // Catálogo de ações auditáveis a partir do cliente.
 export const AUDIT_ACOES = {
   // Autenticação
-  LOGIN_SUCESSO:        "auth.login_sucesso",
-  LOGIN_FALHA:          "auth.login_falha",
-  LOGOUT:               "auth.logout",
-  MFA_CHALLENGE_INICIADO:"auth.mfa_challenge",
-  MFA_VERIFICADO:       "auth.mfa_verificado",
-  MFA_FALHA:            "auth.mfa_falha",
-  MFA_ATIVADO:          "auth.mfa_ativado",
-  MFA_REMOVIDO:         "auth.mfa_removido",
+  LOGIN_SUCESSO: "auth.login_sucesso",
+  LOGIN_FALHA: "auth.login_falha",
+  LOGOUT: "auth.logout",
+  MFA_CHALLENGE_INICIADO: "auth.mfa_challenge",
+  MFA_VERIFICADO: "auth.mfa_verificado",
+  MFA_FALHA: "auth.mfa_falha",
+  MFA_ATIVADO: "auth.mfa_ativado",
+  MFA_REMOVIDO: "auth.mfa_removido",
   BACKUP_CODES_GERADOS: "auth.backup_codes_gerados",
 
   // Exportação / Impressão
-  EXPORT_CSV:           "export.csv",
-  EXPORT_PDF:           "export.pdf",
-  IMPRESSAO:            "export.impressao",
+  EXPORT_CSV: "export.csv",
+  EXPORT_PDF: "export.pdf",
+  IMPRESSAO: "export.impressao",
 
   // Assinatura digital
-  ASSINATURA_APLICADA:  "assinatura.aplicada_client",
+  ASSINATURA_APLICADA: "assinatura.aplicada_client",
 } as const;
 
 export type AuditAcao = (typeof AUDIT_ACOES)[keyof typeof AUDIT_ACOES] | string;
@@ -63,7 +63,6 @@ async function callRpc(operacao: AuditOperacao, acao: AuditAcao, opts: LogOpts =
 
 export const auditClient = {
   login: (acao: AuditAcao, opts?: LogOpts) => callRpc("login", acao, opts),
-  logout: (acao: AuditAcao = AUDIT_ACOES.LOGOUT, opts?: LogOpts) =>
-    callRpc("logout", acao, opts),
+  logout: (acao: AuditAcao = AUDIT_ACOES.LOGOUT, opts?: LogOpts) => callRpc("logout", acao, opts),
   action: (acao: AuditAcao, opts?: LogOpts) => callRpc("custom", acao, opts),
 };

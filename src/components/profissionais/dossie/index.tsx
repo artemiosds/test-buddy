@@ -11,10 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DataTable,
   EmptyState,
@@ -22,12 +19,7 @@ import {
   StatusBadge,
   type DataTableColumn,
 } from "@/components/shared";
-import {
-  formatCPF,
-  formatDate,
-  formatInteger,
-  formatNumber,
-} from "@/lib/formatters";
+import { formatCPF, formatDate, formatInteger, formatNumber } from "@/lib/formatters";
 import {
   EVENTO_LABELS,
   deriveLotacoes,
@@ -75,9 +67,7 @@ export function ProfissionalHeader({ p }: { p: ProfHeaderData }) {
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-lg font-semibold">
-              {p.nome_social || p.nome_completo}
-            </h2>
+            <h2 className="truncate text-lg font-semibold">{p.nome_social || p.nome_completo}</h2>
             {p.status && <StatusBadge domain="profissional" value={p.status} />}
             {p.situacao_funcional && (
               <Badge variant="outline" className="capitalize">
@@ -205,15 +195,11 @@ export function TimelineFuncional({
           .join(" · ") || undefined,
       tipo: ev.tipo_evento,
     }));
-    const all = [...fromHist, ...extras].sort((a, b) =>
-      b.data.localeCompare(a.data),
-    );
+    const all = [...fromHist, ...extras].sort((a, b) => b.data.localeCompare(a.data));
     if (!filtro) return all;
     const q = filtro.toLowerCase();
     return all.filter(
-      (i) =>
-        i.titulo.toLowerCase().includes(q) ||
-        (i.detalhe ?? "").toLowerCase().includes(q),
+      (i) => i.titulo.toLowerCase().includes(q) || (i.detalhe ?? "").toLowerCase().includes(q),
     );
   }, [historico, extras, filtro]);
 
@@ -228,14 +214,10 @@ export function TimelineFuncional({
           <li key={it.key} className="mb-4 last:mb-0">
             <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
             <div className="flex flex-wrap items-baseline gap-2">
-              <span className="text-xs font-mono text-muted-foreground">
-                {formatDate(it.data)}
-              </span>
+              <span className="text-xs font-mono text-muted-foreground">{formatDate(it.data)}</span>
               <Badge variant="secondary">{it.titulo}</Badge>
             </div>
-            {it.detalhe && (
-              <p className="mt-1 text-sm text-muted-foreground">{it.detalhe}</p>
-            )}
+            {it.detalhe && <p className="mt-1 text-sm text-muted-foreground">{it.detalhe}</p>}
           </li>
         ))}
       </ol>
@@ -274,26 +256,22 @@ export function LotacoesTable({
     {
       key: "unidade",
       header: "Unidade",
-      cell: (r) =>
-        r.unidade_novo_id ? unidades.get(r.unidade_novo_id) ?? "—" : "—",
+      cell: (r) => (r.unidade_novo_id ? (unidades.get(r.unidade_novo_id) ?? "—") : "—"),
     },
     {
       key: "setor",
       header: "Setor",
-      cell: (r) =>
-        r.setor_novo_id ? setores.get(r.setor_novo_id) ?? "—" : "—",
+      cell: (r) => (r.setor_novo_id ? (setores.get(r.setor_novo_id) ?? "—") : "—"),
     },
     {
       key: "cargo",
       header: "Cargo",
-      cell: (r) =>
-        r.cargo_novo_id ? cargos.get(r.cargo_novo_id) ?? "—" : "—",
+      cell: (r) => (r.cargo_novo_id ? (cargos.get(r.cargo_novo_id) ?? "—") : "—"),
     },
     {
       key: "funcao",
       header: "Função",
-      cell: (r) =>
-        r.funcao_novo_id ? funcoes.get(r.funcao_novo_id) ?? "—" : "—",
+      cell: (r) => (r.funcao_novo_id ? (funcoes.get(r.funcao_novo_id) ?? "—") : "—"),
     },
     {
       key: "tipo",
@@ -309,11 +287,7 @@ export function LotacoesTable({
       key: "situacao",
       header: "Situação",
       cell: (r) =>
-        r.data_fim_efetiva ? (
-          <Badge variant="outline">Encerrada</Badge>
-        ) : (
-          <Badge>Atual</Badge>
-        ),
+        r.data_fim_efetiva ? <Badge variant="outline">Encerrada</Badge> : <Badge>Atual</Badge>,
     },
   ];
   return (
@@ -344,9 +318,7 @@ export function MovimentacoesTable({
       key: "tipo",
       header: "Tipo",
       cell: (r) => (
-        <Badge variant="secondary">
-          {EVENTO_LABELS[r.tipo_evento] ?? r.tipo_evento}
-        </Badge>
+        <Badge variant="secondary">{EVENTO_LABELS[r.tipo_evento] ?? r.tipo_evento}</Badge>
       ),
     },
     { key: "motivo", header: "Motivo", cell: (r) => r.motivo ?? "—" },
@@ -377,13 +349,7 @@ export type DossieDocumento = {
   assinado_por_nome: string | null;
 };
 
-export function DocumentosTab({
-  docs,
-  loading,
-}: {
-  docs: DossieDocumento[];
-  loading?: boolean;
-}) {
+export function DocumentosTab({ docs, loading }: { docs: DossieDocumento[]; loading?: boolean }) {
   if (loading) {
     return <Card className="p-6 text-sm text-muted-foreground">Carregando...</Card>;
   }
@@ -438,17 +404,13 @@ export function ObservacoesTab({
         {observacoes ? (
           <p className="whitespace-pre-wrap text-sm">{observacoes}</p>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Nenhuma observação registrada.
-          </p>
+          <p className="text-sm text-muted-foreground">Nenhuma observação registrada.</p>
         )}
       </Card>
       <Card className="p-4">
         <h3 className="mb-3 text-sm font-semibold">Histórico de alterações</h3>
         {!atualizacoes.length ? (
-          <p className="text-sm text-muted-foreground">
-            Sem alterações registradas na auditoria.
-          </p>
+          <p className="text-sm text-muted-foreground">Sem alterações registradas na auditoria.</p>
         ) : (
           <ol className="divide-y">
             {atualizacoes.map((a) => (
@@ -459,9 +421,7 @@ export function ObservacoesTab({
                   </Badge>
                   {a.responsavel ?? "—"}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(a.data)}
-                </span>
+                <span className="text-xs text-muted-foreground">{formatDate(a.data)}</span>
               </li>
             ))}
           </ol>

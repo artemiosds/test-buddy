@@ -6,10 +6,7 @@ import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { useCurrentUser } from "@/hooks/use-permissions";
-import {
-  regenerateBackupCodes,
-  countBackupCodes,
-} from "@/lib/mfa-backup-codes.functions";
+import { regenerateBackupCodes, countBackupCodes } from "@/lib/mfa-backup-codes.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 
@@ -50,23 +47,30 @@ function SegurancaPage() {
     setLoading(true);
     const { data, error } = await supabase.auth.mfa.listFactors();
     if (error) setError(error.message);
-    else setFactors(([...(data?.totp ?? []), ...(data?.phone ?? [])] as Factor[]));
+    else setFactors([...(data?.totp ?? []), ...(data?.phone ?? [])] as Factor[]);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const verified = factors.filter((f) => f.status === "verified");
   const hasMfa = verified.length > 0;
 
   async function startEnroll() {
-    setError(null); setInfo(null); setBusy(true);
+    setError(null);
+    setInfo(null);
+    setBusy(true);
     try {
       // Clean up any previous unverified factors to avoid duplicates
       const unverified = factors.filter((f) => f.status !== "verified" && f.factor_type === "totp");
       for (const f of unverified) await supabase.auth.mfa.unenroll({ factorId: f.id });
 
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `TOTP ${new Date().toLocaleDateString("pt-BR")}` });
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: `TOTP ${new Date().toLocaleDateString("pt-BR")}`,
+      });
       if (error) throw error;
       setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
     } catch (e) {
@@ -78,11 +82,16 @@ function SegurancaPage() {
 
   async function verifyEnroll() {
     if (!enroll) return;
-    setError(null); setBusy(true);
+    setError(null);
+    setBusy(true);
     try {
       const { data: ch, error: e1 } = await supabase.auth.mfa.challenge({ factorId: enroll.id });
       if (e1) throw e1;
-      const { error: e2 } = await supabase.auth.mfa.verify({ factorId: enroll.id, challengeId: ch.id, code });
+      const { error: e2 } = await supabase.auth.mfa.verify({
+        factorId: enroll.id,
+        challengeId: ch.id,
+        code,
+      });
       if (e2) throw e2;
       setEnroll(null);
       setCode("");
@@ -95,7 +104,9 @@ function SegurancaPage() {
         void auditClient.action(AUDIT_ACOES.BACKUP_CODES_GERADOS, {
           contexto: { origem: "auto_pos_enroll" },
         });
-        setInfo("Autenticação em duas etapas ativada. Guarde seus códigos de recuperação agora — eles só serão exibidos uma vez.");
+        setInfo(
+          "Autenticação em duas etapas ativada. Guarde seus códigos de recuperação agora — eles só serão exibidos uma vez.",
+        );
         await refetchBackupCount();
       } catch (err) {
         setInfo("Autenticação em duas etapas ativada com sucesso.");
@@ -140,7 +151,8 @@ function SegurancaPage() {
       confirmLabel: "Gerar novos",
     });
     if (!ok) return;
-    setBusy(true); setError(null);
+    setBusy(true);
+    setError(null);
     try {
       const res = await regenerateFn({});
       setBackupCodes(res.codes);
@@ -162,32 +174,48 @@ function SegurancaPage() {
       await navigator.clipboard.writeText(backupCodes.join("\n"));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Segurança da conta</h1>
-        <p className="text-sm text-muted-foreground">Ative a verificação em duas etapas (TOTP) usando um aplicativo autenticador (Google Authenticator, Authy, 1Password, Microsoft Authenticator).</p>
+        <p className="text-sm text-muted-foreground">
+          Ative a verificação em duas etapas (TOTP) usando um aplicativo autenticador (Google
+          Authenticator, Authy, 1Password, Microsoft Authenticator).
+        </p>
       </div>
 
       {mfaRequired && !hasMfa && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <p className="font-semibold">Configuração obrigatória</p>
-          <p className="mt-1">Seu perfil administrativo exige 2FA. O acesso às demais telas do sistema permanece bloqueado até a ativação.</p>
+          <p className="mt-1">
+            Seu perfil administrativo exige 2FA. O acesso às demais telas do sistema permanece
+            bloqueado até a ativação.
+          </p>
         </div>
       )}
 
-      {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+      )}
       {info && <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">{info}</p>}
 
       <div className="rounded-lg border bg-card p-5">
         <div className="mb-3 flex items-center gap-2">
           {verified.length > 0 ? (
-            <><ShieldCheck className="h-5 w-5 text-success" /><span className="font-medium">MFA ativo</span></>
+            <>
+              <ShieldCheck className="h-5 w-5 text-success" />
+              <span className="font-medium">MFA ativo</span>
+            </>
           ) : (
-            <><ShieldAlert className="h-5 w-5 text-warning-soft-foreground" /><span className="font-medium">MFA não configurado</span></>
+            <>
+              <ShieldAlert className="h-5 w-5 text-warning-soft-foreground" />
+              <span className="font-medium">MFA não configurado</span>
+            </>
           )}
         </div>
 
@@ -209,7 +237,10 @@ function SegurancaPage() {
                 <div className="flex justify-center rounded-md border bg-surface-elevated p-4">
                   <img src={enroll.qr} alt="QR Code MFA" className="h-48 w-48" />
                 </div>
-                <p className="text-xs text-muted-foreground">Ou insira manualmente esta chave: <code className="rounded bg-muted px-1.5 py-0.5">{enroll.secret}</code></p>
+                <p className="text-xs text-muted-foreground">
+                  Ou insira manualmente esta chave:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5">{enroll.secret}</code>
+                </p>
                 <div>
                   <label className="mb-1 block text-sm font-medium">Código de 6 dígitos</label>
                   <input
@@ -229,7 +260,12 @@ function SegurancaPage() {
                     Verificar e ativar
                   </button>
                   <button
-                    onClick={async () => { await supabase.auth.mfa.unenroll({ factorId: enroll.id }); setEnroll(null); setCode(""); await load(); }}
+                    onClick={async () => {
+                      await supabase.auth.mfa.unenroll({ factorId: enroll.id });
+                      setEnroll(null);
+                      setCode("");
+                      await load();
+                    }}
                     disabled={busy}
                     className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
                   >
@@ -242,7 +278,10 @@ function SegurancaPage() {
         ) : (
           <ul className="space-y-2">
             {verified.map((f) => (
-              <li key={f.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <li
+                key={f.id}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              >
                 <span>{f.friendly_name || f.factor_type.toUpperCase()}</span>
                 <button
                   onClick={() => removeFactor(f.id)}
@@ -264,7 +303,8 @@ function SegurancaPage() {
             <span className="font-medium">Códigos de recuperação</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Use estes códigos para recuperar acesso caso perca seu aplicativo autenticador. Cada código pode ser usado apenas uma vez.
+            Use estes códigos para recuperar acesso caso perca seu aplicativo autenticador. Cada
+            código pode ser usado apenas uma vez.
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {typeof backupCount === "number"
@@ -277,7 +317,9 @@ function SegurancaPage() {
               <div className="rounded-md border bg-surface-elevated p-4">
                 <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
                   {backupCodes.map((c) => (
-                    <li key={c} className="rounded bg-muted px-2 py-1 tracking-wider">{c}</li>
+                    <li key={c} className="rounded bg-muted px-2 py-1 tracking-wider">
+                      {c}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -286,7 +328,15 @@ function SegurancaPage() {
                   onClick={copyBackupCodes}
                   className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
                 >
-                  {copied ? <><Check className="h-3.5 w-3.5" /> Copiado</> : <><Copy className="h-3.5 w-3.5" /> Copiar todos</>}
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" /> Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" /> Copiar todos
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setBackupCodes(null)}
@@ -296,7 +346,8 @@ function SegurancaPage() {
                 </button>
               </div>
               <p className="text-xs text-destructive">
-                Estes códigos não serão exibidos novamente. Salve-os em um gerenciador de senhas ou local seguro.
+                Estes códigos não serão exibidos novamente. Salve-os em um gerenciador de senhas ou
+                local seguro.
               </p>
             </div>
           )}
@@ -314,7 +365,11 @@ function SegurancaPage() {
       )}
 
       <div className="rounded-md border bg-muted/30 p-4 text-xs text-muted-foreground">
-        <p><strong>Obrigatório</strong> para perfis marcados como administrativos (flag <code>admin_2fa_required</code> em <em>perfis</em>). Após ativar, a cada login será solicitado o código de 6 dígitos do aplicativo autenticador.</p>
+        <p>
+          <strong>Obrigatório</strong> para perfis marcados como administrativos (flag{" "}
+          <code>admin_2fa_required</code> em <em>perfis</em>). Após ativar, a cada login será
+          solicitado o código de 6 dígitos do aplicativo autenticador.
+        </p>
       </div>
     </div>
   );

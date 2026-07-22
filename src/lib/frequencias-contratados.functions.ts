@@ -5,8 +5,13 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 
 // Contratados = qualquer vínculo cuja natureza NÃO seja estatutário.
 const NATUREZAS_CONTRATADO = [
-  "temporario", "celetista", "comissionado", "terceirizado",
-  "estagiario", "residente", "voluntario",
+  "temporario",
+  "celetista",
+  "comissionado",
+  "terceirizado",
+  "estagiario",
+  "residente",
+  "voluntario",
 ] as const;
 
 const NUM = z.number().nonnegative();
@@ -37,8 +42,16 @@ const EnviarSchema = z.object({
 });
 
 const PAYLOAD_FIELDS = [
-  "dias_trabalhados","dias_falta","atestado","he_50","he_100","adn",
-  "plantoes","sobreaviso","incentivo","observacoes",
+  "dias_trabalhados",
+  "dias_falta",
+  "atestado",
+  "he_50",
+  "he_100",
+  "adn",
+  "plantoes",
+  "sobreaviso",
+  "incentivo",
+  "observacoes",
 ] as const;
 
 /**
@@ -49,10 +62,12 @@ const PAYLOAD_FIELDS = [
 export const listarFolhaContratados = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((d: { competencia_id: string; unidade_id: string }) =>
-    z.object({
-      competencia_id: z.string().uuid(),
-      unidade_id: z.string().uuid(),
-    }).parse(d),
+    z
+      .object({
+        competencia_id: z.string().uuid(),
+        unidade_id: z.string().uuid(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -60,7 +75,8 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
 
     const { data: profs, error: pErr } = await supabase
       .from("profissionais")
-      .select(`
+      .select(
+        `
         id, matricula, nome_completo, nome_social, cpf,
         banco, agencia, conta_corrente,
         cargo_id, funcao_id, setor_id,
@@ -68,7 +84,8 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         funcoes ( nome ),
         setores!profissionais_setor_id_fkey ( nome ),
         vinculos!inner ( natureza )
-      `)
+      `,
+      )
       .eq("unidade_id", data.unidade_id)
       .eq("status", "ativo")
       .is("deleted_at", null)
@@ -152,7 +169,8 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada") continue;
 
       const payload: Record<string, unknown> = {};
-      for (const f of PAYLOAD_FIELDS) payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
+      for (const f of PAYLOAD_FIELDS)
+        payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
 
       if (ex) {
         toUpdate.push({ id: ex.id, patch: { ...payload, updated_by: userId } });

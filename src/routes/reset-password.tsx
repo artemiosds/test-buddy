@@ -110,8 +110,14 @@ function ResetPasswordPage() {
               />
             </div>
 
-            {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-            {info && <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">{info}</p>}
+            {error && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            {info && (
+              <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">{info}</p>
+            )}
 
             <button
               type="submit"

@@ -43,8 +43,18 @@ export type ExcelContratadosInput = {
 };
 
 const MESES = [
-  "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
-  "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO",
+  "JANEIRO",
+  "FEVEREIRO",
+  "MARÇO",
+  "ABRIL",
+  "MAIO",
+  "JUNHO",
+  "JULHO",
+  "AGOSTO",
+  "SETEMBRO",
+  "OUTUBRO",
+  "NOVEMBRO",
+  "DEZEMBRO",
 ];
 
 export function fmtCPF(cpf: string | null | undefined): string {
@@ -77,9 +87,21 @@ export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): 
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
   const header = [
-    "Nº","NOME","C.P.F.","CARGO","LOTAÇÃO",
-    "DIAS","FALTA","ATT","H.E 50%","H.E 100%","ADN",
-    "PLANTÕES","SOBREAVISOS","INCENTIVO","CONTA",
+    "Nº",
+    "NOME",
+    "C.P.F.",
+    "CARGO",
+    "LOTAÇÃO",
+    "DIAS",
+    "FALTA",
+    "ATT",
+    "H.E 50%",
+    "H.E 100%",
+    "ADN",
+    "PLANTÕES",
+    "SOBREAVISOS",
+    "INCENTIVO",
+    "CONTA",
   ];
 
   const rows: (string | number)[][] = [
@@ -126,9 +148,21 @@ export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): 
   ];
 
   ws["!cols"] = [
-    { wch: 4 }, { wch: 36 }, { wch: 16 }, { wch: 26 }, { wch: 26 },
-    { wch: 7 }, { wch: 7 }, { wch: 7 }, { wch: 10 }, { wch: 10 }, { wch: 7 },
-    { wch: 12 }, { wch: 14 }, { wch: 13 }, { wch: 44 },
+    { wch: 4 },
+    { wch: 36 },
+    { wch: 16 },
+    { wch: 26 },
+    { wch: 26 },
+    { wch: 7 },
+    { wch: 7 },
+    { wch: 7 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 7 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 13 },
+    { wch: 44 },
   ];
 
   const wb = XLSX.utils.book_new();

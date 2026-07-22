@@ -9,7 +9,12 @@ const KEY_HISTORICO = "rel-int:historico:v1";
 const MAX_HISTORICO = 30;
 
 export type TipoRelatorioSalvo =
-  | "executivo" | "tecnico" | "administrativo" | "rh" | "auditoria" | "personalizado";
+  | "executivo"
+  | "tecnico"
+  | "administrativo"
+  | "rh"
+  | "auditoria"
+  | "personalizado";
 
 export type ModeloSalvo = {
   id: string;
@@ -45,7 +50,11 @@ function safeRead<T>(key: string, fallback: T): T {
 }
 function safeWrite(key: string, val: unknown) {
   if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(key, JSON.stringify(val)); } catch { /* quota */ }
+  try {
+    window.localStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    /* quota */
+  }
 }
 
 export function listarModelos(): ModeloSalvo[] {
@@ -56,7 +65,12 @@ export function listarModelos(): ModeloSalvo[] {
   });
 }
 
-export function salvarModelo(input: Omit<ModeloSalvo, "id" | "criadoEm" | "atualizadoEm" | "favorito"> & { id?: string; favorito?: boolean }): ModeloSalvo {
+export function salvarModelo(
+  input: Omit<ModeloSalvo, "id" | "criadoEm" | "atualizadoEm" | "favorito"> & {
+    id?: string;
+    favorito?: boolean;
+  },
+): ModeloSalvo {
   const now = new Date().toISOString();
   const modelos = safeRead<ModeloSalvo[]>(KEY_MODELOS, []);
   if (input.id) {
@@ -76,11 +90,15 @@ export function salvarModelo(input: Omit<ModeloSalvo, "id" | "criadoEm" | "atual
   }
   const novo: ModeloSalvo = {
     id: `mod_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
-    nome: input.nome, descricao: input.descricao,
+    nome: input.nome,
+    descricao: input.descricao,
     favorito: input.favorito ?? false,
-    tipo: input.tipo, blocks: input.blocks,
-    textFilter: input.textFilter, formato: input.formato,
-    criadoEm: now, atualizadoEm: now,
+    tipo: input.tipo,
+    blocks: input.blocks,
+    textFilter: input.textFilter,
+    formato: input.formato,
+    criadoEm: now,
+    atualizadoEm: now,
   };
   modelos.push(novo);
   safeWrite(KEY_MODELOS, modelos);
@@ -96,7 +114,11 @@ export function toggleFavorito(id: string) {
   const modelos = safeRead<ModeloSalvo[]>(KEY_MODELOS, []);
   const idx = modelos.findIndex((m) => m.id === id);
   if (idx < 0) return;
-  modelos[idx] = { ...modelos[idx], favorito: !modelos[idx].favorito, atualizadoEm: new Date().toISOString() };
+  modelos[idx] = {
+    ...modelos[idx],
+    favorito: !modelos[idx].favorito,
+    atualizadoEm: new Date().toISOString(),
+  };
   safeWrite(KEY_MODELOS, modelos);
 }
 

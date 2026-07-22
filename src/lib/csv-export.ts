@@ -18,9 +18,7 @@ function escapeCell(v: string | number | null | undefined): string {
 
 export function toCsv<T>(rows: T[], columns: CsvColumn<T>[]): string {
   const head = columns.map((c) => escapeCell(c.header)).join(",");
-  const body = rows
-    .map((r) => columns.map((c) => escapeCell(c.value(r))).join(","))
-    .join("\n");
+  const body = rows.map((r) => columns.map((c) => escapeCell(c.value(r))).join(",")).join("\n");
   return head + "\n" + body;
 }
 

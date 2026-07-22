@@ -48,7 +48,10 @@ export function DataTable<T>({
             {columns.map((c) => (
               <th
                 key={c.key}
-                className={"px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground " + (c.headerClassName ?? "")}
+                className={
+                  "px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground " +
+                  (c.headerClassName ?? "")
+                }
               >
                 {c.header}
               </th>
@@ -64,8 +67,7 @@ export function DataTable<T>({
                 key={getRowKey(row, i)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={
-                  "border-t transition " +
-                  (onRowClick ? "cursor-pointer hover:bg-accent/50" : "")
+                  "border-t transition " + (onRowClick ? "cursor-pointer hover:bg-accent/50" : "")
                 }
               >
                 {columns.map((c) => (

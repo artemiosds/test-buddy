@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { autoMap, normalize, parseNumeric, suggestDestino, onlyDigits, CPF_REGEX } from "./piso-mapping";
+import {
+  autoMap,
+  normalize,
+  parseNumeric,
+  suggestDestino,
+  onlyDigits,
+  CPF_REGEX,
+} from "./piso-mapping";
 
 describe("piso-mapping", () => {
   it("normaliza acentos e caixa", () => {

@@ -117,8 +117,7 @@ export function computeIntegridade(input: {
     input.cadastrosIncompletos ??
     Math.min(input.total, Math.max(...campos.map((c) => c.faltantes), 0));
   const completos = Math.max(0, input.total - incompletos);
-  const percentual =
-    input.total === 0 ? 100 : Math.round((completos / input.total) * 100);
+  const percentual = input.total === 0 ? 100 : Math.round((completos / input.total) * 100);
 
   let nivel: SemaforoNivel = "ok";
   if (percentual < T.integridadeCritico) nivel = "critico";

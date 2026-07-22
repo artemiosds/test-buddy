@@ -15,14 +15,23 @@ export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-fu
   component: () => (
     <PermissionGate
       permission="profissional.visualizar"
-      fallback={<div className="p-6 text-sm text-muted-foreground">Sem permissão para visualizar este painel.</div>}
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Sem permissão para visualizar este painel.
+        </div>
+      }
     >
       <SituacaoFuncional />
     </PermissionGate>
   ),
 });
 
-const ORDER: { key: string; label: string; icon: React.ReactNode; tone?: "success" | "warning" | "danger" }[] = [
+const ORDER: {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  tone?: "success" | "warning" | "danger";
+}[] = [
   { key: "ativo", label: "Ativos", icon: <UserCheck className="h-4 w-4" />, tone: "success" },
   { key: "afastado", label: "Afastados", icon: <UserMinus className="h-4 w-4" />, tone: "warning" },
   { key: "ferias", label: "Férias", icon: <Umbrella className="h-4 w-4" /> },
@@ -58,11 +67,17 @@ function SituacaoFuncional() {
       </div>
 
       <div className="mt-6 rounded-md border p-4 text-sm text-muted-foreground">
-        Total considerado: <span className="font-medium text-foreground">{total.toLocaleString("pt-BR")}</span> profissionais (não deletados).
+        Total considerado:{" "}
+        <span className="font-medium text-foreground">{total.toLocaleString("pt-BR")}</span>{" "}
+        profissionais (não deletados).
       </div>
 
       {!a.statusBreakdown.isLoading && total === 0 && (
-        <EmptyState className="mt-6" title="Sem profissionais cadastrados" description="Nenhum registro disponível para o escopo atual." />
+        <EmptyState
+          className="mt-6"
+          title="Sem profissionais cadastrados"
+          description="Nenhum registro disponível para o escopo atual."
+        />
       )}
     </div>
   );

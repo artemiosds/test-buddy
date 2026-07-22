@@ -137,7 +137,8 @@ function UsuarioDetail() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Somente usuário MASTER altera permissões</AlertTitle>
           <AlertDescription>
-            Você pode visualizar esta tela, mas não pode conceder, revogar ou herdar permissões individuais.
+            Você pode visualizar esta tela, mas não pode conceder, revogar ou herdar permissões
+            individuais.
           </AlertDescription>
         </Alert>
       )}
@@ -167,17 +168,10 @@ function UsuarioDetail() {
                   const state: Override = ov ? (ov.tipo as Override) : "herdar";
                   const inheritGranted = perfilPerms.has(p.id);
                   const effective =
-                    state === "concedida"
-                      ? true
-                      : state === "revogada"
-                        ? false
-                        : inheritGranted;
+                    state === "concedida" ? true : state === "revogada" ? false : inheritGranted;
 
                   return (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between gap-4 px-3 py-2"
-                    >
+                    <div key={p.id} className="flex items-center justify-between gap-4 px-3 py-2">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{p.nome}</div>
                         <div className="truncate text-xs text-muted-foreground">
@@ -185,16 +179,12 @@ function UsuarioDetail() {
                           {" · "}
                           Herdado:{" "}
                           <span
-                            className={
-                              inheritGranted ? "text-success" : "text-muted-foreground"
-                            }
+                            className={inheritGranted ? "text-success" : "text-muted-foreground"}
                           >
                             {inheritGranted ? "concedido" : "não concedido"}
                           </span>
                           {" · Efetivo: "}
-                          <span
-                            className={effective ? "text-success" : "text-destructive"}
-                          >
+                          <span className={effective ? "text-success" : "text-destructive"}>
                             {effective ? "permitido" : "negado"}
                           </span>
                         </div>
@@ -202,8 +192,7 @@ function UsuarioDetail() {
                       <div className="flex gap-1">
                         {(["herdar", "concedida", "revogada"] as Override[]).map((opt) => {
                           const active = state === opt;
-                          const Icon =
-                            opt === "concedida" ? Check : opt === "revogada" ? X : Minus;
+                          const Icon = opt === "concedida" ? Check : opt === "revogada" ? X : Minus;
                           const color =
                             opt === "concedida"
                               ? "text-success"
@@ -217,9 +206,7 @@ function UsuarioDetail() {
                               variant={active ? "default" : "outline"}
                               className={active ? "" : color}
                               disabled={!isMaster || setOverride.isPending}
-                              onClick={() =>
-                                setOverride.mutate({ permissao_id: p.id, state: opt })
-                              }
+                              onClick={() => setOverride.mutate({ permissao_id: p.id, state: opt })}
                             >
                               <Icon className="h-3.5 w-3.5" />
                             </Button>

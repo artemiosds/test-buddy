@@ -11,8 +11,14 @@
  */
 
 import {
-  createContext, useCallback, useContext, useEffect, useMemo,
-  useRef, useState, type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,
   type ClipboardEvent as ReactClipboardEvent,
   type HTMLAttributes,
@@ -20,11 +26,17 @@ import {
 import { AlertTriangle, ClipboardList, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  ALERTA_LABEL, derivarAlertas, derivarSituacao,
+  ALERTA_LABEL,
+  derivarAlertas,
+  derivarSituacao,
   type ProfConferencia,
 } from "@/lib/situacao-funcional";
 
@@ -36,12 +48,8 @@ type CellId = string;
 type Ctx = {
   register: (rowId: string, colKey: string, el: HTMLInputElement | null) => void;
   focusCell: (rowId: string, colKey: string) => void;
-  onCellKeyDown: (
-    rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>,
-  ) => void;
-  onCellPaste: (
-    rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>,
-  ) => void;
+  onCellKeyDown: (rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>) => void;
+  onCellPaste: (rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>) => void;
   setActiveRow: (rowId: string | null) => void;
   bindTbody: (el: HTMLTableSectionElement | null) => void;
 };
@@ -64,80 +72,117 @@ export type ErpGridProviderProps = {
   children: ReactNode;
 };
 
-export function ErpGridProvider({
-  rowIds, colKeys, onPaste, children,
-}: ErpGridProviderProps) {
+export function ErpGridProvider({ rowIds, colKeys, onPaste, children }: ErpGridProviderProps) {
   const cells = useRef(new Map<CellId, HTMLInputElement>());
   const rowIdsRef = useRef(rowIds);
   const colKeysRef = useRef(colKeys);
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
-  useEffect(() => { rowIdsRef.current = rowIds; }, [rowIds]);
-  useEffect(() => { colKeysRef.current = colKeys; }, [colKeys]);
+  useEffect(() => {
+    rowIdsRef.current = rowIds;
+  }, [rowIds]);
+  useEffect(() => {
+    colKeysRef.current = colKeys;
+  }, [colKeys]);
 
-  const register = useCallback(
-    (rowId: string, colKey: string, el: HTMLInputElement | null) => {
-      const id = `${rowId}::${colKey}`;
-      if (el) cells.current.set(id, el);
-      else cells.current.delete(id);
-    }, []);
+  const register = useCallback((rowId: string, colKey: string, el: HTMLInputElement | null) => {
+    const id = `${rowId}::${colKey}`;
+    if (el) cells.current.set(id, el);
+    else cells.current.delete(id);
+  }, []);
 
   const focusCell = useCallback((rowId: string, colKey: string) => {
     const el = cells.current.get(`${rowId}::${colKey}`);
     if (!el) return;
     el.focus();
-    try { el.select(); } catch { /* noop */ }
+    try {
+      el.select();
+    } catch {
+      /* noop */
+    }
     el.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, []);
 
-  const move = useCallback((rowId: string, colKey: string, dr: number, dc: number) => {
-    const rs = rowIdsRef.current; const cs = colKeysRef.current;
-    const r = rs.indexOf(rowId); const c = cs.indexOf(colKey);
-    if (r < 0 || c < 0) return;
-    let nr = r + dr; let nc = c + dc;
-    if (nc >= cs.length) { nc = 0; nr += 1; }
-    if (nc < 0) { nc = cs.length - 1; nr -= 1; }
-    if (nr < 0 || nr >= rs.length) return;
-    focusCell(rs[nr], cs[nc]);
-  }, [focusCell]);
-
-  const onCellKeyDown = useCallback((
-    rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (e.altKey || e.metaKey) return;
-    if (e.key === "Enter") { e.preventDefault(); move(rowId, colKey, 1, 0); return; }
-    if (e.key === "Tab")   { e.preventDefault(); move(rowId, colKey, 0, e.shiftKey ? -1 : 1); return; }
-    if (e.key === "ArrowUp")   { e.preventDefault(); move(rowId, colKey, -1, 0); return; }
-    if (e.key === "ArrowDown") { e.preventDefault(); move(rowId, colKey, 1, 0); return; }
-    if (e.key === "ArrowRight") {
-      const el = e.currentTarget;
-      if (el.selectionStart === el.value.length && el.selectionEnd === el.value.length) {
-        e.preventDefault(); move(rowId, colKey, 0, 1);
+  const move = useCallback(
+    (rowId: string, colKey: string, dr: number, dc: number) => {
+      const rs = rowIdsRef.current;
+      const cs = colKeysRef.current;
+      const r = rs.indexOf(rowId);
+      const c = cs.indexOf(colKey);
+      if (r < 0 || c < 0) return;
+      let nr = r + dr;
+      let nc = c + dc;
+      if (nc >= cs.length) {
+        nc = 0;
+        nr += 1;
       }
-      return;
-    }
-    if (e.key === "ArrowLeft") {
-      const el = e.currentTarget;
-      if (el.selectionStart === 0 && el.selectionEnd === 0) {
-        e.preventDefault(); move(rowId, colKey, 0, -1);
+      if (nc < 0) {
+        nc = cs.length - 1;
+        nr -= 1;
       }
-    }
-  }, [move]);
+      if (nr < 0 || nr >= rs.length) return;
+      focusCell(rs[nr], cs[nc]);
+    },
+    [focusCell],
+  );
 
-  const onCellPaste = useCallback((
-    rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>,
-  ) => {
-    const text = e.clipboardData.getData("text");
-    if (!text) return;
-    // Uma única célula copiada: mantém o comportamento nativo do input.
-    if (!text.includes("\t") && !text.includes("\n")) return;
-    e.preventDefault();
-    const lines = text.replace(/\r/g, "").split("\n");
-    // Descarta a última linha se vier vazia (final com \n).
-    while (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
-    const matrix = lines.map((row) => row.split("\t"));
-    onPaste(rowId, colKey, matrix);
-  }, [onPaste]);
+  const onCellKeyDown = useCallback(
+    (rowId: string, colKey: string, e: ReactKeyboardEvent<HTMLInputElement>) => {
+      if (e.altKey || e.metaKey) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        move(rowId, colKey, 1, 0);
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        move(rowId, colKey, 0, e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        move(rowId, colKey, -1, 0);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        move(rowId, colKey, 1, 0);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        const el = e.currentTarget;
+        if (el.selectionStart === el.value.length && el.selectionEnd === el.value.length) {
+          e.preventDefault();
+          move(rowId, colKey, 0, 1);
+        }
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        const el = e.currentTarget;
+        if (el.selectionStart === 0 && el.selectionEnd === 0) {
+          e.preventDefault();
+          move(rowId, colKey, 0, -1);
+        }
+      }
+    },
+    [move],
+  );
+
+  const onCellPaste = useCallback(
+    (rowId: string, colKey: string, e: ReactClipboardEvent<HTMLInputElement>) => {
+      const text = e.clipboardData.getData("text");
+      if (!text) return;
+      // Uma única célula copiada: mantém o comportamento nativo do input.
+      if (!text.includes("\t") && !text.includes("\n")) return;
+      e.preventDefault();
+      const lines = text.replace(/\r/g, "").split("\n");
+      // Descarta a última linha se vier vazia (final com \n).
+      while (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+      const matrix = lines.map((row) => row.split("\t"));
+      onPaste(rowId, colKey, matrix);
+    },
+    [onPaste],
+  );
 
   const setActiveRow = useCallback((rowId: string | null) => {
     const tb = tbodyRef.current;
@@ -192,8 +237,18 @@ export type NumberCellProps = {
 };
 
 export function NumberCell({
-  rowId, colKey, value, onChange, disabled,
-  min = 0, max, step, decimals, validate, className, title,
+  rowId,
+  colKey,
+  value,
+  onChange,
+  disabled,
+  min = 0,
+  max,
+  step,
+  decimals,
+  validate,
+  className,
+  title,
 }: NumberCellProps) {
   const ctx = useErp();
   const ref = useRef<HTMLInputElement | null>(null);
@@ -263,10 +318,17 @@ function fmtNum(n: number, decimals?: number): string {
  * TextCell — observação em uma linha, sem borda pesada.
  * ----------------------------------------------------------------------- */
 export function TextCell({
-  rowId, value, onChange, disabled, placeholder,
+  rowId,
+  value,
+  onChange,
+  disabled,
+  placeholder,
 }: {
-  rowId: string; value: string;
-  onChange: (v: string) => void; disabled?: boolean; placeholder?: string;
+  rowId: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
 }) {
   const ctx = useErp();
   return (
@@ -300,7 +362,10 @@ export type FrozenCol = { key: string; label: string; width: number };
 export function frozenLeftMap(cols: FrozenCol[]): Record<string, number> {
   const out: Record<string, number> = {};
   let acc = 0;
-  for (const c of cols) { out[c.key] = acc; acc += c.width; }
+  for (const c of cols) {
+    out[c.key] = acc;
+    acc += c.width;
+  }
   return out;
 }
 
@@ -350,36 +415,42 @@ export function KpiFolhaBar({ k }: { k: KpiTotais }) {
  * InconsistenciasPanel — botão + drawer com profissionais em alerta.
  * ----------------------------------------------------------------------- */
 export function InconsistenciasPanel({
-  rows, onGoto,
+  rows,
+  onGoto,
 }: {
   rows: ProfConferencia[];
   onGoto?: (rowId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const itens = useMemo(
-    () => rows
-      .map((p) => ({ p, alertas: derivarAlertas(p) }))
-      .filter((x) => x.alertas.length > 0)
-      .sort((a, b) => b.alertas.length - a.alertas.length),
+    () =>
+      rows
+        .map((p) => ({ p, alertas: derivarAlertas(p) }))
+        .filter((x) => x.alertas.length > 0)
+        .sort((a, b) => b.alertas.length - a.alertas.length),
     [rows],
   );
 
   return (
     <>
       <Button
-        type="button" variant="outline" size="sm"
+        type="button"
+        variant="outline"
+        size="sm"
         className="gap-1.5"
         onClick={() => setOpen(true)}
         title="Inconsistências cadastrais desta folha"
       >
         <AlertTriangle className="h-4 w-4 text-warning" />
         Inconsistências
-        <span className={cn(
-          "ml-1 rounded-full px-2 text-xs font-semibold tabular-nums",
-          itens.length === 0
-            ? "bg-success-soft text-success-soft-foreground"
-            : "bg-warning-soft text-warning-soft-foreground",
-        )}>
+        <span
+          className={cn(
+            "ml-1 rounded-full px-2 text-xs font-semibold tabular-nums",
+            itens.length === 0
+              ? "bg-success-soft text-success-soft-foreground"
+              : "bg-warning-soft text-warning-soft-foreground",
+          )}
+        >
           {itens.length}
         </span>
       </Button>
@@ -391,12 +462,15 @@ export function InconsistenciasPanel({
               Inconsistências cadastrais
             </SheetTitle>
             <SheetDescription>
-              Profissionais visíveis nesta folha com dados obrigatórios
-              incompletos. Estes alertas não bloqueiam o lançamento — apenas
-              indicam correções que devem ser feitas no cadastro.
+              Profissionais visíveis nesta folha com dados obrigatórios incompletos. Estes alertas
+              não bloqueiam o lançamento — apenas indicam correções que devem ser feitas no
+              cadastro.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4 space-y-2 overflow-auto pr-1" style={{ maxHeight: "calc(100vh - 180px)" }}>
+          <div
+            className="mt-4 space-y-2 overflow-auto pr-1"
+            style={{ maxHeight: "calc(100vh - 180px)" }}
+          >
             {itens.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Nenhuma inconsistência encontrada nas linhas visíveis. 🎉
@@ -415,9 +489,7 @@ export function InconsistenciasPanel({
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-sm truncate">{p.nome ?? "—"}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {p.matricula ?? ""}
-                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">{p.matricula ?? ""}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {alertas.map((a) => (
@@ -447,12 +519,15 @@ export function calcularTotais<T extends Record<string, unknown>>(
   entries: T[],
   map: { he50: keyof T; he100: keyof T; plantoes: keyof T; faltas: keyof T },
 ) {
-  let he50 = 0, he100 = 0, plantoes = 0, faltas = 0;
+  let he50 = 0,
+    he100 = 0,
+    plantoes = 0,
+    faltas = 0;
   for (const l of entries) {
-    he50     += num(l[map.he50]);
-    he100    += num(l[map.he100]);
+    he50 += num(l[map.he50]);
+    he100 += num(l[map.he100]);
     plantoes += num(l[map.plantoes]);
-    faltas   += num(l[map.faltas]);
+    faltas += num(l[map.faltas]);
   }
   return { he50, he100, plantoes, faltas };
 }

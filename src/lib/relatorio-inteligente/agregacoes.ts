@@ -12,18 +12,14 @@ export type Stats = {
 };
 
 export function statsFor(rows: Row[], field: string): Stats {
-  const values = rows
-    .map((r) => r[field])
-    .filter((v): v is number => typeof v === "number");
+  const values = rows.map((r) => r[field]).filter((v): v is number => typeof v === "number");
   const total = values.length;
   if (!total) return { total: 0, soma: 0, media: 0, mediana: 0, minimo: 0, maximo: 0, desvio: 0 };
   const sorted = [...values].sort((a, b) => a - b);
   const soma = values.reduce((s, v) => s + v, 0);
   const media = soma / total;
   const mediana =
-    total % 2 === 0
-      ? (sorted[total / 2 - 1] + sorted[total / 2]) / 2
-      : sorted[(total - 1) / 2];
+    total % 2 === 0 ? (sorted[total / 2 - 1] + sorted[total / 2]) / 2 : sorted[(total - 1) / 2];
   const variancia = values.reduce((s, v) => s + (v - media) ** 2, 0) / total;
   return {
     total,
@@ -36,7 +32,9 @@ export function statsFor(rows: Row[], field: string): Stats {
   };
 }
 
-function round(n: number): number { return Math.round(n * 100) / 100; }
+function round(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 
 export function numericFields(rows: Row[]): string[] {
   if (!rows.length) return [];

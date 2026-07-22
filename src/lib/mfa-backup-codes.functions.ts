@@ -53,9 +53,7 @@ export const countBackupCodes = createServerFn({ method: "GET" })
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    const list = Array.isArray(data?.mfa_backup_codes)
-      ? (data!.mfa_backup_codes as unknown[])
-      : [];
+    const list = Array.isArray(data?.mfa_backup_codes) ? (data!.mfa_backup_codes as unknown[]) : [];
     return { count: list.length };
   });
 
@@ -88,8 +86,9 @@ export const consumeBackupCodeAndUnenroll = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: factorsData, error: listErr } =
-      await supabaseAdmin.auth.admin.mfa.listFactors({ userId: context.userId });
+    const { data: factorsData, error: listErr } = await supabaseAdmin.auth.admin.mfa.listFactors({
+      userId: context.userId,
+    });
     if (listErr) throw new Error(listErr.message);
 
     const factors = factorsData?.factors ?? [];

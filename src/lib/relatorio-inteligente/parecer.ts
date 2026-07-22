@@ -21,10 +21,17 @@ export function parecerPorBloco(block: BlockDef, rows: Row[], fields: string[]):
   const nums = numericFields(rows).filter((f) => fields.includes(f));
 
   if (!rows.length) {
-    return { blockId: block.id, titulo: block.label, frases: ["Sem dados suficientes para análise."], destaques: [] };
+    return {
+      blockId: block.id,
+      titulo: block.label,
+      frases: ["Sem dados suficientes para análise."],
+      destaques: [],
+    };
   }
 
-  frases.push(`O bloco reúne ${rows.length.toLocaleString("pt-BR")} registro(s) após aplicação dos filtros e ordenação.`);
+  frases.push(
+    `O bloco reúne ${rows.length.toLocaleString("pt-BR")} registro(s) após aplicação dos filtros e ordenação.`,
+  );
 
   for (const f of nums.slice(0, 3)) {
     const s = statsFor(rows, f);
@@ -33,8 +40,8 @@ export function parecerPorBloco(block: BlockDef, rows: Row[], fields: string[]):
 
     frases.push(
       `**${rot}** apresenta soma de ${s.soma.toLocaleString("pt-BR")}, ` +
-      `média de ${s.media.toLocaleString("pt-BR")} e mediana ${s.mediana.toLocaleString("pt-BR")} ` +
-      `(desvio padrão ${s.desvio.toLocaleString("pt-BR")}, mín ${s.minimo.toLocaleString("pt-BR")}, máx ${s.maximo.toLocaleString("pt-BR")}).`,
+        `média de ${s.media.toLocaleString("pt-BR")} e mediana ${s.mediana.toLocaleString("pt-BR")} ` +
+        `(desvio padrão ${s.desvio.toLocaleString("pt-BR")}, mín ${s.minimo.toLocaleString("pt-BR")}, máx ${s.maximo.toLocaleString("pt-BR")}).`,
     );
 
     // Concentração — top 3 categorias respondem por quanto do total?
@@ -49,8 +56,13 @@ export function parecerPorBloco(block: BlockDef, rows: Row[], fields: string[]):
       const top3 = ranked.slice(0, 3).reduce((sum, [, v]) => sum + v, 0);
       const pct = Math.round((top3 / s.soma) * 100);
       if (ranked.length >= 3) {
-        const nomes = ranked.slice(0, 3).map(([k]) => k).join(", ");
-        frases.push(`Os três maiores (${nomes}) concentram ${pct}% do total de ${rot.toLowerCase()}.`);
+        const nomes = ranked
+          .slice(0, 3)
+          .map(([k]) => k)
+          .join(", ");
+        frases.push(
+          `Os três maiores (${nomes}) concentram ${pct}% do total de ${rot.toLowerCase()}.`,
+        );
         destaques.push({
           rotulo: `Concentração top 3 · ${rot}`,
           valor: `${pct}%`,
@@ -62,8 +74,12 @@ export function parecerPorBloco(block: BlockDef, rows: Row[], fields: string[]):
     // Dispersão relativa (coef. de variação).
     if (s.media > 0) {
       const cv = Math.round((s.desvio / s.media) * 100);
-      if (cv >= 80) frases.push(`Dispersão elevada em ${rot.toLowerCase()} (CV ${cv}%): há grande desigualdade entre categorias.`);
-      else if (cv <= 20 && s.total > 3) frases.push(`Distribuição homogênea em ${rot.toLowerCase()} (CV ${cv}%).`);
+      if (cv >= 80)
+        frases.push(
+          `Dispersão elevada em ${rot.toLowerCase()} (CV ${cv}%): há grande desigualdade entre categorias.`,
+        );
+      else if (cv <= 20 && s.total > 3)
+        frases.push(`Distribuição homogênea em ${rot.toLowerCase()} (CV ${cv}%).`);
     }
   }
 
@@ -72,7 +88,9 @@ export function parecerPorBloco(block: BlockDef, rows: Row[], fields: string[]):
     const vazios = rows.filter((r) => r[nomeCat] == null || r[nomeCat] === "").length;
     if (vazios > 0) {
       const pct = Math.round((vazios / rows.length) * 100);
-      frases.push(`Há ${vazios.toLocaleString("pt-BR")} registro(s) (${pct}%) sem o campo categórico "${block.fields.find((f) => f.id === nomeCat)?.label}" preenchido.`);
+      frases.push(
+        `Há ${vazios.toLocaleString("pt-BR")} registro(s) (${pct}%) sem o campo categórico "${block.fields.find((f) => f.id === nomeCat)?.label}" preenchido.`,
+      );
       destaques.push({
         rotulo: "Registros sem categoria",
         valor: `${pct}%`,
