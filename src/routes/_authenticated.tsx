@@ -529,7 +529,7 @@ function AuthenticatedLayout() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/20 px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-muted/20 px-4">
         <div className="text-sm text-muted-foreground">Validando sessão...</div>
       </div>
     );
@@ -681,7 +681,7 @@ function AuthenticatedLayout() {
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-muted/20">
+    <div className="flex min-h-dvh w-full bg-muted/20">
       {/* Desktop sidebar */}
       <aside
         data-collapsed={collapsed ? "true" : "false"}
