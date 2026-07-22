@@ -158,15 +158,15 @@ function CompetenciasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Competências</h1>
           <p className="text-sm text-muted-foreground">Gerencie os períodos mensais de frequência.</p>
         </div>
         {canCriar && (
           <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Nova competência</Button>
+              <Button className="w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />Nova competência</Button>
             </DialogTrigger>
             <CompetenciaForm
               editing={editing}
