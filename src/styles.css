@@ -3479,3 +3479,33 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
 .dark .erp-grid tbody tr[data-row-id][data-active="true"] td.erp-sticky {
   background-color: oklch(0.32 0.08 250) !important;
 }
+
+/* =====================================================================
+ * ERP-GRID BORDAS — escopo restrito a .erp-grid (Folha Efetivos e
+ * Contratados). Escurece as linhas horizontais/verticais para melhorar
+ * a leitura, mantendo aparência sutil (não vira grade pesada tipo Excel).
+ * ===================================================================== */
+.erp-grid tbody td,
+.erp-grid tfoot td {
+  border-bottom-color: oklch(0.78 0.012 250) !important;
+}
+.erp-grid thead th,
+.erp-grid tbody td,
+.erp-grid tfoot td {
+  border-right-color: oklch(0.78 0.012 250) !important;
+}
+.erp-grid .erp-sticky-last {
+  border-right-color: oklch(0.72 0.015 250) !important;
+}
+.dark .erp-grid tbody td,
+.dark .erp-grid tfoot td {
+  border-bottom-color: oklch(0.38 0.02 265) !important;
+}
+.dark .erp-grid thead th,
+.dark .erp-grid tbody td,
+.dark .erp-grid tfoot td {
+  border-right-color: oklch(0.38 0.02 265) !important;
+}
+.dark .erp-grid .erp-sticky-last {
+  border-right-color: oklch(0.45 0.025 265) !important;
+}
