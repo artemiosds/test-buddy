@@ -232,8 +232,7 @@ function RelatorioExecutivoPage() {
 
   async function exportarPDF() {
     if (!consolidado) return;
-    const { jsPDF, autoTable, drawInstitutionalHeader, loadMunicipioInfo } =
-      await loadPdfKit();
+    const { jsPDF, autoTable, drawInstitutionalHeader, loadMunicipioInfo } = await loadPdfKit();
     const doc = new jsPDF();
     const mun = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(doc, mun, `Relatório Executivo — ${compLabel}`);

@@ -444,7 +444,8 @@ export function FrequenciasContratadosPage() {
   async function handleExportarPdfModeloCer() {
     if (!compSel) return;
     try {
-      const { gerarFolhaContratadosModeloCer } = await import("@/lib/pdf-folha-contratados-modelo-cer");
+      const { gerarFolhaContratadosModeloCer } =
+        await import("@/lib/pdf-folha-contratados-modelo-cer");
       await gerarFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -461,7 +462,8 @@ export function FrequenciasContratadosPage() {
   async function handleExportarExcelModeloCer() {
     if (!compSel) return;
     try {
-      const { gerarExcelFolhaContratadosModeloCer } = await import("@/lib/excel-folha-contratados-modelo-cer");
+      const { gerarExcelFolhaContratadosModeloCer } =
+        await import("@/lib/excel-folha-contratados-modelo-cer");
       await gerarExcelFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel

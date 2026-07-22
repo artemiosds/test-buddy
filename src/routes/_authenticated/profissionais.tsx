@@ -792,13 +792,25 @@ function ProfissionaisPage() {
       className: "text-right",
       cell: (p) => (
         <div className="inline-flex gap-1">
-          <Button size="icon" variant="ghost" asChild title="Histórico funcional" aria-label="Histórico funcional">
+          <Button
+            size="icon"
+            variant="ghost"
+            asChild
+            title="Histórico funcional"
+            aria-label="Histórico funcional"
+          >
             <Link to="/profissionais/$id" params={{ id: p.id }}>
               <History className="h-4 w-4" />
             </Link>
           </Button>
           {canEdit && (
-            <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Editar" aria-label="Editar profissional">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => openEdit(p)}
+              title="Editar"
+              aria-label="Editar profissional"
+            >
               <Pencil className="h-4 w-4" />
             </Button>
           )}
@@ -1296,7 +1308,7 @@ function ProfissionalFormBody({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingFoto}
                 title="Enviar nova foto"
-              aria-label="Enviar nova foto"
+                aria-label="Enviar nova foto"
               >
                 {uploadingFoto ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

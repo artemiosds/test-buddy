@@ -1169,7 +1169,12 @@ function FrequenciaDetalhe() {
                     </td>
                     <td className="p-2 text-right">
                       {editable && canEditar && l.status_linha === "pendente" && (
-                        <Button size="icon" variant="ghost" aria-label="Remover linha" onClick={() => removeLinha(idx)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Remover linha"
+                          onClick={() => removeLinha(idx)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
@@ -1492,7 +1497,12 @@ function AnexosDialog({
                       </Badge>
                     )}
                     {canEdit && (
-                      <Button size="icon" variant="ghost" aria-label="Remover anexo" onClick={() => removerAnexo(a)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Remover anexo"
+                        onClick={() => removerAnexo(a)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}

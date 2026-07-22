@@ -586,9 +586,8 @@ export function FrequenciasEfetivosPage() {
                     grupos: Object.values(grupos),
                   },
                 ];
-                const { gerarFolhaEfetivosOficial } = await import(
-                  "@/lib/pdf-folha-efetivos-oficial"
-                );
+                const { gerarFolhaEfetivosOficial } =
+                  await import("@/lib/pdf-folha-efetivos-oficial");
                 await gerarFolhaEfetivosOficial({
                   competencia: {
                     mes: compSel?.mes ?? 1,
