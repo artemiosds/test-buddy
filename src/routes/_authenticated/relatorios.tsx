@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { loadXlsxKit } from "@/lib/lazy-exports";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import type { Database } from "@/integrations/supabase/types";
@@ -189,11 +189,12 @@ function RelatoriosPage() {
     toast.success("Relatório exportado.");
   }
 
-  function exportarXLSX() {
+  async function exportarXLSX() {
     if (!linhas?.length) {
       toast.error("Nada para exportar.");
       return;
     }
+    const { XLSX } = await loadXlsxKit();
     const data = linhas.map((l) => {
       const c = l.competencia_unidade?.competencia;
       const u = l.competencia_unidade?.unidade;
