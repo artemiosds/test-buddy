@@ -1,7 +1,7 @@
 /**
  * Excel "Modelo Gestão-SMS" — Frequência de Contratados.
- * Cabeçalho mesclado B1:N4 com identificação institucional, brasões travados
- * em 80x80 px em A1 e na última coluna, tabela iniciando na linha 6 com
+ * Cabeçalho institucional fiel ao modelo oficial, com 3 logos travadas no topo
+ * e a logo central acima da linha "ESTADO DO PARÁ", tabela iniciando na linha 6 com
  * autoFilter e larguras de coluna calibradas.
  */
 import ExcelJS from "exceljs";
@@ -49,33 +49,43 @@ export async function gerarExcelFolhaContratadosModeloCer(
   const compStr = `${mesNome}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
-  // Larguras — Nome/Lotação largas, contadores estreitos
-  const widths = [6, 35, 16, 22, 35, 10, 10, 10, 10, 10, 10, 12, 14, 14, 30];
+  // Larguras calibradas pelo modelo oficial
+  const widths = [5.28515625, 31.85546875, 18.28515625, 20.28515625, 23, 7.140625, 9.140625, 7.140625, 7.140625, 7.140625, 7.140625, 9, 8.140625, 15.28515625, 25.140625];
   widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
-  // Altura das linhas 1-4 para acomodar logos e header mesclado
-  for (let r = 1; r <= 4; r++) ws.getRow(r).height = 22;
-  ws.getRow(5).height = 6;
+  // Cabeçalho oficial: cada linha mesclada separadamente para manter a logo
+  // central posicionada acima de "ESTADO DO PARÁ", como no arquivo referência.
+  ws.getRow(1).height = 83.25;
+  for (let r = 2; r <= 4; r++) ws.getRow(r).height = 15.6;
+  ws.getRow(5).height = 49.15;
+  ["A1:O1", "A2:O2", "A3:O3", "A4:O4", "A5:O5"].forEach((range) => ws.mergeCells(range));
 
-  // Cabeçalho institucional mesclado B1:N4
-  ws.mergeCells("B1:N4");
-  const headerCell = ws.getCell("B1");
-  headerCell.value = {
-    richText: [
-      { text: "ESTADO DO PARÁ\n", font: { bold: true, size: 11, name: "Calibri" } },
-      { text: "PREFEITURA MUNICIPAL DE ORIXIMINÁ\n", font: { bold: true, size: 13, name: "Calibri" } },
-      { text: "SECRETARIA MUNICIPAL DE SAÚDE\n", font: { bold: true, size: 11, name: "Calibri" } },
-      { text: `${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`,
-        font: { bold: true, size: 10, name: "Calibri" } },
-    ],
-  };
-  headerCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  const headerLines = [
+    { cell: "A1", text: "ESTADO DO PARÁ", size: 11, vertical: "bottom" as const },
+    { cell: "A2", text: "PREFEITURA MUNICIPAL DE ORIXIMINÁ  ", size: 11, vertical: "top" as const },
+    { cell: "A3", text: "SECRETARIA MUNICIPAL DE SAÚDE", size: 11, vertical: "top" as const },
+    { cell: "A4", text: "GABINETE DA SECRETÁRIA", size: 11, vertical: "top" as const },
+    { cell: "A5", text: `           FREQUÊNCIA DOS PRESTADORES DE ${unidadeUp} - MÊS ${compStr}`, size: 10, vertical: "middle" as const },
+  ];
+  headerLines.forEach(({ cell, text, size, vertical }) => {
+    const c = ws.getCell(cell);
+    c.value = text;
+    c.font = { name: "Calibri", bold: true, size };
+    c.alignment = { horizontal: "center", vertical, wrapText: true };
+    if (cell === "A4" || cell === "A5") {
+      c.border = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+    }
+  });
 
-  // 3 logos institucionais — posições/tamanhos do modelo de referência
-  // (mm → px a 96 DPI: 1mm ≈ 3.7795 px).
-  //  Esquerda  — col B         — brasão prefeitura   (~20,7 mm ≈ 78 px)
-  //  Centro    — cols E–G      — brasão alternativo  (~14,6 × 16,5 mm ≈ 55×62 px)
-  //  Direita   — col N         — logo SMS            (~20,4 mm ≈ 77 px)
+  const anchor = (nativeCol: number, nativeColOff: number, nativeRow: number, nativeRowOff: number) => ({
+    nativeCol,
+    nativeColOff,
+    nativeRow,
+    nativeRowOff,
+  }) as unknown as ExcelJS.Anchor;
+
+  // 3 logos institucionais — ancoragem igual ao modelo oficial de referência.
+  // A logo central fica na primeira linha, acima do texto "ESTADO DO PARÁ".
   const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
     fetchAsBuffer(brasaoOriximina.url),
     fetchAsBuffer(brasaoOriximinaAlt.url),
@@ -84,24 +94,24 @@ export async function gerarExcelFolhaContratadosModeloCer(
   if (brasaoBuf) {
     const id = wb.addImage({ buffer: brasaoBuf, extension: "png" });
     ws.addImage(id, {
-      tl: { col: 1.05, row: 0.1 },
-      ext: { width: 78, height: 78 },
+      tl: anchor(1, 725805, 0, 217170),
+      br: anchor(1, 1463040, 0, 953313),
       editAs: "oneCell",
     });
   }
   if (brasaoAltBuf) {
     const id = wb.addImage({ buffer: brasaoAltBuf, extension: "png" });
     ws.addImage(id, {
-      tl: { col: 4.2, row: 0.15 },
-      ext: { width: 55, height: 62 },
+      tl: anchor(4, 1551680, 0, 213360),
+      br: anchor(6, 22859, 0, 815340),
       editAs: "oneCell",
     });
   }
   if (smsBuf) {
     const id = wb.addImage({ buffer: smsBuf, extension: "png" });
     ws.addImage(id, {
-      tl: { col: 13.05, row: 0.1 },
-      ext: { width: 77, height: 77 },
+      tl: anchor(13, 480061, 0, 274320),
+      ext: { width: 746760 / 9525, height: 609600 / 9525 },
       editAs: "oneCell",
     });
   }
@@ -111,8 +121,8 @@ export async function gerarExcelFolhaContratadosModeloCer(
     "DIAS","FALTA","ATT","H.E 50%","H.E 100%","ADN",
     "PLANTÕES","SOBRE-AVISOS","INCENTIVO","CONTA",
   ];
-  // Cabeçalho da tabela (linha 7)
-  const headerRow = ws.getRow(7);
+  // Cabeçalho da tabela (linha 6)
+  const headerRow = ws.getRow(6);
   headerRow.height = 26;
   headers.forEach((h, i) => {
     const c = headerRow.getCell(i + 1);
@@ -127,11 +137,11 @@ export async function gerarExcelFolhaContratadosModeloCer(
   });
 
   // Filtro automático
-  ws.autoFilter = { from: { row: 7, column: 1 }, to: { row: 7, column: headers.length } };
+  ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: headers.length } };
 
   // Dados
   input.itens.forEach((it, i) => {
-    const rowIdx = 8 + i;
+    const rowIdx = 7 + i;
     const p = it.profissional;
     const l = it.linha ?? {};
     const values: Array<string | number> = [
