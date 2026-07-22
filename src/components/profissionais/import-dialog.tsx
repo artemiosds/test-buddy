@@ -370,7 +370,22 @@ export function ImportProfissionaisDialog() {
     }
     setImporting(false);
     setResult({ ok, fail, erros: erros.slice(0, 50) });
-    if (ok > 0) qc.invalidateQueries({ queryKey: ["profissionais"] });
+    if (ok > 0) {
+      // Invalida a listagem, os KPIs (Total/Ativos/Efetivos) e lookups
+      // relacionados para que os cards e contagens reflitam a importação
+      // imediatamente, sem depender de refocus/refresh manual.
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey?.[0];
+          return (
+            k === "profissionais" ||
+            k === "profissionais-kpi" ||
+            k === "profissionais-count" ||
+            k === "gestores-ids"
+          );
+        },
+      });
+    }
     if (fail === 0) toast.success(`${ok} profissionais importados`);
     else toast.warning(`${ok} importados, ${fail} com erro`);
   };
