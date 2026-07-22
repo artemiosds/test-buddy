@@ -290,7 +290,7 @@ function AuditoriaPage() {
                         {r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}
                       </td>
                       <td className="p-3">
-                        <Button size="icon" variant="ghost" onClick={() => setDetalhe(r)}>
+                        <Button size="icon" variant="ghost" aria-label="Ver detalhe do registro" onClick={() => setDetalhe(r)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                       </td>
