@@ -222,6 +222,9 @@
 
   /* Marca — hover #1D4ED8 */
   --brand-hover: oklch(0.46 0.22 262);
+
+  /* Overlay/Scrim para modais e drawers */
+  --overlay-scrim: oklch(0.15 0.03 258 / 0.5);
 }
 
 .dark {
