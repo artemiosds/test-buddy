@@ -444,7 +444,8 @@ export function FrequenciasContratadosPage() {
   async function handleExportarPdfModeloCer() {
     if (!compSel) return;
     try {
-      const { gerarFolhaContratadosModeloCer } = await import("@/lib/pdf-folha-contratados-modelo-cer");
+      const { gerarFolhaContratadosModeloCer } =
+        await import("@/lib/pdf-folha-contratados-modelo-cer");
       await gerarFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -461,7 +462,8 @@ export function FrequenciasContratadosPage() {
   async function handleExportarExcelModeloCer() {
     if (!compSel) return;
     try {
-      const { gerarExcelFolhaContratadosModeloCer } = await import("@/lib/excel-folha-contratados-modelo-cer");
+      const { gerarExcelFolhaContratadosModeloCer } =
+        await import("@/lib/excel-folha-contratados-modelo-cer");
       await gerarExcelFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
         unidadeNome: unidadeSel
@@ -564,14 +566,7 @@ export function FrequenciasContratadosPage() {
     setDossieOpen(true);
   }
 
-  if (!has("frequencia.visualizar")) {
-    return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
-        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
-      </div>
-    );
-  }
+  const canView = has("frequencia.visualizar");
 
   /* ------- ERP grid derivados de UI ------- */
   const FROZEN: FrozenCol[] = [
@@ -690,6 +685,15 @@ export function FrequenciasContratadosPage() {
     { id: "sem_matricula", label: "Sem matrícula" },
     { id: "sem_cpf", label: "Sem CPF" },
   ];
+
+  if (!canView) {
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
+        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">

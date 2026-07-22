@@ -132,7 +132,7 @@ export function SituacaoFilter({
             "rounded-full px-2.5 py-1 text-xs ring-1 transition",
             value === o.id
               ? "bg-primary text-primary-foreground ring-primary"
-              : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50",
+              : "bg-card text-foreground ring-border hover:bg-muted",
           )}
         >
           {o.label}
@@ -402,7 +402,7 @@ export function AlertasBotao({
           ? "Sem alertas"
           : `${items.length} profissional${items.length > 1 ? "is" : ""} com alertas`}
         {total > 0 && (
-          <Badge variant="outline" className="ml-2 bg-white/70">
+          <Badge variant="outline" className="ml-2 bg-card/70">
             {total}
           </Badge>
         )}

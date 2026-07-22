@@ -395,14 +395,7 @@ export function FrequenciasEfetivosPage() {
 
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
 
-  if (!has("frequencia.visualizar")) {
-    return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
-        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
-      </div>
-    );
-  }
+  const canView = has("frequencia.visualizar");
 
   function openDossie(p: ProfConferencia) {
     setDossieProf(p);
@@ -506,6 +499,15 @@ export function FrequenciasEfetivosPage() {
 
   const [selectedRowId] = useSelectedErpRow();
 
+  if (!canView) {
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
+        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
@@ -586,9 +588,8 @@ export function FrequenciasEfetivosPage() {
                     grupos: Object.values(grupos),
                   },
                 ];
-                const { gerarFolhaEfetivosOficial } = await import(
-                  "@/lib/pdf-folha-efetivos-oficial"
-                );
+                const { gerarFolhaEfetivosOficial } =
+                  await import("@/lib/pdf-folha-efetivos-oficial");
                 await gerarFolhaEfetivosOficial({
                   competencia: {
                     mes: compSel?.mes ?? 1,

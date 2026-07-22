@@ -331,7 +331,7 @@ function UnidadesPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               placeholder="Buscar por nome, sigla ou CNES"
-              className="h-11 rounded-xl border-slate-200 bg-white pl-9 shadow-sm transition focus-visible:ring-2 focus-visible:ring-teal-500/30"
+              className="h-11 rounded-xl border-border bg-card pl-9 shadow-sm transition focus-visible:ring-2 focus-visible:ring-ring/30"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -340,7 +340,7 @@ function UnidadesPage() {
             type="button"
             onClick={exportCsv}
             variant="outline"
-            className="h-11 shrink-0 rounded-xl border-slate-200 bg-white px-4 font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50"
+            className="h-11 shrink-0 rounded-xl border-border bg-card px-4 font-medium text-foreground shadow-sm transition hover:-translate-y-px hover:border-border hover:bg-muted"
           >
             <Download className="mr-1.5 h-4 w-4" strokeWidth={2} /> Exportar
           </Button>
@@ -349,7 +349,7 @@ function UnidadesPage() {
               <DialogTrigger asChild>
                 <Button
                   onClick={openNew}
-                  className="h-11 shrink-0 rounded-xl bg-slate-900 px-5 font-medium text-white shadow-sm shadow-slate-900/20 transition hover:-translate-y-px hover:bg-slate-800 hover:shadow-md hover:shadow-slate-900/25 focus-visible:ring-2 focus-visible:ring-slate-900/40"
+                  className="h-11 shrink-0 rounded-xl bg-primary px-5 font-medium text-primary-foreground shadow-sm shadow-primary/20 transition hover:-translate-y-px hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 focus-visible:ring-2 focus-visible:ring-ring/40"
                 >
                   <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.25} /> Nova Unidade
                 </Button>
@@ -566,7 +566,7 @@ function UnidadesPage() {
       </div>
 
       {/* Card principal envolvendo a lista */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
         {/* Cabeçalho de colunas (desktop) */}
         <div className="hidden border-b border-slate-100 bg-slate-50/60 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_120px] lg:gap-4">
           <span>Nome</span>

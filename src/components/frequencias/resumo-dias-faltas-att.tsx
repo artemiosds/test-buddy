@@ -66,7 +66,7 @@ export function ResumoDiasFaltasAtt({
   ] as const;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-800">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {mostraDetalhe ? "Resumo do profissional" : "Totais da competência"}
