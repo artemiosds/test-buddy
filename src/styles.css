@@ -3390,3 +3390,21 @@ aside.enterprise-sidebar.is-collapsed .sb-search-wrap,
 aside.enterprise-sidebar.is-collapsed .sb-user-card {
   display: none !important;
 }
+
+/* =====================================================================
+ * ERP-GRID STICKY FIX — precisa vencer os overrides globais de `table`
+ * (border-collapse: collapse !important; overflow: hidden !important;
+ * border-radius: 12px !important;) que quebram position: sticky em
+ * <th>/<td>. Escopo: SOMENTE .erp-grid (Efetivos e Contratados).
+ * ===================================================================== */
+.erp-grid table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
+}
+.erp-grid thead th.erp-sticky,
+.erp-grid tbody td.erp-sticky,
+.erp-grid tfoot td.erp-sticky {
+  position: sticky !important;
+}
