@@ -3509,6 +3509,38 @@ aside.enterprise-sidebar.is-collapsed .sb-user-card {
 .erp-grid .erp-sticky-last {
   border-right-color: oklch(0.72 0.015 250) !important;
 }
+
+/* Força shorthand (largura + estilo + cor) — cobre casos onde regras
+ * globais ou preflight da Tailwind zeraram border-width e só a cor
+ * ficou pendurada. Escopo restrito a .erp-grid. */
+.erp-grid thead th,
+.erp-grid tbody td,
+.erp-grid tfoot td {
+  border-right: 1px solid oklch(0.78 0.012 250) !important;
+  border-bottom: 1px solid oklch(0.78 0.012 250) !important;
+}
+.erp-grid thead th:last-child,
+.erp-grid tbody td:last-child,
+.erp-grid tfoot td:last-child {
+  border-right: 0 !important;
+}
+.erp-grid .erp-sticky-last {
+  border-right: 1px solid oklch(0.72 0.015 250) !important;
+}
+.dark .erp-grid thead th,
+.dark .erp-grid tbody td,
+.dark .erp-grid tfoot td {
+  border-right: 1px solid oklch(0.38 0.02 265) !important;
+  border-bottom: 1px solid oklch(0.38 0.02 265) !important;
+}
+.dark .erp-grid thead th:last-child,
+.dark .erp-grid tbody td:last-child,
+.dark .erp-grid tfoot td:last-child {
+  border-right: 0 !important;
+}
+.dark .erp-grid .erp-sticky-last {
+  border-right: 1px solid oklch(0.45 0.025 265) !important;
+}
 .dark .erp-grid tbody td,
 .dark .erp-grid tfoot td {
   border-bottom-color: oklch(0.38 0.02 265) !important;
