@@ -395,14 +395,7 @@ export function FrequenciasEfetivosPage() {
 
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
 
-  if (!has("frequencia.visualizar")) {
-    return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold mb-2">Acesso negado</h1>
-        <p className="text-muted-foreground">Você não tem permissão para visualizar frequências.</p>
-      </div>
-    );
-  }
+  const canView = has("frequencia.visualizar");
 
   function openDossie(p: ProfConferencia) {
     setDossieProf(p);
