@@ -13,16 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import {
-  registrarDocumentoAssinado,
-  drawSignatureStamp,
-  armazenarPdfAssinado,
-} from "@/lib/pdf-signature";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { loadPdfKit, loadXlsxKit } from "@/lib/lazy-exports";
 import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
@@ -235,11 +226,12 @@ function RelatorioConsolidadoPage() {
     "Rejeitadas",
   ];
 
-  function exportarXLSX() {
+  async function exportarXLSX() {
     if (!aggregated.length) {
       toast.error("Nada para exportar.");
       return;
     }
+    const { XLSX } = await loadXlsxKit();
     const data = aggregated.map((a) => ({
       Unidade: a.unidade_nome,
       "Qtd. Profissionais": a.qtd,
@@ -288,6 +280,16 @@ function RelatorioConsolidadoPage() {
       documento: `Relatório Consolidado — ${compLabel}`,
     });
     if (!ok) return;
+    const {
+      jsPDF,
+      autoTable,
+      drawInstitutionalHeader,
+      loadMunicipioInfo,
+      resolverAssinaturasDocumento,
+      drawAssinaturasBlock,
+    } = await loadPdfKit();
+    const { registrarDocumentoAssinado, drawSignatureStamp, armazenarPdfAssinado } =
+      await import("@/lib/pdf-signature");
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const info = await loadMunicipioInfo();
     const startY = drawInstitutionalHeader(doc, info, `Relatório Consolidado — ${compLabel}`);
