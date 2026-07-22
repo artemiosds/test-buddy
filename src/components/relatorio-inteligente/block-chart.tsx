@@ -132,16 +132,15 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         );
       default:
         return (
-          <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+          <BarChart data={data} margin={{ top: 8, right: 16, bottom: 40, left: 8 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="name"
               fontSize={10}
               interval={0}
-              angle={-28}
+              angle={-35}
               textAnchor="end"
-              height={64}
-              tickFormatter={(v: string) => (v && v.length > 14 ? v.slice(0, 13) + "…" : v)}
+              height={100}
             />
             <YAxis fontSize={10} width={36} />
             <Tooltip

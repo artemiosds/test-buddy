@@ -415,10 +415,9 @@ export function BarChartH({
         <YAxis
           type="category"
           dataKey={nameKey}
-          width={160}
+          width={220}
           tick={{ fontSize: 11 }}
           interval={0}
-          tickFormatter={(v: string) => (v && v.length > 22 ? v.slice(0, 21) + "…" : v)}
         />
         <Tooltip />
         <Bar dataKey={dataKey} fill={color} />
@@ -442,15 +441,14 @@ export function BarChartV({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 16, bottom: 56, left: 8 }}>
+      <BarChart data={data} margin={{ top: 8, right: 16, bottom: 96, left: 8 }}>
         <XAxis
           dataKey={nameKey}
           tick={{ fontSize: 11 }}
           interval={0}
-          angle={-28}
+          angle={-35}
           textAnchor="end"
-          height={64}
-          tickFormatter={(v: string) => (v && v.length > 14 ? v.slice(0, 13) + "…" : v)}
+          height={100}
         />
         <YAxis tick={{ fontSize: 11 }} width={36} />
         <Tooltip />
