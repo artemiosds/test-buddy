@@ -162,6 +162,20 @@ function SaudePage() {
     },
   });
 
+  const travadosQ = useQuery({
+    queryKey: ["saude", "eventos-travados"],
+    enabled: isMaster,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "eventos_travados" as never,
+        { _limit: 100 } as never,
+      );
+      if (error) throw error;
+      return data as unknown as { rows: unknown[]; gerado_em: string };
+    },
+  });
+
   if (!me) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!isMaster) {
     return (
@@ -187,20 +201,6 @@ function SaudePage() {
 
   const pendentes = (ev?.por_status?.["pendente"] ?? 0) + (ev?.por_status?.["falhou_retry"] ?? 0);
   const falhou = ev?.por_status?.["falhou"] ?? 0;
-
-  const travadosQ = useQuery({
-    queryKey: ["saude", "eventos-travados"],
-    enabled: isMaster,
-    refetchInterval: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        "eventos_travados" as never,
-        { _limit: 100 } as never,
-      );
-      if (error) throw error;
-      return data as unknown as { rows: unknown[]; gerado_em: string };
-    },
-  });
 
   return (
     <div className="p-6 space-y-6">
