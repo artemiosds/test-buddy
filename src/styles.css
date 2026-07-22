@@ -1221,20 +1221,42 @@ main > * {
   font-variant-numeric: tabular-nums;
 }
 
-/* Colunas congeladas — sombras para separar visualmente do scroll. */
+/* Colunas congeladas — 4 primeiras colunas de identificação ficam fixas
+   à esquerda enquanto o restante rola horizontalmente. Sombra na 4ª
+   coluna marca o limite da área rolável. */
 .erp-grid .erp-sticky {
-  /* Colunas congeladas desativadas — mantido como no-op para compatibilidade
-     com componentes antigos que ainda referenciem a classe. */
-  position: static;
+  position: sticky;
+  background: var(--card);
+  z-index: 5;
 }
 .erp-grid thead .erp-sticky {
-  /* noop */
+  z-index: 25;
+  background: oklch(0.22 0.03 250);
 }
 .erp-grid tfoot .erp-sticky {
-  /* noop */
+  z-index: 18;
+  background: color-mix(in oklab, var(--muted) 92%, transparent);
 }
 .erp-grid .erp-sticky-last {
-  /* noop */
+  box-shadow: 6px 0 8px -6px rgba(15, 23, 42, 0.22);
+  border-right: 1px solid oklch(0.86 0.01 250);
+}
+/* Preserva a paleta de zebra / hover / situação nas colunas fixas. */
+.erp-grid tbody tr:nth-child(even) td.erp-sticky {
+  background: oklch(0.98 0.005 250);
+}
+.erp-grid tbody tr:hover td.erp-sticky {
+  background: oklch(0.96 0.03 240);
+}
+.erp-grid tbody tr[data-situacao="ferias"] td.erp-sticky {
+  background: color-mix(in oklab, var(--info, oklch(0.7 0.16 235)) 7%, var(--card));
+}
+.erp-grid tbody tr[data-situacao="licenca"] td.erp-sticky {
+  background: color-mix(in oklab, var(--warning) 10%, var(--card));
+}
+.erp-grid tbody tr[data-situacao="afastado"] td.erp-sticky,
+.erp-grid tbody tr[data-situacao="cedido"] td.erp-sticky {
+  background: color-mix(in oklab, var(--warning) 10%, var(--card));
 }
 
 /* Gridlines verticais em todas as células — aparência de planilha. */

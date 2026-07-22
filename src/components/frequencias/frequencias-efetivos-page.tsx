@@ -374,6 +374,7 @@ export function FrequenciasEfetivosPage() {
     { key: "matricula", label: "Matrícula",    width: 100 },
     { key: "nome",      label: "Profissional", width: 260 },
     { key: "situacao",  label: "Situação",     width: 130 },
+    { key: "proj",      label: "Proj",         width: 72  },
   ];
   const L = frozenLeftMap(FROZEN);
 
@@ -669,10 +670,10 @@ export function FrequenciasEfetivosPage() {
           <table>
             <thead>
               <tr>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Matrícula</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Profissional</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left" }} rowSpan={2}>Situação</th>
-                <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Proj</th>
+                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.matricula, width: 100 }} rowSpan={2}>Matrícula</th>
+                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.nome, width: 260 }} rowSpan={2}>Profissional</th>
+                <th className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "left", left: L.situacao, width: 130 }} rowSpan={2}>Situação</th>
+                <th className="erp-sticky erp-sticky-last bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right", left: L.proj, width: 72 }} rowSpan={2}>Proj</th>
                 <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>H.P</th>
                 <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>C.H</th>
                 <th className="bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700" style={{ textAlign: "right" }} rowSpan={2}>Jorn</th>
@@ -708,16 +709,16 @@ export function FrequenciasEfetivosPage() {
                 const situ = derivarSituacao(conf);
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
-                    <td style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}>
+                    <td className="erp-sticky" style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, left: L.matricula, width: 100 }}>
                       {p.matricula ?? "—"}
                     </td>
-                    <td>
+                    <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>
                       <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={p.cargo} />
                     </td>
-                    <td>
+                    <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}>
                       <SituacaoBadge prof={conf} />
                     </td>
-                    <td className="text-right text-muted-foreground tabular-nums">{p.proj ?? "-"}</td>
+                    <td className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums" style={{ left: L.proj, width: 72 }}>{p.proj ?? "-"}</td>
                     <td className="text-right text-muted-foreground tabular-nums">{p.h_p ?? "-"}</td>
                     <td className="text-right text-muted-foreground tabular-nums">{p.c_h ?? "-"}</td>
                     <td className="text-right text-muted-foreground tabular-nums">{p.jorn ?? "-"}</td>
@@ -768,10 +769,11 @@ export function FrequenciasEfetivosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
-                <td></td>
-                <td>Totais</td>
-                <td></td>
-                <td colSpan={4}></td>
+                <td className="erp-sticky" style={{ left: L.matricula, width: 100 }}></td>
+                <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>Totais</td>
+                <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}></td>
+                <td className="erp-sticky erp-sticky-last" style={{ left: L.proj, width: 72 }}></td>
+                <td colSpan={3}></td>
                 {CAMPOS_OFICIAIS.map((c) => (
                   <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>
                     {(totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
