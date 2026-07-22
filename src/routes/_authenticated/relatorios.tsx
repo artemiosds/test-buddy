@@ -214,8 +214,8 @@ function RelatoriosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <FileBarChart className="h-6 w-6 text-primary" /> Relatórios
           </h1>
@@ -223,11 +223,11 @@ function RelatoriosPage() {
             Consolidado de frequências por competência, unidade e tipo de folha.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportarCSV} disabled={!canExport || !linhas?.length}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={exportarCSV} disabled={!canExport || !linhas?.length}>
             <Download className="mr-2 h-4 w-4" /> CSV
           </Button>
-          <Button onClick={exportarXLSX} disabled={!canExport || !linhas?.length}>
+          <Button className="w-full sm:w-auto" onClick={exportarXLSX} disabled={!canExport || !linhas?.length}>
             <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (XLSX)
           </Button>
         </div>
