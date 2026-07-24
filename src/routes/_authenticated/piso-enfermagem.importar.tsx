@@ -140,25 +140,63 @@ function ImportarPage() {
 
   async function handleFile(f: File) {
     if (f.size > 50 * 1024 * 1024) {
-      toast.error("Arquivo maior que 50MB.");
+      toast.error("Arquivo excede limite de 50MB");
       return;
     }
     setFile(f);
     const lower = f.name.toLowerCase();
-    if (lower.endsWith(".pdf")) {
-      toast.warning("PDF ainda não é processado nesta versão. Use Excel/CSV.");
-      return;
-    }
+
     // Detecção inteligente pelo nome do arquivo
     const mDet = detectarModelo(f.name);
     if (mDet) setModelo(mDet);
     const cDet = detectarCompetencia(f.name);
     if (cDet) setCompetencia(cDet);
 
-    const buf = await f.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+    let matrix: unknown[][];
+    try {
+      if (lower.endsWith(".pdf")) {
+        let pdfMod: typeof import("@/lib/piso-pdf");
+        try {
+          pdfMod = await import("@/lib/piso-pdf");
+        } catch (impErr) {
+          console.error("[piso] falha ao carregar módulo PDF", impErr);
+          toast.error(
+            "Não foi possível carregar o processador de PDF. Atualize a página (Ctrl+Shift+R) e tente novamente.",
+          );
+          return;
+        }
+        const { extractPdfAoa, PdfSemTextoError, PdfSemTabelasError, PdfInvalidoError } = pdfMod;
+        try {
+          matrix = await extractPdfAoa(f);
+          toast.success("PDF processado. Revise o mapeamento.");
+        } catch (err) {
+          console.error("[piso] erro ao extrair PDF", err);
+          if (
+            err instanceof PdfSemTextoError ||
+            err instanceof PdfSemTabelasError ||
+            err instanceof PdfInvalidoError
+          ) {
+            toast.error(err.message);
+          } else {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Falha ao processar PDF: ${msg}`);
+          }
+          return;
+        }
+      } else {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      }
+    } catch (outerErr) {
+      console.error("[piso] falha ao ler arquivo", outerErr);
+      const msg = outerErr instanceof Error ? outerErr.message : String(outerErr);
+      toast.error(`Falha ao ler o arquivo: ${msg}`);
+      return;
+    }
+
+
     if (matrix.length === 0) {
       toast.error("Arquivo sem linhas.");
       return;
@@ -196,6 +234,7 @@ function ImportarPage() {
     }
     setPasso(2);
   }
+
 
   // Ao usuário ajustar manualmente a linha de cabeçalho, reprocessa AOA.
   function changeHeaderRow(newIdx: number) {
@@ -427,8 +466,10 @@ function ImportarPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Arquivos PDF serão suportados em versão futura.
+              PDFs pesquisáveis (com texto digital) são processados automaticamente. PDFs
+              escaneados precisam ser convertidos para Excel/CSV.
             </p>
+
           </div>
         </div>
       )}

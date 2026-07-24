@@ -9,6 +9,7 @@ import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
 import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
 import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
+import { fetchAssetArrayBuffer } from "@/lib/asset-url";
 
 export type ExcelContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
@@ -31,20 +32,11 @@ const MESES = [
   "DEZEMBRO",
 ];
 
-async function fetchAsBuffer(url: string): Promise<ArrayBuffer | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.arrayBuffer();
-  } catch {
-    return null;
-  }
-}
-
 function num(v: number | null | undefined): number | "" {
   const x = Number(v ?? 0);
   return x || "";
 }
+
 
 export async function gerarExcelFolhaContratadosModeloCer(
   input: ExcelContratadosModeloCerInput,
@@ -135,9 +127,9 @@ export async function gerarExcelFolhaContratadosModeloCer(
   // Altura row1 = 83.25pt ≈ 1.057M EMU. Rows 2-4 = 15.6pt ≈ 198k EMU cada.
   // Bloco total (row1..row4) ≈ 1.651M EMU.
   const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
-    fetchAsBuffer(brasaoOriximina.url),
-    fetchAsBuffer(brasaoOriximinaAlt.url),
-    fetchAsBuffer(logoSms.url),
+    fetchAssetArrayBuffer(brasaoOriximina.url),
+    fetchAssetArrayBuffer(brasaoOriximinaAlt.url),
+    fetchAssetArrayBuffer(logoSms.url),
   ]);
   // Tamanhos-alvo em px (ExcelJS converte px → EMU internamente via *9525).
   const SIDE = 80; // logos laterais ~80x80px

@@ -44,6 +44,7 @@ import {
   Plus,
   Trash2,
   FileDown,
+  FileSpreadsheet,
   Paperclip,
   Upload,
   Copy,
@@ -287,7 +288,7 @@ function FrequenciaDetalhe() {
           "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza)",
         )
         .eq("unidade_id", unidadeId!)
-        .eq("status", "ativo")
+        .not("status", "in", "(desligado,inativo)")
         .in("vinculos.natureza", naturezas)
         .order("nome_completo");
       if (error) throw error;
@@ -388,6 +389,19 @@ function FrequenciaDetalhe() {
     });
     return m;
   }, [profissionais, profissionaisLinhas]);
+
+  const linhasEfetivosExportacao = useMemo(() => {
+    if (!isEfetivo) return linhas;
+    const idsProfissionais = new Set((profissionais ?? []).map((p) => p.id));
+    const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
+    const linhasDaUnidade = (profissionais ?? []).map(
+      (p) => byProf.get(p.id) ?? novaLinha(p.id, false),
+    );
+    const linhasPersistidasForaDaLista = linhas.filter((l) => !idsProfissionais.has(l.profissional_id));
+    return [...linhasDaUnidade, ...linhasPersistidasForaDaLista];
+  }, [isEfetivo, linhas, profissionais]);
+
+  const temDadosParaExportar = isEfetivo ? linhasEfetivosExportacao.length > 0 : linhas.length > 0;
 
   const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias";
   const canEditar = has("frequencia.editar");
@@ -791,6 +805,62 @@ function FrequenciaDetalhe() {
 
   const exportarPDF = async () => {
     if (!frequencia) return;
+    if (isEfetivo && comp) {
+      try {
+        const unidade = cu?.unidades?.nome ?? "UNIDADE";
+        const grupos: Record<string, { codigo_setor: string; nome_setor: string; itens: any[] }> = {
+          GERAL: { codigo_setor: "1", nome_setor: "GERAL", itens: [] },
+        };
+        for (const l of linhasEfetivosExportacao) {
+          const p = profMap.get(l.profissional_id);
+          grupos.GERAL.itens.push({
+            profissional: {
+              id: l.profissional_id,
+              matricula: p?.matricula ?? null,
+              nome: p?.nome_completo ?? l.profissional_id,
+              cargo: p?.vinculos?.nome ?? null,
+              setor: "GERAL",
+              proj: p?.proj ?? null,
+              h_p: p?.h_p ?? null,
+              c_h: p?.c_h ?? null,
+              jorn: p?.jorn ?? null,
+            },
+            totais: {
+              dias_falta: Number(l.faltas_injustificadas ?? 0),
+              atestado: Number(l.atestado ?? 0),
+              maternidade: 0,
+              he_50: Number(l.he_50 ?? 0),
+              he_100: Number(l.he_100 ?? 0),
+              ferias_terco: Number(l.ferias_terco ?? 0),
+              ferias_integral: Number(l.ferias_integral ?? 0),
+              sal_sub_h: Number(l.sal_sub_h ?? 0),
+              adicional_noturno: Number(l.adicional_noturno ?? 0),
+              aulas_suplementares: Number(l.aulas_suplementares ?? 0),
+              plantao: Number(l.plantoes_extras ?? 0),
+              sobreaviso: Number(l.sobreaviso ?? 0),
+              incentivo: Number(l.incentivo ?? 0),
+            },
+          });
+        }
+        const { gerarFolhaEfetivosOficial } = await import("@/lib/pdf-folha-efetivos-oficial");
+        await gerarFolhaEfetivosOficial({
+          competencia: { mes: comp.mes, ano: comp.ano },
+          unidades: [
+            {
+              codigo_unidade: "1.18.XXX",
+              nome_unidade: unidade,
+              grupos: Object.values(grupos),
+            },
+          ],
+          emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
+          unidadeId: cu?.unidade_id ?? null,
+          secretariaId: me?.secretaria_id ?? null,
+        });
+      } catch (e: any) {
+        toast.error(e?.message ?? "Falha ao gerar PDF Oficial.");
+      }
+      return;
+    }
     const unidadeNome0 = cu?.unidades?.nome ?? "—";
     const compLabel0 = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
     const ok = await pedirTermoDoc({
@@ -895,6 +965,33 @@ function FrequenciaDetalhe() {
     });
   };
 
+  const exportarExcelEfetivos = async () => {
+    if (!isEfetivo || !comp) return;
+    try {
+      const unidadeNome = cu?.unidades?.nome ?? "UNIDADE";
+      const { gerarExcelFolhaEfetivos } = await import("@/lib/excel-folha-efetivos");
+      await gerarExcelFolhaEfetivos({
+        competencia: { mes: comp.mes, ano: comp.ano },
+        unidadeNome,
+        itens: linhasEfetivosExportacao.map((l) => {
+          const p = profMap.get(l.profissional_id);
+          return {
+            profissional: {
+              matricula: p?.matricula ?? null,
+              nome: p?.nome_completo ?? l.profissional_id,
+              cpf: p?.cpf ?? null,
+              cargo: p?.vinculos?.nome ?? null,
+              setor: "GERAL",
+            },
+            linha: l,
+          };
+        }),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar Excel.");
+    }
+  };
+
   if (!frequencia) {
     return <div className="p-6 text-sm text-muted-foreground">Carregando...</div>;
   }
@@ -967,6 +1064,32 @@ function FrequenciaDetalhe() {
             )}
           </div>
         )}
+        {canEnviar && canAprovar && frequencia.status === "rascunho" && (
+          <Button
+            size="sm"
+            variant="default"
+            disabled={envioBloqueado || statusMutation.isPending}
+            title={
+              envioBloqueado
+                ? "Envio bloqueado: prazo da competência expirado"
+                : "Envia e aprova em uma única etapa (perfil com autoridade plena)"
+            }
+            onClick={async () => {
+              try {
+                await alterarStatusFn({ data: { frequencia_id: id, status: "enviada" } });
+                await alterarStatusFn({ data: { frequencia_id: id, status: "aprovada" } });
+                qc.invalidateQueries({ queryKey: ["frequencia", id] });
+                qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
+                toast.success("Folha enviada e aprovada");
+              } catch (e) {
+                toast.error((e as Error).message ?? "Falha ao enviar e aprovar");
+              }
+            }}
+          >
+            <CheckCircle2 className="mr-1 h-4 w-4" />
+            Enviar e aprovar
+          </Button>
+        )}
         {canAprovar && (frequencia.status === "enviada" || frequencia.status === "em_analise") && (
           <Button size="sm" variant="default" onClick={() => statusMutation.mutate("aprovada")}>
             <CheckCircle2 className="mr-1 h-4 w-4" />
@@ -983,10 +1106,22 @@ function FrequenciaDetalhe() {
             Retornar com pendências
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={exportarPDF} disabled={!linhas.length}>
+
+        <Button size="sm" variant="outline" onClick={exportarPDF} disabled={!temDadosParaExportar}>
           <FileDown className="mr-1 h-4 w-4" />
-          Exportar PDF
+          {isEfetivo ? "PDF Oficial" : "Exportar PDF"}
         </Button>
+        {isEfetivo && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={exportarExcelEfetivos}
+            disabled={!linhasEfetivosExportacao.length}
+          >
+            <FileSpreadsheet className="mr-1 h-4 w-4" />
+            Exportar Excel
+          </Button>
+        )}
         {editable && canEditar && planilhaVazia && (
           <Button size="sm" variant="outline" onClick={abrirCopiarPrevia}>
             <Copy className="mr-1 h-4 w-4" />

@@ -1984,6 +1984,61 @@ export type Database = {
           },
         ]
       }
+      perfil_permissoes_unidade: {
+        Row: {
+          concedida: boolean
+          created_at: string
+          created_by: string | null
+          perfil_id: string
+          permissao_id: string
+          unidade_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          concedida: boolean
+          created_at?: string
+          created_by?: string | null
+          perfil_id: string
+          permissao_id: string
+          unidade_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          concedida?: boolean
+          created_at?: string
+          created_by?: string | null
+          perfil_id?: string
+          permissao_id?: string
+          unidade_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_permissoes_unidade_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_permissoes_unidade_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "permissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_permissoes_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfis: {
         Row: {
           admin_2fa_required: boolean
@@ -3351,6 +3406,7 @@ export type Database = {
     }
     Functions: {
       ack_evento_dominio: { Args: { _id: string }; Returns: undefined }
+      arquivar_profissional: { Args: { _id: string }; Returns: undefined }
       assinatura_dashboard: { Args: never; Returns: Json }
       assinatura_pendentes: {
         Args: never

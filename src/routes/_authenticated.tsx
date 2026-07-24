@@ -298,7 +298,14 @@ const GROUPS: NavGroup[] = [
         icon: UserCog,
         perm: "usuario.visualizar",
       },
+      {
+        to: "/configuracao/perfis",
+        label: "Perfis e Permissões",
+        icon: Settings2,
+        masterOnly: true,
+      },
       { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, perm: "auditoria.visualizar" },
+
       { to: "/saude", label: "Saúde do Sistema", icon: Activity, masterOnly: true },
       {
         to: "/configuracao",

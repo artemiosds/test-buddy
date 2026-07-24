@@ -71,10 +71,12 @@ import { Route as AuthenticatedFuncoesIdRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
 import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
 import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
+import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_authenticated/configuracao.perfis'
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
 import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
+import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -426,6 +428,12 @@ const AuthenticatedFrequenciaContratadosRoute =
     path: '/frequencia/contratados',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedConfiguracaoPerfisRoute =
+  AuthenticatedConfiguracaoPerfisRouteImport.update({
+    id: '/perfis',
+    path: '/perfis',
+    getParentRoute: () => AuthenticatedConfiguracaoRoute,
+  } as any)
 const AuthenticatedCompetenciasIdRoute =
   AuthenticatedCompetenciasIdRouteImport.update({
     id: '/$id',
@@ -449,6 +457,12 @@ const ApiPublicHooksDeadlineCheckRoute =
     path: '/api/public/hooks/deadline-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedConfiguracaoPerfisIdRoute =
+  AuthenticatedConfiguracaoPerfisIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedConfiguracaoPerfisRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -461,7 +475,7 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
@@ -488,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/validar/$id': typeof ValidarIdRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
@@ -514,6 +529,7 @@ export interface FileRoutesByFullPath {
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
+  '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -527,7 +543,7 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
@@ -554,6 +570,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
   '/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/frequencias/$id': typeof AuthenticatedFrequenciasIdRoute
@@ -580,6 +597,7 @@ export interface FileRoutesByTo {
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
+  '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -595,7 +613,7 @@ export interface FileRoutesById {
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/_authenticated/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRoute
+  '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/_authenticated/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/_authenticated/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
@@ -623,6 +641,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
+  '/_authenticated/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
   '/_authenticated/frequencia/contratados': typeof AuthenticatedFrequenciaContratadosRoute
   '/_authenticated/frequencia/efetivos': typeof AuthenticatedFrequenciaEfetivosRoute
   '/_authenticated/frequencias_/$id': typeof AuthenticatedFrequenciasIdRoute
@@ -649,6 +668,7 @@ export interface FileRoutesById {
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/_authenticated/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
+  '/_authenticated/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
 }
@@ -692,6 +712,7 @@ export interface FileRouteTypes {
     | '/validar/$id'
     | '/cargos/$id'
     | '/competencias/$id'
+    | '/configuracao/perfis'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
@@ -718,6 +739,7 @@ export interface FileRouteTypes {
     | '/piso-enfermagem/'
     | '/relatorios-gerenciais/'
     | '/unidades/'
+    | '/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   fileRoutesByTo: FileRoutesByTo
@@ -758,6 +780,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cargos/$id'
     | '/competencias/$id'
+    | '/configuracao/perfis'
     | '/frequencia/contratados'
     | '/frequencia/efetivos'
     | '/frequencias/$id'
@@ -784,6 +807,7 @@ export interface FileRouteTypes {
     | '/piso-enfermagem'
     | '/relatorios-gerenciais'
     | '/unidades'
+    | '/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   id:
@@ -826,6 +850,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/cargos/$id'
     | '/_authenticated/competencias/$id'
+    | '/_authenticated/configuracao/perfis'
     | '/_authenticated/frequencia/contratados'
     | '/_authenticated/frequencia/efetivos'
     | '/_authenticated/frequencias_/$id'
@@ -852,6 +877,7 @@ export interface FileRouteTypes {
     | '/_authenticated/piso-enfermagem/'
     | '/_authenticated/relatorios-gerenciais/'
     | '/_authenticated/unidades/'
+    | '/_authenticated/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
   fileRoutesById: FileRoutesById
@@ -1302,6 +1328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFrequenciaContratadosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracao/perfis': {
+      id: '/_authenticated/configuracao/perfis'
+      path: '/perfis'
+      fullPath: '/configuracao/perfis'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisRouteImport
+      parentRoute: typeof AuthenticatedConfiguracaoRoute
+    }
     '/_authenticated/competencias/$id': {
       id: '/_authenticated/competencias/$id'
       path: '/$id'
@@ -1330,6 +1363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/configuracao/perfis/$id': {
+      id: '/_authenticated/configuracao/perfis/$id'
+      path: '/$id'
+      fullPath: '/configuracao/perfis/$id'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisIdRouteImport
+      parentRoute: typeof AuthenticatedConfiguracaoPerfisRoute
+    }
   }
 }
 
@@ -1345,6 +1385,36 @@ const AuthenticatedCompetenciasRouteChildren: AuthenticatedCompetenciasRouteChil
 const AuthenticatedCompetenciasRouteWithChildren =
   AuthenticatedCompetenciasRoute._addFileChildren(
     AuthenticatedCompetenciasRouteChildren,
+  )
+
+interface AuthenticatedConfiguracaoPerfisRouteChildren {
+  AuthenticatedConfiguracaoPerfisIdRoute: typeof AuthenticatedConfiguracaoPerfisIdRoute
+}
+
+const AuthenticatedConfiguracaoPerfisRouteChildren: AuthenticatedConfiguracaoPerfisRouteChildren =
+  {
+    AuthenticatedConfiguracaoPerfisIdRoute:
+      AuthenticatedConfiguracaoPerfisIdRoute,
+  }
+
+const AuthenticatedConfiguracaoPerfisRouteWithChildren =
+  AuthenticatedConfiguracaoPerfisRoute._addFileChildren(
+    AuthenticatedConfiguracaoPerfisRouteChildren,
+  )
+
+interface AuthenticatedConfiguracaoRouteChildren {
+  AuthenticatedConfiguracaoPerfisRoute: typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
+}
+
+const AuthenticatedConfiguracaoRouteChildren: AuthenticatedConfiguracaoRouteChildren =
+  {
+    AuthenticatedConfiguracaoPerfisRoute:
+      AuthenticatedConfiguracaoPerfisRouteWithChildren,
+  }
+
+const AuthenticatedConfiguracaoRouteWithChildren =
+  AuthenticatedConfiguracaoRoute._addFileChildren(
+    AuthenticatedConfiguracaoRouteChildren,
   )
 
 interface AuthenticatedProfissionaisRouteChildren {
@@ -1434,7 +1504,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedCargosFuncoesRoute: typeof AuthenticatedCargosFuncoesRoute
   AuthenticatedCompetenciasRoute: typeof AuthenticatedCompetenciasRouteWithChildren
-  AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRoute
+  AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRouteWithChildren
   AuthenticatedControleForcaTrabalhoRoute: typeof AuthenticatedControleForcaTrabalhoRoute
   AuthenticatedDocumentosEmitidosRoute: typeof AuthenticatedDocumentosEmitidosRoute
   AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
@@ -1482,7 +1552,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedCargosFuncoesRoute: AuthenticatedCargosFuncoesRoute,
   AuthenticatedCompetenciasRoute: AuthenticatedCompetenciasRouteWithChildren,
-  AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRoute,
+  AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRouteWithChildren,
   AuthenticatedControleForcaTrabalhoRoute:
     AuthenticatedControleForcaTrabalhoRoute,
   AuthenticatedDocumentosEmitidosRoute: AuthenticatedDocumentosEmitidosRoute,

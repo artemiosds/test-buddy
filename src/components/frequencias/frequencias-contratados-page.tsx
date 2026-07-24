@@ -549,9 +549,15 @@ export function FrequenciasContratadosPage() {
   const lotacaoDe = (conf: ProfConferencia): { label: string; full: string } | null => {
     if (isAtencaoBasica) {
       const full = conf.setor ?? null;
-      if (!full) return null;
-      const sigla = (conf as any).setor_sigla ?? null;
-      return { label: sigla || full, full };
+      if (full) {
+        const sigla = (conf as any).setor_sigla ?? null;
+        return { label: sigla || full, full };
+      }
+      // Sem setor vinculado: cai para o nome da unidade (regra SMS).
+      const uNome = (unidadeSel as any)?.nome ?? null;
+      if (!uNome) return null;
+      const uSigla = (unidadeSel as any)?.sigla ?? null;
+      return { label: uSigla || uNome, full: uNome };
     }
     const uNome = (unidadeSel as any)?.nome ?? conf.setor ?? null;
     if (!uNome) return null;

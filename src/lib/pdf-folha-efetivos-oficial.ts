@@ -16,6 +16,8 @@
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { fetchAssetDataUrl } from "@/lib/asset-url";
+import brasaoAsset from "@/assets/brasao-oriximina-efetivos.png.asset.json";
 
 export type ProfissionalFolha = {
   id: string;
@@ -120,6 +122,7 @@ function fmt(v: number | null | undefined): string {
 function drawInstitutionalBox(
   doc: jsPDF,
   info: { data: MunicipioInfo | null; logoData: string | null },
+  fallbackLogo: string | null,
 ) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = MARGEM;
@@ -131,9 +134,10 @@ function drawInstitutionalBox(
   doc.setLineWidth(0.3);
   doc.rect(x, y, w, h);
 
-  if (info.logoData) {
+  const logo = fallbackLogo ?? info.logoData;
+  if (logo) {
     try {
-      doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18);
+      doc.addImage(logo, "PNG", x + 2, y + 2, 18, 18);
     } catch {
       /* ignore */
     }
@@ -357,6 +361,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
 export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
+  const fallbackLogo = await fetchAssetDataUrl(brasaoAsset.url);
 
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,
@@ -370,7 +375,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const emissaoStr = new Date().toLocaleString("pt-BR");
 
   const desenhaTopo = (): number => {
-    drawInstitutionalBox(doc, info);
+    drawInstitutionalBox(doc, info, fallbackLogo);
     return 30; // Y logo abaixo do cabeçalho institucional
   };
 

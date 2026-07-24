@@ -9,6 +9,7 @@ import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
 import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
 import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
+import { fetchAssetDataUrl } from "@/lib/asset-url";
 
 export type PdfContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
@@ -32,21 +33,6 @@ const MESES = [
   "DEZEMBRO",
 ];
 
-async function fetchAsDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result as string);
-      r.onerror = () => reject(r.error);
-      r.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
 
 function fmtNum(v: number | null | undefined): string {
   const x = Number(v ?? 0);
@@ -63,9 +49,9 @@ export async function gerarFolhaContratadosModeloCer(
   const MARGEM = 10;
 
   const [logoPrefeitura, logoBrasaoAlt, logoSaude] = await Promise.all([
-    fetchAsDataUrl(brasaoOriximina.url),
-    fetchAsDataUrl(brasaoOriximinaAlt.url),
-    fetchAsDataUrl(logoSms.url),
+    fetchAssetDataUrl(brasaoOriximina.url),
+    fetchAssetDataUrl(brasaoOriximinaAlt.url),
+    fetchAssetDataUrl(logoSms.url),
   ]);
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];

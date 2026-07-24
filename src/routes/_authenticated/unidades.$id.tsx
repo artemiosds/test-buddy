@@ -15,6 +15,12 @@ import {
   Layers,
   ArrowRightLeft,
   Search,
+  Phone,
+  Mail,
+  MapPin,
+  Hash,
+  IdCard,
+  Stethoscope,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -87,7 +93,7 @@ function UnidadePainelPage() {
       const { data, error } = await supabase
         .from("unidades")
         .select(
-          "id, nome, sigla, cnes, status, municipio, distrito, responsavel_nome, secretaria:secretarias(nome, sigla)",
+          "id, nome, sigla, cnes, cnpj, tipo_unidade, nivel_complexidade, horario_funcionamento, telefone, email_institucional, endereco, status, municipio, distrito, responsavel_nome, secretaria:secretarias(nome, sigla)",
         )
         .eq("id", id)
         .is("deleted_at", null)
@@ -97,33 +103,41 @@ function UnidadePainelPage() {
     },
   });
 
-  const profsQ = useQuery({
-    queryKey: ["unidade-painel", id, "profs"],
+  const setoresListQ = useQuery({
+    queryKey: ["unidade-painel", id, "setores-list"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profissionais")
-        .select(
-          "id, nome_completo, matricula, status, setor_id, cargo_id, funcao_id, vinculo_id, setor:setores(nome), cargo:cargos(nome), funcao:funcoes(nome), vinculo:vinculos(nome, natureza)",
-        )
+        .from("setores")
+        .select("id, nome")
         .eq("unidade_id", id)
         .is("deleted_at", null)
-        .order("nome_completo")
-        .limit(5000);
+        .order("nome");
       if (error) throw error;
-      return (data ?? []) as unknown as ProfRow[];
+      return data ?? [];
     },
   });
 
-  const setoresQ = useQuery({
-    queryKey: ["unidade-painel", id, "setores-count"],
+  const profsQ = useQuery({
+    queryKey: ["unidade-painel", id, "profs", (setoresListQ.data ?? []).map((s) => s.id).join(",")],
+    enabled: !setoresListQ.isLoading,
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("setores")
-        .select("id", { count: "exact", head: true })
-        .eq("unidade_id", id)
-        .is("deleted_at", null);
+      const setorIds = (setoresListQ.data ?? []).map((s) => s.id);
+      let query = supabase
+        .from("profissionais")
+        .select(
+          "id, nome_completo, matricula, status, setor_id, cargo_id, funcao_id, vinculo_id, setor:setores!profissionais_setor_id_fkey(nome), cargo:cargos(nome), funcao:funcoes(nome), vinculo:vinculos(nome, natureza)",
+        )
+        .is("deleted_at", null)
+        .order("nome_completo")
+        .limit(5000);
+      if (setorIds.length) {
+        query = query.or(`unidade_id.eq.${id},setor_id.in.(${setorIds.join(",")})`);
+      } else {
+        query = query.eq("unidade_id", id);
+      }
+      const { data, error } = await query;
       if (error) throw error;
-      return count ?? 0;
+      return (data ?? []) as unknown as ProfRow[];
     },
   });
 
@@ -290,6 +304,23 @@ function UnidadePainelPage() {
         }
       />
 
+      <Section title="Informações da Unidade">
+        <Card>
+          <CardContent className="grid gap-3 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <InfoItem icon={<Building2 className="h-4 w-4" />} label="Tipo" value={u.tipo_unidade} />
+            <InfoItem icon={<Stethoscope className="h-4 w-4" />} label="Nível de complexidade" value={u.nivel_complexidade} />
+            <InfoItem icon={<Hash className="h-4 w-4" />} label="CNES" value={u.cnes} mono />
+            <InfoItem icon={<IdCard className="h-4 w-4" />} label="CNPJ" value={u.cnpj} mono />
+            <InfoItem icon={<Phone className="h-4 w-4" />} label="Telefone" value={u.telefone as string | null} />
+            <InfoItem icon={<Mail className="h-4 w-4" />} label="E-mail" value={u.email_institucional} />
+            <InfoItem icon={<Clock className="h-4 w-4" />} label="Horário" value={u.horario_funcionamento as string | null} />
+            <InfoItem icon={<UserCheck className="h-4 w-4" />} label="Responsável" value={u.responsavel_nome} />
+            <InfoItem icon={<MapPin className="h-4 w-4" />} label="Endereço" value={u.endereco as string | null} className="sm:col-span-2 lg:col-span-3" />
+          </CardContent>
+        </Card>
+      </Section>
+
+
       <Section title="Resumo">
         <KpiGrid>
           <KpiCard
@@ -309,8 +340,8 @@ function UnidadePainelPage() {
           <KpiCard label="Licenças" value={counts.licencas} loading={profsQ.isLoading} />
           <KpiCard
             label="Setores"
-            value={setoresQ.data ?? 0}
-            loading={setoresQ.isLoading}
+            value={setoresListQ.data?.length ?? 0}
+            loading={setoresListQ.isLoading}
             icon={<Building2 className="h-4 w-4" />}
           />
           <KpiCard
@@ -479,6 +510,34 @@ function UnidadePainelPage() {
     </div>
   );
 }
+
+function InfoItem({
+  icon,
+  label,
+  value,
+  mono,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: string | null;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={"flex items-start gap-2 " + (className ?? "")}>
+      <div className="mt-0.5 text-muted-foreground">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className={"truncate " + (mono ? "font-mono text-xs" : "text-sm")}>
+          {value?.trim() ? value : <span className="text-muted-foreground">—</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

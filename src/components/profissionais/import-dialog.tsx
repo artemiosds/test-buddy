@@ -248,7 +248,7 @@ export function ImportProfissionaisDialog() {
         jorn: numOrNull(get("jorn") ?? get("jornada")),
       };
       if (!row.nome_completo) row.erro = "Nome vazio";
-      else if (row.cpf.length !== 11) row.erro = "CPF inválido";
+      else if (row.cpf && row.cpf.length !== 11) row.erro = "CPF inválido";
       return row;
     });
     setRows(parsed);
@@ -314,7 +314,7 @@ export function ImportProfissionaisDialog() {
 
       const payload = {
         nome_completo: r.nome_completo,
-        cpf: r.cpf,
+        cpf: r.cpf || (undefined as unknown as string),
         matricula: r.matricula,
         email: r.email,
         telefone: r.telefone,
@@ -341,14 +341,19 @@ export function ImportProfissionaisDialog() {
 
       // upsert por CPF via lookup manual (o índice único de cpf é parcial:
       // WHERE deleted_at IS NULL — PostgREST não aceita como conflict target).
-      const { data: existing, error: findErr } = await supabase
-        .from("profissionais")
-        .select("id")
-        .eq("cpf", r.cpf)
-        .is("deleted_at", null)
-        .maybeSingle();
-
-      let opErr: { message: string } | null = findErr;
+      // Sem CPF, sempre insere um novo registro.
+      let existing: { id: string } | null = null;
+      let opErr: { message: string } | null = null;
+      if (r.cpf) {
+        const { data: found, error: findErr } = await supabase
+          .from("profissionais")
+          .select("id")
+          .eq("cpf", r.cpf)
+          .is("deleted_at", null)
+          .maybeSingle();
+        opErr = findErr;
+        existing = found ?? null;
+      }
       if (!opErr) {
         if (existing?.id) {
           const { error: upErr } = await supabase

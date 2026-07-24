@@ -541,14 +541,11 @@ export function FrequenciasEfetivosPage() {
           </Button>
           <Button
             variant="secondary"
-            disabled={folhaStatus !== "aprovada" || !folha?.itens?.length}
-            title={
-              folhaStatus !== "aprovada"
-                ? "Disponível somente após aprovação"
-                : "Gerar PDF no padrão oficial"
-            }
+            disabled={!competenciaId || !unidadeId}
+            title="Gerar PDF no padrão oficial"
             onClick={async () => {
               try {
+                const itensExportacao = folha?.itens ?? [];
                 const unidadeNome =
                   unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
                 const grupos: Record<
@@ -556,7 +553,7 @@ export function FrequenciasEfetivosPage() {
                   { codigo_setor: string; nome_setor: string; itens: any[] }
                 > = {};
                 let seq = 1;
-                for (const it of folha!.itens as any[]) {
+                for (const it of itensExportacao as any[]) {
                   const setor = it.profissional.setor ?? "SEM SETOR";
                   if (!grupos[setor]) {
                     grupos[setor] = { codigo_setor: String(seq++), nome_setor: setor, itens: [] };
@@ -607,6 +604,35 @@ export function FrequenciasEfetivosPage() {
           >
             <FileDown className="mr-1.5 h-4 w-4" /> PDF Oficial
           </Button>
+          <Button
+            variant="outline"
+            disabled={!competenciaId || !unidadeId}
+            title="Exportar Excel"
+            onClick={async () => {
+              try {
+                const itensExportacao = folha?.itens ?? [];
+                const unidadeNome =
+                  unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
+                const { gerarExcelFolhaEfetivos } = await import("@/lib/excel-folha-efetivos");
+                await gerarExcelFolhaEfetivos({
+                  competencia: {
+                    mes: compSel?.mes ?? 1,
+                    ano: compSel?.ano ?? new Date().getFullYear(),
+                  },
+                  unidadeNome,
+                  itens: (itensExportacao as any[]).map((it) => ({
+                    profissional: it.profissional,
+                    linha: it.linha ?? null,
+                  })),
+                });
+              } catch (e: any) {
+                toast.error(e?.message ?? "Falha ao gerar Excel.");
+              }
+            }}
+          >
+            <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Exportar Excel
+          </Button>
+
         </div>
       </header>
 

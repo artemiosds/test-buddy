@@ -87,7 +87,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
       `,
       )
       .eq("unidade_id", data.unidade_id)
-      .eq("status", "ativo")
+      .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
       .in("vinculos.natureza", [...NATUREZAS_CONTRATADO])
       .order("nome_completo");

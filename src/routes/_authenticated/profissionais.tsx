@@ -531,7 +531,7 @@ function ProfissionaisPage() {
   const upsert = useMutation({
     mutationFn: async (f: FormState) => {
       const cpfDigits = f.cpf.replace(/\D/g, "");
-      if (cpfDigits.length !== 11) throw new Error("CPF deve ter 11 dígitos");
+      if (cpfDigits && cpfDigits.length !== 11) throw new Error("CPF deve ter 11 dígitos");
       if (!f.nome_completo.trim()) throw new Error("Nome é obrigatório");
       if (!f.secretaria_id) throw new Error("Secretaria é obrigatória");
 
@@ -539,7 +539,7 @@ function ProfissionaisPage() {
       const payload: Record<string, unknown> = {
         nome_completo: f.nome_completo.trim(),
         nome_social: f.nome_social.trim() || null,
-        cpf: cpfDigits,
+        cpf: cpfDigits || null,
         matricula: f.matricula.trim() || null,
         email: f.email.trim() || null,
         telefone: f.telefone.trim() || null,
@@ -601,12 +601,10 @@ function ProfissionaisPage() {
 
   const archive = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("profissionais")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: me?.id ?? null })
-        .eq("id", id);
+      const { error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)("arquivar_profissional", { _id: id });
       if (error) throw error;
     },
+
     onSuccess: () => {
       toast.success("Profissional arquivado");
       qc.invalidateQueries({ queryKey: ["profissionais"] });
@@ -1339,7 +1337,7 @@ function ProfissionalFormBody({
               />
             </div>
             <div>
-              <Label>CPF *</Label>
+              <Label>CPF</Label>
               <Input
                 value={formatCPF(form.cpf)}
                 onChange={(e) => setForm({ ...form, cpf: e.target.value.replace(/\D/g, "") })}
