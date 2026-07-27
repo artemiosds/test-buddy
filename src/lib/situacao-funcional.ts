@@ -14,7 +14,17 @@ export type SituacaoFuncional =
   | "afastado"
   | "cedido"
   | "desligado"
-  | "inativo";
+  | "inativo"
+  | "atestado"
+  | "licenca_premio"
+  | "licenca_maternidade"
+  | "licenca_saude"
+  | "licenca_luto"
+  | "licenca_sem_vencimento"
+  | "licenca_estudo"
+  | "vacancia"
+  | "afastamento_inss"
+  | "falta_pad";
 
 /** Domínio do StatusBadge central que já cobre estes rótulos com as cores certas. */
 export const SITUACAO_STATUS_DOMAIN = "profissional" as const;
@@ -70,11 +80,15 @@ export const ALERTA_LABEL: Record<AlertaCadastral, string> = {
  */
 export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
   const raw = (p.situacao_funcional || p.status || "ativo").toLowerCase();
-  if (raw === "ferias" || raw === "férias") return "ferias";
-  if (raw === "licenca" || raw === "licença") return "licenca";
-  if (raw === "afastado" || raw === "cedido") return raw as SituacaoFuncional;
-  if (raw === "desligado") return "desligado";
-  if (raw === "inativo") return "inativo";
+  const known: SituacaoFuncional[] = [
+    "ativo", "ferias", "licenca", "afastado", "cedido", "desligado", "inativo",
+    "atestado", "licenca_premio", "licenca_maternidade", "licenca_saude",
+    "licenca_luto", "licenca_sem_vencimento", "licenca_estudo", "vacancia",
+    "afastamento_inss", "falta_pad",
+  ];
+  if ((known as string[]).includes(raw)) return raw as SituacaoFuncional;
+  if (raw === "férias") return "ferias";
+  if (raw === "licença") return "licenca";
   return "ativo";
 }
 
@@ -107,8 +121,7 @@ export function derivarElegibilidadePiso(p: ProfConferencia): Elegibilidade {
   // pequenas pendências puramente cadastrais viram "revisar" — não bloqueiam
   const bloqueadores: AlertaCadastral[] = ["sem_cpf", "sem_cargo"];
   if (alertas.some((a) => bloqueadores.includes(a))) return "revisar";
-  if (situ === "ferias" || situ === "licenca" || situ === "afastado" || situ === "cedido")
-    return "revisar";
+  if (situ !== "ativo") return "revisar";
   if (alertas.length > 0) return "revisar";
   return "elegivel";
 }
@@ -139,8 +152,25 @@ export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
     const s = derivarSituacao(p);
     if (s === "ativo") r.ativos++;
     else if (s === "ferias") r.ferias++;
-    else if (s === "licenca") r.licenca++;
-    else if (s === "afastado" || s === "cedido") r.afastados++;
+    else if (
+      s === "licenca" ||
+      s === "licenca_premio" ||
+      s === "licenca_maternidade" ||
+      s === "licenca_saude" ||
+      s === "licenca_luto" ||
+      s === "licenca_sem_vencimento" ||
+      s === "licenca_estudo"
+    )
+      r.licenca++;
+    else if (
+      s === "afastado" ||
+      s === "cedido" ||
+      s === "atestado" ||
+      s === "vacancia" ||
+      s === "afastamento_inss" ||
+      s === "falta_pad"
+    )
+      r.afastados++;
     else if (s === "desligado" || s === "inativo") r.desligados++;
     if (derivarAlertas(p).length > 0) r.pendencias++;
     if (derivarElegibilidadePiso(p) === "nao_elegivel") r.nao_elegiveis++;
@@ -152,7 +182,17 @@ export const SITUACAO_ORDER: SituacaoFuncional[] = [
   "ativo",
   "ferias",
   "licenca",
+  "licenca_premio",
+  "licenca_maternidade",
+  "licenca_saude",
+  "licenca_luto",
+  "licenca_sem_vencimento",
+  "licenca_estudo",
+  "atestado",
   "afastado",
+  "afastamento_inss",
+  "falta_pad",
+  "vacancia",
   "cedido",
   "desligado",
   "inativo",
@@ -162,7 +202,17 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   ativo: "Ativo",
   ferias: "Férias",
   licenca: "Licença",
+  licenca_premio: "Licença Prêmio",
+  licenca_maternidade: "Licença Maternidade",
+  licenca_saude: "Licença Saúde",
+  licenca_luto: "Licença Luto",
+  licenca_sem_vencimento: "Licença sem Vencimento",
+  licenca_estudo: "Licença Estudo",
+  atestado: "Atestado",
   afastado: "Afastado",
+  afastamento_inss: "Afastamento por INSS",
+  falta_pad: "Falta informada ao RH (PAD)",
+  vacancia: "Vacância",
   cedido: "Cedido",
   desligado: "Desligado",
   inativo: "Inativo",

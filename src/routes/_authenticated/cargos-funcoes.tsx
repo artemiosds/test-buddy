@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, PowerOff, Power, Briefcase } from "lucide-react";
+import { Plus, Pencil, PowerOff, Power, Briefcase, Trash2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -223,6 +223,22 @@ function CargosTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async (c: Cargo) => {
+      const { error } = await supabase
+        .from("cargos")
+        .update({ deleted_at: new Date().toISOString(), status: "arquivada" })
+        .eq("id", c.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cargo excluído");
+      qc.invalidateQueries({ queryKey: ["cargos-admin"] });
+      qc.invalidateQueries({ queryKey: ["cargos-select"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const abrirNovo = () => {
     setEditing(null);
     setForm({
@@ -405,6 +421,23 @@ function CargosTab() {
                             <Power className="h-4 w-4 text-primary" />
                           )}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (usoCount > 0) {
+                              toast.error(
+                                `Cargo em uso por ${usoCount} profissional(is). Inative ao invés de excluir.`,
+                              );
+                              return;
+                            }
+                            if (window.confirm(`Excluir o cargo "${c.nome}"? Esta ação pode ser revertida pelo suporte.`))
+                              deleteMut.mutate(c);
+                          }}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -520,6 +553,22 @@ function FuncoesTab() {
     },
     onSuccess: () => {
       toast.success("Status atualizado");
+      qc.invalidateQueries({ queryKey: ["funcoes-admin"] });
+      qc.invalidateQueries({ queryKey: ["funcoes-select"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (f: Funcao) => {
+      const { error } = await supabase
+        .from("funcoes")
+        .update({ deleted_at: new Date().toISOString(), status: "arquivada" })
+        .eq("id", f.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Função excluída");
       qc.invalidateQueries({ queryKey: ["funcoes-admin"] });
       qc.invalidateQueries({ queryKey: ["funcoes-select"] });
     },
@@ -675,6 +724,23 @@ function FuncoesTab() {
                           ) : (
                             <Power className="h-4 w-4 text-primary" />
                           )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (usoCount > 0) {
+                              toast.error(
+                                `Função em uso por ${usoCount} profissional(is). Inative ao invés de excluir.`,
+                              );
+                              return;
+                            }
+                            if (window.confirm(`Excluir a função "${f.nome}"? Esta ação pode ser revertida pelo suporte.`))
+                              deleteMut.mutate(f);
+                          }}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </td>
