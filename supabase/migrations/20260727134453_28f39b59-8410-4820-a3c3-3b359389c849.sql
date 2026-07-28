@@ -1,0 +1,1 @@
+ALTER TABLE public.profissionais DROP CONSTRAINT IF EXISTS profissionais_carga_horaria_semanal_check;

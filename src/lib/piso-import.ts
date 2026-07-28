@@ -3,6 +3,7 @@
 // normalizadas prontas para gravação. Testado em piso-import.test.ts.
 
 import { onlyDigits, parseNumeric, type PisoDestino } from "./piso-mapping";
+import { normCpf, normMatricula } from "./piso-match";
 
 export type Mapeamento = Record<string, PisoDestino | null>;
 
@@ -31,6 +32,12 @@ export type ResolvedRow = {
   irrf: number | null;
   valor_liquido: number | null;
   valor_final: number | null;
+  tempo_servico: number | null;
+  plantao: number | null;
+  sobreaviso: number | null;
+  vale_transporte: number | null;
+  total_descontos: number | null;
+  total_proventos: number | null;
   profissional_id: string | null;
   status_match: "cpf" | "matricula" | "nome" | "nao_localizado";
 };
@@ -50,6 +57,12 @@ const NUMERIC_KEYS: PisoDestino[] = [
   "irrf",
   "valor_liquido",
   "valor_final",
+  "tempo_servico",
+  "plantao",
+  "sobreaviso",
+  "vale_transporte",
+  "total_descontos",
+  "total_proventos",
 ];
 
 function isNumericKey(k: PisoDestino): boolean {
@@ -97,6 +110,12 @@ function empty(): ResolvedRow {
     irrf: null,
     valor_liquido: null,
     valor_final: null,
+    tempo_servico: null,
+    plantao: null,
+    sobreaviso: null,
+    vale_transporte: null,
+    total_descontos: null,
+    total_proventos: null,
     profissional_id: null,
     status_match: "nao_localizado",
   };
@@ -118,12 +137,14 @@ export function resolveMatch(
   profissional_id: string | null;
   status_match: ResolvedRow["status_match"];
 } {
-  if (row.cpf) {
-    const id = maps.byCpf[row.cpf];
+  const cpf = normCpf(row.cpf);
+  if (cpf) {
+    const id = maps.byCpf[cpf];
     if (id) return { profissional_id: id, status_match: "cpf" };
   }
-  if (row.matricula) {
-    const id = maps.byMatricula[row.matricula];
+  const mat = normMatricula(row.matricula);
+  if (mat) {
+    const id = maps.byMatricula[mat];
     if (id) return { profissional_id: id, status_match: "matricula" };
   }
   return { profissional_id: null, status_match: "nao_localizado" };

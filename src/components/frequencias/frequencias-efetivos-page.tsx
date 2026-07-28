@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { PisoFolhaResumo } from "@/components/piso/piso-folha-resumo";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
 import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
@@ -511,6 +512,11 @@ export function FrequenciasEfetivosPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
+      <PisoFolhaResumo
+        competencia={
+          compSel ? `${compSel.ano}-${String(compSel.mes).padStart(2, "0")}` : null
+        }
+      />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

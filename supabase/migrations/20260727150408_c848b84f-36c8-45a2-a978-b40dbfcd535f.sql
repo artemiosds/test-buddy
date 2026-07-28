@@ -1,0 +1,2 @@
+ALTER TABLE public.historico_importacoes DROP CONSTRAINT IF EXISTS historico_importacoes_status_check;
+ALTER TABLE public.historico_importacoes ADD CONSTRAINT historico_importacoes_status_check CHECK (status = ANY (ARRAY['Em andamento'::text, 'Concluído'::text, 'Com erros'::text, 'Desfeito'::text, 'Cancelado'::text]));

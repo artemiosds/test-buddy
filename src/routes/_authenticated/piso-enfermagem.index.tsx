@@ -1,13 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Upload, Download, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "@/lib/toast";
+import {
+  getResumoConsolidacao,
+  reprocessarCompetenciaConsolidada,
+  reprocessarRegistroConsolidado,
+} from "@/lib/piso-consolidacao.functions";
+import { STATUS_CONSOLIDACAO_LABEL } from "@/lib/piso-consolidacao";
+import { gerarPlanilhaOficialPiso } from "@/lib/piso-planilha.functions";
 
-import { PageHeader } from "@/components/shared/PageHeader";
-import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
+import {
+  Upload,
+  Download,
+  AlertTriangle,
+  Users,
+  CheckCircle2,
+  Clock,
+  CalendarRange,
+  FileBarChart,
+  Settings,
+  RefreshCw,
+  Stethoscope,
+  Wrench,
+  HeartPulse,
+  BadgeCheck,
+  
+  History,
+  ShieldCheck,
+  FileSpreadsheet,
+} from "lucide-react";
+
+
+import { DataTable } from "@/components/shared/DataTable";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -19,12 +50,7 @@ import { FilterBar } from "@/components/shared/FilterBar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Pagination } from "@/components/shared/Pagination";
 import { KpiCard } from "@/components/shared/KpiCard";
-import {
-  listPisoLinhas,
-  listPisoCompetencias,
-  getPisoCompetenciaResumo,
-  getPisoDistribuicao,
-} from "@/lib/piso-enfermagem.functions";
+import { PisoDataGrid, type GridColumn } from "@/components/piso/piso-data-grid";
 import {
   BarChart,
   Bar,
@@ -36,21 +62,22 @@ import {
   Pie,
   Cell,
   Legend,
+  CartesianGrid,
+  LabelList,
+
 } from "recharts";
-import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
-import { competenciaAtual } from "@/lib/piso-heuristics";
-import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
+
+import { downloadXlsx, type XlsxColumn } from "@/lib/xlsx-export";
+import { formatCPF, formatDateTime } from "@/lib/formatters";
+import { useUnidadesLookup, useCargosLookup, useVinculosLookup } from "@/hooks/use-lookups";
 import {
-  SituacaoResumo,
-  SituacaoFilter,
-  ProfissionalNomeCell,
-  SituacaoBadge,
-  ElegibilidadePisoBadge,
-  AlertasBotao,
-  DossieDrawer,
-  type SituacaoFilterValue,
-} from "@/components/shared/gerencial";
-import { derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+  listPisoElegiveis,
+  getPisoDashboardGestao,
+  listCompetenciasConsolidadas,
+  listPisoPendencias,
+} from "@/lib/piso-gestao.functions";
+import { listHistoricoImportacoes } from "@/lib/piso-enfermagem.functions";
+import { PisoDetalheSheet, fmtBRL, type LinhaPiso } from "@/components/piso/piso-detalhe-sheet";
 
 export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
   component: () => (
@@ -67,435 +94,683 @@ export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
   ),
 });
 
-type Linha = {
-  id: string;
-  nome: string | null;
-  cpf: string | null;
-  matricula: string | null;
-  cargo: string | null;
+const CATEGORIAS = [
+  { value: "ENFERMEIRO", label: "Enfermeiro" },
+  { value: "TECNICO_ENFERMAGEM", label: "Técnico de Enfermagem" },
+  { value: "AUXILIAR_ENFERMAGEM", label: "Auxiliar de Enfermagem" },
+] as const;
+
+const SITUACOES = [
+  "ativo",
+  "licenca",
+  "ferias",
+  "cedido",
+  "afastado",
+  "desligado",
+] as const;
+
+const CORES = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
+
+const rotuloCategoria = (c: string) =>
+  CATEGORIAS.find((x) => x.value === c)?.label ?? c.replaceAll("_", " ");
+
+type LinhaGrid = LinhaPiso & {
+  cargo_id: string | null;
+  unidade_id: string | null;
+  setor: string | null;
+  setor_id: string | null;
   vinculo: string | null;
+  vinculo_id: string | null;
+  situacao_funcional: string | null;
   competencia: string | null;
-  salario_base: number | null;
-  piso_complementacao: number | null;
-  valor_final: number | null;
-  valor_liquido: number | null;
+  atualizado_em: string | null;
 };
 
-const VINCULO_OPCOES = ["Efetivos", "Contratados"] as const;
-const CARGO_OPCOES = ["Enfermeiro", "Técnico", "Auxiliar"] as const;
-
-const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function StatusPiso({ r }: { r: LinhaGrid }) {
+  if (r.status_importacao !== "importado")
+    return <Badge variant="secondary">Aguardando Importação</Badge>;
+  return r.divergencia ? (
+    <Badge variant="outline" className="border-amber-500/40 text-amber-600">
+      Divergente
+    </Badge>
+  ) : (
+    <Badge variant="outline" className="border-emerald-500/40 text-emerald-600">
+      Importado
+    </Badge>
+  );
+}
 
 function PisoIndex() {
+  // ----------------------------- estado de filtros -----------------------------
   const [competencia, setCompetencia] = useState<string | null>(null);
-  const [vinculo, setVinculo] = useState<string>("");
-  const [cargo, setCargo] = useState<string>("");
-  const [busca, setBusca] = useState<string>("");
+  const [unidadeId, setUnidadeId] = useState("");
+  const [cargoId, setCargoId] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [vinculoId, setVinculoId] = useState("");
+  const [situacao, setSituacao] = useState("");
+  const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [statusImportacao, setStatusImportacao] = useState<
+    "todos" | "importado" | "pendente" | "divergente"
+  >("todos");
+
   const [page, setPage] = useState(1);
-  const pageSize = 20;
-  const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
-  const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
-  const [dossieOpen, setDossieOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [detalhe, setDetalhe] = useState<LinhaPiso | null>(null);
+  const [detalheOpen, setDetalheOpen] = useState(false);
 
-  // Lista de competências (para o dropdown)
+  const unidadesQ = useUnidadesLookup({ ativasOnly: true });
+  const cargosQ = useCargosLookup();
+  const vinculosQ = useVinculosLookup();
+
   const compQ = useQuery({
-    queryKey: ["piso", "competencias"],
-    queryFn: () => listPisoCompetencias({}),
+    queryKey: ["piso", "competencias-consolidadas"],
+    queryFn: () => listCompetenciasConsolidadas(),
   });
-
-  // Se ainda não escolheu, adota a mais recente
   const competenciaAtiva = competencia ?? compQ.data?.competencias?.[0] ?? null;
 
-  // Resumo (KPIs + top5 + comparação vs mês anterior)
-  const resumoQ = useQuery({
-    queryKey: ["piso", "resumo", competenciaAtiva],
-    queryFn: () => getPisoCompetenciaResumo({ data: { competencia: competenciaAtiva } }),
-    enabled: !compQ.isLoading,
-  });
-
-  const distQ = useQuery({
-    queryKey: ["piso", "dist", competenciaAtiva],
-    queryFn: () => getPisoDistribuicao({ data: { competencia: competenciaAtiva } }),
-    enabled: !!competenciaAtiva,
-  });
-
-  // Linhas paginadas com filtros
-  const linhasQ = useQuery({
-    queryKey: ["piso", "linhas", competenciaAtiva, vinculo, cargo, busca, page],
+  const listaQ = useQuery({
+    queryKey: [
+      "piso",
+      "elegiveis",
+      competenciaAtiva,
+      categoria,
+      unidadeId,
+      cargoId,
+      vinculoId,
+      situacao,
+      cpf,
+      statusImportacao,
+      nome,
+      page,
+      pageSize,
+    ],
     queryFn: () =>
-      listPisoLinhas({
+      listPisoElegiveis({
         data: {
           competencia: competenciaAtiva,
-          vinculo: vinculo || null,
-          cargo: cargo || null,
-          busca: busca || null,
+          categoria: categoria || null,
+          unidade_id: unidadeId || null,
+          cargo_id: cargoId || null,
+          vinculo_id: vinculoId || null,
+          situacao: situacao || null,
+          cpf: cpf || null,
+          statusImportacao,
+          busca: nome || null,
           page,
           pageSize,
         },
       }),
-    enabled: !!competenciaAtiva,
   });
 
-  // Enriquecimento gerencial UI-only.
-  const rowsPagina = (linhasQ.data?.rows ?? []) as Linha[];
-  const idsPagina = useMemo(() => rowsPagina.map((r) => r.id), [rowsPagina]);
-  const { data: confMap } = useConferenciaProfissionais(idsPagina);
+  const dashQ = useQuery({
+    queryKey: ["piso", "dashboard-gestao", competenciaAtiva],
+    queryFn: () => getPisoDashboardGestao({ data: { competencia: competenciaAtiva } }),
+  });
 
-  const linhasConf: ProfConferencia[] = useMemo(
-    () =>
-      rowsPagina.map((r) =>
-        mergeConferencia(
-          {
-            id: r.id,
-            nome: r.nome,
-            cpf: r.cpf,
-            cargo: r.cargo,
-            matricula: r.matricula,
-            vinculo: r.vinculo,
-          },
-          confMap,
-        ),
+  const pendQ = useQuery({
+    queryKey: ["piso", "pendencias", competenciaAtiva],
+    queryFn: () => listPisoPendencias({ data: { competencia: competenciaAtiva } }),
+  });
+
+  const histQ = useQuery({
+    queryKey: ["piso", "historico-importacoes"],
+    queryFn: () => listHistoricoImportacoes({ data: { page: 1, pageSize: 50 } }),
+  });
+
+  const consolQ = useQuery({
+    queryKey: ["piso", "consolidacao-resumo"],
+    queryFn: () => getResumoConsolidacao({ data: {} }),
+  });
+
+  const gerarMut = useMutation({
+    mutationFn: (tipo: "contratados" | "efetivos" | "calculo_piso") =>
+      gerarPlanilhaOficialPiso({
+        data: {
+          competencia: competenciaAtiva ?? "",
+          tipo,
+          unidade_id: unidadeId || null,
+          categoria: categoria || null,
+        },
+      }),
+    onSuccess: (r) => {
+      const bin = atob(r.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(
+        new Blob([bytes], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = r.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Planilha gerada com ${r.total} profissional(is).`);
+    },
+    onError: (e: unknown) =>
+      toast.error(
+        e instanceof Error && e.message
+          ? `Falha ao gerar a planilha: ${e.message}`
+          : "Falha ao gerar a planilha. Tente novamente.",
       ),
-    [rowsPagina, confMap],
-  );
+  });
 
-  const linhasFiltradasSituacao = useMemo(() => {
-    if (situacaoFilter === "todas") return rowsPagina;
-    const okIds = new Set(
-      linhasConf.filter((c) => derivarSituacao(c) === situacaoFilter).map((c) => c.id),
-    );
-    return rowsPagina.filter((r) => okIds.has(r.id));
-  }, [rowsPagina, linhasConf, situacaoFilter]);
 
-  function openDossie(p: ProfConferencia) {
-    setDossieProf(p);
-    setDossieOpen(true);
+  const reprocessarComp = useMutation({
+    mutationFn: (comp: string) =>
+      reprocessarCompetenciaConsolidada({ data: { competencia: comp } }),
+    onSuccess: (r) => {
+      toast.success(`Competência reprocessada: ${r.processados} registro(s).`);
+      consolQ.refetch();
+      listaQ.refetch();
+      dashQ.refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reprocessarReg = useMutation({
+    mutationFn: (profissionalId: string) =>
+      reprocessarRegistroConsolidado({
+        data: { profissional_id: profissionalId, competencia: competenciaAtiva },
+      }),
+    onSuccess: () => {
+      toast.success("Registro reprocessado.");
+      consolQ.refetch();
+      listaQ.refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rows = (listaQ.data?.rows ?? []) as unknown as LinhaGrid[];
+  const resumo = listaQ.data?.resumo;
+
+  function atualizarTudo() {
+    listaQ.refetch();
+    dashQ.refetch();
+    pendQ.refetch();
+    compQ.refetch();
+    histQ.refetch();
   }
 
-  const cols: DataTableColumn<Linha>[] = useMemo(
+  function limparFiltros() {
+    setUnidadeId("");
+    setCargoId("");
+    setCategoria("");
+    setVinculoId("");
+    setSituacao("");
+    setNome("");
+    setCpf("");
+    setStatusImportacao("todos");
+    setPage(1);
+  }
+
+  const [colunasVisiveis, setColunasVisiveis] = useState<string[]>([]);
+
+  function abrirDetalhe(l: LinhaGrid) {
+    setDetalhe(l);
+    setDetalheOpen(true);
+  }
+
+  // ----------------------------- colunas da grade -----------------------------
+  const cols: GridColumn<LinhaGrid>[] = useMemo(
     () => [
       {
         key: "nome",
-        header: "Profissional",
-        cell: (r) => {
-          const conf: ProfConferencia = mergeConferencia(
-            {
-              id: r.id,
-              nome: r.nome,
-              cpf: r.cpf,
-              cargo: r.cargo,
-              matricula: r.matricula,
-              vinculo: r.vinculo,
-            },
-            confMap,
-          );
-          return <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} secondary={r.cargo} />;
-        },
+        header: "Nome",
+        width: 240,
+        sortValue: (r) => r.nome,
+        cell: (r) => <span className="font-medium">{r.nome}</span>,
+      },
+      {
+        key: "cpf",
+        header: "CPF",
+        width: 130,
+        sortValue: (r) => r.cpf ?? "",
+        cell: (r) => <span className="font-mono text-xs">{formatCPF(r.cpf)}</span>,
+      },
+      {
+        key: "matricula",
+        header: "Matrícula",
+        width: 110,
+        sortValue: (r) => r.matricula ?? "",
+        cell: (r) => r.matricula ?? "—",
+      },
+      {
+        key: "cargo",
+        header: "Cargo",
+        width: 170,
+        sortValue: (r) => r.cargo ?? "",
+        cell: (r) => r.cargo ?? "—",
+      },
+      {
+        key: "categoria",
+        header: "Categoria",
+        width: 170,
+        sortValue: (r) => r.categoria,
+        cell: (r) => rotuloCategoria(r.categoria),
+      },
+      {
+        key: "unidade",
+        header: "Unidade",
+        width: 190,
+        sortValue: (r) => r.unidade ?? "",
+        cell: (r) => r.unidade ?? "—",
+      },
+      {
+        key: "setor",
+        header: "Setor",
+        width: 170,
+        sortValue: (r) => r.setor ?? "",
+        cell: (r) => r.setor ?? "—",
+      },
+      {
+        key: "carga",
+        header: "Carga horária",
+        width: 110,
+        align: "right",
+        sortValue: (r) => r.carga_horaria ?? 0,
+        cell: (r) => (r.carga_horaria ? `${r.carga_horaria}h` : "—"),
+      },
+      {
+        key: "vinculo",
+        header: "Vínculo",
+        width: 140,
+        sortValue: (r) => r.vinculo ?? "",
+        cell: (r) => r.vinculo ?? "—",
       },
       {
         key: "situacao",
         header: "Situação",
-        cell: (r) => {
-          const conf: ProfConferencia = mergeConferencia(
-            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
-            confMap,
-          );
-          return <SituacaoBadge prof={conf} />;
-        },
+        width: 120,
+        sortValue: (r) => r.situacao_funcional ?? "",
+        cell: (r) => (r.situacao_funcional ?? "—").replaceAll("_", " "),
       },
-      {
-        key: "elegibilidade",
-        header: "Elegibilidade",
-        cell: (r) => {
-          const conf: ProfConferencia = mergeConferencia(
-            { id: r.id, cargo: r.cargo, vinculo: r.vinculo, cpf: r.cpf },
-            confMap,
-          );
-          return <ElegibilidadePisoBadge prof={conf} />;
-        },
-      },
-      { key: "cpf", header: "CPF", cell: (r) => r.cpf ?? "—" },
-      { key: "cargo", header: "Cargo", cell: (r) => r.cargo ?? "—" },
-      { key: "vinculo", header: "Vínculo", cell: (r) => r.vinculo ?? "—" },
       {
         key: "salario_base",
-        header: "Salário Base",
+        header: "Salário base",
+        width: 130,
+        align: "right",
+        sortValue: (r) => r.salario_base ?? 0,
         cell: (r) => (r.salario_base != null ? fmtBRL(r.salario_base) : "—"),
       },
       {
-        key: "piso_complementacao",
-        header: "Complementação",
-        cell: (r) =>
-          r.piso_complementacao != null ? (
-            <span className={r.piso_complementacao > 0 ? "font-semibold text-emerald-600" : ""}>
-              {fmtBRL(r.piso_complementacao)}
-            </span>
-          ) : (
-            "—"
-          ),
+        key: "insalubridade",
+        header: "Insalubridade",
+        width: 130,
+        align: "right",
+        sortValue: (r) => r.insalubridade ?? 0,
+        cell: (r) => (r.insalubridade != null ? fmtBRL(r.insalubridade) : "—"),
       },
       {
-        key: "valor_final",
-        header: "Valor Final",
-        cell: (r) => (r.valor_final != null ? fmtBRL(r.valor_final) : "—"),
+        key: "auxilio",
+        header: "Auxílio Financeiro Piso",
+        width: 170,
+        align: "right",
+        sortValue: (r) => r.auxilio_financeiro ?? 0,
+        cell: (r) => (r.auxilio_financeiro != null ? fmtBRL(r.auxilio_financeiro) : "—"),
+      },
+      {
+        key: "total",
+        header: "Valor total",
+        width: 140,
+        align: "right",
+        sortValue: (r) => r.total_remuneracao,
+        cell: (r) => <span className="font-semibold">{fmtBRL(r.total_remuneracao)}</span>,
+      },
+      {
+        key: "status",
+        header: "Status",
+        width: 120,
+        sortValue: (r) => (r.divergencia ? "divergente" : r.status_importacao),
+        cell: (r) => <StatusPiso r={r} />,
+      },
+      {
+        key: "competencia",
+        header: "Competência",
+        width: 120,
+        sortValue: (r) => r.competencia ?? "",
+        cell: (r) => r.competencia ?? "—",
+      },
+      {
+        key: "atualizado",
+        header: "Última atualização",
+        width: 160,
+        hiddenByDefault: true,
+        sortValue: (r) => r.atualizado_em ?? "",
+        cell: (r) => formatDateTime(r.atualizado_em),
       },
     ],
-    [confMap],
+    [],
   );
 
-  function handleExportar() {
-    const rows = (linhasQ.data?.rows ?? []) as Linha[];
-    const cols: CsvColumn<Linha>[] = [
-      { header: "Nome", value: (r) => r.nome },
-      { header: "CPF", value: (r) => r.cpf },
-      { header: "Matrícula", value: (r) => r.matricula },
-      { header: "Cargo", value: (r) => r.cargo },
-      { header: "Vínculo", value: (r) => r.vinculo },
-      { header: "Competência", value: (r) => r.competencia },
-      { header: "Salário Base", value: (r) => r.salario_base ?? "" },
-      { header: "Complementação", value: (r) => r.piso_complementacao ?? "" },
-      { header: "Valor Líquido", value: (r) => r.valor_liquido ?? "" },
-      { header: "Valor Final", value: (r) => r.valor_final ?? "" },
+  function exportar() {
+    const base = selecionados.length
+      ? rows.filter((r) => selecionados.includes(r.profissional_id))
+      : rows;
+    const todas: (XlsxColumn<LinhaGrid> & { key: string })[] = [
+      { key: "nome", header: "Nome", value: (r) => r.nome, largura: 34 },
+      { key: "cpf", header: "CPF", value: (r) => r.cpf, largura: 16 },
+      { key: "matricula", header: "Matrícula", value: (r) => r.matricula, largura: 14 },
+      { key: "cargo", header: "Cargo", value: (r) => r.cargo, largura: 26 },
+      {
+        key: "categoria",
+        header: "Categoria",
+        value: (r) => rotuloCategoria(r.categoria),
+        largura: 22,
+      },
+      { key: "unidade", header: "Unidade", value: (r) => r.unidade, largura: 28 },
+      { key: "setor", header: "Setor", value: (r) => r.setor ?? "", largura: 22 },
+      {
+        key: "carga",
+        header: "Carga horária",
+        value: (r) => r.carga_horaria ?? "",
+        tipo: "numero",
+        largura: 13,
+      },
+      { key: "vinculo", header: "Vínculo", value: (r) => r.vinculo ?? "", largura: 16 },
+      { key: "situacao", header: "Situação", value: (r) => r.situacao_funcional ?? "", largura: 16 },
+      {
+        key: "salario_base",
+        header: "Salário base",
+        value: (r) => r.salario_base ?? "",
+        tipo: "moeda",
+        largura: 15,
+      },
+      {
+        key: "insalubridade",
+        header: "Insalubridade",
+        value: (r) => r.insalubridade ?? "",
+        tipo: "moeda",
+        largura: 15,
+      },
+      {
+        key: "auxilio",
+        header: "Auxílio financeiro piso",
+        value: (r) => r.auxilio_financeiro ?? "",
+        tipo: "moeda",
+        largura: 18,
+      },
+      {
+        key: "total",
+        header: "Valor total",
+        value: (r) => r.total_remuneracao,
+        tipo: "moeda",
+        largura: 16,
+      },
+      {
+        key: "status",
+        header: "Status",
+        value: (r) => (r.status_importacao === "importado" ? "Importado" : "Aguardando Importação"),
+        largura: 20,
+      },
+      { key: "competencia", header: "Competência", value: (r) => r.competencia ?? "", largura: 14 },
+      {
+        key: "atualizado",
+        header: "Última atualização",
+        value: (r) => formatDateTime(r.atualizado_em),
+        largura: 20,
+      },
     ];
-    const suf = competenciaAtiva ? "-" + competenciaAtiva.toLowerCase().replace(/\s+/g, "-") : "";
-    downloadCsv(`piso-enfermagem${suf}`, rows, cols);
+    const visiveis = colunasVisiveis.length ? colunasVisiveis : todas.map((c) => c.key);
+    const c = todas.filter((col) => visiveis.includes(col.key));
+    if (c.length === 0) return;
+    const suf = competenciaAtiva ? `-${competenciaAtiva}` : "";
+    downloadXlsx(`piso-enfermagem${suf}`, base, c, {
+      sheetName: "Profissionais",
+      titulo: `Piso Nacional da Enfermagem — Profissionais${competenciaAtiva ? ` — Competência ${competenciaAtiva}` : ""}`,
+    });
   }
 
-  const carregando = compQ.isLoading || resumoQ.isLoading;
-  const semDados = !carregando && (compQ.data?.competencias?.length ?? 0) === 0;
 
-  const atualR = resumoQ.data?.atual;
-  const antR = resumoQ.data?.anterior;
-  const delta = (a: number, b: number) => (b === 0 ? null : ((a - b) / b) * 100);
-  const kpiTrend = (n: number | null) =>
-    n == null
-      ? undefined
-      : {
-          direction: n > 0 ? ("up" as const) : n < 0 ? ("down" as const) : ("flat" as const),
-          label: `${n > 0 ? "+" : ""}${n.toFixed(1)}% vs mês anterior`,
-        };
 
-  const mesCorrente = competenciaAtual();
-  const alertaMensal =
-    !carregando &&
-    (compQ.data?.competencias?.length ?? 0) > 0 &&
-    resumoQ.data?.competenciaAtual !== mesCorrente;
+  const semCadastro = !listaQ.isLoading && (resumo?.totalCadastro ?? 0) === 0;
+  const historico = (histQ.data?.rows ?? []) as Record<string, unknown>[];
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <PageHeader
-        title="Piso Nacional da Enfermagem"
-        description="Profissionais beneficiados e complementação salarial por competência."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={handleExportar}
-              disabled={!linhasQ.data?.rows?.length}
-            >
-              <Download className="mr-2 h-4 w-4" /> Exportar Excel
-            </Button>
-            <PermissionGate permission="piso.importar">
-              <Button asChild>
-                <Link to="/piso-enfermagem/importar">
-                  <Upload className="mr-2 h-4 w-4" /> Nova importação
-                </Link>
-              </Button>
-            </PermissionGate>
+      {/* ----------------------------- 1. Cabeçalho ----------------------------- */}
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-border p-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <HeartPulse className="h-5 w-5 text-primary" />
+            <h1 className="truncate text-xl font-bold tracking-tight">
+              Piso Nacional da Enfermagem
+            </h1>
           </div>
-        }
-      />
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <CalendarRange className="h-4 w-4" />
+            Competência:
+            <Badge variant="outline" className="font-mono">
+              {competenciaAtiva ?? "não selecionada"}
+            </Badge>
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={competenciaAtiva ?? "__none__"}
+            onValueChange={(v) => {
+              setCompetencia(v === "__none__" ? null : v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-9 w-[190px]">
+              <SelectValue placeholder="Alterar competência" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Sem competência</SelectItem>
+              {(compQ.data?.competencias ?? []).map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <PermissionGate permission="piso.importar">
+            <Button asChild size="sm">
+              <Link to="/piso-enfermagem/importar-contratados">
+                <Upload className="mr-2 h-4 w-4" /> Importar Contratados
+              </Link>
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="piso.importar">
+            <Button asChild size="sm" variant="secondary">
+              <Link to="/piso-enfermagem/importar-efetivos">
+                <Upload className="mr-2 h-4 w-4" /> Importar Efetivos
+              </Link>
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="piso.importar">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/piso-enfermagem/importar">
+                <Upload className="mr-2 h-4 w-4" /> Importação avançada
+              </Link>
+            </Button>
+          </PermissionGate>
 
-      {semDados ? (
+          <Button
+            size="sm"
+            variant="default"
+            disabled={!competenciaAtiva || gerarMut.isPending}
+            onClick={() => gerarMut.mutate("contratados")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {gerarMut.isPending && gerarMut.variables === "contratados"
+              ? "Gerando..."
+              : "Baixar Planilha (3)"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!competenciaAtiva || gerarMut.isPending}
+            onClick={() => gerarMut.mutate("efetivos")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {gerarMut.isPending && gerarMut.variables === "efetivos"
+              ? "Gerando..."
+              : "Baixar FOPAG"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!competenciaAtiva || gerarMut.isPending}
+            onClick={() => gerarMut.mutate("calculo_piso")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {gerarMut.isPending && gerarMut.variables === "calculo_piso"
+              ? "Gerando..."
+              : "Baixar Cálculo Piso"}
+          </Button>
+
+
+
+          <Button asChild variant="outline" size="sm">
+            <Link to="/relatorios-piso">
+              <FileBarChart className="mr-2 h-4 w-4" /> Relatórios
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/piso-enfermagem/referencia">
+              <Settings className="mr-2 h-4 w-4" /> Tabela de Referência
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/piso-enfermagem/extracao">
+              <Settings className="mr-2 h-4 w-4" /> Motor de Extração
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/layouts-importacao">
+              <Settings className="mr-2 h-4 w-4" /> Layouts
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/configuracao">
+              <Settings className="mr-2 h-4 w-4" /> Configurações
+            </Link>
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={atualizarTudo}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Atualizar dados
+          </Button>
+        </div>
+      </Card>
+
+      {semCadastro ? (
         <EmptyState
-          title="Nenhum dado importado ainda"
-          description="Clique em Nova Importação para começar."
-          action={
-            <PermissionGate permission="piso.importar">
-              <Button asChild>
-                <Link to="/piso-enfermagem/importar">
-                  <Upload className="mr-2 h-4 w-4" /> Nova importação
-                </Link>
-              </Button>
-            </PermissionGate>
-          }
+          title="Nenhum profissional de enfermagem ativo no cadastro"
+          description="Cadastre profissionais com cargos de Enfermeiro, Técnico ou Auxiliar de Enfermagem para que apareçam aqui."
         />
       ) : (
         <>
-          {alertaMensal && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
-              <div>
-                <div className="font-medium">
-                  Competência {mesCorrente} ainda não foi importada.
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Última competência registrada: {resumoQ.data?.competenciaAtual ?? "—"}.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* KPIs com comparação */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {/* --------------------------- 2. Cards superiores --------------------------- */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <KpiCard
-              label="Profissionais"
-              value={(atualR?.total ?? 0).toLocaleString("pt-BR")}
-              trend={atualR && antR ? kpiTrend(delta(atualR.total, antR.total)) : undefined}
-              loading={resumoQ.isLoading}
-              description={resumoQ.data?.competenciaAtual ?? undefined}
+              label="Total elegíveis"
+              value={(resumo?.elegiveis ?? 0).toLocaleString("pt-BR")}
+              icon={<Users className="h-4 w-4" />}
+              loading={listaQ.isLoading}
             />
             <KpiCard
-              label="Total pago"
-              value={fmtBRL(atualR?.valorFinal ?? 0)}
-              trend={
-                atualR && antR ? kpiTrend(delta(atualR.valorFinal, antR.valorFinal)) : undefined
-              }
-              icon={
-                atualR && antR && delta(atualR.valorFinal, antR.valorFinal)! >= 0 ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <TrendingDown className="h-4 w-4" />
-                )
-              }
-              loading={resumoQ.isLoading}
+              label="Enfermeiros"
+              value={(resumo?.enfermeiros ?? 0).toLocaleString("pt-BR")}
+              icon={<Stethoscope className="h-4 w-4" />}
+              iconTone="info"
+              loading={listaQ.isLoading}
             />
             <KpiCard
-              label="Complementação"
-              value={fmtBRL(atualR?.complementacao ?? 0)}
-              trend={
-                atualR && antR
-                  ? kpiTrend(delta(atualR.complementacao, antR.complementacao))
-                  : undefined
-              }
-              loading={resumoQ.isLoading}
+              label="Técnicos"
+              value={(resumo?.tecnicos ?? 0).toLocaleString("pt-BR")}
+              icon={<Wrench className="h-4 w-4" />}
+              iconTone="info"
+              loading={listaQ.isLoading}
             />
             <KpiCard
-              label="Beneficiados"
-              value={(atualR?.beneficiados ?? 0).toLocaleString("pt-BR")}
-              trend={
-                atualR && antR ? kpiTrend(delta(atualR.beneficiados, antR.beneficiados)) : undefined
-              }
-              loading={resumoQ.isLoading}
-              description="com complementação > 0"
+              label="Auxiliares"
+              value={(resumo?.auxiliares ?? 0).toLocaleString("pt-BR")}
+              icon={<HeartPulse className="h-4 w-4" />}
+              iconTone="info"
+              loading={listaQ.isLoading}
+            />
+            <KpiCard
+              label="Efetivos"
+              value={(resumo?.efetivos ?? 0).toLocaleString("pt-BR")}
+              icon={<BadgeCheck className="h-4 w-4" />}
+              iconTone="neutral"
+              loading={listaQ.isLoading}
+            />
+            <KpiCard
+              label="Contratados"
+              value={(resumo?.contratados ?? 0).toLocaleString("pt-BR")}
+              icon={<Users className="h-4 w-4" />}
+              iconTone="neutral"
+              loading={listaQ.isLoading}
+            />
+            <KpiCard
+              label="Importados"
+              value={(resumo?.importados ?? 0).toLocaleString("pt-BR")}
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              iconTone="success"
+              loading={listaQ.isLoading}
+              description={competenciaAtiva ?? "Sem competência"}
+            />
+            <KpiCard
+              label="Pendentes"
+              value={(resumo?.pendentes ?? 0).toLocaleString("pt-BR")}
+              icon={<Clock className="h-4 w-4" />}
+              iconTone="warning"
+              loading={listaQ.isLoading}
+            />
+            <KpiCard
+              label="Divergências"
+              value={(resumo?.divergentes ?? 0).toLocaleString("pt-BR")}
+              icon={<AlertTriangle className="h-4 w-4" />}
+              iconTone="danger"
+              tone={(resumo?.divergentes ?? 0) > 0 ? "danger" : "default"}
+              loading={listaQ.isLoading}
             />
           </div>
 
-          {/* Top 5 */}
-          {(atualR?.top5?.length ?? 0) > 0 && (
-            <div className="rounded-md border p-4">
-              <div className="mb-2 text-sm font-medium">
-                Top 5 profissionais — maior complementação
-              </div>
-              <ol className="space-y-1 text-sm">
-                {atualR!.top5.map((t, i) => (
-                  <li
-                    key={t.nome + i}
-                    className="flex items-center justify-between border-b py-1 last:border-0"
-                  >
-                    <span>
-                      <span className="mr-2 text-muted-foreground">#{i + 1}</span>
-                      {t.nome}
-                    </span>
-                    <span className="font-semibold">{fmtBRL(t.valor)}</span>
-                  </li>
-                ))}
-              </ol>
+          {(resumo?.semReferencia ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <span className="flex-1">
+                {resumo?.semReferencia} profissional(is) sem valor de referência cadastrado para
+                esta competência — a complementação não é calculada até que a Tabela de Referência
+                seja preenchida.
+              </span>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/piso-enfermagem/referencia">Definir valores</Link>
+              </Button>
             </div>
           )}
 
-          {/* Distribuição por unidade / cargo */}
-          {distQ.data && (distQ.data.porUnidade.length > 0 || distQ.data.porCargo.length > 0) && (
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border p-4">
-                <div className="mb-2 text-sm font-medium">Distribuição por unidade</div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={distQ.data.porUnidade}>
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 10 }}
-                        interval={0}
-                        angle={-25}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              <div className="rounded-md border p-4">
-                <div className="mb-2 text-sm font-medium">Distribuição por cargo</div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={distQ.data.porCargo}
-                        dataKey="total"
-                        nameKey="label"
-                        outerRadius={80}
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {distQ.data.porCargo.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={
-                              ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"][
-                                i % 6
-                              ]
-                            }
-                          />
-                        ))}
-                      </Pie>
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Não localizados na última importação (competência atual) */}
-          {distQ.data && distQ.data.naoLocalizados.length > 0 && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                Profissionais não localizados nesta competência ({distQ.data.naoLocalizados.length})
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="text-left text-muted-foreground">
-                    <tr>
-                      <th className="px-2 py-1">Nome</th>
-                      <th className="px-2 py-1">CPF</th>
-                      <th className="px-2 py-1">Matrícula</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {distQ.data.naoLocalizados.map((r, i) => (
-                      <tr key={i} className="border-t">
-                        <td className="px-2 py-1">{r.nome ?? "—"}</td>
-                        <td className="px-2 py-1 font-mono">{r.cpf ?? "—"}</td>
-                        <td className="px-2 py-1 font-mono">{r.matricula ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Filtros */}
-          <FilterBar>
+          {/* ---------------------------- 3. Área de filtros ---------------------------- */}
+          <FilterBar
+            actions={
+              <>
+                <Button variant="ghost" size="sm" onClick={limparFiltros}>
+                  Limpar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportar}
+                  disabled={rows.length === 0}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Exportar
+                </Button>
+              </>
+            }
+          >
             <FilterBar.Field label="Competência">
               <Select
-                value={competenciaAtiva ?? ""}
+                value={competenciaAtiva ?? "__none__"}
                 onValueChange={(v) => {
-                  setCompetencia(v);
+                  setCompetencia(v === "__none__" ? null : v);
                   setPage(1);
                 }}
               >
@@ -503,6 +778,7 @@ function PisoIndex() {
                   <SelectValue placeholder="Selecione…" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">Sem competência</SelectItem>
                   {(compQ.data?.competencias ?? []).map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -511,11 +787,12 @@ function PisoIndex() {
                 </SelectContent>
               </Select>
             </FilterBar.Field>
-            <FilterBar.Field label="Vínculo">
+
+            <FilterBar.Field label="Unidade">
               <Select
-                value={vinculo || "__all__"}
+                value={unidadeId || "__all__"}
                 onValueChange={(v) => {
-                  setVinculo(v === "__all__" ? "" : v);
+                  setUnidadeId(v === "__all__" ? "" : v);
                   setPage(1);
                 }}
               >
@@ -523,20 +800,21 @@ function PisoIndex() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Todos</SelectItem>
-                  {VINCULO_OPCOES.map((v) => (
-                    <SelectItem key={v} value={v}>
-                      {v}
+                  <SelectItem value="__all__">Todas</SelectItem>
+                  {(unidadesQ.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
+
             <FilterBar.Field label="Cargo">
               <Select
-                value={cargo || "__all__"}
+                value={cargoId || "__all__"}
                 onValueChange={(v) => {
-                  setCargo(v === "__all__" ? "" : v);
+                  setCargoId(v === "__all__" ? "" : v);
                   setPage(1);
                 }}
               >
@@ -545,52 +823,607 @@ function PisoIndex() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todos</SelectItem>
-                  {CARGO_OPCOES.map((v) => (
-                    <SelectItem key={v} value={v}>
-                      {v}
+                  {(cargosQ.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FilterBar.Field>
-            <FilterBar.Field label="Busca (nome ou CPF)">
-              <Input
-                value={busca}
-                onChange={(e) => {
-                  setBusca(e.target.value);
+
+            <FilterBar.Field label="Categoria">
+              <Select
+                value={categoria || "__all__"}
+                onValueChange={(v) => {
+                  setCategoria(v === "__all__" ? "" : v);
                   setPage(1);
                 }}
-                placeholder="Digite para filtrar…"
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas</SelectItem>
+                  {CATEGORIAS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterBar.Field>
+
+            <FilterBar.Field label="Vínculo">
+              <Select
+                value={vinculoId || "__all__"}
+                onValueChange={(v) => {
+                  setVinculoId(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos</SelectItem>
+                  {(vinculosQ.data ?? []).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterBar.Field>
+
+            <FilterBar.Field label="Situação">
+              <Select
+                value={situacao || "__all__"}
+                onValueChange={(v) => {
+                  setSituacao(v === "__all__" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas</SelectItem>
+                  {SITUACOES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s.replaceAll("_", " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterBar.Field>
+
+            <FilterBar.Field label="Nome">
+              <Input
+                value={nome}
+                onChange={(e) => {
+                  setNome(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Nome ou matrícula…"
               />
+            </FilterBar.Field>
+
+            <FilterBar.Field label="CPF">
+              <Input
+                value={cpf}
+                onChange={(e) => {
+                  setCpf(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Somente números"
+                inputMode="numeric"
+              />
+            </FilterBar.Field>
+
+            <FilterBar.Field label="Status">
+              <Select
+                value={statusImportacao}
+                onValueChange={(v) => {
+                  setStatusImportacao(v as typeof statusImportacao);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="importado">Importados</SelectItem>
+                  <SelectItem value="pendente">Aguardando Importação</SelectItem>
+                  <SelectItem value="divergente">Divergentes</SelectItem>
+                </SelectContent>
+              </Select>
             </FilterBar.Field>
           </FilterBar>
 
-          {/* Painel gerencial (UI-only) */}
-          <div className="space-y-2 rounded-lg border bg-card p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <SituacaoResumo rows={linhasConf} />
-              <AlertasBotao rows={linhasConf} onSelectProfissional={openDossie} />
-            </div>
-            <SituacaoFilter value={situacaoFilter} onChange={setSituacaoFilter} />
-          </div>
+          {/* -------------------------------- 5. Abas -------------------------------- */}
+          <Tabs defaultValue="resumo">
+            <TabsList className="flex-wrap">
+              <TabsTrigger value="resumo">Resumo</TabsTrigger>
+              <TabsTrigger value="profissionais">Profissionais</TabsTrigger>
+              <TabsTrigger value="consolidacao">Consolidação</TabsTrigger>
+              <TabsTrigger value="importacoes">Importações</TabsTrigger>
+              <TabsTrigger value="pendencias">
+                Pendências
+                {(pendQ.data?.rows.length ?? 0) > 0 && (
+                  <span className="ml-2 rounded-full bg-amber-500/20 px-1.5 text-xs text-amber-700">
+                    {pendQ.data!.rows.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+              <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+              <TabsTrigger value="auditoria">Auditoria</TabsTrigger>
+            </TabsList>
 
-          <DataTable<Linha>
-            columns={cols}
-            rows={linhasFiltradasSituacao}
-            getRowKey={(r) => r.id}
-            loading={linhasQ.isLoading}
-            emptyTitle="Nenhum profissional encontrado"
-            emptyDescription="Ajuste os filtros ou selecione outra competência."
-          />
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={linhasQ.data?.count ?? 0}
-            onPageChange={setPage}
-          />
+            {/* ------------------------ Consolidação ------------------------ */}
+            <TabsContent value="consolidacao" className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground">
+                  Camada consolidada por CPF e competência (Cadastro + Folha + Piso).
+                </div>
+                <PermissionGate permission="piso.importar">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={!competenciaAtiva || reprocessarComp.isPending}
+                      onClick={() =>
+                        competenciaAtiva && reprocessarComp.mutate(competenciaAtiva)
+                      }
+                    >
+                      {reprocessarComp.isPending ? "Reprocessando…" : "Reprocessar Competência"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={selecionados.length !== 1 || reprocessarReg.isPending}
+                      onClick={() => reprocessarReg.mutate(selecionados[0])}
+                    >
+                      Reprocessar Registro
+                    </Button>
+                  </div>
+                </PermissionGate>
+              </div>
+
+              {(consolQ.data?.competencias?.length ?? 0) === 0 ? (
+                <EmptyState
+                  title="Nenhuma competência consolidada"
+                  description="Importe uma folha ou reprocesse uma competência para gerar a camada consolidada."
+                />
+              ) : (
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-left">
+                      <tr>
+                        <th className="px-3 py-2">Competência</th>
+                        <th className="px-3 py-2">Total</th>
+                        <th className="px-3 py-2">Consolidados</th>
+                        <th className="px-3 py-2">Parciais</th>
+                        <th className="px-3 py-2">Pendentes</th>
+                        <th className="px-3 py-2">Divergências</th>
+                        <th className="px-3 py-2">Erros</th>
+                        <th className="px-3 py-2">Último processamento</th>
+                        <th className="px-3 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {consolQ.data!.competencias.map((c) => (
+                        <tr key={c.competencia} className="border-t">
+                          <td className="px-3 py-2 font-medium">{c.competencia}</td>
+                          <td className="px-3 py-2">{c.total}</td>
+                          <td className="px-3 py-2">{c.consolidados}</td>
+                          <td className="px-3 py-2">{c.parciais}</td>
+                          <td className="px-3 py-2">
+                            {c.pendentes + c.semImportacao}
+                          </td>
+                          <td className="px-3 py-2">{c.divergentes}</td>
+                          <td className="px-3 py-2">{c.erros}</td>
+                          <td className="px-3 py-2">
+                            {c.ultimoProcessamento
+                              ? formatDateTime(c.ultimoProcessamento)
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <PermissionGate permission="piso.importar">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={reprocessarComp.isPending}
+                                onClick={() => reprocessarComp.mutate(c.competencia)}
+                              >
+                                Reprocessar
+                              </Button>
+                            </PermissionGate>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                {Object.entries(STATUS_CONSOLIDACAO_LABEL).map(([k, label]) => (
+                  <Badge key={k} variant="outline">
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            </TabsContent>
+
+
+            {/* --------------------------- Resumo --------------------------- */}
+            <TabsContent value="resumo" className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border p-4">
+                <div className="mb-1 text-sm font-medium">Elegíveis por unidade</div>
+                <div className="mb-2 text-xs text-muted-foreground">
+                  Top 10 unidades com mais profissionais elegíveis
+                </div>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[...(dashQ.data?.porUnidade ?? [])]
+                        .sort((a, b) => b.total - a.total)
+                        .slice(0, 10)}
+                      layout="vertical"
+                      margin={{ top: 4, right: 24, bottom: 4, left: 8 }}
+                      barCategoryGap="20%"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
+                      <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="label"
+                        width={170}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v: string) =>
+                          v && v.length > 24 ? `${v.slice(0, 23)}…` : (v ?? "—")
+                        }
+                      />
+                      <Tooltip cursor={{ fillOpacity: 0.1 }} />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
+                        <LabelList dataKey="total" position="right" style={{ fontSize: 10 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="rounded-md border p-4">
+                <div className="mb-1 text-sm font-medium">Distribuição por categoria</div>
+                <div className="mb-2 text-xs text-muted-foreground">
+                  Participação de cada categoria no total de elegíveis
+                </div>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                      <Pie
+                        data={(dashQ.data?.porCategoria ?? []).map((d) => ({
+                          ...d,
+                          label: rotuloCategoria(d.label),
+                        }))}
+                        dataKey="total"
+                        nameKey="label"
+                        cx="50%"
+                        cy="45%"
+                        innerRadius={50}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        labelLine={false}
+                        label={({ percent }: any) =>
+                          percent > 0.05 ? `${Math.round(percent * 100)}%` : ""
+                        }
+                      >
+                        {(dashQ.data?.porCategoria ?? []).map((_, i) => (
+                          <Cell key={i} fill={CORES[i % CORES.length]} stroke="none" />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any, n: any) => [`${v} profissionais`, n]} />
+                      <Legend
+                        verticalAlign="bottom"
+                        align="center"
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+              </div>
+              <div className="rounded-md border p-4 md:col-span-2">
+                <div className="mb-2 text-sm font-medium">Complementação por carga horária</div>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dashQ.data?.porCargaHoraria ?? []}>
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip formatter={(v) => fmtBRL(Number(v))} />
+                      <Bar dataKey="valor" fill="#16a34a" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ------------------------ 4. Tabela principal ------------------------ */}
+            <TabsContent value="profissionais" className="space-y-3">
+              <PisoDataGrid<LinhaGrid>
+                columns={cols}
+                rows={rows}
+                getRowKey={(r) => r.profissional_id}
+                loading={listaQ.isLoading}
+                onRowClick={abrirDetalhe}
+                selectable
+                selected={selecionados}
+                onSelectedChange={setSelecionados}
+                onVisibleColumnsChange={setColunasVisiveis}
+                emptyTitle="Nenhum profissional encontrado"
+                emptyDescription="Ajuste os filtros para ver outros resultados."
+                toolbar={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportar}
+                    disabled={rows.length === 0}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {selecionados.length > 0 ? "Exportar seleção" : "Exportar"}
+                  </Button>
+                }
+              />
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={listaQ.data?.count ?? 0}
+                onPageChange={setPage}
+                onPageSizeChange={(s) => {
+                  setPageSize(s);
+                  setPage(1);
+                }}
+              />
+            </TabsContent>
+
+            {/* --------------------------- Importações --------------------------- */}
+            <TabsContent value="importacoes">
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                <span className="mr-1 text-sm font-medium">Baixar arquivos da competência:</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!competenciaAtiva || gerarMut.isPending}
+                  onClick={() => gerarMut.mutate("contratados")}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Planilha (3)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!competenciaAtiva || gerarMut.isPending}
+                  onClick={() => gerarMut.mutate("efetivos")}
+                >
+                  <Download className="mr-2 h-4 w-4" /> FOPAG
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!competenciaAtiva || gerarMut.isPending}
+                  onClick={() => gerarMut.mutate("calculo_piso")}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Cálculo Piso (modelo oficial)
+                </Button>
+                {!competenciaAtiva && (
+                  <span className="text-xs text-muted-foreground">
+                    Selecione uma competência para habilitar os downloads.
+                  </span>
+                )}
+              </div>
+              <DataTable<Record<string, unknown>>
+                rows={historico}
+                getRowKey={(r, i) => String(r.id ?? i)}
+                loading={histQ.isLoading}
+                emptyTitle="Nenhuma importação registrada"
+                emptyDescription="As importações de Piso e FOPAG aparecerão aqui."
+                columns={[
+                  {
+                    key: "arquivo",
+                    header: "Arquivo",
+                    cell: (r) => String(r.nome_arquivo ?? "—"),
+                  },
+                  {
+                    key: "competencia",
+                    header: "Competência",
+                    cell: (r) => String(r.competencia ?? "—"),
+                  },
+                  {
+                    key: "data",
+                    header: "Data",
+                    cell: (r) => formatDateTime(r.data_importacao as string),
+                  },
+                  {
+                    key: "registros",
+                    header: "Registros",
+                    cell: (r) => String(r.total_registros ?? "—"),
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: (r) => <Badge variant="secondary">{String(r.status ?? "—")}</Badge>,
+                  },
+                ]}
+              />
+            </TabsContent>
+
+            {/* --------------------------- Pendências --------------------------- */}
+            <TabsContent value="pendencias">
+              {(pendQ.data?.rows.length ?? 0) === 0 ? (
+                <EmptyState
+                  title="Nenhuma pendência"
+                  description="Todas as linhas importadas foram vinculadas com sucesso."
+                />
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">Tipo</th>
+                        <th className="px-3 py-2">Nome no arquivo</th>
+                        <th className="px-3 py-2">CPF</th>
+                        <th className="px-3 py-2">Detalhe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(pendQ.data?.rows ?? []).map((p: Record<string, unknown>, i: number) => (
+                        <tr key={i} className="border-t">
+                          <td className="px-3 py-2">
+                            <span className="inline-flex items-center gap-1">
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                              {String(p.tipo ?? "").replaceAll("_", " ")}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">{String(p.nome ?? "—")}</td>
+                          <td className="px-3 py-2 font-mono">{String(p.cpf ?? "—")}</td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {String(p.detalhe ?? "—")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ---------------------------- Histórico ---------------------------- */}
+            <TabsContent value="historico" className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <History className="h-4 w-4" /> Competências já consolidadas. Clique em um
+                profissional na aba Profissionais para ver o histórico individual.
+              </div>
+              {(compQ.data?.competencias ?? []).length === 0 ? (
+                <EmptyState
+                  title="Nenhuma competência consolidada"
+                  description="Importe valores para gerar histórico por competência."
+                />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(compQ.data?.competencias ?? []).map((c) => (
+                    <Button
+                      key={c}
+                      variant={c === competenciaAtiva ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setCompetencia(c);
+                        setPage(1);
+                      }}
+                    >
+                      {c}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ---------------------------- Relatórios ---------------------------- */}
+            <TabsContent value="relatorios" className="grid gap-3 md:grid-cols-2">
+              <Card className="space-y-2 p-4">
+                <div className="text-sm font-medium">Exportação da competência</div>
+                <p className="text-sm text-muted-foreground">
+                  Gera um CSV com a lista filtrada de profissionais elegíveis e seus valores.
+                </p>
+                <Button variant="outline" size="sm" onClick={exportar} disabled={!rows.length}>
+                  <Download className="mr-2 h-4 w-4" /> Exportar Excel
+                </Button>
+              </Card>
+              <Card className="space-y-2 p-4">
+                <div className="text-sm font-medium">Planilha oficial com fórmulas</div>
+                <p className="text-sm text-muted-foreground">
+                  Reconstrói os modelos oficiais em Excel com fórmulas
+                  relativas, linha de totais e extensão automática conforme o número de
+                  profissionais da competência {competenciaAtiva ?? "—"}.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!competenciaAtiva || gerarMut.isPending}
+                    onClick={() => gerarMut.mutate("contratados")}
+                  >
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Contratados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!competenciaAtiva || gerarMut.isPending}
+                    onClick={() => gerarMut.mutate("efetivos")}
+                  >
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Efetivos (FOPAG)
+                  </Button>
+                </div>
+              </Card>
+              <Card className="space-y-2 p-4">
+                <div className="text-sm font-medium">Relatórios gerenciais do Piso</div>
+                <p className="text-sm text-muted-foreground">
+                  Painéis analíticos completos com séries por unidade, categoria e competência.
+                </p>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/relatorios-piso">
+                    <FileBarChart className="mr-2 h-4 w-4" /> Abrir relatórios
+                  </Link>
+                </Button>
+              </Card>
+            </TabsContent>
+
+
+            {/* ---------------------------- Auditoria ---------------------------- */}
+            <TabsContent value="auditoria">
+              <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <ShieldCheck className="h-4 w-4" /> Trilha das operações de importação do módulo.
+              </div>
+              <DataTable<Record<string, unknown>>
+                rows={historico}
+                getRowKey={(r, i) => String(r.id ?? i) + "-aud"}
+                loading={histQ.isLoading}
+                emptyTitle="Sem eventos de auditoria"
+                columns={[
+                  {
+                    key: "data",
+                    header: "Data",
+                    cell: (r) => formatDateTime(r.data_importacao as string),
+                  },
+                  {
+                    key: "usuario",
+                    header: "Usuário",
+                    cell: (r) => String(r.usuario_nome ?? r.usuario_id ?? "—"),
+                  },
+                  {
+                    key: "arquivo",
+                    header: "Arquivo",
+                    cell: (r) => String(r.nome_arquivo ?? "—"),
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: (r) => <Badge variant="secondary">{String(r.status ?? "—")}</Badge>,
+                  },
+                  {
+                    key: "obs",
+                    header: "Observações",
+                    cell: (r) => String(r.observacoes ?? r.erros ?? "—"),
+                  },
+                ]}
+              />
+            </TabsContent>
+          </Tabs>
         </>
       )}
-      <DossieDrawer prof={dossieProf} open={dossieOpen} onOpenChange={setDossieOpen} />
+
+      <PisoDetalheSheet linha={detalhe} open={detalheOpen} onOpenChange={setDetalheOpen} />
     </div>
   );
 }

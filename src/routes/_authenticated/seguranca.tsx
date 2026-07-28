@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ShieldCheck, ShieldAlert, Trash2, KeyRound, Copy, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Trash2,
+  KeyRound,
+  Copy,
+  Check,
+  Download,
+  AlertTriangle,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
@@ -9,6 +18,7 @@ import { useCurrentUser } from "@/hooks/use-permissions";
 import { regenerateBackupCodes, countBackupCodes } from "@/lib/mfa-backup-codes.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+
 
 export const Route = createFileRoute("/_authenticated/seguranca")({
   head: () => ({ meta: [{ title: "Segurança (MFA) — GESTÃO SAÚDE ORIXIMINÁ - SMS" }] }),
@@ -30,7 +40,10 @@ function SegurancaPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [codesSaved, setCodesSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const codeInputRef = useRef<HTMLInputElement>(null);
+
   const regenerateFn = useServerFn(regenerateBackupCodes);
   const countFn = useServerFn(countBackupCodes);
 
@@ -54,6 +67,18 @@ function SegurancaPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Avisa antes de sair da página com códigos exibidos e ainda não guardados.
+  useEffect(() => {
+    if (!backupCodes || codesSaved) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [backupCodes, codesSaved]);
+
 
   const verified = factors.filter((f) => f.status === "verified");
   const hasMfa = verified.length > 0;
@@ -80,8 +105,10 @@ function SegurancaPage() {
     }
   }
 
-  async function verifyEnroll() {
+  async function verifyEnroll(codigo?: string) {
     if (!enroll) return;
+    const codeToUse = (codigo ?? code).replace(/\D/g, "");
+    if (codeToUse.length !== 6) return;
     setError(null);
     setBusy(true);
     try {
@@ -90,7 +117,7 @@ function SegurancaPage() {
       const { error: e2 } = await supabase.auth.mfa.verify({
         factorId: enroll.id,
         challengeId: ch.id,
-        code,
+        code: codeToUse,
       });
       if (e2) throw e2;
       setEnroll(null);
@@ -101,6 +128,7 @@ function SegurancaPage() {
       try {
         const res = await regenerateFn({});
         setBackupCodes(res.codes);
+        setCodesSaved(false);
         void auditClient.action(AUDIT_ACOES.BACKUP_CODES_GERADOS, {
           contexto: { origem: "auto_pos_enroll" },
         });
@@ -156,6 +184,7 @@ function SegurancaPage() {
     try {
       const res = await regenerateFn({});
       setBackupCodes(res.codes);
+      setCodesSaved(false);
       void auditClient.action(AUDIT_ACOES.BACKUP_CODES_GERADOS, {
         contexto: { origem: "regeneracao_manual" },
       });
@@ -168,11 +197,48 @@ function SegurancaPage() {
     }
   }
 
+  function downloadBackupCodes() {
+    if (!backupCodes) return;
+    const conteudo = [
+      "CÓDIGOS DE RECUPERAÇÃO — GESTÃO SAÚDE ORIXIMINÁ - SMS",
+      `Conta: ${userCtx?.email ?? ""}`,
+      `Gerados em: ${new Date().toLocaleString("pt-BR")}`,
+      "",
+      "Cada código pode ser usado apenas uma vez.",
+      "",
+      ...backupCodes,
+    ].join("\n");
+    const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `codigos-recuperacao-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setCodesSaved(true);
+  }
+
+  async function dispensarCodigos() {
+    if (!codesSaved) {
+      const ok = await askConfirm({
+        title: "Você já guardou os códigos?",
+        description:
+          "Estes códigos não serão exibidos novamente. Copie ou baixe o arquivo antes de fechar.",
+        tone: "destructive",
+        confirmLabel: "Sim, já guardei",
+      });
+      if (!ok) return;
+    }
+    setBackupCodes(null);
+    setCodesSaved(false);
+  }
+
   async function copyBackupCodes() {
     if (!backupCodes) return;
     try {
       await navigator.clipboard.writeText(backupCodes.join("\n"));
       setCopied(true);
+      setCodesSaved(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* noop */
@@ -247,13 +313,30 @@ function SegurancaPage() {
                     inputMode="numeric"
                     maxLength={6}
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    ref={codeInputRef}
+                    autoFocus
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setCode(v);
+                      if (v.length === 6 && !busy) void verifyEnroll(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && code.length === 6 && !busy) void verifyEnroll();
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const v = (e.clipboardData.getData("text") || "")
+                        .replace(/\D/g, "")
+                        .slice(0, 6);
+                      setCode(v);
+                      if (v.length === 6 && !busy) void verifyEnroll(v);
+                    }}
                     className="w-40 rounded-md border bg-background px-3 py-2 text-sm tracking-widest"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={verifyEnroll}
+                    onClick={() => void verifyEnroll()}
                     disabled={busy || code.length !== 6}
                     className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
@@ -312,6 +395,16 @@ function SegurancaPage() {
               : "Verificando códigos ativos…"}
           </p>
 
+          {typeof backupCount === "number" && backupCount <= 2 && !backupCodes && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Restam apenas {backupCount} código(s) de recuperação. Gere um novo lote agora para
+                não perder o acesso à conta.
+              </span>
+            </div>
+          )}
+
           {backupCodes && (
             <div className="mt-4 space-y-3">
               <div className="rounded-md border bg-surface-elevated p-4">
@@ -339,7 +432,13 @@ function SegurancaPage() {
                   )}
                 </button>
                 <button
-                  onClick={() => setBackupCodes(null)}
+                  onClick={downloadBackupCodes}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  <Download className="h-3.5 w-3.5" /> Baixar .txt
+                </button>
+                <button
+                  onClick={dispensarCodigos}
                   className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
                 >
                   Já guardei em local seguro

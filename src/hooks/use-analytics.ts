@@ -492,7 +492,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
-        .select("setor_id, setores(nome)")
+        .select("setor_id, setores!profissionais_setor_id_fkey(nome)")
         .is("deleted_at", null)
         .not("setor_id", "is", null)
         .limit(5000);
@@ -577,7 +577,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       let q = supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, matricula, status, unidade:unidades(nome, sigla), setor:setores(nome), cargo:cargos(nome), funcao:funcoes(nome)",
+          "id, nome_completo, matricula, status, unidade:unidades(nome, sigla), setor:setores!profissionais_setor_id_fkey(nome), cargo:cargos(nome), funcao:funcoes(nome)",
         )
         .is("deleted_at", null)
         .order("nome_completo")
@@ -612,7 +612,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "status, unidade_id, setor_id, cargo_id, funcao_id, unidade:unidades(nome, sigla), setor:setores(nome), cargo:cargos(nome), funcao:funcoes(nome)",
+          "status, unidade_id, setor_id, cargo_id, funcao_id, unidade:unidades(nome, sigla), setor:setores!profissionais_setor_id_fkey(nome), cargo:cargos(nome), funcao:funcoes(nome)",
         )
         .is("deleted_at", null)
         .limit(10000);

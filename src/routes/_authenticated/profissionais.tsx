@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { reprocessarRegistroConsolidado } from "@/lib/piso-consolidacao.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  CATEGORIAS_PISO,
+  CATEGORIA_LABEL,
+  normalizarCategoriaPiso,
+  type CategoriaPiso,
+} from "@/lib/piso-categorias";
 import { toast } from "sonner";
 import {
   Search,
@@ -76,7 +85,7 @@ type Profissional = {
   id: string;
   nome_completo: string;
   nome_social: string | null;
-  cpf: string;
+  cpf: string | null;
   matricula: string | null;
   email: string | null;
   telefone: string | null;
@@ -254,6 +263,7 @@ function ProfissionaisPage() {
   const [fCpf, setFCpf] = useState<string>("");
   const [fMatricula, setFMatricula] = useState<string>("");
   const [fGestor, setFGestor] = useState<"todos" | "sim" | "nao">("todos");
+  const [fCategorias, setFCategorias] = useState<CategoriaPiso[]>([]);
 
   // Ordenação e visualização
   type SortKey =
@@ -291,6 +301,7 @@ function ProfissionaisPage() {
     fCpf,
     fMatricula,
     fGestor,
+    fCategorias,
     sortBy,
     pageSize,
   ]);
@@ -321,6 +332,23 @@ function ProfissionaisPage() {
     },
   });
 
+  // Cargos/funções que correspondem às categorias selecionadas (Enfermeiro,
+  // Técnico e Auxiliar de Enfermagem). Multiselect: união das categorias.
+  const { data: cargosLookup } = useCargosLookup();
+  const { data: funcoesLookup } = useFuncoesLookup();
+  const categoriaIds = useMemo(() => {
+    if (fCategorias.length === 0) return null;
+    const sel = new Set(fCategorias);
+    const match = (nome: string | null | undefined) => {
+      const c = normalizarCategoriaPiso(nome);
+      return !!c && sel.has(c);
+    };
+    return {
+      cargos: (cargosLookup ?? []).filter((c) => match(c.nome)).map((c) => c.id),
+      funcoes: (funcoesLookup ?? []).filter((f) => match(f.nome)).map((f) => f.id),
+    };
+  }, [fCategorias, cargosLookup, funcoesLookup]);
+
   const {
     data: profissionaisPage,
     isLoading,
@@ -339,13 +367,17 @@ function ProfissionaisPage() {
       fCpf,
       fMatricula,
       fGestor,
+      fCategorias.join(","),
+      categoriaIds ? `${categoriaIds.cargos.length}-${categoriaIds.funcoes.length}` : "",
       sortBy,
       fGestor !== "todos" ? (gestorIds?.length ?? 0) : 0,
       page,
       pageSize,
     ],
     placeholderData: keepPreviousData,
-    enabled: fGestor === "todos" || !!gestorIds,
+    enabled:
+      (fGestor === "todos" || !!gestorIds) &&
+      (fCategorias.length === 0 || (!!cargosLookup && !!funcoesLookup)),
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -393,6 +425,14 @@ function ProfissionaisPage() {
       if (fCargo !== "todos") q = q.eq("cargo_id", fCargo);
       if (fFuncao !== "todos") q = q.eq("funcao_id", fFuncao);
       if (fSetor !== "todos") q = q.eq("setor_id", fSetor);
+      if (categoriaIds) {
+        const ors: string[] = [];
+        if (categoriaIds.cargos.length) ors.push(`cargo_id.in.(${categoriaIds.cargos.join(",")})`);
+        if (categoriaIds.funcoes.length)
+          ors.push(`funcao_id.in.(${categoriaIds.funcoes.join(",")})`);
+        if (ors.length === 0) return { rows: [], count: 0 };
+        q = q.or(ors.join(","));
+      }
       if (fGestor === "sim") {
         const ids = gestorIds ?? [];
         if (ids.length === 0) return { rows: [], count: 0 };
@@ -448,8 +488,8 @@ function ProfissionaisPage() {
 
   // Opções para os filtros de listagem — hooks compartilhados (use-lookups)
   const { data: unidadesFiltro } = useUnidadesLookup();
-  const { data: cargosFiltro } = useCargosLookup();
-  const { data: funcoesFiltro } = useFuncoesLookup();
+  const cargosFiltro = cargosLookup;
+  const funcoesFiltro = funcoesLookup;
   const { data: vinculosFiltro } = useVinculosLookup();
   const { data: setoresFiltro } = useSetoresLookup({
     unidadeId: fUnidade !== "todos" ? fUnidade : null,
@@ -544,6 +584,8 @@ function ProfissionaisPage() {
       if (cpfDigits && cpfDigits.length !== 11) throw new Error("CPF deve ter 11 dígitos");
       if (!f.nome_completo.trim()) throw new Error("Nome é obrigatório");
       if (!f.secretaria_id) throw new Error("Secretaria é obrigatória");
+      const chRaw = f.carga_horaria_semanal ? Number(f.carga_horaria_semanal) : null;
+      const chNum = chRaw != null && Number.isFinite(chRaw) ? Math.round(chRaw) : null;
 
       const canSeeBanco = hasPermission("profissional.dados_bancarios");
       const payload: Record<string, unknown> = {
@@ -556,7 +598,7 @@ function ProfissionaisPage() {
         data_nascimento: f.data_nascimento || null,
         sexo: f.sexo || null,
         data_admissao: f.data_admissao || null,
-        carga_horaria_semanal: f.carga_horaria_semanal ? Number(f.carga_horaria_semanal) : null,
+        carga_horaria_semanal: chNum,
         status: f.status,
         observacoes: f.observacoes.trim() || null,
         secretaria_id: f.secretaria_id,
@@ -595,6 +637,12 @@ function ProfissionaisPage() {
           .update(payload as never)
           .eq("id", f.id);
         if (error) throw error;
+        // Reprocessa apenas este profissional na camada consolidada do Piso.
+        try {
+          await reprocessarRegistroConsolidado({ data: { profissional_id: f.id } });
+        } catch {
+          /* consolidação é assíncrona ao cadastro; falha não bloqueia o salvamento */
+        }
       } else {
         const { error } = await supabase.from("profissionais").insert(payload as never);
         if (error) throw error;
@@ -632,7 +680,7 @@ function ProfissionaisPage() {
       id: p.id,
       nome_completo: p.nome_completo,
       nome_social: p.nome_social ?? "",
-      cpf: p.cpf,
+      cpf: p.cpf ?? "",
       matricula: p.matricula ?? "",
       email: p.email ?? "",
       telefone: p.telefone ?? "",
@@ -1071,6 +1119,58 @@ function ProfissionaisPage() {
               ))}
             </SelectContent>
           </Select>
+        </FilterBar.Field>
+        <FilterBar.Field label="Categoria">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between font-normal"
+                type="button"
+              >
+                <span className="truncate">
+                  {fCategorias.length === 0
+                    ? "Todas"
+                    : fCategorias.length === 1
+                      ? CATEGORIA_LABEL[fCategorias[0]!]
+                      : `${fCategorias.length} selecionadas`}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-2">
+              <div className="space-y-1">
+                {CATEGORIAS_PISO.map((c) => {
+                  const checked = fCategorias.includes(c);
+                  return (
+                    <label
+                      key={c}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setFCategorias((prev) =>
+                            v === true ? [...prev, c] : prev.filter((x) => x !== c),
+                          )
+                        }
+                      />
+                      <span>{CATEGORIA_LABEL[c]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {fCategorias.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setFCategorias([])}
+                >
+                  Limpar categorias
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
         </FilterBar.Field>
         <FilterBar.Field label="Setor">
           <Select value={fSetor} onValueChange={setFSetor} disabled={fUnidade === "todos"}>
@@ -1606,7 +1706,8 @@ function ProfissionalFormBody({
             <Input
               type="number"
               min={0}
-              max={44}
+
+
               value={form.carga_horaria_semanal}
               onChange={(e) => setForm({ ...form, carga_horaria_semanal: e.target.value })}
             />

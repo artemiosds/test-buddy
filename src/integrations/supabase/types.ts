@@ -1456,16 +1456,20 @@ export type Database = {
           competencia: string | null
           created_at: string
           data_importacao: string
+          duracao_ms: number | null
           id: string
           importado_por: string | null
           mapeamento: Json
           modelo: string
           nome_arquivo: string
+          registros_atualizados: number
           registros_divergentes: number
           registros_importados: number
           registros_nao_encontrados: number
+          registros_pendencias: number
           status: string
           tipo_arquivo: string
+          tipo_planilha: string | null
           total_registros: number
           updated_at: string
         }
@@ -1473,16 +1477,20 @@ export type Database = {
           competencia?: string | null
           created_at?: string
           data_importacao?: string
+          duracao_ms?: number | null
           id?: string
           importado_por?: string | null
           mapeamento?: Json
           modelo: string
           nome_arquivo: string
+          registros_atualizados?: number
           registros_divergentes?: number
           registros_importados?: number
           registros_nao_encontrados?: number
+          registros_pendencias?: number
           status?: string
           tipo_arquivo: string
+          tipo_planilha?: string | null
           total_registros?: number
           updated_at?: string
         }
@@ -1490,18 +1498,260 @@ export type Database = {
           competencia?: string | null
           created_at?: string
           data_importacao?: string
+          duracao_ms?: number | null
           id?: string
           importado_por?: string | null
           mapeamento?: Json
           modelo?: string
           nome_arquivo?: string
+          registros_atualizados?: number
           registros_divergentes?: number
           registros_importados?: number
           registros_nao_encontrados?: number
+          registros_pendencias?: number
           status?: string
           tipo_arquivo?: string
+          tipo_planilha?: string | null
           total_registros?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      import_campo_aliases: {
+        Row: {
+          alias: string
+          campo_interno: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          modulo: string
+        }
+        Insert: {
+          alias: string
+          campo_interno: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modulo?: string
+        }
+        Update: {
+          alias?: string
+          campo_interno?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modulo?: string
+        }
+        Relationships: []
+      }
+      import_layout_campos: {
+        Row: {
+          aliases: string[]
+          campo_interno: string
+          coluna_padrao: string | null
+          created_at: string
+          id: string
+          ignorado: boolean
+          label: string | null
+          obrigatorio: boolean
+          ordem: number
+          tipo_dado: string
+          updated_at: string
+          versao_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          campo_interno: string
+          coluna_padrao?: string | null
+          created_at?: string
+          id?: string
+          ignorado?: boolean
+          label?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          tipo_dado?: string
+          updated_at?: string
+          versao_id: string
+        }
+        Update: {
+          aliases?: string[]
+          campo_interno?: string
+          coluna_padrao?: string | null
+          created_at?: string
+          id?: string
+          ignorado?: boolean
+          label?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          tipo_dado?: string
+          updated_at?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_layout_campos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "import_layout_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_layout_uso: {
+        Row: {
+          competencia: string | null
+          created_at: string
+          detalhes: Json
+          duracao_ms: number | null
+          historico_id: string | null
+          id: string
+          layout_codigo: string | null
+          layout_id: string | null
+          modulo: string
+          nome_arquivo: string | null
+          total_linhas: number
+          usuario_id: string
+          versao: number | null
+          versao_id: string | null
+        }
+        Insert: {
+          competencia?: string | null
+          created_at?: string
+          detalhes?: Json
+          duracao_ms?: number | null
+          historico_id?: string | null
+          id?: string
+          layout_codigo?: string | null
+          layout_id?: string | null
+          modulo?: string
+          nome_arquivo?: string | null
+          total_linhas?: number
+          usuario_id?: string
+          versao?: number | null
+          versao_id?: string | null
+        }
+        Update: {
+          competencia?: string | null
+          created_at?: string
+          detalhes?: Json
+          duracao_ms?: number | null
+          historico_id?: string | null
+          id?: string
+          layout_codigo?: string | null
+          layout_id?: string | null
+          modulo?: string
+          nome_arquivo?: string | null
+          total_linhas?: number
+          usuario_id?: string
+          versao?: number | null
+          versao_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_layout_uso_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "import_layouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_layout_uso_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "import_layout_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_layout_versoes: {
+        Row: {
+          arquivo_hints: string[]
+          config: Json
+          created_at: string
+          criado_por: string | null
+          header_hints: string[]
+          id: string
+          layout_id: string
+          notas: string | null
+          situacao: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          arquivo_hints?: string[]
+          config?: Json
+          created_at?: string
+          criado_por?: string | null
+          header_hints?: string[]
+          id?: string
+          layout_id: string
+          notas?: string | null
+          situacao?: string
+          updated_at?: string
+          versao: number
+        }
+        Update: {
+          arquivo_hints?: string[]
+          config?: Json
+          created_at?: string
+          criado_por?: string | null
+          header_hints?: string[]
+          id?: string
+          layout_id?: string
+          notas?: string | null
+          situacao?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_layout_versoes_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "import_layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_layouts: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          modulo: string
+          nome: string
+          tipo: string
+          updated_at: string
+          versao_atual: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          modulo?: string
+          nome: string
+          tipo?: string
+          updated_at?: string
+          versao_atual?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          modulo?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          versao_atual?: number
         }
         Relationships: []
       }
@@ -2141,6 +2391,211 @@ export type Database = {
         }
         Relationships: []
       }
+      piso_competencia_profissional: {
+        Row: {
+          auxilio_financeiro: number | null
+          carga_horaria_semanal: number | null
+          cargo_id: string | null
+          cargo_nome: string | null
+          categoria: string | null
+          competencia: string
+          complementacao: number | null
+          consolidado_em: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          divergencia: boolean
+          divergencia_detalhe: string | null
+          divergencia_valor: number | null
+          gratificacoes: number | null
+          historico_id_fopag: string | null
+          historico_id_piso: string | null
+          hora_extra_100: number | null
+          hora_extra_50: number | null
+          id: string
+          inconsistencias: Json
+          insalubridade: number | null
+          inss: number | null
+          irrf: number | null
+          matricula: string | null
+          nome: string | null
+          origem_folha_arquivo: string | null
+          origem_folha_em: string | null
+          origem_folha_layout: string | null
+          origem_folha_usuario: string | null
+          origem_fopag: boolean
+          origem_piso: boolean
+          origem_piso_arquivo: string | null
+          origem_piso_em: string | null
+          origem_piso_layout: string | null
+          origem_piso_usuario: string | null
+          plantao: number | null
+          profissional_id: string
+          salario_base: number | null
+          setor_id: string | null
+          setor_nome: string | null
+          situacao_funcional: string | null
+          sobreaviso: number | null
+          status_consolidacao: string
+          status_importacao: string
+          tempo_servico: number | null
+          total_descontos: number | null
+          total_proventos: number | null
+          total_remuneracao: number | null
+          unidade_id: string | null
+          unidade_nome: string | null
+          updated_at: string
+          updated_by: string | null
+          vale_transporte: number | null
+          valor_liquido: number | null
+          valor_referencia: number | null
+          vinculo_id: string | null
+          vinculo_nome: string | null
+        }
+        Insert: {
+          auxilio_financeiro?: number | null
+          carga_horaria_semanal?: number | null
+          cargo_id?: string | null
+          cargo_nome?: string | null
+          categoria?: string | null
+          competencia: string
+          complementacao?: number | null
+          consolidado_em?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          divergencia?: boolean
+          divergencia_detalhe?: string | null
+          divergencia_valor?: number | null
+          gratificacoes?: number | null
+          historico_id_fopag?: string | null
+          historico_id_piso?: string | null
+          hora_extra_100?: number | null
+          hora_extra_50?: number | null
+          id?: string
+          inconsistencias?: Json
+          insalubridade?: number | null
+          inss?: number | null
+          irrf?: number | null
+          matricula?: string | null
+          nome?: string | null
+          origem_folha_arquivo?: string | null
+          origem_folha_em?: string | null
+          origem_folha_layout?: string | null
+          origem_folha_usuario?: string | null
+          origem_fopag?: boolean
+          origem_piso?: boolean
+          origem_piso_arquivo?: string | null
+          origem_piso_em?: string | null
+          origem_piso_layout?: string | null
+          origem_piso_usuario?: string | null
+          plantao?: number | null
+          profissional_id: string
+          salario_base?: number | null
+          setor_id?: string | null
+          setor_nome?: string | null
+          situacao_funcional?: string | null
+          sobreaviso?: number | null
+          status_consolidacao?: string
+          status_importacao?: string
+          tempo_servico?: number | null
+          total_descontos?: number | null
+          total_proventos?: number | null
+          total_remuneracao?: number | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vale_transporte?: number | null
+          valor_liquido?: number | null
+          valor_referencia?: number | null
+          vinculo_id?: string | null
+          vinculo_nome?: string | null
+        }
+        Update: {
+          auxilio_financeiro?: number | null
+          carga_horaria_semanal?: number | null
+          cargo_id?: string | null
+          cargo_nome?: string | null
+          categoria?: string | null
+          competencia?: string
+          complementacao?: number | null
+          consolidado_em?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          divergencia?: boolean
+          divergencia_detalhe?: string | null
+          divergencia_valor?: number | null
+          gratificacoes?: number | null
+          historico_id_fopag?: string | null
+          historico_id_piso?: string | null
+          hora_extra_100?: number | null
+          hora_extra_50?: number | null
+          id?: string
+          inconsistencias?: Json
+          insalubridade?: number | null
+          inss?: number | null
+          irrf?: number | null
+          matricula?: string | null
+          nome?: string | null
+          origem_folha_arquivo?: string | null
+          origem_folha_em?: string | null
+          origem_folha_layout?: string | null
+          origem_folha_usuario?: string | null
+          origem_fopag?: boolean
+          origem_piso?: boolean
+          origem_piso_arquivo?: string | null
+          origem_piso_em?: string | null
+          origem_piso_layout?: string | null
+          origem_piso_usuario?: string | null
+          plantao?: number | null
+          profissional_id?: string
+          salario_base?: number | null
+          setor_id?: string | null
+          setor_nome?: string | null
+          situacao_funcional?: string | null
+          sobreaviso?: number | null
+          status_consolidacao?: string
+          status_importacao?: string
+          tempo_servico?: number | null
+          total_descontos?: number | null
+          total_proventos?: number | null
+          total_remuneracao?: number | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vale_transporte?: number | null
+          valor_liquido?: number | null
+          valor_referencia?: number | null
+          vinculo_id?: string | null
+          vinculo_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_competencia_profissional_historico_id_fopag_fkey"
+            columns: ["historico_id_fopag"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piso_competencia_profissional_historico_id_piso_fkey"
+            columns: ["historico_id_piso"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piso_competencia_profissional_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       piso_enfermagem: {
         Row: {
           adicional_noturno: number | null
@@ -2258,6 +2713,164 @@ export type Database = {
           },
         ]
       }
+      piso_extracao_config: {
+        Row: {
+          created_at: string
+          ia_api_key: string | null
+          ia_fornecedor: string
+          ia_habilitada: boolean
+          ia_modelo: string
+          id: boolean
+          motor: string
+          ocr_idioma: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          ia_api_key?: string | null
+          ia_fornecedor?: string
+          ia_habilitada?: boolean
+          ia_modelo?: string
+          id?: boolean
+          motor?: string
+          ocr_idioma?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          ia_api_key?: string | null
+          ia_fornecedor?: string
+          ia_habilitada?: boolean
+          ia_modelo?: string
+          id?: boolean
+          motor?: string
+          ocr_idioma?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      piso_ia_config: {
+        Row: {
+          atualizado_em: string
+          id: boolean
+          modo: string
+          provedor_id: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          id?: boolean
+          modo?: string
+          provedor_id?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          id?: boolean
+          modo?: string
+          provedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_ia_config_provedor_id_fkey"
+            columns: ["provedor_id"]
+            isOneToOne: false
+            referencedRelation: "piso_ia_provedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piso_ia_provedores: {
+        Row: {
+          api_key: string | null
+          ativo: boolean
+          atualizado_em: string
+          base_url: string | null
+          confianca_n: number
+          confianca_soma: number
+          criado_em: string
+          erros_429: number
+          erros_503: number
+          execucoes: number
+          extra: Json
+          falhas: number
+          id: string
+          modelo: string
+          nome: string
+          pdfs: number
+          prioridade: number
+          sucessos: number
+          tempo_max_ms: number | null
+          tempo_min_ms: number | null
+          tempo_total_ms: number
+          tentativas: number
+          timeout_ms: number
+          timeouts: number
+          tipo: string
+          ultima_utilizacao: string | null
+          ultimo_erro: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          base_url?: string | null
+          confianca_n?: number
+          confianca_soma?: number
+          criado_em?: string
+          erros_429?: number
+          erros_503?: number
+          execucoes?: number
+          extra?: Json
+          falhas?: number
+          id?: string
+          modelo?: string
+          nome: string
+          pdfs?: number
+          prioridade?: number
+          sucessos?: number
+          tempo_max_ms?: number | null
+          tempo_min_ms?: number | null
+          tempo_total_ms?: number
+          tentativas?: number
+          timeout_ms?: number
+          timeouts?: number
+          tipo: string
+          ultima_utilizacao?: string | null
+          ultimo_erro?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          base_url?: string | null
+          confianca_n?: number
+          confianca_soma?: number
+          criado_em?: string
+          erros_429?: number
+          erros_503?: number
+          execucoes?: number
+          extra?: Json
+          falhas?: number
+          id?: string
+          modelo?: string
+          nome?: string
+          pdfs?: number
+          prioridade?: number
+          sucessos?: number
+          tempo_max_ms?: number | null
+          tempo_min_ms?: number | null
+          tempo_total_ms?: number
+          tentativas?: number
+          timeout_ms?: number
+          timeouts?: number
+          tipo?: string
+          ultima_utilizacao?: string | null
+          ultimo_erro?: string | null
+        }
+        Relationships: []
+      }
       piso_mapeamentos_salvos: {
         Row: {
           created_at: string
@@ -2288,6 +2901,114 @@ export type Database = {
         }
         Relationships: []
       }
+      piso_pendencias: {
+        Row: {
+          cargo: string | null
+          competencia: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          detalhe: string | null
+          historico_id: string | null
+          id: string
+          matricula: string | null
+          nome: string | null
+          origem_arquivo: string | null
+          profissional_id: string | null
+          resolvida: boolean
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          competencia?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          detalhe?: string | null
+          historico_id?: string | null
+          id?: string
+          matricula?: string | null
+          nome?: string | null
+          origem_arquivo?: string | null
+          profissional_id?: string | null
+          resolvida?: boolean
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          competencia?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          detalhe?: string | null
+          historico_id?: string | null
+          id?: string
+          matricula?: string | null
+          nome?: string | null
+          origem_arquivo?: string | null
+          profissional_id?: string | null
+          resolvida?: boolean
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_pendencias_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piso_pendencias_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piso_referencia: {
+        Row: {
+          categoria: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          id: string
+          jornada_base: number
+          observacao: string | null
+          updated_at: string
+          updated_by: string | null
+          valor_referencia: number
+        }
+        Insert: {
+          categoria: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jornada_base?: number
+          observacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor_referencia: number
+        }
+        Update: {
+          categoria?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jornada_base?: number
+          observacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor_referencia?: number
+        }
+        Relationships: []
+      }
       profissionais: {
         Row: {
           agencia: string | null
@@ -2301,7 +3022,7 @@ export type Database = {
           conselho_uf: string | null
           conselho_validade: string | null
           conta_corrente: string | null
-          cpf: string
+          cpf: string | null
           created_at: string
           created_by: string | null
           data_admissao: string | null
@@ -2354,7 +3075,7 @@ export type Database = {
           conselho_uf?: string | null
           conselho_validade?: string | null
           conta_corrente?: string | null
-          cpf: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_admissao?: string | null
@@ -2407,7 +3128,7 @@ export type Database = {
           conselho_uf?: string | null
           conselho_validade?: string | null
           conta_corrente?: string | null
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_admissao?: string | null
@@ -3536,6 +4257,61 @@ export type Database = {
         Returns: undefined
       }
       notificar_assinatura_pendentes: { Args: never; Returns: number }
+      piso_extracao_config_ler: { Args: never; Returns: Json }
+      piso_extracao_config_salvar: {
+        Args: {
+          _atualizar_chave?: boolean
+          _ia_api_key?: string
+          _ia_fornecedor: string
+          _ia_habilitada: boolean
+          _ia_modelo: string
+          _motor: string
+          _ocr_idioma: string
+        }
+        Returns: Json
+      }
+      piso_extracao_ia_key: { Args: never; Returns: string }
+      piso_ia_cadeia: { Args: never; Returns: Json }
+      piso_ia_config_salvar: {
+        Args: { _modo: string; _provedor_id: string }
+        Returns: undefined
+      }
+      piso_ia_provedor_excluir: { Args: { _id: string }; Returns: undefined }
+      piso_ia_provedor_key: { Args: { _id: string }; Returns: string }
+      piso_ia_provedor_metrica: {
+        Args: {
+          _confianca: number
+          _erro: string
+          _id: string
+          _ms: number
+          _ok: boolean
+          _pdfs: number
+          _status: number
+        }
+        Returns: undefined
+      }
+      piso_ia_provedor_salvar: {
+        Args: {
+          _api_key: string
+          _ativo: boolean
+          _atualizar_chave: boolean
+          _base_url: string
+          _extra: Json
+          _id: string
+          _modelo: string
+          _nome: string
+          _prioridade: number
+          _tentativas: number
+          _timeout_ms: number
+          _tipo: string
+        }
+        Returns: string
+      }
+      piso_ia_provedores_listar: { Args: never; Returns: Json }
+      piso_ia_provedores_ordenar: {
+        Args: { _ids: string[] }
+        Returns: undefined
+      }
       proximo_numero_pendencia: {
         Args: { _secretaria_id: string }
         Returns: string
@@ -3652,6 +4428,17 @@ export type Database = {
         | "cedido"
         | "afastado"
         | "desligado"
+        | "atestado"
+        | "licenca_premio"
+        | "licenca_maternidade"
+        | "licenca_saude"
+        | "licenca_luto"
+        | "licenca_sem_vencimento"
+        | "licenca_estudo"
+        | "vacancia"
+        | "afastamento_inss"
+        | "falta_pad"
+        | "inativo"
       status_competencia:
         | "aberta"
         | "em_processamento"
@@ -3684,6 +4471,17 @@ export type Database = {
         | "licenca"
         | "desligado"
         | "inativo"
+        | "atestado"
+        | "licenca_premio"
+        | "licenca_maternidade"
+        | "licenca_saude"
+        | "licenca_luto"
+        | "licenca_sem_vencimento"
+        | "licenca_estudo"
+        | "vacancia"
+        | "afastamento_inss"
+        | "falta_pad"
+        | "cedido"
       status_usuario:
         | "ativo"
         | "inativo"
@@ -3939,6 +4737,17 @@ export const Constants = {
         "cedido",
         "afastado",
         "desligado",
+        "atestado",
+        "licenca_premio",
+        "licenca_maternidade",
+        "licenca_saude",
+        "licenca_luto",
+        "licenca_sem_vencimento",
+        "licenca_estudo",
+        "vacancia",
+        "afastamento_inss",
+        "falta_pad",
+        "inativo",
       ],
       status_competencia: [
         "aberta",
@@ -3975,6 +4784,17 @@ export const Constants = {
         "licenca",
         "desligado",
         "inativo",
+        "atestado",
+        "licenca_premio",
+        "licenca_maternidade",
+        "licenca_saude",
+        "licenca_luto",
+        "licenca_sem_vencimento",
+        "licenca_estudo",
+        "vacancia",
+        "afastamento_inss",
+        "falta_pad",
+        "cedido",
       ],
       status_usuario: ["ativo", "inativo", "bloqueado", "suspenso", "pendente"],
       tipo_assinatura: ["assinatura", "carimbo", "logo"],

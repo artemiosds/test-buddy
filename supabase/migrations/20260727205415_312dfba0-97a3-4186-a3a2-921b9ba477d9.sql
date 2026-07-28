@@ -1,0 +1,11 @@
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'atestado';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_premio';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_maternidade';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_saude';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_luto';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_sem_vencimento';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'licenca_estudo';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'vacancia';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'afastamento_inss';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'falta_pad';
+ALTER TYPE public.status_profissional ADD VALUE IF NOT EXISTS 'cedido';

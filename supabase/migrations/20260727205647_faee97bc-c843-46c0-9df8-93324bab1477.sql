@@ -1,0 +1,11 @@
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'atestado';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_premio';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_maternidade';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_saude';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_luto';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_sem_vencimento';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'licenca_estudo';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'vacancia';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'afastamento_inss';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'falta_pad';
+ALTER TYPE public.situacao_funcional ADD VALUE IF NOT EXISTS 'inativo';

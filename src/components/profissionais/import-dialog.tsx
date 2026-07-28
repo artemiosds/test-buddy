@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -106,7 +107,25 @@ const parseDate = (v: unknown): string | null => {
   return null;
 };
 
-const VALID_STATUS = ["ativo", "inativo", "afastado", "ferias", "licenca", "desligado"];
+const VALID_STATUS = [
+  "ativo",
+  "inativo",
+  "afastado",
+  "ferias",
+  "licenca",
+  "desligado",
+  "cedido",
+  "atestado",
+  "licenca_premio",
+  "licenca_maternidade",
+  "licenca_saude",
+  "licenca_luto",
+  "licenca_sem_vencimento",
+  "licenca_estudo",
+  "vacancia",
+  "afastamento_inss",
+  "falta_pad",
+];
 
 export function ImportProfissionaisDialog() {
   const qc = useQueryClient();
@@ -116,6 +135,7 @@ export function ImportProfissionaisDialog() {
   const [rows, setRows] = useState<Parsed[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
+  const [progresso, setProgresso] = useState({ feito: 0, total: 0 });
   const [result, setResult] = useState<{ ok: number; fail: number; erros: string[] } | null>(null);
 
   const { data: secretarias } = useQuery({
@@ -231,7 +251,7 @@ export function ImportProfissionaisDialog() {
             .toUpperCase()
             .slice(0, 1) || null,
         data_admissao: parseDate(get("data_admissao")),
-        carga_semanal_horas: Number.isFinite(ch) && ch > 0 ? ch : null,
+        carga_semanal_horas: Number.isFinite(ch) && ch > 0 ? Math.round(ch) : null,
         status: VALID_STATUS.includes(status) ? status : "ativo",
         observacoes: String(get("observacoes") ?? "").trim() || null,
         unidade_key: String(get("unidade") ?? "").trim() || null,
@@ -248,7 +268,9 @@ export function ImportProfissionaisDialog() {
         jorn: numOrNull(get("jorn") ?? get("jornada")),
       };
       if (!row.nome_completo) row.erro = "Nome vazio";
-      else if (row.cpf && row.cpf.length !== 11) row.erro = "CPF inválido";
+      // CPF ausente ou fora do padrão de 11 dígitos não bloqueia a importação
+      if (row.cpf && row.cpf.length !== 11) row.cpf = "";
+
       return row;
     });
     setRows(parsed);
@@ -277,11 +299,17 @@ export function ImportProfissionaisDialog() {
     if (!rows.length) return toast.error("Nenhuma linha para importar");
     if (!lookups) return toast.error("Aguarde o carregamento das referências");
     setImporting(true);
+    setProgresso({ feito: 0, total: rows.length });
     let ok = 0;
     let fail = 0;
     const erros: string[] = [];
 
+    let processadas = 0;
     for (const r of rows) {
+      processadas++;
+      setProgresso({ feito: processadas, total: rows.length });
+      // cede o frame para a barra de progresso atualizar
+      await new Promise((res) => setTimeout(res, 0));
       if (r.erro) {
         fail++;
         erros.push(`Linha ${r.linha}: ${r.erro}`);
@@ -374,6 +402,7 @@ export function ImportProfissionaisDialog() {
       }
     }
     setImporting(false);
+    setProgresso({ feito: rows.length, total: rows.length });
     setResult({ ok, fail, erros: erros.slice(0, 50) });
     if (ok > 0) {
       // Invalida a listagem, os KPIs (Total/Ativos/Efetivos) e lookups
@@ -397,6 +426,7 @@ export function ImportProfissionaisDialog() {
 
   const reset = () => {
     setRows([]);
+    setProgresso({ feito: 0, total: 0 });
     setFileName("");
     setResult(null);
   };
@@ -527,6 +557,19 @@ export function ImportProfissionaisDialog() {
                   ... e mais {rows.length - preview.length} linha(s)
                 </div>
               )}
+            </div>
+          )}
+
+          {importing && progresso.total > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Importando profissionais...</span>
+                <span className="font-mono">
+                  {progresso.feito}/{progresso.total} (
+                  {Math.round((progresso.feito / progresso.total) * 100)}%)
+                </span>
+              </div>
+              <Progress value={(progresso.feito / progresso.total) * 100} />
             </div>
           )}
 

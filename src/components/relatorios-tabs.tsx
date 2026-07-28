@@ -7,6 +7,7 @@ const OPERACIONAIS = [
   { to: "/relatorios-consolidado", label: "Consolidado" },
   { to: "/relatorios-status", label: "Status por Unidade" },
   { to: "/relatorios-profissional", label: "Por Profissional" },
+  { to: "/relatorios-cadastro", label: "Cadastro por Categoria" },
   { to: "/relatorios-piso", label: "Piso Enfermagem" },
 ] as const;
 

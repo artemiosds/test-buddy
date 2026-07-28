@@ -130,7 +130,7 @@ function ProfissionalDetailPage() {
            situacao_funcional,
            secretaria:secretarias(nome, sigla),
            unidade:unidades(id, nome, sigla),
-           setor:setores(id, nome),
+           setor:setores!profissionais_setor_id_fkey(id, nome),
            cargo:cargos(nome),
            funcao:funcoes(nome),
            vinculo:vinculos(nome, natureza),
@@ -458,7 +458,7 @@ async function loadNever() {
     id: string;
     nome_completo: string;
     nome_social: string | null;
-    cpf: string;
+    cpf: string | null;
     matricula: string | null;
     email: string | null;
     telefone: string | null;

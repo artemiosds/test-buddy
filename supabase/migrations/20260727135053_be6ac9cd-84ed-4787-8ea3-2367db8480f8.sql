@@ -1,0 +1,1 @@
+ALTER TABLE public.profissionais ALTER COLUMN cpf DROP NOT NULL;

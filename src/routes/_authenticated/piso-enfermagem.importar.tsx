@@ -73,6 +73,10 @@ import {
   listMapeamentos,
   saveMapeamento,
 } from "@/lib/piso-enfermagem.functions";
+import {
+  consolidarLotePiso,
+  registrarAuditoriaImportacao,
+} from "@/lib/piso-gestao.functions";
 import { bestFuzzy } from "@/lib/piso-fuzzy";
 import { useQuery } from "@tanstack/react-query";
 
@@ -106,6 +110,7 @@ const TONE_CLASSES: Record<ConfidenceTone, string> = {
 function ImportarPage() {
   const navigate = useNavigate();
   const [passo, setPasso] = useState<Passo>(1);
+  const [tipoPlanilha, setTipoPlanilha] = useState<"piso" | "fopag">("piso");
   const [modelo, setModelo] = useState<Modelo>("Efetivos");
   const [vinculo, setVinculo] = useState<"Efetivos" | "Contratados" | "Ambos">("Ambos");
   const [competencia, setCompetencia] = useState<string>("");
@@ -307,6 +312,7 @@ function ImportarPage() {
   const commitMut = useMutation({
     mutationFn: async () => {
       cancelRef.current = false;
+      const inicioMs = Date.now();
       const nomeArquivo = file?.name ?? "sem-nome";
       const compet = competencia || null;
       const camposList = Array.from(camposAtualizar);
@@ -349,6 +355,43 @@ function ImportarPage() {
         feito += chunk.length;
         setProgresso((p) => ({ ...p, feito }));
       }
+      // Consolidação por CPF na competência (não cria nem altera profissionais).
+      let atualizados = 0;
+      let pendencias = 0;
+      if (compet) {
+        for (let i = 0; i < resolved.length; i += CHUNK) {
+          const chunk = resolved.slice(i, i + CHUNK);
+          const res = await consolidarLotePiso({
+            data: {
+              historico_id,
+              competencia: compet,
+              tipo: tipoPlanilha,
+              origem_arquivo: nomeArquivo,
+              linhas: chunk.map((r) => ({
+                cpf: r.cpf,
+                nome: r.nome,
+                salario_base: r.salario_base,
+                insalubridade: r.insalubridade,
+                auxilio_financeiro: r.auxilio_financeiro ?? r.piso_complementacao,
+                tempo_servico: r.tempo_servico,
+                hora_extra_50: r.hora_extra_50,
+                hora_extra_100: r.hora_extra_100,
+                plantao: r.plantao,
+                sobreaviso: r.sobreaviso,
+                gratificacoes: r.gratificacao,
+                vale_transporte: r.vale_transporte,
+                inss: r.inss,
+                irrf: r.irrf,
+                total_descontos: r.total_descontos,
+                total_proventos: r.total_proventos,
+                valor_liquido: r.valor_liquido,
+              })),
+            },
+          });
+          atualizados += res.atualizados;
+          pendencias += res.pendencias;
+        }
+      }
       await finalizeImportPiso({
         data: {
           historico_id,
@@ -356,6 +399,15 @@ function ImportarPage() {
           divergentes: stats.divergentes,
           naoLocalizados: stats.nao_localizados,
           cancelado: false,
+        },
+      });
+      await registrarAuditoriaImportacao({
+        data: {
+          historico_id,
+          tipo_planilha: tipoPlanilha,
+          atualizados,
+          pendencias,
+          duracao_ms: Date.now() - inicioMs,
         },
       });
       setProgresso((p) => ({ ...p, ativo: false }));
@@ -409,6 +461,25 @@ function ImportarPage() {
 
       {passo === 1 && (
         <div className="grid gap-4 rounded-md border p-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Tipo de planilha</Label>
+            <Select
+              value={tipoPlanilha}
+              onValueChange={(v) => setTipoPlanilha(v as "piso" | "fopag")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="piso">Planilha do Piso</SelectItem>
+                <SelectItem value="fopag">Planilha FOPAG (folha)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              A importação nunca cria profissionais: os valores são vinculados pelo CPF do
+              Cadastro de Profissionais.
+            </p>
+          </div>
           <div className="space-y-2">
             <Label>Modelo</Label>
             <Select value={modelo} onValueChange={(v) => setModelo(v as Modelo)}>

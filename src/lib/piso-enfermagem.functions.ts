@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensurePermission } from "./authz.server";
+import { normCpf, normMatricula, STATUS_EXCLUIDOS } from "./piso-match";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 type PisoRow = { [k: string]: JsonValue };
@@ -20,48 +21,33 @@ const MatchInput = z.object({
 export const matchProfissionaisImport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => MatchInput.parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     await ensurePermission(context.supabase, context.userId, "piso.importar");
     const { supabase } = context;
-    const cpfs = Array.from(new Set(data.cpfs.filter(Boolean)));
-    const mats = Array.from(new Set(data.matriculas.filter(Boolean)));
-    const nomes = Array.from(new Set(data.nomes.filter(Boolean))).slice(0, 5000);
+
+    // Carrega o cadastro com o mesmo critério das telas de Frequência/Folha:
+    // todos os profissionais não desligados/inativos e não excluídos.
+    const { data: rows, error } = await supabase
+      .from("profissionais")
+      .select("id, cpf, matricula, nome_completo, nome_social")
+      .not("status", "in", `(${STATUS_EXCLUIDOS.join(",")})`)
+      .is("deleted_at", null)
+      .limit(20000);
+    if (error) throw new Error(error.message);
 
     const byCpf: Record<string, string> = {};
     const byMatricula: Record<string, string> = {};
-    // Amostra de candidatos para fuzzy: retorna todos os profissionais com nome
-    // (limite defensivo). O cliente calcula similaridade localmente.
-    let candidatos: { id: string; nome: string }[] = [];
+    const candidatos: { id: string; nome: string }[] = [];
 
-    if (cpfs.length > 0) {
-      const { data: rows, error } = await supabase
-        .from("profissionais")
-        .select("id, cpf")
-        .in("cpf", cpfs);
-      if (error) throw new Error(error.message);
-      for (const r of rows ?? []) {
-        if (r.cpf) byCpf[r.cpf] = r.id;
-      }
+    for (const r of rows ?? []) {
+      const cpf = normCpf(r.cpf);
+      if (cpf && !byCpf[cpf]) byCpf[cpf] = r.id;
+      const mat = normMatricula(r.matricula);
+      if (mat && !byMatricula[mat]) byMatricula[mat] = r.id;
+      const nome = (r.nome_completo ?? r.nome_social) as string | null;
+      if (nome) candidatos.push({ id: r.id, nome });
     }
-    if (mats.length > 0) {
-      const { data: rows, error } = await supabase
-        .from("profissionais")
-        .select("id, matricula")
-        .in("matricula", mats);
-      if (error) throw new Error(error.message);
-      for (const r of rows ?? []) {
-        if (r.matricula) byMatricula[r.matricula] = r.id;
-      }
-    }
-    if (nomes.length > 0) {
-      const { data: rows, error } = await supabase
-        .from("profissionais")
-        .select("id, nome_completo")
-        .not("nome_completo", "is", null)
-        .limit(10000);
-      if (error) throw new Error(error.message);
-      candidatos = (rows ?? []).map((r) => ({ id: r.id, nome: r.nome_completo as string }));
-    }
+
     return { byCpf, byMatricula, candidatos };
   });
 

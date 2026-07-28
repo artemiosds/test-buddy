@@ -27,11 +27,13 @@ import { Route as AuthenticatedRelatoriosPisoRouteImport } from './routes/_authe
 import { Route as AuthenticatedRelatoriosGerenciaisRouteImport } from './routes/_authenticated/relatorios-gerenciais'
 import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
 import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
+import { Route as AuthenticatedRelatoriosCadastroRouteImport } from './routes/_authenticated/relatorios-cadastro'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRelatorioInteligenteRouteImport } from './routes/_authenticated/relatorio-inteligente'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
 import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
+import { Route as AuthenticatedLayoutsImportacaoRouteImport } from './routes/_authenticated/layouts-importacao'
 import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticated/gestao-rh'
 import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
 import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
@@ -62,7 +64,11 @@ import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from '
 import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
 import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
+import { Route as AuthenticatedPisoEnfermagemReferenciaRouteImport } from './routes/_authenticated/piso-enfermagem.referencia'
+import { Route as AuthenticatedPisoEnfermagemImportarEfetivosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-efetivos'
+import { Route as AuthenticatedPisoEnfermagemImportarContratadosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-contratados'
 import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
+import { Route as AuthenticatedPisoEnfermagemExtracaoRouteImport } from './routes/_authenticated/piso-enfermagem.extracao'
 import { Route as AuthenticatedMeuPerfilAssinaturaRouteImport } from './routes/_authenticated/meu-perfil.assinatura'
 import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
 import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
@@ -175,6 +181,12 @@ const AuthenticatedRelatoriosConsolidadoRoute =
     path: '/relatorios-consolidado',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRelatoriosCadastroRoute =
+  AuthenticatedRelatoriosCadastroRouteImport.update({
+    id: '/relatorios-cadastro',
+    path: '/relatorios-cadastro',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
@@ -201,6 +213,12 @@ const AuthenticatedNotificacoesRoute =
   AuthenticatedNotificacoesRouteImport.update({
     id: '/notificacoes',
     path: '/notificacoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedLayoutsImportacaoRoute =
+  AuthenticatedLayoutsImportacaoRouteImport.update({
+    id: '/layouts-importacao',
+    path: '/layouts-importacao',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedGestaoRhRoute = AuthenticatedGestaoRhRouteImport.update({
@@ -375,10 +393,34 @@ const AuthenticatedProfissionaisIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedProfissionaisRoute,
   } as any)
+const AuthenticatedPisoEnfermagemReferenciaRoute =
+  AuthenticatedPisoEnfermagemReferenciaRouteImport.update({
+    id: '/piso-enfermagem/referencia',
+    path: '/piso-enfermagem/referencia',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemImportarEfetivosRoute =
+  AuthenticatedPisoEnfermagemImportarEfetivosRouteImport.update({
+    id: '/piso-enfermagem/importar-efetivos',
+    path: '/piso-enfermagem/importar-efetivos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemImportarContratadosRoute =
+  AuthenticatedPisoEnfermagemImportarContratadosRouteImport.update({
+    id: '/piso-enfermagem/importar-contratados',
+    path: '/piso-enfermagem/importar-contratados',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedPisoEnfermagemImportarRoute =
   AuthenticatedPisoEnfermagemImportarRouteImport.update({
     id: '/piso-enfermagem/importar',
     path: '/piso-enfermagem/importar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemExtracaoRoute =
+  AuthenticatedPisoEnfermagemExtracaoRouteImport.update({
+    id: '/piso-enfermagem/extracao',
+    path: '/piso-enfermagem/extracao',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMeuPerfilAssinaturaRoute =
@@ -482,11 +524,13 @@ export interface FileRoutesByFullPath {
   '/frequencias': typeof AuthenticatedFrequenciasRoute
   '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
+  '/layouts-importacao': typeof AuthenticatedLayoutsImportacaoRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
   '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
@@ -511,7 +555,11 @@ export interface FileRoutesByFullPath {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
+  '/piso-enfermagem/extracao': typeof AuthenticatedPisoEnfermagemExtracaoRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
+  '/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
+  '/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
+  '/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -550,11 +598,13 @@ export interface FileRoutesByTo {
   '/frequencias': typeof AuthenticatedFrequenciasRoute
   '/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/gestao-rh': typeof AuthenticatedGestaoRhRoute
+  '/layouts-importacao': typeof AuthenticatedLayoutsImportacaoRoute
   '/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/pendencias': typeof AuthenticatedPendenciasRoute
   '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/relatorios-piso': typeof AuthenticatedRelatoriosPisoRoute
@@ -579,7 +629,11 @@ export interface FileRoutesByTo {
   '/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
+  '/piso-enfermagem/extracao': typeof AuthenticatedPisoEnfermagemExtracaoRoute
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
+  '/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
+  '/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
+  '/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -620,11 +674,13 @@ export interface FileRoutesById {
   '/_authenticated/frequencias': typeof AuthenticatedFrequenciasRoute
   '/_authenticated/gestao-profissionais': typeof AuthenticatedGestaoProfissionaisRoute
   '/_authenticated/gestao-rh': typeof AuthenticatedGestaoRhRoute
+  '/_authenticated/layouts-importacao': typeof AuthenticatedLayoutsImportacaoRoute
   '/_authenticated/notificacoes': typeof AuthenticatedNotificacoesRoute
   '/_authenticated/pendencias': typeof AuthenticatedPendenciasRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/_authenticated/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/_authenticated/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/_authenticated/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
   '/_authenticated/relatorios-executivo': typeof AuthenticatedRelatoriosExecutivoRoute
   '/_authenticated/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
@@ -650,7 +706,11 @@ export interface FileRoutesById {
   '/_authenticated/gestao-pessoas/lotacao': typeof AuthenticatedGestaoPessoasLotacaoRoute
   '/_authenticated/gestao-pessoas/situacao-funcional': typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   '/_authenticated/meu-perfil/assinatura': typeof AuthenticatedMeuPerfilAssinaturaRoute
+  '/_authenticated/piso-enfermagem/extracao': typeof AuthenticatedPisoEnfermagemExtracaoRoute
   '/_authenticated/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
+  '/_authenticated/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
+  '/_authenticated/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
+  '/_authenticated/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -692,11 +752,13 @@ export interface FileRouteTypes {
     | '/frequencias'
     | '/gestao-profissionais'
     | '/gestao-rh'
+    | '/layouts-importacao'
     | '/notificacoes'
     | '/pendencias'
     | '/profissionais'
     | '/relatorio-inteligente'
     | '/relatorios'
+    | '/relatorios-cadastro'
     | '/relatorios-consolidado'
     | '/relatorios-executivo'
     | '/relatorios-gerenciais'
@@ -721,7 +783,11 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/meu-perfil/assinatura'
+    | '/piso-enfermagem/extracao'
     | '/piso-enfermagem/importar'
+    | '/piso-enfermagem/importar-contratados'
+    | '/piso-enfermagem/importar-efetivos'
+    | '/piso-enfermagem/referencia'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
@@ -760,11 +826,13 @@ export interface FileRouteTypes {
     | '/frequencias'
     | '/gestao-profissionais'
     | '/gestao-rh'
+    | '/layouts-importacao'
     | '/notificacoes'
     | '/pendencias'
     | '/profissionais'
     | '/relatorio-inteligente'
     | '/relatorios'
+    | '/relatorios-cadastro'
     | '/relatorios-consolidado'
     | '/relatorios-executivo'
     | '/relatorios-piso'
@@ -789,7 +857,11 @@ export interface FileRouteTypes {
     | '/gestao-pessoas/lotacao'
     | '/gestao-pessoas/situacao-funcional'
     | '/meu-perfil/assinatura'
+    | '/piso-enfermagem/extracao'
     | '/piso-enfermagem/importar'
+    | '/piso-enfermagem/importar-contratados'
+    | '/piso-enfermagem/importar-efetivos'
+    | '/piso-enfermagem/referencia'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
@@ -829,11 +901,13 @@ export interface FileRouteTypes {
     | '/_authenticated/frequencias'
     | '/_authenticated/gestao-profissionais'
     | '/_authenticated/gestao-rh'
+    | '/_authenticated/layouts-importacao'
     | '/_authenticated/notificacoes'
     | '/_authenticated/pendencias'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio-inteligente'
     | '/_authenticated/relatorios'
+    | '/_authenticated/relatorios-cadastro'
     | '/_authenticated/relatorios-consolidado'
     | '/_authenticated/relatorios-executivo'
     | '/_authenticated/relatorios-gerenciais'
@@ -859,7 +933,11 @@ export interface FileRouteTypes {
     | '/_authenticated/gestao-pessoas/lotacao'
     | '/_authenticated/gestao-pessoas/situacao-funcional'
     | '/_authenticated/meu-perfil/assinatura'
+    | '/_authenticated/piso-enfermagem/extracao'
     | '/_authenticated/piso-enfermagem/importar'
+    | '/_authenticated/piso-enfermagem/importar-contratados'
+    | '/_authenticated/piso-enfermagem/importar-efetivos'
+    | '/_authenticated/piso-enfermagem/referencia'
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/relatorios-gerenciais/auditoria'
     | '/_authenticated/relatorios-gerenciais/cargos'
@@ -1020,6 +1098,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosConsolidadoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/relatorios-cadastro': {
+      id: '/_authenticated/relatorios-cadastro'
+      path: '/relatorios-cadastro'
+      fullPath: '/relatorios-cadastro'
+      preLoaderRoute: typeof AuthenticatedRelatoriosCadastroRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/relatorios': {
       id: '/_authenticated/relatorios'
       path: '/relatorios'
@@ -1053,6 +1138,13 @@ declare module '@tanstack/react-router' {
       path: '/notificacoes'
       fullPath: '/notificacoes'
       preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/layouts-importacao': {
+      id: '/_authenticated/layouts-importacao'
+      path: '/layouts-importacao'
+      fullPath: '/layouts-importacao'
+      preLoaderRoute: typeof AuthenticatedLayoutsImportacaoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/gestao-rh': {
@@ -1265,11 +1357,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
       parentRoute: typeof AuthenticatedProfissionaisRoute
     }
+    '/_authenticated/piso-enfermagem/referencia': {
+      id: '/_authenticated/piso-enfermagem/referencia'
+      path: '/piso-enfermagem/referencia'
+      fullPath: '/piso-enfermagem/referencia'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemReferenciaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/piso-enfermagem/importar-efetivos': {
+      id: '/_authenticated/piso-enfermagem/importar-efetivos'
+      path: '/piso-enfermagem/importar-efetivos'
+      fullPath: '/piso-enfermagem/importar-efetivos'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/piso-enfermagem/importar-contratados': {
+      id: '/_authenticated/piso-enfermagem/importar-contratados'
+      path: '/piso-enfermagem/importar-contratados'
+      fullPath: '/piso-enfermagem/importar-contratados'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/piso-enfermagem/importar': {
       id: '/_authenticated/piso-enfermagem/importar'
       path: '/piso-enfermagem/importar'
       fullPath: '/piso-enfermagem/importar'
       preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/piso-enfermagem/extracao': {
+      id: '/_authenticated/piso-enfermagem/extracao'
+      path: '/piso-enfermagem/extracao'
+      fullPath: '/piso-enfermagem/extracao'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemExtracaoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/meu-perfil/assinatura': {
@@ -1511,11 +1631,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFrequenciasRoute: typeof AuthenticatedFrequenciasRoute
   AuthenticatedGestaoProfissionaisRoute: typeof AuthenticatedGestaoProfissionaisRoute
   AuthenticatedGestaoRhRoute: typeof AuthenticatedGestaoRhRoute
+  AuthenticatedLayoutsImportacaoRoute: typeof AuthenticatedLayoutsImportacaoRoute
   AuthenticatedNotificacoesRoute: typeof AuthenticatedNotificacoesRoute
   AuthenticatedPendenciasRoute: typeof AuthenticatedPendenciasRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRouteWithChildren
   AuthenticatedRelatorioInteligenteRoute: typeof AuthenticatedRelatorioInteligenteRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
+  AuthenticatedRelatoriosCadastroRoute: typeof AuthenticatedRelatoriosCadastroRoute
   AuthenticatedRelatoriosConsolidadoRoute: typeof AuthenticatedRelatoriosConsolidadoRoute
   AuthenticatedRelatoriosExecutivoRoute: typeof AuthenticatedRelatoriosExecutivoRoute
   AuthenticatedRelatoriosGerenciaisRoute: typeof AuthenticatedRelatoriosGerenciaisRouteWithChildren
@@ -1538,7 +1660,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedGestaoPessoasLotacaoRoute: typeof AuthenticatedGestaoPessoasLotacaoRoute
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRoute
   AuthenticatedMeuPerfilAssinaturaRoute: typeof AuthenticatedMeuPerfilAssinaturaRoute
+  AuthenticatedPisoEnfermagemExtracaoRoute: typeof AuthenticatedPisoEnfermagemExtracaoRoute
   AuthenticatedPisoEnfermagemImportarRoute: typeof AuthenticatedPisoEnfermagemImportarRoute
+  AuthenticatedPisoEnfermagemImportarContratadosRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
+  AuthenticatedPisoEnfermagemImportarEfetivosRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
+  AuthenticatedPisoEnfermagemReferenciaRoute: typeof AuthenticatedPisoEnfermagemReferenciaRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedPisoEnfermagemIndexRoute: typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -1560,12 +1686,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFrequenciasRoute: AuthenticatedFrequenciasRoute,
   AuthenticatedGestaoProfissionaisRoute: AuthenticatedGestaoProfissionaisRoute,
   AuthenticatedGestaoRhRoute: AuthenticatedGestaoRhRoute,
+  AuthenticatedLayoutsImportacaoRoute: AuthenticatedLayoutsImportacaoRoute,
   AuthenticatedNotificacoesRoute: AuthenticatedNotificacoesRoute,
   AuthenticatedPendenciasRoute: AuthenticatedPendenciasRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRouteWithChildren,
   AuthenticatedRelatorioInteligenteRoute:
     AuthenticatedRelatorioInteligenteRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
+  AuthenticatedRelatoriosCadastroRoute: AuthenticatedRelatoriosCadastroRoute,
   AuthenticatedRelatoriosConsolidadoRoute:
     AuthenticatedRelatoriosConsolidadoRoute,
   AuthenticatedRelatoriosExecutivoRoute: AuthenticatedRelatoriosExecutivoRoute,
@@ -1595,8 +1723,16 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedGestaoPessoasSituacaoFuncionalRoute:
     AuthenticatedGestaoPessoasSituacaoFuncionalRoute,
   AuthenticatedMeuPerfilAssinaturaRoute: AuthenticatedMeuPerfilAssinaturaRoute,
+  AuthenticatedPisoEnfermagemExtracaoRoute:
+    AuthenticatedPisoEnfermagemExtracaoRoute,
   AuthenticatedPisoEnfermagemImportarRoute:
     AuthenticatedPisoEnfermagemImportarRoute,
+  AuthenticatedPisoEnfermagemImportarContratadosRoute:
+    AuthenticatedPisoEnfermagemImportarContratadosRoute,
+  AuthenticatedPisoEnfermagemImportarEfetivosRoute:
+    AuthenticatedPisoEnfermagemImportarEfetivosRoute,
+  AuthenticatedPisoEnfermagemReferenciaRoute:
+    AuthenticatedPisoEnfermagemReferenciaRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedPisoEnfermagemIndexRoute: AuthenticatedPisoEnfermagemIndexRoute,

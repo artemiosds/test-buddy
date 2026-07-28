@@ -23,6 +23,12 @@ export type PisoDestino =
   | "irrf"
   | "valor_liquido"
   | "valor_final"
+  | "tempo_servico"
+  | "plantao"
+  | "sobreaviso"
+  | "vale_transporte"
+  | "total_descontos"
+  | "total_proventos"
   | "competencia";
 
 export const CAMPOS_SISTEMA: {
@@ -54,6 +60,12 @@ export const CAMPOS_SISTEMA: {
   { key: "irrf", label: "IRRF", financeiro: true },
   { key: "valor_liquido", label: "Valor Líquido", financeiro: true, calculado: true },
   { key: "valor_final", label: "Valor Final", financeiro: true, calculado: true },
+  { key: "tempo_servico", label: "Tempo de Serviço", financeiro: true },
+  { key: "plantao", label: "Plantão", financeiro: true },
+  { key: "sobreaviso", label: "Sobreaviso", financeiro: true },
+  { key: "vale_transporte", label: "Vale Transporte", financeiro: true },
+  { key: "total_descontos", label: "Total Descontos", financeiro: true },
+  { key: "total_proventos", label: "Total Proventos", financeiro: true },
 ];
 
 /** Conjunto de destinos calculados (não devem receber auto-map). */
@@ -165,9 +177,14 @@ const ALIASES: Record<PisoDestino, string[]> = {
     "total geral",
     "total liquido",
     "total positivos",
-    "total descontos",
     "total bruto",
   ],
+  tempo_servico: ["tempo de servico", "tempo servico", "anuenio", "trienio", "quinquenio", "ats"],
+  plantao: ["plantao", "plantoes", "plantao extra", "adic plantao"],
+  sobreaviso: ["sobreaviso", "sobre aviso", "sobre-aviso"],
+  vale_transporte: ["vale transporte", "vt", "auxilio transporte", "vale trans"],
+  total_descontos: ["total descontos", "total de descontos", "descontos", "tot desc"],
+  total_proventos: ["total proventos", "total de proventos", "proventos", "tot prov", "total vantagens"],
 };
 
 /**

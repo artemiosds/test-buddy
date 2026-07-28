@@ -12,7 +12,7 @@ describe("piso-import", () => {
   };
   const maps: MatchMaps = {
     byCpf: { "12345678900": "prof-1" },
-    byMatricula: { "M-42": "prof-2" },
+    byMatricula: { M42: "prof-2" },
   };
 
   it("match por CPF tem prioridade", () => {

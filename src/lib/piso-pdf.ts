@@ -5,7 +5,7 @@ import type { TextItem } from "pdfjs-dist/types/src/display/api";
 
 let _pdfjs: typeof import("pdfjs-dist") | null = null;
 
-async function getPdfjs() {
+export async function getPdfjs() {
   if (_pdfjs) return _pdfjs;
   const mod = await import("pdfjs-dist");
   const workerUrl = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
