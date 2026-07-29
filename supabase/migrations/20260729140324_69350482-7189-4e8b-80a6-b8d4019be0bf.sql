@@ -1,0 +1,1 @@
+DELETE FROM auth.mfa_factors f USING auth.users u WHERE f.user_id = u.id AND u.email = 'jhemesonsoaress@gmail.com' AND f.status <> 'verified';

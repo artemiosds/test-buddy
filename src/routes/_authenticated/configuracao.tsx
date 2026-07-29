@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, Settings2, Upload } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 
 export const Route = createFileRoute("/_authenticated/configuracao")({
   component: ConfiguracaoPage,
@@ -500,6 +501,8 @@ function ConfiguracaoPage() {
           </label>
         </div>
       </section>
+
+      <HsmConfigSection />
 
       {userCtx?.is_master && (
         <section className="space-y-3 rounded-lg border bg-card p-6">

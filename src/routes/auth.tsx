@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
@@ -11,13 +11,18 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
     let hasUser = false;
+    let mfaPending = false;
     try {
       const { data } = await supabase.auth.getUser();
       hasUser = !!data.user;
+      if (hasUser) {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        mfaPending = aal?.nextLevel === "aal2" && aal.currentLevel === "aal1";
+      }
     } catch {
       // Se a sessão ainda estiver inicializando ou indisponível, mantém a tela de login.
     }
-    if (hasUser) throw redirect({ to: "/" });
+    if (hasUser && !mfaPending) throw redirect({ to: "/" });
   },
   head: () => ({
     meta: [
@@ -46,6 +51,7 @@ function AuthPage() {
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState("");
   const [backupAvailable, setBackupAvailable] = useState<number | null>(null);
+  const challengeStartedRef = useRef(false);
   const countBackupFn = useServerFn(countBackupCodes);
   const consumeBackupFn = useServerFn(consumeBackupCodeAndUnenroll);
 
@@ -59,7 +65,13 @@ function AuthPage() {
           if (!mounted || !sessionData.session) return;
           const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (!mounted) return;
-          if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") return;
+          if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
+            void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO, {
+              contexto: { origem: "sessao_pendente" },
+            });
+            await startMfaChallenge();
+            return;
+          }
           navigate({ to: "/" });
         } catch (err) {
           logger.error("auth.redirect_check_failed", { error: err });
@@ -81,19 +93,26 @@ function AuthPage() {
   }, [navigate]);
 
   async function startMfaChallenge() {
-    const { data: factorsData, error: fErr } = await supabase.auth.mfa.listFactors();
-    if (fErr) throw fErr;
-    const factor = factorsData.totp.find((f) => f.status === "verified");
-    if (!factor) throw new Error("Nenhum fator MFA encontrado. Contate o administrador.");
-    const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
-    if (cErr) throw cErr;
-    setMfa({ factorId: factor.id, challengeId: ch.id });
+    if (challengeStartedRef.current) return;
+    challengeStartedRef.current = true;
     try {
-      const { count } = await countBackupFn();
-      setBackupAvailable(count);
+      const { data: factorsData, error: fErr } = await supabase.auth.mfa.listFactors();
+      if (fErr) throw fErr;
+      const factor = factorsData.totp.find((f) => f.status === "verified");
+      if (!factor) throw new Error("Nenhum fator MFA encontrado. Contate o administrador.");
+      const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+      if (cErr) throw cErr;
+      setMfa({ factorId: factor.id, challengeId: ch.id });
+      try {
+        const { count } = await countBackupFn();
+        setBackupAvailable(count);
+      } catch (err) {
+        logger.warn("auth.count_backup_failed", { error: err });
+        setBackupAvailable(0);
+      }
     } catch (err) {
-      logger.warn("auth.count_backup_failed", { error: err });
-      setBackupAvailable(0);
+      challengeStartedRef.current = false;
+      throw err;
     }
   }
 
@@ -302,6 +321,7 @@ function AuthPage() {
                   type="button"
                   onClick={async () => {
                     await supabase.auth.signOut();
+                    challengeStartedRef.current = false;
                     setMfa(null);
                     setMfaCode("");
                     setBackupAvailable(null);

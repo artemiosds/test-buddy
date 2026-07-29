@@ -88,29 +88,64 @@ function SegurancaPage() {
     setInfo(null);
     setBusy(true);
     try {
-      // Clean up any previous unverified factors to avoid duplicates
-      const unverified = factors.filter((f) => f.status !== "verified" && f.factor_type === "totp");
-      for (const f of unverified) await supabase.auth.mfa.unenroll({ factorId: f.id });
+      // Relê os fatores no servidor (o estado local pode estar defasado) e
+      // remove qualquer TOTP pendente — senão o Supabase recusa o novo cadastro.
+      const { data: atuais } = await supabase.auth.mfa.listFactors();
+      const pendentes = (atuais?.totp ?? []).filter((f) => f.status !== "verified");
+      for (const f of pendentes) {
+        await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
 
-      const { data, error } = await supabase.auth.mfa.enroll({
+      // Nome único (data + hora + aleatório) evita o erro 422
+      // "A factor with the friendly name ... already exists".
+      const friendlyName = `TOTP ${new Date().toLocaleString("pt-BR")} ${Math.random()
+        .toString(36)
+        .slice(2, 6)}`;
+
+      let { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: `TOTP ${new Date().toLocaleDateString("pt-BR")}`,
+        friendlyName,
       });
-      if (error) throw error;
+      if (error) {
+        // Última barreira: nome totalmente aleatório se ainda houver conflito.
+        const alt = await supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: `TOTP ${crypto.randomUUID()}`,
+        });
+        data = alt.data;
+        error = alt.error;
+      }
+      if (error || !data) throw error ?? new Error("Falha ao gerar o QR Code");
+
       setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
+      setCode("");
+      setInfo(
+        "Escaneie o QR Code e digite o código atual do aplicativo. Confira se a hora do celular está no automático.",
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao iniciar cadastro do MFA");
+      setError(
+        e instanceof Error
+          ? `${e.message} — clique novamente para gerar um novo QR Code.`
+          : "Erro ao iniciar cadastro do MFA",
+      );
     } finally {
       setBusy(false);
     }
   }
 
+  const ultimoCodigoTentado = useRef<string | null>(null);
+
   async function verifyEnroll(codigo?: string) {
     if (!enroll) return;
     const codeToUse = (codigo ?? code).replace(/\D/g, "");
     if (codeToUse.length !== 6) return;
+    if (busy) return;
+    // Evita reenviar o mesmo código repetidamente (gerava vários 422 seguidos).
+    if (ultimoCodigoTentado.current === codeToUse) return;
+    ultimoCodigoTentado.current = codeToUse;
     setError(null);
     setBusy(true);
+
     try {
       const { data: ch, error: e1 } = await supabase.auth.mfa.challenge({ factorId: enroll.id });
       if (e1) throw e1;
@@ -141,7 +176,14 @@ function SegurancaPage() {
         logger.error("seguranca.backup_codes_failed", { error: err });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Código inválido");
+      const msg = e instanceof Error ? e.message : "Código inválido";
+      setError(
+        /invalid totp/i.test(msg)
+          ? "Código inválido. Aguarde o app gerar um novo código e digite-o inteiro. Se persistir, ative a hora automática no celular e gere um novo QR Code."
+          : msg,
+      );
+      setCode("");
+
     } finally {
       setBusy(false);
     }

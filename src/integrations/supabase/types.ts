@@ -1517,6 +1517,250 @@ export type Database = {
         }
         Relationships: []
       }
+      hsm_auditoria: {
+        Row: {
+          acao: string | null
+          agente: string | null
+          cache_hit: boolean
+          contexto: Json
+          conversa_id: string | null
+          created_at: string
+          custo_usd: number
+          duracao_ms: number | null
+          erro: string | null
+          ferramenta: string | null
+          id: number
+          modelo: string | null
+          provedor: string | null
+          sucesso: boolean
+          tokens: number
+          tokens_entrada: number
+          tokens_saida: number
+          user_id: string
+        }
+        Insert: {
+          acao?: string | null
+          agente?: string | null
+          cache_hit?: boolean
+          contexto?: Json
+          conversa_id?: string | null
+          created_at?: string
+          custo_usd?: number
+          duracao_ms?: number | null
+          erro?: string | null
+          ferramenta?: string | null
+          id?: number
+          modelo?: string | null
+          provedor?: string | null
+          sucesso?: boolean
+          tokens?: number
+          tokens_entrada?: number
+          tokens_saida?: number
+          user_id?: string
+        }
+        Update: {
+          acao?: string | null
+          agente?: string | null
+          cache_hit?: boolean
+          contexto?: Json
+          conversa_id?: string | null
+          created_at?: string
+          custo_usd?: number
+          duracao_ms?: number | null
+          erro?: string | null
+          ferramenta?: string | null
+          id?: number
+          modelo?: string | null
+          provedor?: string | null
+          sucesso?: boolean
+          tokens?: number
+          tokens_entrada?: number
+          tokens_saida?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hsm_config: {
+        Row: {
+          agentes_habilitados: Json
+          ativo: boolean
+          cache_config: Json
+          created_at: string
+          ferramentas_habilitadas: Json
+          id: boolean
+          limites: Json
+          metadata: Json
+          modo_execucao: string
+          observabilidade_config: Json
+          prompt_sistema: string
+          retencao_config: Json
+          somente_leitura: boolean
+          updated_at: string
+        }
+        Insert: {
+          agentes_habilitados?: Json
+          ativo?: boolean
+          cache_config?: Json
+          created_at?: string
+          ferramentas_habilitadas?: Json
+          id?: boolean
+          limites?: Json
+          metadata?: Json
+          modo_execucao?: string
+          observabilidade_config?: Json
+          prompt_sistema?: string
+          retencao_config?: Json
+          somente_leitura?: boolean
+          updated_at?: string
+        }
+        Update: {
+          agentes_habilitados?: Json
+          ativo?: boolean
+          cache_config?: Json
+          created_at?: string
+          ferramentas_habilitadas?: Json
+          id?: boolean
+          limites?: Json
+          metadata?: Json
+          modo_execucao?: string
+          observabilidade_config?: Json
+          prompt_sistema?: string
+          retencao_config?: Json
+          somente_leitura?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hsm_conversas: {
+        Row: {
+          agente: string | null
+          arquivada: boolean
+          created_at: string
+          favorito: boolean
+          id: string
+          modelo: string | null
+          titulo: string
+          tokens: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agente?: string | null
+          arquivada?: boolean
+          created_at?: string
+          favorito?: boolean
+          id?: string
+          modelo?: string | null
+          titulo?: string
+          tokens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          agente?: string | null
+          arquivada?: boolean
+          created_at?: string
+          favorito?: boolean
+          id?: string
+          modelo?: string | null
+          titulo?: string
+          tokens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hsm_feedback: {
+        Row: {
+          comentario: string | null
+          created_at: string
+          id: string
+          mensagem_id: string
+          user_id: string
+          util: boolean
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          mensagem_id: string
+          user_id?: string
+          util: boolean
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          mensagem_id?: string
+          user_id?: string
+          util?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hsm_feedback_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "hsm_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hsm_mensagens: {
+        Row: {
+          conteudo: string
+          conversa_id: string
+          created_at: string
+          duracao_ms: number | null
+          erro: string | null
+          ferramentas: Json
+          id: string
+          modelo: string | null
+          papel: string
+          partes: Json
+          provedor: string | null
+          tokens: number
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          conversa_id: string
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          ferramentas?: Json
+          id?: string
+          modelo?: string | null
+          papel: string
+          partes?: Json
+          provedor?: string | null
+          tokens?: number
+          user_id?: string
+        }
+        Update: {
+          conteudo?: string
+          conversa_id?: string
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          ferramentas?: Json
+          id?: string
+          modelo?: string | null
+          papel?: string
+          partes?: Json
+          provedor?: string | null
+          tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hsm_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "hsm_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_campo_aliases: {
         Row: {
           alias: string
@@ -4240,6 +4484,24 @@ export type Database = {
       health_cron_jobs: { Args: never; Returns: Json }
       health_eventos_dominio: { Args: never; Returns: Json }
       health_pendencias_sla: { Args: never; Returns: Json }
+      hsm_config_ler: { Args: never; Returns: Json }
+      hsm_config_salvar: {
+        Args: {
+          _agentes_habilitados: Json
+          _ativo: boolean
+          _cache_config: Json
+          _ferramentas_habilitadas: Json
+          _limites: Json
+          _metadata: Json
+          _modo_execucao: string
+          _observabilidade_config: Json
+          _prompt_sistema: string
+          _retencao_config: Json
+          _somente_leitura: boolean
+        }
+        Returns: Json
+      }
+      hsm_estatisticas: { Args: { _dias?: number }; Returns: Json }
       is_master: { Args: { _user_id: string }; Returns: boolean }
       log_client_action: {
         Args: {
@@ -4252,6 +4514,7 @@ export type Database = {
         }
         Returns: number
       }
+      mfa_exigido_nao_atendido: { Args: { _user_id: string }; Returns: boolean }
       nack_evento_dominio: {
         Args: { _erro: string; _id: string }
         Returns: undefined

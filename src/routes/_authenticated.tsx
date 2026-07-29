@@ -66,6 +66,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HsmExpertLauncher } from "@/components/hsm-expert/hsm-expert-launcher";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -82,6 +83,10 @@ export const Route = createFileRoute("/_authenticated")({
       await supabase.auth.getSession();
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) throw redirect({ to: "/auth" });
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
+        throw redirect({ to: "/auth" });
+      }
       return { user: data.user };
     } catch {
       throw redirect({ to: "/auth" });
@@ -752,7 +757,9 @@ function AuthenticatedLayout() {
           </div>
         </main>
       </div>
+      <HsmExpertLauncher />
     </div>
+
   );
 }
 

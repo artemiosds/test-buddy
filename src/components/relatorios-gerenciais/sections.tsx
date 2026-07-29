@@ -12,6 +12,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Legend,
   LineChart,
@@ -73,20 +75,31 @@ export function Section({
 
 export function ChartCard({
   title,
+  subtitle,
   children,
-  height = 260,
+  height,
 }: {
   title: string;
+  subtitle?: string;
   children: ReactNode;
+  /** Altura fixa opcional. Se omitida, o gráfico define a própria altura. */
   height?: number;
 }) {
   return (
-    <div className="rounded-md border bg-card p-3">
-      <div className="mb-2 text-xs font-semibold text-foreground">{title}</div>
-      <div style={{ width: "100%", height }}>{children}</div>
+    <div className="flex flex-col rounded-lg border bg-card p-4 shadow-sm">
+      <div className="mb-3 min-w-0">
+        <div className="truncate text-sm font-semibold text-foreground" title={title}>
+          {title}
+        </div>
+        {subtitle && <div className="truncate text-[11px] text-muted-foreground">{subtitle}</div>}
+      </div>
+      <div className="min-w-0 flex-1" style={height ? { height } : undefined}>
+        {children}
+      </div>
     </div>
   );
 }
+
 
 const SEM_COLOR: Record<Semaforo, string> = {
   verde: "bg-emerald-500 text-white",
@@ -395,101 +408,242 @@ export function ExportBar({
 
 /* ---------- Blocos de charts pré-configurados ---------- */
 
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    fontSize: 12,
+    borderRadius: 8,
+    border: "1px solid hsl(var(--border))",
+    background: "hsl(var(--card))",
+    color: "hsl(var(--card-foreground))",
+    boxShadow: "0 4px 16px rgb(0 0 0 / 0.08)",
+  },
+  labelStyle: { fontSize: 11, fontWeight: 600 },
+  itemStyle: { fontSize: 12 },
+} as const;
+
+const nf = (v: number | string) =>
+  typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "");
+
+function truncar(txt: string, max: number) {
+  const s = String(txt ?? "");
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+}
+
+function SemDados({ height }: { height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground"
+      style={{ height: height ?? 180 }}
+    >
+      Sem dados para exibir
+    </div>
+  );
+}
+
+/**
+ * Barras horizontais com altura proporcional à quantidade de itens
+ * (evita rótulos sobrepostos) e nomes truncados com tooltip completo.
+ */
 export function BarChartH({
   data,
   dataKey = "qtd",
   nameKey = "nome",
   color = "#6366F1",
-  height = 260,
+  height,
+  maxItens = 20,
 }: {
   data: { nome: string; qtd: number }[];
   dataKey?: string;
   nameKey?: string;
   color?: string;
   height?: number;
+  maxItens?: number;
 }) {
+  const itens = (data ?? []).slice(0, maxItens);
+  if (itens.length === 0) return <SemDados height={height} />;
+
+  // 26px por barra garante espaço vertical suficiente para cada rótulo.
+  const alturaCalculada = Math.max(160, itens.length * 26 + 32);
+  const h = height ?? alturaCalculada;
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-        <XAxis type="number" tick={{ fontSize: 11 }} />
+    <ResponsiveContainer width="100%" height={h}>
+      <BarChart
+        data={itens}
+        layout="vertical"
+        margin={{ top: 4, right: 44, bottom: 4, left: 4 }}
+        barCategoryGap="18%"
+      >
+        <CartesianGrid horizontal={false} strokeOpacity={0.25} />
+        <XAxis
+          type="number"
+          tick={{ fontSize: 11 }}
+          allowDecimals={false}
+          tickFormatter={(v) => nf(v as number)}
+        />
         <YAxis
           type="category"
           dataKey={nameKey}
-          width={220}
+          width={168}
           tick={{ fontSize: 11 }}
           interval={0}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v) => truncar(v as string, 24)}
         />
-        <Tooltip />
-        <Bar dataKey={dataKey} fill={color} />
+        <Tooltip
+          {...TOOLTIP_STYLE}
+          cursor={{ fillOpacity: 0.06 }}
+          formatter={(v) => [nf(v as number), "Total"]}
+        />
+        <Bar dataKey={dataKey} fill={color} radius={[0, 4, 4, 0]} maxBarSize={18}>
+          <LabelList
+            dataKey={dataKey}
+            position="right"
+            style={{ fontSize: 11, fill: "currentColor" }}
+            formatter={(v: unknown) => nf(v as number)}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
+/** Barras verticais com rótulos inclinados, truncados e sem sobreposição. */
 export function BarChartV({
   data,
   dataKey = "qtd",
   nameKey = "nome",
   color = "#10B981",
-  height = 220,
+  height = 260,
+  maxItens = 14,
 }: {
   data: { nome: string; qtd: number }[];
   dataKey?: string;
   nameKey?: string;
   color?: string;
   height?: number;
+  maxItens?: number;
 }) {
+  const itens = (data ?? []).slice(0, maxItens);
+  if (itens.length === 0) return <SemDados height={height} />;
+
+  const maiorRotulo = Math.max(...itens.map((i) => String(i.nome ?? "").length));
+  const precisaInclinar = itens.length > 4 || maiorRotulo > 8;
+  const alturaEixo = precisaInclinar ? Math.min(96, 30 + Math.min(maiorRotulo, 18) * 4) : 28;
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 16, bottom: 96, left: 8 }}>
+      <BarChart
+        data={itens}
+        margin={{ top: 18, right: 12, bottom: 4, left: 0 }}
+        barCategoryGap="22%"
+      >
+        <CartesianGrid vertical={false} strokeOpacity={0.25} />
         <XAxis
           dataKey={nameKey}
           tick={{ fontSize: 11 }}
           interval={0}
-          angle={-35}
-          textAnchor="end"
-          height={100}
+          angle={precisaInclinar ? -35 : 0}
+          textAnchor={precisaInclinar ? "end" : "middle"}
+          height={alturaEixo}
+          tickLine={false}
+          tickFormatter={(v) => truncar(v as string, 18)}
         />
-        <YAxis tick={{ fontSize: 11 }} width={36} />
-        <Tooltip />
-        <Bar dataKey={dataKey} fill={color} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          width={44}
+          allowDecimals={false}
+          tickFormatter={(v) => nf(v as number)}
+          axisLine={false}
+          tickLine={false}
+        />
+        <Tooltip
+          {...TOOLTIP_STYLE}
+          cursor={{ fillOpacity: 0.06 }}
+          formatter={(v) => [nf(v as number), "Total"]}
+        />
+        <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} maxBarSize={46}>
+          <LabelList
+            dataKey={dataKey}
+            position="top"
+            style={{ fontSize: 10, fill: "currentColor" }}
+            formatter={(v: unknown) => nf(v as number)}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
+/** Rosca com percentuais internos e legenda enxuta (sem textos sobrepostos). */
 export function PieChartCard({
   data,
   nameKey = "nome",
   dataKey = "qtd",
-  height = 240,
+  height = 260,
+  maxItens = 8,
 }: {
   data: { nome: string; qtd: number }[];
   nameKey?: string;
   dataKey?: string;
   height?: number;
+  maxItens?: number;
 }) {
+  const brutos = (data ?? []).filter((d) => Number(d.qtd) > 0);
+  if (brutos.length === 0) return <SemDados height={height} />;
+
+  const ordenados = [...brutos].sort((a, b) => b.qtd - a.qtd);
+  const principais = ordenados.slice(0, maxItens);
+  const resto = ordenados.slice(maxItens);
+  const itens =
+    resto.length > 0
+      ? [...principais, { nome: "Outros", qtd: resto.reduce((s, i) => s + i.qtd, 0) }]
+      : principais;
+
+  const total = itens.reduce((s, i) => s + i.qtd, 0) || 1;
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <PieChart>
+      <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
         <Pie
-          data={data}
+          data={itens}
           nameKey={nameKey}
           dataKey={dataKey}
-          outerRadius={80}
+          cx="50%"
+          cy="45%"
+          innerRadius="45%"
+          outerRadius="72%"
+          paddingAngle={1}
           labelLine={false}
+          label={({ percent }: { percent?: number }) =>
+            (percent ?? 0) >= 0.07 ? `${Math.round((percent ?? 0) * 100)}%` : ""
+          }
+          style={{ fontSize: 11 }}
         >
-          {data.map((_, i) => (
-            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+          {itens.map((_, i) => (
+            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} stroke="none" />
           ))}
         </Pie>
+        <Tooltip
+          {...TOOLTIP_STYLE}
+          formatter={(v, n) => [
+            `${nf(v as number)} (${(((v as number) / total) * 100).toFixed(1)}%)`,
+            truncar(String(n), 32),
+          ]}
+        />
         <Legend
-          wrapperStyle={{ fontSize: 11 }}
+          wrapperStyle={{ fontSize: 11, lineHeight: "16px", paddingTop: 6 }}
           layout="horizontal"
           verticalAlign="bottom"
           align="center"
+          iconSize={8}
+          formatter={(value) => (
+            <span title={String(value)} className="text-muted-foreground">
+              {truncar(String(value), 20)}
+            </span>
+          )}
         />
-        <Tooltip />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -500,7 +654,7 @@ export function LineChartCard({
   nameKey = "dia",
   dataKey = "qtd",
   color = "#6366F1",
-  height = 220,
+  height = 260,
 }: {
   data: Record<string, string | number>[];
   nameKey?: string;
@@ -508,18 +662,36 @@ export function LineChartCard({
   color?: string;
   height?: number;
 }) {
+  if (!data || data.length === 0) return <SemDados height={height} />;
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+      <LineChart data={data} margin={{ top: 12, right: 16, bottom: 4, left: 0 }}>
+        <CartesianGrid vertical={false} strokeOpacity={0.25} />
         <XAxis
           dataKey={nameKey}
           tick={{ fontSize: 10 }}
           interval="preserveStartEnd"
-          minTickGap={16}
+          minTickGap={24}
+          height={28}
+          tickLine={false}
         />
-        <YAxis tick={{ fontSize: 11 }} width={36} />
-        <Tooltip />
-        <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          width={44}
+          allowDecimals={false}
+          tickFormatter={(v) => nf(v as number)}
+          axisLine={false}
+          tickLine={false}
+        />
+        <Tooltip {...TOOLTIP_STYLE} formatter={(v) => [nf(v as number), "Total"]} />
+        <Line
+          type="monotone"
+          dataKey={dataKey}
+          stroke={color}
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+        />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -535,10 +707,10 @@ export function RadarQuality({ q }: { q: GerencialAggregate["qualidade"] }) {
   ];
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <RadarChart data={data} outerRadius={90}>
-        <PolarGrid />
+      <RadarChart data={data} outerRadius="70%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
+        <PolarGrid strokeOpacity={0.35} />
         <PolarAngleAxis dataKey="area" tick={{ fontSize: 11 }} />
-        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
+        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} tickCount={5} />
         <Radar
           name="Qualidade"
           dataKey="valor"
@@ -546,11 +718,12 @@ export function RadarQuality({ q }: { q: GerencialAggregate["qualidade"] }) {
           fill="#6366F1"
           fillOpacity={0.35}
         />
-        <Tooltip />
+        <Tooltip {...TOOLTIP_STYLE} formatter={(v) => [`${nf(v as number)}%`, "Qualidade"]} />
       </RadarChart>
     </ResponsiveContainer>
   );
 }
+
 
 /* ---------- Helper de KPIs em grid ---------- */
 

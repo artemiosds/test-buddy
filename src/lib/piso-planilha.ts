@@ -47,6 +47,13 @@ export type LinhaPlanilha = {
   hora_extra_100?: number | null;
   plantao?: number | null;
   sobreaviso?: number | null;
+  /* Campos do layout oficial "piso-enfermagem" (envio ao Ministério) */
+  cnes?: string | null;
+  cbo?: string | null;
+  encargo_patronal?: number | null;
+  encargo_trabalhista?: number | null;
+  vantagem_fixa?: number | null;
+  vantagem_variavel?: number | null;
 };
 
 /** Incentivo (auxílio) parametrizável por categoria. */
@@ -591,3 +598,90 @@ export function gerarPlanilhaCalculoPiso(
   if (opts.competencia) wb.Props = { Title: `Cálculo Piso ${opts.competencia}` };
   return escrever(wb);
 }
+
+// ---------------------------------------------------------------------------
+// Modelo OFICIAL "piso-enfermagem" (envio) — 11 colunas, SEM fórmulas.
+// Chave do registro: CPF DO PROFISSIONAL. Todos os valores são gravados como
+// dados brutos (fiéis à consolidação), sem cálculo dentro do Excel.
+// ---------------------------------------------------------------------------
+
+export const CABECALHO_PISO_ENFERMAGEM = [
+  "CPF PROFISSIONAL",
+  "CNES EMPREGADOR",
+  "CBO",
+  "JORNADA SEMANAL (CARGA HORARIA)",
+  "SALÁRIO BASE (MENSAL)",
+  "INSALUBRIDADE",
+  "ADICIONAL NOTURNO",
+  "ENCARGO PATRONAL",
+  "ENCARGO TRABALHISTA",
+  "VANTAGEM FIXA (VFPG)",
+  "VANTAGEM VARIÁVEL (VPVT)",
+];
+
+const LARGURA_PISO_ENFERMAGEM = [18.4, 19.7, 8, 36.4, 24, 16, 21.1, 20.7, 23.4, 23, 27.9];
+
+const FORMATO_VALOR = "#,##0.00_);(#,##0.00)";
+const FORMATO_JORNADA = "#,##0_);(#,##0)";
+
+/** Só dígitos — o modelo oficial não aceita máscara no CPF/CNES/CBO. */
+const soDigitos = (v: string | null | undefined) => (v ?? "").replace(/\D+/g, "");
+
+const valorOficial = (v: number | null | undefined): Cell =>
+  v === null || v === undefined || Number.isNaN(Number(v))
+    ? ({ t: "z" } as unknown as Cell)
+    : { t: "n", v: Number(v), z: FORMATO_VALOR };
+
+export function gerarPlanilhaPisoEnfermagem(
+  linhas: LinhaPlanilha[],
+  opts: { competencia?: string | null } = {},
+) {
+  const matriz: Cell[][] = [CABECALHO_PISO_ENFERMAGEM.map((h) => texto(h))];
+
+  for (const p of linhas) {
+    matriz.push([
+      texto(soDigitos(p.cpf)),
+      texto(soDigitos(p.cnes)),
+      texto(soDigitos(p.cbo)),
+      p.carga_horaria === null || p.carga_horaria === undefined
+        ? ({ t: "z" } as unknown as Cell)
+        : { t: "n", v: Number(p.carga_horaria), z: FORMATO_JORNADA },
+      valorOficial(p.salario_base),
+      valorOficial(p.insalubridade),
+      valorOficial(p.adicional_noturno),
+      valorOficial(p.encargo_patronal),
+      valorOficial(p.encargo_trabalhista),
+      valorOficial(p.vantagem_fixa),
+      valorOficial(p.vantagem_variavel),
+    ]);
+  }
+
+  const ws = montarSheet(matriz, LARGURA_PISO_ENFERMAGEM, false, {
+    fonte: { name: "Calibri", sz: 11 },
+    cabecalhoSimples: true,
+  });
+
+  const wb = XL.utils.book_new();
+  XL.utils.book_append_sheet(wb, ws, "PisoEnfermagem");
+  if (opts.competencia) wb.Props = { Title: `Piso Enfermagem ${opts.competencia}` };
+  return escrever(wb);
+}
+
+export const somaOuNulo = (vs: Array<number | null | undefined>) => {
+  const nums = vs.map((v) => Number(v) || 0);
+  const total = nums.reduce((a, b) => a + b, 0);
+  return total === 0 ? null : Number(total.toFixed(2));
+};
+
+const MESES_PT = [
+  "JANEIRO", "FEVEREIRO", "MARCO", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
+];
+
+/** "2026-07" -> "JULHO" (fallback: a própria competência higienizada). */
+export function rotuloMes(competencia: string) {
+  const m = /^(\d{4})-(\d{2})/.exec(competencia.trim());
+  if (!m) return competencia.replace(/[^\dA-Za-z]/g, "-") || "GERAL";
+  return MESES_PT[Number(m[2]) - 1] ?? competencia;
+}
+

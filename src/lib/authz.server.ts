@@ -66,6 +66,20 @@ export type AcaoCodigo = (typeof ACOES)[keyof typeof ACOES];
 // -----------------------------------------------------------------------------
 // Portões de autorização
 // -----------------------------------------------------------------------------
+const MFA_MSG =
+  "Acesso bloqueado: seu perfil exige verificação em duas etapas (2FA). " +
+  "Entre novamente confirmando o código do aplicativo autenticador em /seguranca.";
+
+/** Retorna true quando a sessão atual está sem AAL2 e o perfil exige 2FA. */
+async function mfaPendente(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase.rpc("mfa_exigido_nao_atendido", { _user_id: userId });
+    return data === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function ensurePermission(
   supabase: any,
   userId: string,
@@ -79,14 +93,21 @@ export async function ensurePermission(
     _secretaria_id: extra?._secretaria_id ?? null,
   });
   if (error) throw new Error(error.message);
-  if (!data) throw new Error(`Acesso negado: permissão ${codigo} necessária.`);
+  if (!data) {
+    if (await mfaPendente(supabase, userId)) throw new Error(MFA_MSG);
+    throw new Error(`Acesso negado: permissão ${codigo} necessária.`);
+  }
 }
 
 export async function ensureMaster(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("is_master", { _user_id: userId });
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Apenas o perfil Master pode executar esta ação.");
+  if (!data) {
+    if (await mfaPendente(supabase, userId)) throw new Error(MFA_MSG);
+    throw new Error("Apenas o perfil Master pode executar esta ação.");
+  }
 }
+
 
 // -----------------------------------------------------------------------------
 // Barramento de Eventos de Domínio (arquitetura Event Driven).

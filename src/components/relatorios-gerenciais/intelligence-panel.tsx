@@ -395,18 +395,18 @@ export function IntelligencePanel({
       </Section>
 
       <Section title="Gráficos">
-        <div className="grid gap-3 lg:grid-cols-2">
-          <ChartCard title="Profissionais por Unidade (top 20)" height={340}>
-            <BarChartH data={d.porUnidade} color="#3B82F6" height={340} />
+        <div className="grid items-start gap-3 lg:grid-cols-2">
+          <ChartCard title="Profissionais por Unidade" subtitle="Top 20">
+            <BarChartH data={d.porUnidade} color="#3B82F6" />
           </ChartCard>
-          <ChartCard title="Profissionais por Setor (top 20)" height={340}>
-            <BarChartH data={d.porSetor} color="#EC4899" height={340} />
+          <ChartCard title="Profissionais por Setor" subtitle="Top 20">
+            <BarChartH data={d.porSetor} color="#EC4899" />
           </ChartCard>
-          <ChartCard title="Profissionais por Cargo (top 20)" height={340}>
-            <BarChartH data={d.porCargo} color="#F59E0B" height={340} />
+          <ChartCard title="Profissionais por Cargo" subtitle="Top 20">
+            <BarChartH data={d.porCargo} color="#F59E0B" />
           </ChartCard>
-          <ChartCard title="Profissionais por Função (top 20)" height={340}>
-            <BarChartH data={d.porFuncao} color="#8B5CF6" height={340} />
+          <ChartCard title="Profissionais por Função" subtitle="Top 20">
+            <BarChartH data={d.porFuncao} color="#8B5CF6" />
           </ChartCard>
           <ChartCard title="Distribuição por Vínculo">
             <PieChartCard data={d.porVinculo} />
@@ -434,7 +434,7 @@ export function IntelligencePanel({
           </ChartCard>
           {foco === "auditoria" && (
             <>
-              <ChartCard title="Auditoria — operações por dia (30d)">
+              <ChartCard title="Auditoria — operações por dia" subtitle="Últimos 30 dias">
                 <LineChartCard
                   data={au.porDia as unknown as Record<string, string | number>[]}
                   nameKey="dia"
@@ -446,12 +446,14 @@ export function IntelligencePanel({
                 <BarChartV
                   data={au.porHora.map((h) => ({ nome: h.hora, qtd: h.qtd }))}
                   color="#EF4444"
+                  maxItens={24}
                 />
               </ChartCard>
             </>
           )}
         </div>
       </Section>
+
 
       <Section title="Comparativos">
         <ComparativeCard comparativos={a.comparativos} />

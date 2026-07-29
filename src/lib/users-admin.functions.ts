@@ -21,12 +21,9 @@ export const createUsuario = createServerFn({ method: "POST" })
   )
 
   .handler(async ({ data, context }) => {
-    // Only MASTER can create users
-    const { data: isMaster, error: mErr } = await context.supabase.rpc("is_master", {
-      _user_id: context.userId,
-    });
-    if (mErr) throw new Error(mErr.message);
-    if (!isMaster) throw new Error("Apenas o perfil Master pode criar usuários.");
+    // Only MASTER can create users (ensureMaster diferencia bloqueio por 2FA)
+    await ensureMaster(context.supabase, context.userId);
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

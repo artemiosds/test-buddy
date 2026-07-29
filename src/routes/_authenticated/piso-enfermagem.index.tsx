@@ -46,6 +46,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Pagination } from "@/components/shared/Pagination";
@@ -224,6 +235,22 @@ function PisoIndex() {
     queryFn: () => getResumoConsolidacao({ data: {} }),
   });
 
+  function baixarBase64(base64: string, filename: string) {
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(
+      new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const gerarMut = useMutation({
     mutationFn: (tipo: "contratados" | "efetivos" | "calculo_piso") =>
       gerarPlanilhaOficialPiso({
@@ -235,19 +262,7 @@ function PisoIndex() {
         },
       }),
     onSuccess: (r) => {
-      const bin = atob(r.base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const url = URL.createObjectURL(
-        new Blob([bytes], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        }),
-      );
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = r.filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      baixarBase64(r.base64, r.filename);
       toast.success(`Planilha gerada com ${r.total} profissional(is).`);
     },
     onError: (e: unknown) =>
@@ -257,6 +272,143 @@ function PisoIndex() {
           : "Falha ao gerar a planilha. Tente novamente.",
       ),
   });
+
+  const sanitizar = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toUpperCase()
+      .slice(0, 40);
+
+  const [baixandoUnidade, setBaixandoUnidade] = useState<string | null>(null);
+  const [baixandoHist, setBaixandoHist] = useState<string | null>(null);
+
+  async function baixarImportacao(
+    hist: { id: string; nome_arquivo?: string | null; competencia?: string | null },
+    tipo: "contratados" | "efetivos" | "calculo_piso",
+  ) {
+    setBaixandoHist(hist.id);
+    try {
+      const r = await gerarPlanilhaOficialPiso({
+        data: {
+          competencia: hist.competencia || "",
+          tipo,
+          historico_id: hist.id,
+        },
+      });
+      if (!r.total) {
+        toast.error("Nenhum profissional consolidado nesta importação.");
+        return;
+      }
+      const sufixo = sanitizar(String(hist.nome_arquivo ?? "IMPORTACAO").replace(/\.[^.]+$/, ""));
+      baixarBase64(r.base64, r.filename.replace(/\.xlsx$/i, `-${sufixo}.xlsx`));
+      toast.success(`Arquivo gerado com ${r.total} profissional(is).`);
+    } catch (e) {
+      toast.error(
+        e instanceof Error && e.message
+          ? `Falha ao gerar o arquivo: ${e.message}`
+          : "Falha ao gerar o arquivo desta importação.",
+      );
+    } finally {
+      setBaixandoHist(null);
+    }
+  }
+
+
+
+  async function baixarPorUnidade(
+    tipo: "contratados" | "efetivos" | "calculo_piso",
+    alvo?: { id: string; nome: string },
+  ) {
+    const lista = alvo ? [alvo] : (unidadesQ.data ?? []).map((u) => ({ id: u.id, nome: u.nome }));
+    if (!lista.length) {
+      toast.error("Nenhuma unidade disponível.");
+      return;
+    }
+    setBaixandoUnidade(alvo?.id ?? "todas");
+    let gerados = 0;
+    let vazias = 0;
+    try {
+      for (const u of lista) {
+        try {
+          const r = await gerarPlanilhaOficialPiso({
+            data: {
+              competencia: competenciaAtiva ?? "",
+              tipo,
+              unidade_id: u.id,
+              categoria: categoria || null,
+            },
+          });
+          if (!r.total) {
+            vazias++;
+            continue;
+          }
+          baixarBase64(r.base64, r.filename.replace(/\.xlsx$/i, `-${sanitizar(u.nome)}.xlsx`));
+          gerados++;
+          await new Promise((res) => setTimeout(res, 350));
+        } catch {
+          toast.error(`Falha ao gerar a planilha da unidade ${u.nome}.`);
+        }
+      }
+      if (gerados) {
+        toast.success(
+          `${gerados} arquivo(s) gerado(s)${vazias ? ` · ${vazias} unidade(s) sem elegíveis` : ""}.`,
+        );
+      } else {
+        toast.error("Nenhum profissional elegível nas unidades selecionadas.");
+      }
+    } finally {
+      setBaixandoUnidade(null);
+    }
+  }
+
+  const [baixandoPiso, setBaixandoPiso] = useState<string | null>(null);
+
+  /** "2026-07" -> "JULHO" */
+  function rotuloMesLocal(comp: string) {
+    const m = /^(\d{4})-(\d{2})/.exec((comp ?? "").trim());
+    const meses = [
+      "JANEIRO",
+      "FEVEREIRO",
+      "MARCO",
+      "ABRIL",
+      "MAIO",
+      "JUNHO",
+      "JULHO",
+      "AGOSTO",
+      "SETEMBRO",
+      "OUTUBRO",
+      "NOVEMBRO",
+      "DEZEMBRO",
+    ];
+    return m ? (meses[Number(m[2]) - 1] ?? comp) : comp;
+  }
+
+  /** Planilha oficial de envio (layout "piso-enfermagem"), sem fórmulas, por CPF. */
+  async function baixarPisoEnfermagem(comp: string) {
+    setBaixandoPiso(comp);
+    try {
+      const r = await gerarPlanilhaOficialPiso({
+        data: { competencia: comp, tipo: "piso_enfermagem" },
+      });
+      if (!r.total) {
+        toast.error("Nenhum profissional consolidado nesta competência.");
+        return;
+      }
+      baixarBase64(r.base64, r.filename);
+      toast.success(`Planilha gerada com ${r.total} profissional(is).`);
+    } catch (e) {
+      toast.error(
+        e instanceof Error && e.message
+          ? `Falha ao gerar a planilha: ${e.message}`
+          : "Falha ao gerar a planilha oficial.",
+      );
+    } finally {
+      setBaixandoPiso(null);
+    }
+  }
 
 
   const reprocessarComp = useMutation({
@@ -624,16 +776,60 @@ function PisoIndex() {
               : "Baixar Cálculo Piso"}
           </Button>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" disabled={!competenciaAtiva || !!baixandoUnidade}>
+                <Download className="mr-2 h-4 w-4" />
+                {baixandoUnidade ? "Gerando..." : "Baixar por unidade"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-96 w-72 overflow-y-auto">
+              <DropdownMenuLabel>Um arquivo por unidade</DropdownMenuLabel>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Todas as unidades</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => baixarPorUnidade("contratados")}>
+                    Planilha (3)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => baixarPorUnidade("efetivos")}>
+                    FOPAG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => baixarPorUnidade("calculo_piso")}>
+                    Cálculo Piso
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              {(unidadesQ.data ?? []).map((u) => (
+                <DropdownMenuSub key={u.id}>
+                  <DropdownMenuSubTrigger className="truncate">{u.nome}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      onClick={() => baixarPorUnidade("contratados", { id: u.id, nome: u.nome })}
+                    >
+                      Planilha (3)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => baixarPorUnidade("efetivos", { id: u.id, nome: u.nome })}
+                    >
+                      FOPAG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => baixarPorUnidade("calculo_piso", { id: u.id, nome: u.nome })}
+                    >
+                      Cálculo Piso
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
 
 
           <Button asChild variant="outline" size="sm">
             <Link to="/relatorios-piso">
               <FileBarChart className="mr-2 h-4 w-4" /> Relatórios
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/piso-enfermagem/referencia">
-              <Settings className="mr-2 h-4 w-4" /> Tabela de Referência
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
@@ -733,19 +929,6 @@ function PisoIndex() {
             />
           </div>
 
-          {(resumo?.semReferencia ?? 0) > 0 && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="flex-1">
-                {resumo?.semReferencia} profissional(is) sem valor de referência cadastrado para
-                esta competência — a complementação não é calculada até que a Tabela de Referência
-                seja preenchida.
-              </span>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/piso-enfermagem/referencia">Definir valores</Link>
-              </Button>
-            </div>
-          )}
 
 
           {/* ---------------------------- 3. Área de filtros ---------------------------- */}
@@ -1217,6 +1400,64 @@ function PisoIndex() {
                 >
                   <Download className="mr-2 h-4 w-4" /> Cálculo Piso (modelo oficial)
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={!competenciaAtiva || !!baixandoUnidade}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {baixandoUnidade ? "Gerando..." : "Por unidade (arquivos separados)"}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-96 w-72 overflow-y-auto">
+                    <DropdownMenuLabel>Um arquivo por unidade</DropdownMenuLabel>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Todas as unidades</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => baixarPorUnidade("contratados")}>
+                          Planilha (3)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => baixarPorUnidade("efetivos")}>
+                          FOPAG
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => baixarPorUnidade("calculo_piso")}>
+                          Cálculo Piso
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    {(unidadesQ.data ?? []).map((u) => (
+                      <DropdownMenuSub key={u.id}>
+                        <DropdownMenuSubTrigger className="truncate">
+                          {u.nome}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              baixarPorUnidade("contratados", { id: u.id, nome: u.nome })
+                            }
+                          >
+                            Planilha (3)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => baixarPorUnidade("efetivos", { id: u.id, nome: u.nome })}
+                          >
+                            FOPAG
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              baixarPorUnidade("calculo_piso", { id: u.id, nome: u.nome })
+                            }
+                          >
+                            Cálculo Piso
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {!competenciaAtiva && (
                   <span className="text-xs text-muted-foreground">
                     Selecione uma competência para habilitar os downloads.
@@ -1255,7 +1496,49 @@ function PisoIndex() {
                     header: "Status",
                     cell: (r) => <Badge variant="secondary">{String(r.status ?? "—")}</Badge>,
                   },
+                  {
+                    key: "acoes",
+                    header: "Baixar",
+                    cell: (r) => {
+                      const hist = {
+                        id: String(r.id ?? ""),
+                        nome_arquivo: (r.nome_arquivo as string) ?? null,
+                        competencia: (r.competencia as string) ?? null,
+                      };
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={baixandoHist === hist.id || !hist.id}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              {baixandoHist === hist.id ? "Gerando..." : "Baixar"}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Somente esta importação</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => baixarImportacao(hist, "contratados")}
+                            >
+                              Planilha (3)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => baixarImportacao(hist, "efetivos")}>
+                              FOPAG
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => baixarImportacao(hist, "calculo_piso")}
+                            >
+                              Cálculo Piso
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    },
+                  },
                 ]}
+
               />
             </TabsContent>
 
@@ -1382,9 +1665,57 @@ function PisoIndex() {
 
             {/* ---------------------------- Auditoria ---------------------------- */}
             <TabsContent value="auditoria">
+              <Card className="mb-4 p-4">
+                <div className="mb-1 flex items-center gap-2 text-sm font-medium">
+                  <FileBarChart className="h-4 w-4" /> Laudo de auditoria — Planilha oficial do
+                  Piso
+                </div>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Arquivo fiel ao layout de envio (11 colunas, sem fórmulas), chaveado pelo CPF do
+                  profissional, com os dados consolidados de efetivos e contratados da competência.
+                </p>
+                <div className="divide-y rounded-md border">
+                  {(consolQ.data?.competencias ?? []).length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground">
+                      Nenhuma competência consolidada ainda.
+                    </div>
+                  ) : (
+                    (consolQ.data?.competencias ?? []).map((c) => (
+                      <div
+                        key={`laudo-${c.competencia}`}
+                        className="flex flex-wrap items-center justify-between gap-2 p-3"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">
+                            PISO DE ENFERMAGEM — {rotuloMesLocal(c.competencia)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {c.competencia} · {c.total} registro(s) · {c.consolidados}{" "}
+                            consolidado(s)
+                            {c.divergentes ? ` · ${c.divergentes} divergência(s)` : ""}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!!baixandoPiso}
+                          onClick={() => baixarPisoEnfermagem(c.competencia)}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {baixandoPiso === c.competencia
+                            ? "Gerando..."
+                            : `Baixar piso-enfermagem_${rotuloMesLocal(c.competencia)}`}
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+
               <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                 <ShieldCheck className="h-4 w-4" /> Trilha das operações de importação do módulo.
               </div>
+
               <DataTable<Record<string, unknown>>
                 rows={historico}
                 getRowKey={(r, i) => String(r.id ?? i) + "-aud"}

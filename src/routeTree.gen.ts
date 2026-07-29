@@ -64,7 +64,6 @@ import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from '
 import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
 import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
 import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
-import { Route as AuthenticatedPisoEnfermagemReferenciaRouteImport } from './routes/_authenticated/piso-enfermagem.referencia'
 import { Route as AuthenticatedPisoEnfermagemImportarEfetivosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-efetivos'
 import { Route as AuthenticatedPisoEnfermagemImportarContratadosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-contratados'
 import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
@@ -393,12 +392,6 @@ const AuthenticatedProfissionaisIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedProfissionaisRoute,
   } as any)
-const AuthenticatedPisoEnfermagemReferenciaRoute =
-  AuthenticatedPisoEnfermagemReferenciaRouteImport.update({
-    id: '/piso-enfermagem/referencia',
-    path: '/piso-enfermagem/referencia',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedPisoEnfermagemImportarEfetivosRoute =
   AuthenticatedPisoEnfermagemImportarEfetivosRouteImport.update({
     id: '/piso-enfermagem/importar-efetivos',
@@ -559,7 +552,6 @@ export interface FileRoutesByFullPath {
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   '/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
-  '/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -633,7 +625,6 @@ export interface FileRoutesByTo {
   '/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   '/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
-  '/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -710,7 +701,6 @@ export interface FileRoutesById {
   '/_authenticated/piso-enfermagem/importar': typeof AuthenticatedPisoEnfermagemImportarRoute
   '/_authenticated/piso-enfermagem/importar-contratados': typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   '/_authenticated/piso-enfermagem/importar-efetivos': typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
-  '/_authenticated/piso-enfermagem/referencia': typeof AuthenticatedPisoEnfermagemReferenciaRoute
   '/_authenticated/profissionais/$id': typeof AuthenticatedProfissionaisIdRoute
   '/_authenticated/relatorios-gerenciais/auditoria': typeof AuthenticatedRelatoriosGerenciaisAuditoriaRoute
   '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
@@ -787,7 +777,6 @@ export interface FileRouteTypes {
     | '/piso-enfermagem/importar'
     | '/piso-enfermagem/importar-contratados'
     | '/piso-enfermagem/importar-efetivos'
-    | '/piso-enfermagem/referencia'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
@@ -861,7 +850,6 @@ export interface FileRouteTypes {
     | '/piso-enfermagem/importar'
     | '/piso-enfermagem/importar-contratados'
     | '/piso-enfermagem/importar-efetivos'
-    | '/piso-enfermagem/referencia'
     | '/profissionais/$id'
     | '/relatorios-gerenciais/auditoria'
     | '/relatorios-gerenciais/cargos'
@@ -937,7 +925,6 @@ export interface FileRouteTypes {
     | '/_authenticated/piso-enfermagem/importar'
     | '/_authenticated/piso-enfermagem/importar-contratados'
     | '/_authenticated/piso-enfermagem/importar-efetivos'
-    | '/_authenticated/piso-enfermagem/referencia'
     | '/_authenticated/profissionais/$id'
     | '/_authenticated/relatorios-gerenciais/auditoria'
     | '/_authenticated/relatorios-gerenciais/cargos'
@@ -1357,13 +1344,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
       parentRoute: typeof AuthenticatedProfissionaisRoute
     }
-    '/_authenticated/piso-enfermagem/referencia': {
-      id: '/_authenticated/piso-enfermagem/referencia'
-      path: '/piso-enfermagem/referencia'
-      fullPath: '/piso-enfermagem/referencia'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemReferenciaRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/piso-enfermagem/importar-efetivos': {
       id: '/_authenticated/piso-enfermagem/importar-efetivos'
       path: '/piso-enfermagem/importar-efetivos'
@@ -1664,7 +1644,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPisoEnfermagemImportarRoute: typeof AuthenticatedPisoEnfermagemImportarRoute
   AuthenticatedPisoEnfermagemImportarContratadosRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   AuthenticatedPisoEnfermagemImportarEfetivosRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
-  AuthenticatedPisoEnfermagemReferenciaRoute: typeof AuthenticatedPisoEnfermagemReferenciaRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedPisoEnfermagemIndexRoute: typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -1731,8 +1710,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedPisoEnfermagemImportarContratadosRoute,
   AuthenticatedPisoEnfermagemImportarEfetivosRoute:
     AuthenticatedPisoEnfermagemImportarEfetivosRoute,
-  AuthenticatedPisoEnfermagemReferenciaRoute:
-    AuthenticatedPisoEnfermagemReferenciaRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedPisoEnfermagemIndexRoute: AuthenticatedPisoEnfermagemIndexRoute,
