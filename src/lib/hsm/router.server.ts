@@ -56,13 +56,19 @@ export async function montarCadeia(supabase: unknown, intencao: Intencao): Promi
   let cfgs = cadeia.provedores;
 
   // Sem provedores cadastrados → usa o gateway Lovable já provisionado.
+  // O modelo varia com a intenção: perguntas rápidas e o planejamento usam um
+  // modelo leve (respostas em segundos), análises usam o modelo forte.
   if (cfgs.length === 0) {
+    const modelo =
+      intencao === "rapido" || intencao === "documento"
+        ? "openai/gpt-5.6-luna"
+        : "openai/gpt-5.6-terra";
     cfgs = [
       {
         id: "gateway",
         tipo: "lovable",
         nome: "Lovable AI Gateway",
-        modelo: "openai/gpt-5.6-sol",
+        modelo,
         base_url: null,
         api_key: null,
         timeout_ms: 120000,
@@ -72,6 +78,7 @@ export async function montarCadeia(supabase: unknown, intencao: Intencao): Promi
       },
     ];
   }
+
 
   const ordenados =
     cadeia.modo === "manual"

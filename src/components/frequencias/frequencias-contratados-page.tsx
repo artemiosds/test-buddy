@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { PisoFolhaResumo } from "@/components/piso/piso-folha-resumo";
 import {
   Save,
   Send,
@@ -705,11 +704,6 @@ export function FrequenciasContratadosPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Contratados" />
-      <PisoFolhaResumo
-        competencia={
-          compSel ? `${compSel.ano}-${String(compSel.mes).padStart(2, "0")}` : null
-        }
-      />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

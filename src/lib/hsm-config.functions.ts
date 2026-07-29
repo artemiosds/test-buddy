@@ -95,7 +95,11 @@ export const salvarHsmConfig = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { normalizarHsmConfig } = await import("./hsm/config.server");
+    // Invalida a memoização curta usada pelo assistente para responder mais rápido.
+    const { limparMemo } = await import("./hsm/memo.server");
+    limparMemo("hsm:");
     return normalizarHsmConfig(cfg);
+
   });
 
 /** Fase 7 — painel de estatísticas do HSM Expert (somente Master). */

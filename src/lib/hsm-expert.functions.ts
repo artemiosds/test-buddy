@@ -169,11 +169,19 @@ async function contextoTexto(
   supabase: any,
   ctx: HsmContexto,
   perfil: Record<string, unknown> | null,
+  userId?: string,
 ): Promise<string> {
   const { resolverContexto } = await import("./hsm/contexto.server");
-  const resolvido = await resolverContexto(supabase, perfil, ctx);
-  return resolvido.texto;
+  const { memo } = await import("./hsm/memo.server");
+  // Os indicadores institucionais mudam pouco entre dois turnos da conversa:
+  // memoizar por 45s corta várias consultas do caminho crítico da resposta.
+  const chave = userId
+    ? `hsm:ctx:${userId}:${JSON.stringify([ctx?.rota, ctx?.unidade, ctx?.competencia, ctx?.profissional, ctx?.filtros])}`
+    : "";
+  const calcular = async () => (await resolverContexto(supabase, perfil, ctx)).texto;
+  return chave ? memo(chave, 45_000, calcular) : calcular();
 }
+
 
 async function auditar(
   supabase: any,
@@ -232,34 +240,31 @@ async function gravarAssistente(
   return data as unknown as HsmMensagem;
 }
 
-async function contarMensagensRecentes(supabase: any, minutos: number): Promise<number> {
-  const desde = new Date(Date.now() - minutos * 60_000).toISOString();
-  const { data: conversas } = await supabase.from("hsm_conversas").select("id").limit(200);
-  const ids = ((conversas ?? []) as { id: string }[]).map((c) => c.id);
-  if (ids.length === 0) return 0;
-  const { count } = await supabase
-    .from("hsm_mensagens")
-    .select("id", { count: "exact", head: true })
-    .eq("papel", "user")
-    .gte("created_at", desde)
-    .in("conversa_id", ids);
-  return count ?? 0;
-}
-
-async function contarMensagensDia(supabase: any): Promise<number> {
-  const desde = new Date();
-  desde.setHours(0, 0, 0, 0);
+/**
+ * Uso do usuário no dia (e no último minuto) em uma única leitura.
+ * Antes eram quatro consultas sequenciais no caminho crítico da resposta.
+ */
+async function contarUso(supabase: any): Promise<{ minuto: number; dia: number }> {
+  const inicioDia = new Date();
+  inicioDia.setHours(0, 0, 0, 0);
   const { data: conversas } = await supabase.from("hsm_conversas").select("id").limit(500);
   const ids = ((conversas ?? []) as { id: string }[]).map((c) => c.id);
-  if (ids.length === 0) return 0;
-  const { count } = await supabase
+  if (ids.length === 0) return { minuto: 0, dia: 0 };
+  const { data } = await supabase
     .from("hsm_mensagens")
-    .select("id", { count: "exact", head: true })
+    .select("created_at")
     .eq("papel", "user")
-    .gte("created_at", desde.toISOString())
-    .in("conversa_id", ids);
-  return count ?? 0;
+    .gte("created_at", inicioDia.toISOString())
+    .in("conversa_id", ids)
+    .limit(5000);
+  const linhas = (data ?? []) as { created_at: string }[];
+  const corte = Date.now() - 60_000;
+  return {
+    dia: linhas.length,
+    minuto: linhas.filter((l) => new Date(l.created_at).getTime() >= corte).length,
+  };
 }
+
 
 export const enviarMensagemHSM = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -268,14 +273,23 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     const supabase = context.supabase as any;
     const inicio = Date.now();
 
-    const { ferramenta, ferramentasPermitidas, catalogoParaPrompt, filtrarPorAgente } = await import(
-      "./hsm/tools.server"
-    );
-    const { conversar, classificarIntencao, extrairJson } = await import("./hsm/router.server");
-    const { carregarHsmConfig, filtrarFerramentasPorConfig } = await import("./hsm/config.server");
-    const { agentePorSlug, agentesDisponiveis } = await import("./hsm/agentes");
+    const [
+      { ferramenta, ferramentasPermitidas, catalogoParaPrompt, filtrarPorAgente },
+      { conversar, classificarIntencao, extrairJson },
+      { carregarHsmConfig, filtrarFerramentasPorConfig },
+      { agentePorSlug, agentesDisponiveis },
+      { memo },
+    ] = await Promise.all([
+      import("./hsm/tools.server"),
+      import("./hsm/router.server"),
+      import("./hsm/config.server"),
+      import("./hsm/agentes"),
+      import("./hsm/memo.server"),
+    ]);
 
-    const config = await carregarHsmConfig(supabase);
+    // A configuração é global e muda raramente: memoizar 60s remove uma ida ao
+    // banco de todo turno da conversa.
+    const config = await memo("hsm:config", 60_000, () => carregarHsmConfig(supabase));
     const permitidosSlugs = agentesDisponiveis(config.agentes_habilitados).map((a) => a.slug);
     const agente = agentePorSlug(
       permitidosSlugs.includes(data.agente) ? data.agente : "geral",
@@ -283,15 +297,10 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
 
     const conversaId = await garantirConversa(supabase, data.conversa_id, data.texto, agente.slug);
 
-
-    const { error: errUser } = await supabase.from("hsm_mensagens").insert({
-      conversa_id: conversaId,
-      papel: "user",
-      conteudo: data.texto,
-    });
-    if (errUser) throw new Error(errUser.message);
-
     if (!config.ativo) {
+      await supabase
+        .from("hsm_mensagens")
+        .insert({ conversa_id: conversaId, papel: "user", conteudo: data.texto });
       const mensagem = await gravarAssistente(supabase, conversaId, {
         conteudo: "O HSM Expert está temporariamente desativado pela configuração administrativa.",
         duracao_ms: Date.now() - inicio,
@@ -299,11 +308,29 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       return { conversa_id: conversaId, mensagem, confirmacao: null, exportacao: null };
     }
 
-    const [minutoAtual, diaAtual] = await Promise.all([
-      contarMensagensRecentes(supabase, 1),
-      contarMensagensDia(supabase),
+    const ctxTools = { supabase, userId: context.userId };
+
+    // Tudo o que não depende um do outro roda em paralelo — antes eram cerca de
+    // dez idas ao banco em sequência antes da IA sequer começar a pensar.
+    const [, uso, histRes, perfilRes, todasFerramentas] = await Promise.all([
+      supabase
+        .from("hsm_mensagens")
+        .insert({ conversa_id: conversaId, papel: "user", conteudo: data.texto }),
+      contarUso(supabase),
+      supabase
+        .from("hsm_mensagens")
+        .select("papel, conteudo")
+        .eq("conversa_id", conversaId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase.rpc("get_my_user_context"),
+      memo(`hsm:tools:${context.userId}`, 60_000, () => ferramentasPermitidas(ctxTools)),
     ]);
-    if (minutoAtual > config.limites.mensagens_por_minuto || diaAtual > config.limites.mensagens_por_dia) {
+
+    if (
+      uso.minuto > config.limites.mensagens_por_minuto ||
+      uso.dia > config.limites.mensagens_por_dia
+    ) {
       const mensagem = await gravarAssistente(supabase, conversaId, {
         conteudo:
           "O limite de uso do HSM Expert foi atingido para este período. Aguarde alguns instantes ou solicite ajuste na configuração administrativa.",
@@ -312,25 +339,22 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       return { conversa_id: conversaId, mensagem, confirmacao: null, exportacao: null };
     }
 
-    const [{ data: hist }, { data: perfilRows }] = await Promise.all([
-      supabase
-        .from("hsm_mensagens")
-        .select("papel, conteudo")
-        .eq("conversa_id", conversaId)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase.rpc("get_my_user_context"),
-    ]);
-    const historico = ((hist ?? []) as Msg[]).slice().reverse();
+    const historico = ((histRes?.data ?? []) as Msg[]).slice().reverse();
+    const perfilRows = perfilRes?.data;
     const perfil = Array.isArray(perfilRows) ? perfilRows[0] : perfilRows;
 
-    const ctxTools = { supabase, userId: context.userId };
     const disponiveis = filtrarPorAgente(
-      filtrarFerramentasPorConfig(await ferramentasPermitidas(ctxTools), config),
+      filtrarFerramentasPorConfig(todasFerramentas, config),
       agente.slug,
     );
     const intencao = classificarIntencao(data.texto);
-    const ctxTexto = await contextoTexto(supabase, data.contexto as HsmContexto, perfil ?? null);
+    const ctxTexto = await contextoTexto(
+      supabase,
+      data.contexto as HsmContexto,
+      perfil ?? null,
+      context.userId,
+    );
+
 
     // ---------------------------------------------------------------------
     // Etapa 1 — planejamento: o modelo apenas ESCOLHE uma ferramenta.
@@ -354,8 +378,12 @@ Nunca invente nomes de ferramentas. Se a pergunta não exigir dados do sistema, 
     let plano: { ferramenta?: string | null; argumentos?: Record<string, unknown> } | null = null;
     let modeloPlano = "";
     let provedorPlano = "";
+    // Sem ferramentas disponíveis não há o que planejar: pula uma chamada
+    // inteira de IA e responde direto.
     try {
+      if (disponiveis.length === 0) throw { pular: true };
       const entradaPlano = `Histórico recente:\n${historicoTexto(historico)}\n\nPergunta: ${data.texto}`;
+
       const r = await conversar({
         supabase,
         intencao: "rapido",
@@ -377,7 +405,9 @@ Nunca invente nomes de ferramentas. Se a pergunta não exigir dados do sistema, 
         ...medirUso(r.modelo, `${planejador}\n${entradaPlano}`, r.texto),
       });
     } catch (e) {
+      if ((e as { pular?: boolean })?.pular !== true) {
       const msg = e instanceof Error ? e.message : "Falha ao contatar a IA.";
+
       await auditar(supabase, context.userId, {
         conversa_id: conversaId,
         agente: agente.slug,
@@ -390,7 +420,9 @@ Nunca invente nomes de ferramentas. Se a pergunta não exigir dados do sistema, 
         erro: msg,
       });
       return { conversa_id: conversaId, mensagem, confirmacao: null, exportacao: null };
+      }
     }
+
 
 
     // ---------------------------------------------------------------------
@@ -634,7 +666,7 @@ ${p.ctxTexto || "(sem contexto adicional)"}`;
   const dadosTexto = p.resultado
     ? `Resultado da consulta ao sistema (ferramenta ${p.resultado.nome}): ${p.resultado.resumo}\nDados: ${JSON.stringify(
         p.resultado.dados,
-      ).slice(0, 24000)}`
+      ).slice(0, 12000)}`
     : "Nenhuma consulta ao sistema foi necessária.";
 
   const entrada = `Histórico recente:\n${historicoTexto(p.historico)}\n\nPergunta do usuário: ${p.pergunta}\n\n${dadosTexto}`;
