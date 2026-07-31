@@ -107,6 +107,8 @@ const CommitInput = z.object({
   tipo_arquivo: TIPO_ARQ,
   competencia: z.string().nullable().optional(),
   mapeamento: z.record(z.string(), z.string().nullable()).default({}),
+  /** Modelo de planilha (ex.: UBS) usado como fonte de estrutura/fórmulas. */
+  modelo_planilha_id: z.string().uuid().nullable().optional(),
   linhas: z.array(LinhaSchema).max(20000),
 });
 
@@ -169,6 +171,7 @@ export const commitImportPiso = createServerFn({ method: "POST" })
         tipo_arquivo: data.tipo_arquivo,
         competencia: data.competencia ?? null,
         mapeamento: data.mapeamento,
+        modelo_planilha_id: data.modelo_planilha_id ?? null,
         total_registros: data.linhas.length,
         registros_importados: importados,
         registros_divergentes: divergentes,
@@ -238,6 +241,8 @@ const StartInput = z.object({
   tipo_arquivo: TIPO_ARQ,
   competencia: z.string().nullable().optional(),
   mapeamento: z.record(z.string(), z.string().nullable()).default({}),
+  /** Modelo de planilha (ex.: UBS) usado como fonte de estrutura/fórmulas. */
+  modelo_planilha_id: z.string().uuid().nullable().optional(),
   total: z.number().int().nonnegative(),
 });
 
@@ -254,6 +259,7 @@ export const startImportPiso = createServerFn({ method: "POST" })
         tipo_arquivo: data.tipo_arquivo,
         competencia: data.competencia ?? null,
         mapeamento: data.mapeamento,
+        modelo_planilha_id: data.modelo_planilha_id ?? null,
         total_registros: data.total,
         registros_importados: 0,
         registros_divergentes: 0,

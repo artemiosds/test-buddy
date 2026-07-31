@@ -4,6 +4,7 @@
  * passam pelo cliente publishable (RLS aplica-se ao usuário logado).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
 
 export type ProfViewFilters = {
   q?: string | null;
@@ -121,8 +122,16 @@ export async function listProfissionais(filters: ProfViewFilters, page = 1, page
   if (filters.cargoId) query = query.eq("cargo_id", filters.cargoId);
   if (filters.funcaoId) query = query.eq("funcao_id", filters.funcaoId);
   if (filters.vinculoId) query = query.eq("vinculo_id", filters.vinculoId);
-  if (filters.status) query = query.eq("status", filters.status as never);
-  if (filters.situacao) query = query.eq("situacao_funcional", filters.situacao as never);
+  if (filters.status)
+    query = query.in("status", valoresDoFiltroSituacao(filters.status) as never[]);
+  // A situação pode estar em `situacao_funcional` (quando informada) ou apenas
+  // em `status` — o filtro cobre os dois campos e as variações detalhadas.
+  if (filters.situacao) {
+    const vals = valoresDoFiltroSituacao(filters.situacao);
+    const lista = vals.join(",");
+    query = query.or(`situacao_funcional.in.(${lista}),status.in.(${lista})`);
+  }
+
 
   const { data, count, error } = await query.order("nome_completo").range(from, to);
   if (error) throw error;

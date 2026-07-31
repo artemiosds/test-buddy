@@ -12,6 +12,7 @@ import {
   sumField,
   type FrequenciaRow,
 } from "@/lib/analytics-aggregations";
+import { contarPorGrupo, valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
 
 export type AnalyticsFilters = {
   competenciaId?: string | null;
@@ -44,7 +45,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (filters.cargoId) q.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) q.eq("funcao_id", filters.funcaoId);
       if (filters.vinculoId) q.eq("vinculo_id", filters.vinculoId);
-      if (filters.status) q.eq("status", filters.status as never);
+      if (filters.status) q.in("status", valoresDoFiltroSituacao(filters.status) as never[]);
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
@@ -143,20 +144,26 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     ],
     staleTime,
     queryFn: async () => {
-      let q = supabase.from("profissionais").select("status").is("deleted_at", null).limit(5000);
+      let q = supabase
+        .from("profissionais")
+        .select("status, situacao_funcional")
+        .is("deleted_at", null)
+        .limit(5000);
       if (filters.unidadeId) q = q.eq("unidade_id", filters.unidadeId);
       if (filters.setorId) q = q.eq("setor_id", filters.setorId);
       if (filters.cargoId) q = q.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) q = q.eq("funcao_id", filters.funcaoId);
       const { data, error } = await q;
       if (error) throw error;
-      const acc: Record<string, number> = {};
-      for (const r of data ?? []) {
-        const s = (r as { status: string | null }).status ?? "indefinido";
-        acc[s] = (acc[s] ?? 0) + 1;
-      }
+      // O cadastro usa situações detalhadas (afastamento_inss, licenca_saude,
+      // falta_pad…). Aqui elas são consolidadas nos grupos dos painéis.
+      const rows = (data ?? []) as { status: string | null; situacao_funcional: string | null }[];
+      const acc: Record<string, number> = contarPorGrupo(
+        rows.map((r) => r.situacao_funcional ?? r.status),
+      );
       return acc;
     },
+
   });
 
   const vinculoBreakdown = useQuery({
@@ -587,7 +594,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (filters.cargoId) q = q.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) q = q.eq("funcao_id", filters.funcaoId);
       if (filters.vinculoId) q = q.eq("vinculo_id", filters.vinculoId);
-      if (filters.status) q = q.eq("status", filters.status as never);
+      if (filters.status) q = q.in("status", valoresDoFiltroSituacao(filters.status) as never[]);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as Array<{

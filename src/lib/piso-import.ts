@@ -5,7 +5,11 @@
 import { onlyDigits, parseNumeric, type PisoDestino } from "./piso-mapping";
 import { normCpf, normMatricula } from "./piso-match";
 
-export type Mapeamento = Record<string, PisoDestino | null>;
+/**
+ * Destino de cada coluna. Aceita os campos do sistema e também chaves livres de
+ * campos personalizados criados pelo usuário (prefixo `extra_`).
+ */
+export type Mapeamento = Record<string, PisoDestino | (string & {}) | null>;
 
 export type RawRow = Record<string, unknown>;
 
@@ -69,12 +73,20 @@ function isNumericKey(k: PisoDestino): boolean {
   return NUMERIC_KEYS.includes(k);
 }
 
-function applyMap(row: RawRow, mapeamento: Mapeamento): Partial<ResolvedRow> {
+/**
+ * `numericos` recebe chaves de campos personalizados criados pelo usuário que
+ * devem ser lidos como valor monetário (ex.: extra_grat_incentivo).
+ */
+function applyMap(
+  row: RawRow,
+  mapeamento: Mapeamento,
+  numericos?: ReadonlySet<string>,
+): Partial<ResolvedRow> {
   const out: Record<string, unknown> = {};
   for (const [header, dest] of Object.entries(mapeamento)) {
     if (!dest) continue;
     const raw = row[header];
-    if (isNumericKey(dest)) {
+    if (isNumericKey(dest as PisoDestino) || numericos?.has(dest)) {
       out[dest] = parseNumeric(raw);
     } else if (dest === "cpf") {
       const d = onlyDigits(raw);
@@ -155,9 +167,11 @@ export function resolveRows(
   rows: RawRow[],
   mapeamento: Mapeamento,
   maps: MatchMaps,
+  opts?: { numericos?: readonly string[] },
 ): ResolvedRow[] {
+  const numericos = opts?.numericos?.length ? new Set(opts.numericos) : undefined;
   return rows.map((raw) => {
-    const partial = applyMap(raw, mapeamento);
+    const partial = applyMap(raw, mapeamento, numericos);
     const base = { ...empty(), ...partial };
     const m = resolveMatch(base, maps);
     return { ...base, ...m };

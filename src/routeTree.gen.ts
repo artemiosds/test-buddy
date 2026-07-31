@@ -58,7 +58,6 @@ import { Route as AuthenticatedRelatoriosGerenciaisUnidadesRouteImport } from '.
 import { Route as AuthenticatedRelatoriosGerenciaisSetoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.setores'
 import { Route as AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport } from './routes/_authenticated/relatorios-gerenciais.profissionais'
 import { Route as AuthenticatedRelatoriosGerenciaisPisoRouteImport } from './routes/_authenticated/relatorios-gerenciais.piso'
-import { Route as AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.indicadores'
 import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './routes/_authenticated/relatorios-gerenciais.funcoes'
 import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
 import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
@@ -79,6 +78,7 @@ import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes
 import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_authenticated/configuracao.perfis'
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
 import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
+import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
@@ -356,12 +356,6 @@ const AuthenticatedRelatoriosGerenciaisPisoRoute =
     path: '/piso',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisIndicadoresRoute =
-  AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport.update({
-    id: '/indicadores',
-    path: '/indicadores',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
-  } as any)
 const AuthenticatedRelatoriosGerenciaisFuncoesRoute =
   AuthenticatedRelatoriosGerenciaisFuncoesRouteImport.update({
     id: '/funcoes',
@@ -480,6 +474,12 @@ const AuthenticatedCargosIdRoute = AuthenticatedCargosIdRouteImport.update({
   path: '/cargos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicHooksPurgarDocumentosRoute =
+  ApiPublicHooksPurgarDocumentosRouteImport.update({
+    id: '/api/public/hooks/purgar-documentos',
+    path: '/api/public/hooks/purgar-documentos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksEventosWorkerRoute =
   ApiPublicHooksEventosWorkerRouteImport.update({
     id: '/api/public/hooks/eventos-worker',
@@ -557,7 +557,6 @@ export interface FileRoutesByFullPath {
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
-  '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
   '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
@@ -572,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -630,7 +630,6 @@ export interface FileRoutesByTo {
   '/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
-  '/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
   '/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
@@ -645,6 +644,7 @@ export interface FileRoutesByTo {
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -706,7 +706,6 @@ export interface FileRoutesById {
   '/_authenticated/relatorios-gerenciais/cargos': typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   '/_authenticated/relatorios-gerenciais/estrutura': typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   '/_authenticated/relatorios-gerenciais/funcoes': typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
-  '/_authenticated/relatorios-gerenciais/indicadores': typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
   '/_authenticated/relatorios-gerenciais/piso': typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   '/_authenticated/relatorios-gerenciais/profissionais': typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   '/_authenticated/relatorios-gerenciais/setores': typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
@@ -721,6 +720,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -782,7 +782,6 @@ export interface FileRouteTypes {
     | '/relatorios-gerenciais/cargos'
     | '/relatorios-gerenciais/estrutura'
     | '/relatorios-gerenciais/funcoes'
-    | '/relatorios-gerenciais/indicadores'
     | '/relatorios-gerenciais/piso'
     | '/relatorios-gerenciais/profissionais'
     | '/relatorios-gerenciais/setores'
@@ -797,6 +796,7 @@ export interface FileRouteTypes {
     | '/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/purgar-documentos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -855,7 +855,6 @@ export interface FileRouteTypes {
     | '/relatorios-gerenciais/cargos'
     | '/relatorios-gerenciais/estrutura'
     | '/relatorios-gerenciais/funcoes'
-    | '/relatorios-gerenciais/indicadores'
     | '/relatorios-gerenciais/piso'
     | '/relatorios-gerenciais/profissionais'
     | '/relatorios-gerenciais/setores'
@@ -870,6 +869,7 @@ export interface FileRouteTypes {
     | '/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/purgar-documentos'
   id:
     | '__root__'
     | '/_authenticated'
@@ -930,7 +930,6 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios-gerenciais/cargos'
     | '/_authenticated/relatorios-gerenciais/estrutura'
     | '/_authenticated/relatorios-gerenciais/funcoes'
-    | '/_authenticated/relatorios-gerenciais/indicadores'
     | '/_authenticated/relatorios-gerenciais/piso'
     | '/_authenticated/relatorios-gerenciais/profissionais'
     | '/_authenticated/relatorios-gerenciais/setores'
@@ -945,6 +944,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracao/perfis/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/purgar-documentos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -955,6 +955,7 @@ export interface RootRouteChildren {
   ValidarIdRoute: typeof ValidarIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
+  ApiPublicHooksPurgarDocumentosRoute: typeof ApiPublicHooksPurgarDocumentosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1302,13 +1303,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
-    '/_authenticated/relatorios-gerenciais/indicadores': {
-      id: '/_authenticated/relatorios-gerenciais/indicadores'
-      path: '/indicadores'
-      fullPath: '/relatorios-gerenciais/indicadores'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisIndicadoresRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
     '/_authenticated/relatorios-gerenciais/funcoes': {
       id: '/_authenticated/relatorios-gerenciais/funcoes'
       path: '/funcoes'
@@ -1449,6 +1443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCargosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/hooks/purgar-documentos': {
+      id: '/api/public/hooks/purgar-documentos'
+      path: '/api/public/hooks/purgar-documentos'
+      fullPath: '/api/public/hooks/purgar-documentos'
+      preLoaderRoute: typeof ApiPublicHooksPurgarDocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/eventos-worker': {
       id: '/api/public/hooks/eventos-worker'
       path: '/api/public/hooks/eventos-worker'
@@ -1536,7 +1537,6 @@ interface AuthenticatedRelatoriosGerenciaisRouteChildren {
   AuthenticatedRelatoriosGerenciaisCargosRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRoute
   AuthenticatedRelatoriosGerenciaisEstruturaRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRoute
   AuthenticatedRelatoriosGerenciaisFuncoesRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRoute
-  AuthenticatedRelatoriosGerenciaisIndicadoresRoute: typeof AuthenticatedRelatoriosGerenciaisIndicadoresRoute
   AuthenticatedRelatoriosGerenciaisPisoRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRoute
   AuthenticatedRelatoriosGerenciaisProfissionaisRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRoute
   AuthenticatedRelatoriosGerenciaisSetoresRoute: typeof AuthenticatedRelatoriosGerenciaisSetoresRoute
@@ -1554,8 +1554,6 @@ const AuthenticatedRelatoriosGerenciaisRouteChildren: AuthenticatedRelatoriosGer
       AuthenticatedRelatoriosGerenciaisEstruturaRoute,
     AuthenticatedRelatoriosGerenciaisFuncoesRoute:
       AuthenticatedRelatoriosGerenciaisFuncoesRoute,
-    AuthenticatedRelatoriosGerenciaisIndicadoresRoute:
-      AuthenticatedRelatoriosGerenciaisIndicadoresRoute,
     AuthenticatedRelatoriosGerenciaisPisoRoute:
       AuthenticatedRelatoriosGerenciaisPisoRoute,
     AuthenticatedRelatoriosGerenciaisProfissionaisRoute:
@@ -1728,6 +1726,7 @@ const rootRouteChildren: RootRouteChildren = {
   ValidarIdRoute: ValidarIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
+  ApiPublicHooksPurgarDocumentosRoute: ApiPublicHooksPurgarDocumentosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

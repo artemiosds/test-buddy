@@ -604,6 +604,7 @@ export type Database = {
           metadata: Json
           mime_type: string | null
           nome: string
+          purga_apos: string | null
           secretaria_id: string | null
           storage_path: string
           tamanho_bytes: number | null
@@ -626,6 +627,7 @@ export type Database = {
           metadata?: Json
           mime_type?: string | null
           nome: string
+          purga_apos?: string | null
           secretaria_id?: string | null
           storage_path: string
           tamanho_bytes?: number | null
@@ -648,6 +650,7 @@ export type Database = {
           metadata?: Json
           mime_type?: string | null
           nome?: string
+          purga_apos?: string | null
           secretaria_id?: string | null
           storage_path?: string
           tamanho_bytes?: number | null
@@ -1461,6 +1464,7 @@ export type Database = {
           importado_por: string | null
           mapeamento: Json
           modelo: string
+          modelo_planilha_id: string | null
           nome_arquivo: string
           registros_atualizados: number
           registros_divergentes: number
@@ -1482,6 +1486,7 @@ export type Database = {
           importado_por?: string | null
           mapeamento?: Json
           modelo: string
+          modelo_planilha_id?: string | null
           nome_arquivo: string
           registros_atualizados?: number
           registros_divergentes?: number
@@ -1503,6 +1508,7 @@ export type Database = {
           importado_por?: string | null
           mapeamento?: Json
           modelo?: string
+          modelo_planilha_id?: string | null
           nome_arquivo?: string
           registros_atualizados?: number
           registros_divergentes?: number
@@ -1515,7 +1521,15 @@ export type Database = {
           total_registros?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "historico_importacoes_modelo_planilha_id_fkey"
+            columns: ["modelo_planilha_id"]
+            isOneToOne: false
+            referencedRelation: "planilha_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hsm_auditoria: {
         Row: {
@@ -1761,30 +1775,90 @@ export type Database = {
           },
         ]
       }
+      import_alias_sugestoes: {
+        Row: {
+          alias: string
+          alias_norm: string
+          campo_interno: string
+          confirmacoes: number
+          created_at: string
+          criado_por: string | null
+          id: string
+          modulo: string
+          origem: string
+          status: string
+          updated_at: string
+          usuarios: string[]
+        }
+        Insert: {
+          alias: string
+          alias_norm: string
+          campo_interno: string
+          confirmacoes?: number
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modulo?: string
+          origem?: string
+          status?: string
+          updated_at?: string
+          usuarios?: string[]
+        }
+        Update: {
+          alias?: string
+          alias_norm?: string
+          campo_interno?: string
+          confirmacoes?: number
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modulo?: string
+          origem?: string
+          status?: string
+          updated_at?: string
+          usuarios?: string[]
+        }
+        Relationships: []
+      }
       import_campo_aliases: {
         Row: {
           alias: string
+          ativo: boolean
           campo_interno: string
           created_at: string
           criado_por: string | null
           id: string
           modulo: string
+          origem: string
+          peso: number
+          ultimo_uso: string | null
+          usos: number
         }
         Insert: {
           alias: string
+          ativo?: boolean
           campo_interno: string
           created_at?: string
           criado_por?: string | null
           id?: string
           modulo?: string
+          origem?: string
+          peso?: number
+          ultimo_uso?: string | null
+          usos?: number
         }
         Update: {
           alias?: string
+          ativo?: boolean
           campo_interno?: string
           created_at?: string
           criado_por?: string | null
           id?: string
           modulo?: string
+          origem?: string
+          peso?: number
+          ultimo_uso?: string | null
+          usos?: number
         }
         Relationships: []
       }
@@ -1793,12 +1867,14 @@ export type Database = {
           aliases: string[]
           campo_interno: string
           coluna_padrao: string | null
+          condicional: boolean
           created_at: string
           id: string
           ignorado: boolean
           label: string | null
           obrigatorio: boolean
           ordem: number
+          pesos: Json
           tipo_dado: string
           updated_at: string
           versao_id: string
@@ -1807,12 +1883,14 @@ export type Database = {
           aliases?: string[]
           campo_interno: string
           coluna_padrao?: string | null
+          condicional?: boolean
           created_at?: string
           id?: string
           ignorado?: boolean
           label?: string | null
           obrigatorio?: boolean
           ordem?: number
+          pesos?: Json
           tipo_dado?: string
           updated_at?: string
           versao_id: string
@@ -1821,12 +1899,14 @@ export type Database = {
           aliases?: string[]
           campo_interno?: string
           coluna_padrao?: string | null
+          condicional?: boolean
           created_at?: string
           id?: string
           ignorado?: boolean
           label?: string | null
           obrigatorio?: boolean
           ordem?: number
+          pesos?: Json
           tipo_dado?: string
           updated_at?: string
           versao_id?: string
@@ -1917,6 +1997,7 @@ export type Database = {
           id: string
           layout_id: string
           notas: string | null
+          regras: Json
           situacao: string
           updated_at: string
           versao: number
@@ -1930,6 +2011,7 @@ export type Database = {
           id?: string
           layout_id: string
           notas?: string | null
+          regras?: Json
           situacao?: string
           updated_at?: string
           versao: number
@@ -1943,6 +2025,7 @@ export type Database = {
           id?: string
           layout_id?: string
           notas?: string | null
+          regras?: Json
           situacao?: string
           updated_at?: string
           versao?: number
@@ -1960,6 +2043,7 @@ export type Database = {
       import_layouts: {
         Row: {
           ativo: boolean
+          classificacao: string
           codigo: string
           created_at: string
           criado_por: string | null
@@ -1973,6 +2057,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          classificacao?: string
           codigo: string
           created_at?: string
           criado_por?: string | null
@@ -1986,6 +2071,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          classificacao?: string
           codigo?: string
           created_at?: string
           criado_por?: string | null
@@ -3253,6 +3339,77 @@ export type Database = {
         }
         Relationships: []
       }
+      planilha_modelos: {
+        Row: {
+          aba: string
+          arquivo_base64: string
+          ativo: boolean
+          bytes: number
+          colunas: Json
+          colunas_estruturais: Json
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          linha_cabecalho: number
+          modulo: string
+          nome: string
+          nome_arquivo: string
+          padrao: boolean
+          unidade_id: string | null
+          updated_at: string
+          vinculo: string | null
+        }
+        Insert: {
+          aba?: string
+          arquivo_base64: string
+          ativo?: boolean
+          bytes?: number
+          colunas?: Json
+          colunas_estruturais?: Json
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          linha_cabecalho?: number
+          modulo?: string
+          nome: string
+          nome_arquivo?: string
+          padrao?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+          vinculo?: string | null
+        }
+        Update: {
+          aba?: string
+          arquivo_base64?: string
+          ativo?: boolean
+          bytes?: number
+          colunas?: Json
+          colunas_estruturais?: Json
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          linha_cabecalho?: number
+          modulo?: string
+          nome?: string
+          nome_arquivo?: string
+          padrao?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+          vinculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planilha_modelos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profissionais: {
         Row: {
           agencia: string | null
@@ -3297,6 +3454,8 @@ export type Database = {
           secretaria_id: string
           setor_id: string | null
           sexo: string | null
+          situacao_data_fim: string | null
+          situacao_data_inicio: string | null
           situacao_funcional:
             | Database["public"]["Enums"]["situacao_funcional"]
             | null
@@ -3350,6 +3509,8 @@ export type Database = {
           secretaria_id: string
           setor_id?: string | null
           sexo?: string | null
+          situacao_data_fim?: string | null
+          situacao_data_inicio?: string | null
           situacao_funcional?:
             | Database["public"]["Enums"]["situacao_funcional"]
             | null
@@ -3403,6 +3564,8 @@ export type Database = {
           secretaria_id?: string
           setor_id?: string | null
           sexo?: string | null
+          situacao_data_fim?: string | null
+          situacao_data_inicio?: string | null
           situacao_funcional?:
             | Database["public"]["Enums"]["situacao_funcional"]
             | null
@@ -4481,6 +4644,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_permission_core: {
+        Args: {
+          _codigo: string
+          _secretaria_id?: string
+          _unidade_id?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       health_cron_jobs: { Args: never; Returns: Json }
       health_eventos_dominio: { Args: never; Returns: Json }
       health_pendencias_sla: { Args: never; Returns: Json }
@@ -4503,6 +4675,7 @@ export type Database = {
       }
       hsm_estatisticas: { Args: { _dias?: number }; Returns: Json }
       is_master: { Args: { _user_id: string }; Returns: boolean }
+      is_master_core: { Args: { _user_id: string }; Returns: boolean }
       log_client_action: {
         Args: {
           _acao: string
@@ -4515,6 +4688,10 @@ export type Database = {
         Returns: number
       }
       mfa_exigido_nao_atendido: { Args: { _user_id: string }; Returns: boolean }
+      mfa_exigido_nao_atendido_core: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       nack_evento_dominio: {
         Args: { _erro: string; _id: string }
         Returns: undefined
@@ -4584,6 +4761,8 @@ export type Database = {
         Args: { _id: string; _motivo: string }
         Returns: undefined
       }
+      rls_cache_get: { Args: { _key: string }; Returns: boolean }
+      rls_cache_put: { Args: { _key: string; _val: boolean }; Returns: boolean }
       sla_pendencias_processar: {
         Args: never
         Returns: {
@@ -4600,7 +4779,15 @@ export type Database = {
         Args: { _secretaria_id: string; _user_id: string }
         Returns: boolean
       }
+      user_has_secretaria_core: {
+        Args: { _secretaria_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_unit: {
+        Args: { _unidade_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_unit_core: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
       }
@@ -4767,6 +4954,7 @@ export type Database = {
         | "unidade"
         | "secretaria"
         | "outros"
+        | "frequencia_submissao"
       tipo_evento_funcional:
         | "admissao"
         | "transferencia"
@@ -5077,6 +5265,7 @@ export const Constants = {
         "unidade",
         "secretaria",
         "outros",
+        "frequencia_submissao",
       ],
       tipo_evento_funcional: [
         "admissao",

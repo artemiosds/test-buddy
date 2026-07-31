@@ -48,6 +48,8 @@ import {
   ProfissionalEdicaoModal,
   type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
+import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
+import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
 import { contarSituacoes, derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
 import {
   ErpGridProvider,
@@ -135,6 +137,7 @@ function formatContaBancaria(
 
 export function FrequenciasContratadosPage() {
   const qc = useQueryClient();
+  const [enviarAberto, setEnviarAberto] = useState(false);
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const { data: compAtiva } = useCompetenciaAtiva();
@@ -374,6 +377,7 @@ export function FrequenciasContratadosPage() {
     },
     onSuccess: (r: any) => {
       toast.success(`Enviado para aprovação (${r?.enviadas ?? 0} linhas).`);
+      setEnviarAberto(false);
       qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar."),
@@ -724,7 +728,7 @@ export function FrequenciasContratadosPage() {
             <Save className="mr-1.5 h-4 w-4" /> Salvar rascunho
           </Button>
           <Button
-            onClick={() => mEnviar.mutate()}
+            onClick={() => setEnviarAberto(true)}
             disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.length}
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
@@ -1161,6 +1165,28 @@ export function FrequenciasContratadosPage() {
           setDossieOpen(false);
         }}
         saving={mSalvar.isPending}
+        anexosSlot={
+          <LinhaAnexos
+            frequenciaProfissionalId={
+              dossieProf
+                ? ((folha as any[] | undefined)?.find(
+                    (it: any) => it.profissional.id === dossieProf.id,
+                  )?.linha?.id ?? null)
+                : null
+            }
+            unidadeId={unidadeId}
+            canEdit={canEdit}
+          />
+        }
+      />
+      <EnviarFolhaDialog
+        open={enviarAberto}
+        onOpenChange={setEnviarAberto}
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        folha="contratados"
+        enviando={mEnviar.isPending}
+        onConfirm={() => mEnviar.mutate()}
       />
     </div>
   );

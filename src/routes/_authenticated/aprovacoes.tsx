@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRetryMutation } from "@/lib/retry-mutation";
 import { useServerFn } from "@tanstack/react-start";
@@ -32,6 +33,7 @@ import {
   Eye,
   History,
   ListChecks,
+  Paperclip,
   ScanSearch,
   XCircle,
 } from "lucide-react";
@@ -116,6 +118,7 @@ function AprovacoesPage() {
         .select(
           `
           id, tipo, status, data_envio, data_aprovacao, total_profissionais,
+          competencia_unidade_id,
           competencia_unidades:competencia_unidade_id(
             unidades:unidade_id(id, nome),
             competencias:competencia_id(ano, mes)
@@ -175,6 +178,34 @@ function AprovacoesPage() {
 
   const acaoAtual = acao ? (rows?.find((r) => r.id === acao.freqId) ?? null) : null;
 
+  // Indicador de anexos: conta os documentos de justificativa por submissão
+  // (competência + unidade) e vínculo, para sinalizar na listagem.
+  const submissaoIds = (rows ?? [])
+    .map((r) => r.competencia_unidade_id as string | null)
+    .filter((v): v is string => !!v);
+
+  const { data: anexosPorSubmissao } = useQuery({
+    queryKey: ["aprovacoes-anexos", submissaoIds.join(",")],
+    enabled: submissaoIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("entidade_id, metadata")
+        .eq("tipo_entidade", "frequencia_submissao")
+        .in("entidade_id", [...new Set(submissaoIds)])
+        .is("deleted_at", null);
+      if (error) throw error;
+      const mapa: Record<string, number> = {};
+      for (const d of data ?? []) {
+        const folha = (d.metadata as { folha?: string } | null)?.folha ?? "efetivos";
+        const chave = `${d.entidade_id}:${folha}`;
+        mapa[chave] = (mapa[chave] ?? 0) + 1;
+      }
+      return mapa;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -225,9 +256,26 @@ function AprovacoesPage() {
                 const cu = r.competencia_unidades;
                 const comp = cu?.competencias;
                 const pendente = r.status === "enviada" || r.status === "em_analise";
+                const qtdAnexos =
+                  anexosPorSubmissao?.[
+                    `${r.competencia_unidade_id}:${r.tipo === "contratados" ? "contratados" : "efetivos"}`
+                  ] ?? 0;
                 return (
                   <tr key={r.id} className="border-b last:border-0">
-                    <td className="p-3 font-medium">{cu?.unidades?.nome ?? "—"}</td>
+                    <td className="p-3 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {cu?.unidades?.nome ?? "—"}
+                        {qtdAnexos > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+                            title={`${qtdAnexos} documento(s) de justificativa anexado(s)`}
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            {qtdAnexos}
+                          </span>
+                        )}
+                      </span>
+                    </td>
                     <td className="p-3">
                       {comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—"}
                     </td>
@@ -336,6 +384,19 @@ function AprovacoesPage() {
               placeholder="Justifique a decisão / oriente a unidade..."
             />
           </div>
+          {acaoAtual?.competencia_unidade_id && (
+            <div className="mt-3 border-t pt-3">
+              <AnexosEntidade
+                entidadeId={acaoAtual.competencia_unidade_id as string}
+                tipoEntidade="frequencia_submissao"
+                subtipo={acaoAtual.tipo === "contratados" ? "contratados" : "efetivos"}
+                unidadeId={acaoAtual.competencia_unidades?.unidades?.id ?? null}
+                canEdit={false}
+                mostrarLixeira={false}
+                titulo="Documentos de justificativa"
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="ghost"

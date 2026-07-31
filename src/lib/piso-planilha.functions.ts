@@ -9,15 +9,12 @@ import {
 } from "./piso-elegiveis.server";
 import { carregarReferencias } from "./piso-referencia.server";
 import {
-  gerarPlanilhaContratados,
-  gerarPlanilhaEfetivos,
-  gerarPlanilhaCalculoPiso,
-  gerarPlanilhaPisoEnfermagem,
   rotuloMes,
   somaOuNulo,
   type LinhaPlanilha,
   type MapaIncentivos,
 } from "./piso-planilha";
+
 
 const Input = z.object({
   /** Vazio = usa a competência mais recente já consolidada. */
@@ -200,21 +197,15 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
 
     linhas.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    const base64 =
-      data.tipo === "contratados"
-        ? gerarPlanilhaContratados(linhas, {
-            competencia,
-            incentivos: (data.incentivos ?? undefined) as MapaIncentivos | undefined,
-          })
-        : data.tipo === "calculo_piso"
-          ? gerarPlanilhaCalculoPiso(linhas, { competencia })
-          : data.tipo === "piso_enfermagem"
-            ? gerarPlanilhaPisoEnfermagem(linhas, { competencia })
-            : gerarPlanilhaEfetivos(linhas, { competencia });
-
+    // O arquivo .xlsx é montado no navegador (ver piso-planilha-cliente.ts).
+    // O servidor devolve apenas os dados, evitando gerar binário grande no
+    // runtime serverless — causa do erro "Failed to fetch" no download.
     const sufixo = competencia.replace(/[^\dA-Za-z]/g, "-") || "GERAL";
     return {
-      base64,
+      linhas,
+      competencia,
+      tipo: data.tipo,
+      incentivos: (data.incentivos ?? null) as MapaIncentivos | null,
       total: linhas.length,
       filename:
         data.tipo === "contratados"

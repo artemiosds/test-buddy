@@ -489,6 +489,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
   onChangeCampo,
   onSave,
   saving,
+  anexosSlot,
 }: {
   prof: ProfConferencia | null;
   linha: L | undefined;
@@ -501,6 +502,8 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
   onChangeCampo: (campo: string, valor: number | string) => void;
   onSave: () => void | Promise<void>;
   saving?: boolean;
+  /** Área de anexos de comprovação, exibida ao lado da justificativa. */
+  anexosSlot?: ReactNode;
 }) {
   if (!prof) return null;
   const situ = derivarSituacao(prof);
@@ -636,27 +639,30 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
             </div>
           </section>
 
-          {/* Justificativa / Observações */}
-          <section>
-            <Label htmlFor="edm-obs" style={labelStyle}>
-              Justificativa / Observações
-            </Label>
-            <Textarea
-              id="edm-obs"
-              rows={3}
-              disabled={!canEdit}
-              value={String(linha?.observacoes ?? "")}
-              onChange={(e) => onChangeCampo("observacoes", e.target.value)}
-              style={{
-                color: "#0F172A",
-                background: "#FFFFFF",
-                border: "1px solid #94A3B8",
-                borderRadius: 6,
-                fontSize: 13,
-              }}
-              placeholder="Descreva a justificativa da frequência ou observações relevantes…"
-            />
-          </section>
+          {/* Justificativa / Observações + anexos de comprovação */}
+          <div className={anexosSlot ? "grid gap-4 md:grid-cols-2" : undefined}>
+            <section>
+              <Label htmlFor="edm-obs" style={labelStyle}>
+                Justificativa / Observações
+              </Label>
+              <Textarea
+                id="edm-obs"
+                rows={3}
+                disabled={!canEdit}
+                value={String(linha?.observacoes ?? "")}
+                onChange={(e) => onChangeCampo("observacoes", e.target.value)}
+                style={{
+                  color: "#0F172A",
+                  background: "#FFFFFF",
+                  border: "1px solid #94A3B8",
+                  borderRadius: 6,
+                  fontSize: 13,
+                }}
+                placeholder="Descreva a justificativa da frequência ou observações relevantes…"
+              />
+            </section>
+            {anexosSlot}
+          </div>
         </div>
 
         <DialogFooter className="mt-4">

@@ -56,12 +56,6 @@ const CARDS: Card[] = [
     icon: GitBranch,
   },
   {
-    to: "/relatorios-gerenciais/indicadores",
-    title: "Indicadores",
-    desc: "Resumo executivo e distribuições (vínculo, sexo, idade, unidade, cargo, função, setor).",
-    icon: BarChart3,
-  },
-  {
     to: "/relatorios-gerenciais/piso",
     title: "Piso da Enfermagem",
     desc: "Piso Efetivos/Contratados, comparativo entre meses, divergências, histórico e resumo financeiro.",

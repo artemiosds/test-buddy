@@ -1,26 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { autorizarCron } from "@/lib/cron-auth.server";
 
 // Cron endpoint: notify about approaching deadlines and auto-lock past-deadline competencies.
 // Called by pg_cron daily. Public (no auth) — safe because it only:
 //  - reads/writes internal notifications
 //  - transitions competencies past their prazo_envio from 'em_elaboracao' to 'enviada'
-// Extra safety: requires a shared secret header when DEADLINE_CRON_SECRET is set.
+// Autenticação fail-closed: exige o header `x-cron-secret`. Se DEADLINE_CRON_SECRET
+// não estiver configurado, a rota inteira responde 503 (nunca fica aberta).
 
 export const Route = createFileRoute("/api/public/hooks/deadline-check")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
-        const secret = process.env.DEADLINE_CRON_SECRET;
-        if (secret) {
-          const provided = request.headers.get("x-cron-secret");
-          if (provided !== secret) {
-            return new Response(JSON.stringify({ error: "unauthorized" }), {
-              status: 401,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-        }
+        const negado = autorizarCron(request);
+        if (negado) return negado.response;
 
         const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
         const key =

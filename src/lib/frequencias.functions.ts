@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
+import { ANEXO_MIMES_ACEITOS, ANEXO_TAMANHO_MAX } from "./anexos-linha";
 
 const NUM = z.number().nonnegative().default(0);
 
@@ -328,14 +329,29 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Tipos e limite aceitos vêm de `@/lib/anexos-linha` (mesma regra no cliente). */
+
+/**
+ * Tipos de entidade aceitos para anexos de folha:
+ * - `frequencia`: anexo da LINHA (um profissional dentro da folha);
+ * - `frequencia_submissao`: anexo da SUBMISSÃO (competência + unidade + vínculo),
+ *   usado como documentação de justificativa no envio para aprovação.
+ */
+const TipoAnexoEnum = z.enum(["frequencia", "frequencia_submissao"]);
+export type TipoAnexoEntidade = z.infer<typeof TipoAnexoEnum>;
+
 const AnexoSchema = z.object({
-  frequencia_profissional_id: z.string().uuid(),
+  entidade_id: z.string().uuid(),
+  tipo_entidade: TipoAnexoEnum.default("frequencia"),
+  /** Recorte dentro da entidade (ex.: "efetivos" | "contratados" na submissão). */
+  subtipo: z.string().max(30).optional(),
   unidade_id: z.string().uuid().nullable().optional(),
+  secretaria_id: z.string().uuid().nullable().optional(),
   categoria_id: z.string().uuid().nullable().optional(),
   nome: z.string().min(1).max(255),
-  storage_path: z.string().min(1),
-  mime_type: z.string().nullable().optional(),
-  tamanho_bytes: z.number().int().nonnegative(),
+  storage_path: z.string().min(1).max(1024),
+  mime_type: z.enum(ANEXO_MIMES_ACEITOS),
+  tamanho_bytes: z.number().int().positive().max(ANEXO_TAMANHO_MAX),
 });
 
 export const registrarAnexoLinha = createServerFn({ method: "POST" })
@@ -347,23 +363,259 @@ export const registrarAnexoLinha = createServerFn({ method: "POST" })
     const { data: doc, error } = await supabase
       .from("documentos")
       .insert({
-        tipo_entidade: "frequencia",
-        entidade_id: data.frequencia_profissional_id,
+        tipo_entidade: data.tipo_entidade,
+        entidade_id: data.entidade_id,
         unidade_id: data.unidade_id ?? null,
+        secretaria_id: data.secretaria_id ?? null,
         categoria_id: data.categoria_id ?? null,
         nome: data.nome,
         storage_path: data.storage_path,
-        mime_type: data.mime_type ?? null,
+        mime_type: data.mime_type,
         tamanho_bytes: data.tamanho_bytes,
-        metadata: { frequencia_profissional_id: data.frequencia_profissional_id },
+        metadata: {
+          entidade_id: data.entidade_id,
+          tipo_entidade: data.tipo_entidade,
+          ...(data.subtipo ? { folha: data.subtipo } : {}),
+        },
         created_by: userId,
       } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
     await emitEvento(supabase, EVENTOS.DOCUMENTO_ANEXADO, "documento", (doc as any)?.id ?? null, {
-      frequencia_profissional_id: data.frequencia_profissional_id,
+      tipo_entidade: data.tipo_entidade,
+      entidade_id: data.entidade_id,
       nome: data.nome,
     });
+    return { ok: true, id: (doc as any)?.id as string };
+  });
+
+const ListarAnexosSchema = z.object({
+  entidade_id: z.string().uuid(),
+  tipo_entidade: TipoAnexoEnum.default("frequencia"),
+  subtipo: z.string().max(30).optional(),
+});
+
+/**
+ * Lista os anexos da entidade e devolve URLs assinadas de curta duração (5 min).
+ * A leitura é governada apenas pela RLS de `documentos` (unidade/secretaria/master),
+ * então quem aprova consegue abrir sem precisar de permissão de upload.
+ */
+export const listarAnexosLinha = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof ListarAnexosSchema>) => ListarAnexosSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("documentos")
+      .select("id, nome, mime_type, tamanho_bytes, storage_path, created_at, created_by")
+      .eq("tipo_entidade", data.tipo_entidade)
+      .eq("entidade_id", data.entidade_id)
+      .is("deleted_at", null);
+    if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    const { data: docs, error } = await q.order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const rows = docs ?? [];
+    const autores = new Map<string, string>();
+    const ids = [...new Set(rows.map((d: any) => d.created_by).filter(Boolean))] as string[];
+    if (ids.length) {
+      const { data: us } = await supabase
+        .from("usuarios")
+        .select("id, nome_completo")
+        .in("id", ids);
+      for (const u of us ?? []) autores.set((u as any).id, (u as any).nome_completo);
+    }
+
+    const assinadas = await Promise.all(
+      rows.map(async (d: any) => {
+        const { data: signed } = await supabase.storage
+          .from("documentos")
+          .createSignedUrl(d.storage_path, 300);
+        return {
+          id: d.id as string,
+          nome: d.nome as string,
+          mime_type: (d.mime_type ?? null) as string | null,
+          tamanho_bytes: Number(d.tamanho_bytes ?? 0),
+          created_at: d.created_at as string,
+          enviado_por: autores.get(d.created_by) ?? null,
+          url: signed?.signedUrl ?? null,
+        };
+      }),
+    );
+
+    if (assinadas.length) {
+      await emitEvento(supabase, EVENTOS.DOCUMENTO_ANEXADO, "documento", data.entidade_id, {
+        acao: "visualizacao",
+        tipo_entidade: data.tipo_entidade,
+        quantidade: assinadas.length,
+        usuario_id: userId,
+      });
+    }
+    return { anexos: assinadas };
+  });
+
+const RemoverAnexoSchema = z.object({
+  documento_id: z.string().uuid(),
+});
+
+/** Retenção legal do binário após a remoção (lixeira). */
+export const RETENCAO_ANOS_FREQUENCIA = 5; // comprovação de despesa pública (TCE)
+export const RETENCAO_ANOS_OUTROS = 2;
+
+const TIPOS_ANEXO_FOLHA = ["frequencia", "frequencia_submissao"] as const;
+
+function calcularPurgaApos(tipoEntidade: string | null | undefined): string {
+  const anos = (TIPOS_ANEXO_FOLHA as readonly string[]).includes(tipoEntidade ?? "")
+    ? RETENCAO_ANOS_FREQUENCIA
+    : RETENCAO_ANOS_OUTROS;
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + anos);
+  return d.toISOString();
+}
+
+/**
+ * Remoção = soft-delete apenas. O binário PERMANECE no Storage até a purga
+ * automática (`/api/public/hooks/purgar-documentos`), depois de `purga_apos`.
+ */
+export const removerAnexoLinha = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof RemoverAnexoSchema>) => RemoverAnexoSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.DOCUMENTO_UPLOAD);
+
+    const { data: doc, error: sErr } = await supabase
+      .from("documentos")
+      .select("id, storage_path, tipo_entidade")
+      .eq("id", data.documento_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    const tipoEntidade = (doc as { tipo_entidade?: string } | null)?.tipo_entidade;
+    if (!doc || !(TIPOS_ANEXO_FOLHA as readonly string[]).includes(tipoEntidade ?? "")) {
+      throw new Error("Anexo não encontrado.");
+    }
+    const purgaApos = calcularPurgaApos(tipoEntidade);
+
+    const { error: upErr } = await supabase
+      .from("documentos")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId,
+        purga_apos: purgaApos,
+      } as never)
+      .eq("id", data.documento_id);
+    if (upErr) throw new Error(upErr.message);
+
+    await emitEvento(supabase, EVENTOS.DOCUMENTO_REMOVIDO, "documento", data.documento_id, {
+      soft_delete: true,
+      purga_apos: purgaApos,
+    });
     return { ok: true };
+  });
+
+/** Lixeira: anexos removidos da entidade (somente quem tem `documento.excluir`). */
+export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof ListarAnexosSchema>) => ListarAnexosSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.DOCUMENTO_EXCLUIR);
+    let q = supabase
+      .from("documentos")
+      .select("id, nome, mime_type, tamanho_bytes, storage_path, deleted_at, purga_apos")
+      .eq("tipo_entidade", data.tipo_entidade)
+      .eq("entidade_id", data.entidade_id)
+      .not("deleted_at", "is", null);
+    if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    const { data: docs, error } = await q.order("deleted_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const rows = docs ?? [];
+    return {
+      anexos: await Promise.all(
+        rows.map(async (d: Record<string, unknown>) => {
+          const { data: signed } = await supabase.storage
+            .from("documentos")
+            .createSignedUrl(d.storage_path as string, 300);
+          return {
+            id: d.id as string,
+            nome: d.nome as string,
+            mime_type: (d.mime_type ?? null) as string | null,
+            tamanho_bytes: Number(d.tamanho_bytes ?? 0),
+            deleted_at: d.deleted_at as string,
+            purga_apos: (d.purga_apos ?? null) as string | null,
+            url: signed?.signedUrl ?? null,
+          };
+        }),
+      ),
+    };
+  });
+
+/** Restaura um anexo da lixeira. */
+export const restaurarAnexoLinha = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof RemoverAnexoSchema>) => RemoverAnexoSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.DOCUMENTO_EXCLUIR);
+    const { error } = await supabase
+      .from("documentos")
+      .update({ deleted_at: null, deleted_by: null, purga_apos: null, updated_by: userId } as never)
+      .eq("id", data.documento_id)
+      .in("tipo_entidade", TIPOS_ANEXO_FOLHA);
+    if (error) throw new Error(error.message);
+    await emitEvento(supabase, EVENTOS.DOCUMENTO_ANEXADO, "documento", data.documento_id, {
+      restaurado: true,
+    });
+    return { ok: true };
+  });
+
+const DescartarSchema = z.object({
+  documento_ids: z.array(z.string().uuid()).min(1).max(50),
+});
+
+/**
+ * Descarte definitivo de anexos ainda NÃO confirmados (ex.: o usuário fez
+ * upload no modal de envio e fechou sem confirmar).
+ *
+ * Diferente de `removerAnexoLinha` (soft-delete + retenção legal), aqui o
+ * registro e o binário são apagados de vez — mas apenas para quem subiu o
+ * arquivo e enquanto ele não foi removido/retido.
+ */
+export const descartarAnexosPendentes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof DescartarSchema>) => DescartarSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.DOCUMENTO_UPLOAD);
+
+    const { data: docs, error } = await supabase
+      .from("documentos")
+      .select("id, storage_path, tipo_entidade, created_by")
+      .in("id", data.documento_ids)
+      .eq("created_by", userId)
+      .is("deleted_at", null);
+    if (error) throw new Error(error.message);
+
+    const alvos = (docs ?? []).filter((d: Record<string, unknown>) =>
+      (TIPOS_ANEXO_FOLHA as readonly string[]).includes(String(d.tipo_entidade ?? "")),
+    );
+    if (!alvos.length) return { ok: true, descartados: 0 };
+
+    const ids = alvos.map((d: Record<string, unknown>) => d.id as string);
+    const paths = alvos.map((d: Record<string, unknown>) => d.storage_path as string);
+
+    const { error: dErr } = await supabase.from("documentos").delete().in("id", ids);
+    if (dErr) throw new Error(dErr.message);
+
+    await supabase.storage.from("documentos").remove(paths);
+
+    await emitEvento(supabase, EVENTOS.DOCUMENTO_REMOVIDO, "documento", ids[0], {
+      descarte_definitivo: true,
+      motivo: "envio_cancelado",
+      quantidade: ids.length,
+    });
+    return { ok: true, descartados: ids.length };
   });

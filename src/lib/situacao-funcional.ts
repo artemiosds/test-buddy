@@ -92,6 +92,73 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
   return "ativo";
 }
 
+/**
+ * Grupos usados nos painéis (Situação Funcional, Sala de Situação, Controle da
+ * Força de Trabalho, Dashboards). O cadastro guarda situações detalhadas
+ * (afastamento_inss, licenca_maternidade, falta_pad, vacancia…) e os painéis
+ * mostram apenas Ativos / Férias / Licenças / Afastados / Desligados — sem esta
+ * consolidação os cartões ficavam zerados.
+ */
+export type GrupoSituacao = "ativo" | "ferias" | "licenca" | "afastado" | "desligado";
+
+export function grupoSituacao(raw: string | null | undefined): GrupoSituacao {
+  const s = derivarSituacao({ id: "", situacao_funcional: raw ?? null });
+  if (s === "ferias") return "ferias";
+  if (s.startsWith("licenca")) return "licenca";
+  if (s === "desligado" || s === "inativo") return "desligado";
+  if (
+    s === "afastado" ||
+    s === "atestado" ||
+    s === "cedido" ||
+    s === "vacancia" ||
+    s === "afastamento_inss" ||
+    s === "falta_pad"
+  )
+    return "afastado";
+  return "ativo";
+}
+
+/**
+ * Valores gravados no cadastro que pertencem a cada grupo — usado nos filtros
+ * `.in("status", ...)` das consultas (um filtro `= "afastado"` não encontraria
+ * `afastamento_inss`, por exemplo).
+ */
+export const VALORES_DO_GRUPO: Record<GrupoSituacao, string[]> = {
+  ativo: ["ativo"],
+  ferias: ["ferias"],
+  licenca: [
+    "licenca",
+    "licenca_premio",
+    "licenca_maternidade",
+    "licenca_saude",
+    "licenca_luto",
+    "licenca_sem_vencimento",
+    "licenca_estudo",
+  ],
+  afastado: ["afastado", "atestado", "cedido", "vacancia", "afastamento_inss", "falta_pad"],
+  desligado: ["desligado", "inativo"],
+};
+
+/** Valores de banco correspondentes a um filtro de painel. */
+export function valoresDoFiltroSituacao(valor: string): string[] {
+  return VALORES_DO_GRUPO[valor as GrupoSituacao] ?? [valor];
+}
+
+/** Conta os profissionais por grupo (chaves sempre presentes, mesmo zeradas). */
+export function contarPorGrupo(
+  valores: (string | null | undefined)[],
+): Record<GrupoSituacao, number> {
+  const acc: Record<GrupoSituacao, number> = {
+    ativo: 0,
+    ferias: 0,
+    licenca: 0,
+    afastado: 0,
+    desligado: 0,
+  };
+  for (const v of valores) acc[grupoSituacao(v)] += 1;
+  return acc;
+}
+
 export function derivarAlertas(p: ProfConferencia): AlertaCadastral[] {
   const out: AlertaCadastral[] = [];
   if (!p.cpf || String(p.cpf).replace(/\D/g, "").length !== 11) out.push("sem_cpf");

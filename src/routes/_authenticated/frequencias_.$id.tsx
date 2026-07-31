@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRetryMutation } from "@/lib/retry-mutation";
@@ -13,6 +14,7 @@ import {
   inserirLinhasAuto,
   registrarAnexoLinha,
 } from "@/lib/frequencias.functions";
+import { validarArquivoAnexo } from "@/lib/anexos-linha";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -397,7 +399,9 @@ function FrequenciaDetalhe() {
     const linhasDaUnidade = (profissionais ?? []).map(
       (p) => byProf.get(p.id) ?? novaLinha(p.id, false),
     );
-    const linhasPersistidasForaDaLista = linhas.filter((l) => !idsProfissionais.has(l.profissional_id));
+    const linhasPersistidasForaDaLista = linhas.filter(
+      (l) => !idsProfissionais.has(l.profissional_id),
+    );
     return [...linhasDaUnidade, ...linhasPersistidasForaDaLista];
   }, [isEfetivo, linhas, profissionais]);
 
@@ -1142,6 +1146,20 @@ function FrequenciaDetalhe() {
         </div>
       )}
 
+      {frequencia?.competencia_unidade_id && (
+        <div className="rounded-lg border bg-card p-3">
+          <AnexosEntidade
+            entidadeId={frequencia.competencia_unidade_id as string}
+            tipoEntidade="frequencia_submissao"
+            subtipo={frequencia.tipo === "contratados" ? "contratados" : "efetivos"}
+            unidadeId={unidadeId ?? null}
+            canEdit={editable && canEditar}
+            mostrarLixeira={false}
+            titulo="Documentos de justificativa da folha"
+          />
+        </div>
+      )}
+
       <div className="rounded-lg border bg-card overflow-x-auto">
         {loadingRows ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
@@ -1500,26 +1518,33 @@ function AnexosDialog({
 
   const handleUpload = async (file: File) => {
     if (!linhaId) return;
+    const check = validarArquivoAnexo(file);
+    if (!check.ok) {
+      toast.error(check.erro);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() ?? "bin";
-      const path = `frequencia_profissional/${linhaId}/${crypto.randomUUID()}.${ext}`;
+      const path = `frequencia_profissional/${linhaId}/${crypto.randomUUID()}.${file.name.split(".").pop() ?? "bin"}`;
       const { error: upErr } = await supabase.storage.from("documentos").upload(path, file, {
-        contentType: file.type || undefined,
+        contentType: check.mime,
         upsert: false,
       });
       if (upErr) throw upErr;
       await registrarAnexoFn({
         data: {
-          frequencia_profissional_id: linhaId,
+          entidade_id: linhaId,
+          tipo_entidade: "frequencia" as const,
           unidade_id: unidadeId ?? null,
           categoria_id: categoriaId || null,
           nome: file.name,
           storage_path: path,
-          mime_type: file.type || null,
+          mime_type: check.mime,
           tamanho_bytes: file.size,
         },
       });
+
       toast.success("Anexo enviado");
       refetch();
       qc.invalidateQueries({ queryKey: ["anexos-linha", linhaId] });

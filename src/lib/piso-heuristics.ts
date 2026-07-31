@@ -140,7 +140,7 @@ export function isCpfValido(v: unknown): boolean {
 
 export function computeQuality(
   rows: Record<string, unknown>[],
-  mapeamento: Record<string, PisoDestino | null>,
+  mapeamento: Record<string, PisoDestino | (string & {}) | null>,
 ): QualityReport {
   const cpfCol = colDe(mapeamento, "cpf");
   const matCol = colDe(mapeamento, "matricula");
@@ -172,7 +172,7 @@ export function computeQuality(
   };
 }
 
-function colDe(m: Record<string, PisoDestino | null>, dest: PisoDestino): string | null {
+function colDe(m: Record<string, PisoDestino | (string & {}) | null>, dest: PisoDestino): string | null {
   const hit = Object.entries(m).find(([, d]) => d === dest);
   return hit ? hit[0] : null;
 }

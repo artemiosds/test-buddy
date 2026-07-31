@@ -1,0 +1,1 @@
+ALTER TYPE public.tipo_entidade_documento ADD VALUE IF NOT EXISTS 'frequencia_submissao';

@@ -73,9 +73,14 @@ function profissionaisOkBySelect(select: string) {
       },
     ];
   }
-  if (select === "status") {
-    // statusBreakdown
-    return [{ status: "ativo" }, { status: "ativo" }, { status: "ferias" }, { status: "afastado" }];
+  if (select === "status,situacao_funcional") {
+    // statusBreakdown (situação detalhada consolidada em grupos)
+    return [
+      { status: "ativo", situacao_funcional: null },
+      { status: "ativo", situacao_funcional: null },
+      { status: "ferias", situacao_funcional: "ferias" },
+      { status: "afastamento_inss", situacao_funcional: "afastamento_inss" },
+    ];
   }
   if (select.startsWith("vinculo:")) {
     // vinculoBreakdown

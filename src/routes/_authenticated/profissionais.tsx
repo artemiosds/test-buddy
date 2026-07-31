@@ -2,6 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FOTO_BUCKET,
+  montarCaminhoFoto,
+  useFotoAssinada,
+  validarFoto,
+} from "@/lib/foto-profissional";
 import { reprocessarRegistroConsolidado } from "@/lib/piso-consolidacao.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +150,8 @@ type FormState = {
   conselho_validade: string;
   gestor_imediato_id: string;
   situacao_funcional: string;
+  situacao_data_inicio: string;
+  situacao_data_fim: string;
   foto_url: string;
   /** Endereço por extenso — front-end apenas (não há coluna no banco ainda). */
   endereco_completo: string;
@@ -181,6 +189,8 @@ const EMPTY: FormState = {
   conselho_validade: "",
   gestor_imediato_id: "",
   situacao_funcional: "",
+  situacao_data_inicio: "",
+  situacao_data_fim: "",
   foto_url: "",
   endereco_completo: "",
 };
@@ -203,6 +213,29 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   afastado: "Afastado",
   desligado: "Desligado",
 };
+
+/**
+ * Situações funcionais que representam um período temporário: exigem data de
+ * início e fim para alimentar as notificações de retorno do sistema.
+ */
+const SITUACOES_COM_PERIODO = new Set<string>([
+  "ferias",
+  "atestado",
+  "licenca",
+  "licenca_premio",
+  "licenca_maternidade",
+  "licenca_saude",
+  "licenca_luto",
+  "licenca_sem_vencimento",
+  "licenca_estudo",
+  "afastado",
+  "afastamento_inss",
+  "cedido",
+]);
+
+const exigePeriodo = (situacao?: string | null) =>
+  !!situacao && SITUACOES_COM_PERIODO.has(situacao);
+
 
 const UF_LIST = [
   "AC",
@@ -410,7 +443,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,foto_url,endereco_completo,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,situacao_data_inicio,situacao_data_fim,foto_url,endereco_completo,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
         .is("deleted_at", null);
@@ -623,6 +656,19 @@ function ProfissionaisPage() {
       const cpfDigits = f.cpf.replace(/\D/g, "");
       if (cpfDigits && cpfDigits.length !== 11) throw new Error("CPF deve ter 11 dígitos");
       if (!f.nome_completo.trim()) throw new Error("Nome é obrigatório");
+      const situPeriodo = exigePeriodo(f.situacao_funcional)
+        ? f.situacao_funcional
+        : exigePeriodo(f.status)
+          ? f.status
+          : null;
+      if (situPeriodo) {
+        const rot = SITUACAO_FUNCIONAL_LABEL[situPeriodo] ?? "afastamento";
+        if (!f.situacao_data_inicio) throw new Error(`Informe a data de início de ${rot}`);
+        if (!f.situacao_data_fim)
+          throw new Error(`Informe a data de fim (previsão de retorno) de ${rot}`);
+        if (f.situacao_data_fim < f.situacao_data_inicio)
+          throw new Error("A data de fim não pode ser anterior à data de início");
+      }
       if (!f.secretaria_id) throw new Error("Secretaria é obrigatória");
       const chRaw = f.carga_horaria_semanal ? Number(f.carga_horaria_semanal) : null;
       const chNum = chRaw != null && Number.isFinite(chRaw) ? Math.round(chRaw) : null;
@@ -657,6 +703,8 @@ function ProfissionaisPage() {
         conselho_validade: f.conselho_validade || null,
         gestor_imediato_id: f.gestor_imediato_id || null,
         situacao_funcional: (f.situacao_funcional || null) as SituacaoFuncional | null,
+        situacao_data_inicio: situPeriodo ? f.situacao_data_inicio || null : null,
+        situacao_data_fim: situPeriodo ? f.situacao_data_fim || null : null,
         foto_url: f.foto_url.trim() || null,
         endereco_completo: f.endereco_completo.trim() || null,
       };
@@ -757,6 +805,10 @@ function ProfissionaisPage() {
         (p as unknown as { gestor_imediato_id?: string | null }).gestor_imediato_id ?? "",
       situacao_funcional:
         (p as unknown as { situacao_funcional?: string | null }).situacao_funcional ?? "",
+      situacao_data_inicio:
+        (p as unknown as { situacao_data_inicio?: string | null }).situacao_data_inicio ?? "",
+      situacao_data_fim:
+        (p as unknown as { situacao_data_fim?: string | null }).situacao_data_fim ?? "",
       foto_url: (p as unknown as { foto_url?: string | null }).foto_url ?? "",
       endereco_completo:
         (p as unknown as { endereco_completo?: string | null }).endereco_completo ?? "",
@@ -1324,27 +1376,23 @@ function ProfissionalFormBody({
   const displayName = form.nome_social?.trim() || form.nome_completo?.trim() || "";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const fotoPreview = useFotoAssinada(form.foto_url);
 
   async function handleFotoFile(file: File) {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione um arquivo de imagem válido");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máximo 5MB)");
+    const check = validarFoto(file);
+    if (!check.ok) {
+      toast.error(check.erro);
       return;
     }
     setUploadingFoto(true);
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const owner = form.id || `novo-${Date.now()}`;
-      const path = `profissionais/${owner}-${Date.now()}.${ext}`;
+      const path = montarCaminhoFoto(form.id, check.mime);
       const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+        .from(FOTO_BUCKET)
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: check.mime });
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      setForm({ ...form, foto_url: data.publicUrl });
+      // Guardamos só o caminho: o bucket é privado e a exibição usa URL assinada.
+      setForm({ ...form, foto_url: path });
       toast.success("Foto atualizada");
     } catch (err) {
       console.error("[upload avatar]", err);
@@ -1368,7 +1416,7 @@ function ProfissionalFormBody({
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
           <div className="relative">
             <Avatar className="h-24 w-24 border-2 border-primary/20 shadow-sm">
-              {form.foto_url ? <AvatarImage src={form.foto_url} alt={displayName} /> : null}
+              {fotoPreview ? <AvatarImage src={fotoPreview} alt={displayName} /> : null}
               <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
                 {displayName ? initials(displayName) : <UserIcon className="h-8 w-8" />}
               </AvatarFallback>
@@ -1388,13 +1436,13 @@ function ProfissionalFormBody({
               <Input
                 value={form.foto_url}
                 onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
-                placeholder="https://…/foto.jpg (ou envie um arquivo →)"
+                placeholder="Envie um arquivo → (ou cole uma URL https://…)"
                 disabled={uploadingFoto}
               />
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.webp"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
@@ -1665,6 +1713,37 @@ function ProfissionalFormBody({
               </SelectContent>
             </Select>
           </div>
+          {(exigePeriodo(form.situacao_funcional) || exigePeriodo(form.status)) && (
+            <>
+              <div>
+                <Label>
+                  Início de{" "}
+                  {SITUACAO_FUNCIONAL_LABEL[form.situacao_funcional || form.status] ??
+                    "afastamento"}{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={form.situacao_data_inicio}
+                  onChange={(e) => setForm({ ...form, situacao_data_inicio: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>
+                  Fim / previsão de retorno <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  min={form.situacao_data_inicio || undefined}
+                  value={form.situacao_data_fim}
+                  onChange={(e) => setForm({ ...form, situacao_data_fim: e.target.value })}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  O sistema usa esta data para notificar o retorno do profissional.
+                </p>
+              </div>
+            </>
+          )}
           <div>
             <Label>Gestor imediato</Label>
             <Select

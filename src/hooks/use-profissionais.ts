@@ -31,9 +31,10 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
 
       if (filters.q) {
         const q = `%${filters.q.trim()}%`;
-        // Use ilike on name and OR on cpf/matricula
-        query = query.ilike("nome_completo", q).or(`cpf.ilike.${q},matricula.ilike.${q}`);
+        // Busca única (OR) em nome, CPF e matrícula — sem AND indevido no nome.
+        query = query.or(`nome_completo.ilike.${q},cpf.ilike.${q},matricula.ilike.${q}`);
       }
+
       if (filters.cpf) query = query.eq("cpf", filters.cpf);
       if (filters.matricula) query = query.eq("matricula", filters.matricula);
       if (filters.unidadeId) query = query.eq("unidade_id", filters.unidadeId);

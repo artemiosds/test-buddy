@@ -18,7 +18,6 @@ const GERENCIAIS = [
   { to: "/relatorios-gerenciais/cargos", label: "Cargos" },
   { to: "/relatorios-gerenciais/funcoes", label: "Funções" },
   { to: "/relatorios-gerenciais/estrutura", label: "Estrutura" },
-  { to: "/relatorios-gerenciais/indicadores", label: "Indicadores" },
   { to: "/relatorios-gerenciais/piso", label: "Piso (gerencial)" },
   { to: "/relatorios-gerenciais/auditoria", label: "Auditoria" },
   { to: "/relatorio-inteligente", label: "⭐ Relatório Geral Inteligente" },

@@ -9,7 +9,9 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  Loader2,
   Sparkles,
+
   UploadCloud,
 } from "lucide-react";
 
@@ -28,7 +30,16 @@ import {
 } from "@/components/ui/select";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 
-import { CAMPOS_SISTEMA, CAMPOS_CALCULADOS, type PisoDestino } from "@/lib/piso-mapping";
+import { CAMPOS_SISTEMA, CAMPOS_CALCULADOS, parseNumeric, type PisoDestino } from "@/lib/piso-mapping";
+import {
+  carregarCamposCustom,
+  chaveDeCampo,
+  isCampoCustom,
+  salvarCamposCustom,
+  upsertCampoCustom,
+  type CampoCustom,
+  type TipoCampoCustom,
+} from "@/lib/piso-campos-custom";
 import { autoMapLayout, type LayoutFolha } from "@/lib/piso-layouts";
 import { detectHeaderRow, buildRowsFromAoa, detectarCompetencia } from "@/lib/piso-heuristics";
 import { resolveRows, type Mapeamento, type RawRow, type ResolvedRow } from "@/lib/piso-import";
@@ -43,7 +54,13 @@ import {
   startImportPiso,
 } from "@/lib/piso-enfermagem.functions";
 import { consolidarLotePiso, registrarAuditoriaImportacao } from "@/lib/piso-gestao.functions";
-import { detectarLayout, mapearColunas, type LayoutVersaoResolvida } from "@/lib/layout-engine";
+import {
+  detectarLayout,
+  mapearColunas,
+  normalizarTexto as normalizarHeader,
+  termosDoCampo,
+  type LayoutVersaoResolvida,
+} from "@/lib/layout-engine";
 import {
   extrairTextoPdf,
   renderizarPaginasJpeg,
@@ -66,8 +83,41 @@ import {
   type ExtracaoConfigPublica,
 } from "@/lib/piso-extracao-config.functions";
 
-import { gerarPlanilhaOficialPiso } from "@/lib/piso-planilha.functions";
-import { listVersoesAtivas, registrarUsoLayout } from "@/lib/layout-engine.functions";
+import {
+  aprenderAliasCampo,
+  listVersoesAtivas,
+  registrarUsoLayout,
+} from "@/lib/layout-engine.functions";
+import {
+  registrarConfirmacaoAlias,
+  registrarUsoAliases,
+  sugerirCamposIA,
+} from "@/lib/layout-inteligencia.functions";
+import { previsualizarReconhecimento } from "@/lib/layout-inteligencia";
+import { gerarLayoutDeModelo } from "@/lib/layout-modelo.functions";
+import {
+  chaveColuna,
+  colunasEstruturaisDoModelo,
+  lerMapaModelo,
+  type MapaModelo,
+} from "@/lib/planilha-clone";
+import { salvarModeloPlanilha } from "@/lib/planilha-modelos.functions";
+import {
+  aplicarTemplate,
+  detectarTemplate,
+  montarPlanilhaUbs,
+  type DeteccaoTemplate,
+} from "@/lib/import-templates";
+import { ImportPreviewTable } from "@/components/piso/import-preview-table";
+import { matematicaEstrutural, type RegraEstrutural } from "@/lib/matematica-modelo";
+import {
+  aplicarRegrasFormulas,
+  descreverRegra,
+  extrairRegrasDeColunas,
+  lerRegrasDoConfig,
+  regrasParaCampos,
+  type RegraFormulaColuna,
+} from "@/lib/layout-formulas";
 
 const CHUNK = 100;
 /** Páginas por chamada à IA de Visão (lotes pequenos = baixo consumo de memória). */
@@ -134,6 +184,31 @@ function fmtTamanho(bytes: number): string {
 
 type Passo = 1 | 2 | 3 | 4;
 
+/**
+ * Lê as fórmulas do Excel das primeiras linhas de dados (=H7+I7+J7+K7, =L7*5%…)
+ * e devolve as regras por cabeçalho — insumo do aprendizado por modelo.
+ */
+function formulasDaPlanilha(
+  ws: XLSX.WorkSheet,
+  headers: string[],
+  headerRowIndex: number,
+): RegraFormulaColuna[] {
+  const encontradas = new Map<number, string>();
+  for (let linha = headerRowIndex + 1; linha <= headerRowIndex + 6; linha++) {
+    for (let col = 0; col < headers.length; col++) {
+      if (encontradas.has(col)) continue;
+      const ref = XLSX.utils.encode_cell({ r: linha, c: col });
+      const celula = (ws as Record<string, any>)[ref];
+      if (celula?.f) encontradas.set(col, String(celula.f));
+    }
+  }
+  const celulas = Array.from(encontradas.entries()).map(([colunaIndice, formula]) => ({
+    colunaIndice,
+    formula,
+  }));
+  return extrairRegrasDeColunas(celulas, headers);
+}
+
 export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
   const navigate = useNavigate();
   const [passo, setPasso] = useState<Passo>(1);
@@ -144,6 +219,16 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
   const [headerRowIndex, setHeaderRowIndex] = useState(0);
   const [rawRows, setRawRows] = useState<RawRow[]>([]);
   const [mapeamento, setMapeamento] = useState<Mapeamento>({});
+  /** Colunas que o usuário marcou como "Ignorar coluna" (não contam na compatibilidade). */
+  const [colunasIgnoradas, setColunasIgnoradas] = useState<string[]>([]);
+  /** Campos personalizados criados pelo usuário para este modelo de folha. */
+  const [camposCustom, setCamposCustom] = useState<CampoCustom[]>(() =>
+    carregarCamposCustom(layout.modelo),
+  );
+  /** Header cuja criação de campo personalizado está aberta. */
+  const [criandoEm, setCriandoEm] = useState<string | null>(null);
+  const [novoLabel, setNovoLabel] = useState("");
+  const [novoTipo, setNovoTipo] = useState<TipoCampoCustom>("valor");
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
   const [nomeModelo, setNomeModelo] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -170,6 +255,42 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
   } | null>(null);
 
   const [motivoDeteccao, setMotivoDeteccao] = useState<string | null>(null);
+  /** Template institucional detectado (padrão Strategy: UBS, Educação…). */
+  const [templateDet, setTemplateDet] = useState<DeteccaoTemplate | null>(null);
+  /** Fórmulas lidas do Excel do arquivo atual (aprendizado por modelo de referência). */
+  const [formulasModelo, setFormulasModelo] = useState<RegraFormulaColuna[]>([]);
+  /** Arquivo .xlsx original — base da exportação "espelho fiel" do modelo. */
+  const [arquivoBuf, setArquivoBuf] = useState<ArrayBuffer | null>(null);
+  /** Planilha modelo escolhida para o CLONE (estrutura + receita de cada célula). */
+  const [modeloBuf, setModeloBuf] = useState<ArrayBuffer | null>(null);
+  const [modeloNome, setModeloNome] = useState("");
+  /** Matemática estrutural lida da planilha modelo enviada (dinâmica por modelo). */
+  const [matModelo, setMatModelo] = useState<RegraEstrutural[]>([]);
+  const [matModeloErro, setMatModeloErro] = useState<string | null>(null);
+  /** Resumo do modelo lido (colunas, cabeçalho, colunas calculadas) + nome para salvar. */
+  const [modeloResumo, setModeloResumo] = useState<{
+    aba: string;
+    linhaCabecalho: number;
+    colunas: string[];
+    estruturais: string[];
+    linhas: number;
+  } | null>(null);
+  const [modeloSalvarNome, setModeloSalvarNome] = useState("");
+  /** Id do modelo salvo no cadastro (amarra a importação a este modelo). */
+  const [modeloSalvoId, setModeloSalvoId] = useState<string | null>(null);
+  /** Fórmulas lidas da planilha MODELO (por cabeçalho) — base do cálculo. */
+  const [formulasDoModelo, setFormulasDoModelo] = useState<RegraFormulaColuna[]>([]);
+  const [arquivoMesNome, setArquivoMesNome] = useState("");
+  const [cloneEtapa, setCloneEtapa] = useState<1 | 2 | 3>(1);
+  const [clonePreview, setClonePreview] = useState<{
+    aba: string;
+    cabecalho: string[];
+    linhas: unknown[][];
+    totalLinhas: number;
+    formulas: number;
+  } | null>(null);
+  const [nomeLayoutIA, setNomeLayoutIA] = useState("");
+
 
   const versoesQ = useQuery({
     queryKey: ["layout-engine", "versoes", "piso"],
@@ -183,6 +304,46 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
   });
   const versoes = (versoesQ.data?.versoes ?? []) as LayoutVersaoResolvida[];
   const versaoAtiva = versoes.find((v) => v.versao_id === versaoId) ?? null;
+  /**
+   * Regras matemáticas lidas EXCLUSIVAMENTE do modelo enviado (UBS, H.M.O, CER,
+   * CAPS…). Nada de matemática fixa em código: se o modelo não tem PLANTÃO,
+   * GRAT. INCENTIVO ou ISS, essas regras simplesmente não existem aqui.
+   */
+  const regrasAprendidas = useMemo(
+    () => lerRegrasDoConfig((versaoAtiva?.config ?? null) as Record<string, unknown> | null),
+    [versaoAtiva],
+  );
+
+
+  /**
+   * Regras do MODELO anexado (ex.: SAUDE - UBS'S): as fórmulas escritas nas
+   * células do modelo, traduzidas para campos internos pelo mapeamento. É esta
+   * matemática que vale ao clicar em "Validar e cruzar cadastro".
+   */
+  const regrasDoModelo = useMemo(
+    () => regrasParaCampos(formulasDoModelo, mapeamento as Record<string, string | null>),
+    [formulasDoModelo, mapeamento],
+  );
+
+  /**
+   * Só recalcula o que a própria planilha calcula: campos cuja coluna é uma
+   * fórmula no arquivo do mês, ou que nem existem no arquivo. Valores digitados
+   * (ex.: insalubridade informada pelo RH) nunca são sobrescritos.
+   * O modelo anexado tem precedência sobre o layout salvo.
+   */
+  const regrasAplicaveis = useMemo(() => {
+    const calculadas = new Set(
+      formulasModelo.map((f) => mapeamento[f.coluna] ?? null).filter(Boolean) as string[],
+    );
+    const presentes = new Set(Object.values(mapeamento).filter(Boolean) as string[]);
+    const doLayout = regrasAprendidas.filter(
+      (r) => calculadas.has(r.destino) || !presentes.has(r.destino),
+    );
+    const destinosModelo = new Set(regrasDoModelo.map((r) => r.destino));
+    return [...regrasDoModelo, ...doLayout.filter((r) => !destinosModelo.has(r.destino))];
+  }, [regrasAprendidas, regrasDoModelo, formulasModelo, mapeamento]);
+
+
 
   /** Mapeia usando o layout do banco (Motor de Layouts); sem layout, usa o perfil em código. */
   function mapearComMotor(hs: string[], v: LayoutVersaoResolvida | null): Mapeamento {
@@ -218,11 +379,14 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
       return;
     }
     let matrix: unknown[][];
+    let ws: XLSX.WorkSheet | null = null;
     try {
       const buf = await f.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+      const wb = XLSX.read(buf, { type: "array", cellFormula: true });
+      ws = wb.Sheets[wb.SheetNames[0]];
       matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      // Guarda o arquivo original para a exportação "espelho fiel" do modelo.
+      setArquivoBuf(lower.endsWith(".xlsx") ? buf.slice(0) : null);
     } catch (err) {
       toast.error(`Falha ao ler o arquivo: ${err instanceof Error ? err.message : String(err)}`);
       return;
@@ -238,6 +402,16 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     setHeaderRowIndex(idx);
     setHeaders(hs);
     setRawRows(rows);
+    setFormulasModelo(ws ? formulasDaPlanilha(ws, hs, idx) : []);
+    setNomeLayoutIA("");
+
+    // Padrão Strategy: reconhece o modelo institucional do arquivo do RH.
+    const tpl = detectarTemplate(f.name, hs);
+    setTemplateDet(tpl);
+    if (tpl)
+      toast.success(
+        `Modelo reconhecido: ${tpl.template.nome} — as regras de cálculo do modelo serão aplicadas.`,
+      );
 
     const det = detectarLayout(versoes, f.name, hs);
     const escolhido = det.escolhido?.versao ?? null;
@@ -650,17 +824,34 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
         ? rawRows.map((r) => String(r[nomeCol] ?? "").trim()).filter(Boolean)
         : [];
       const maps = await matchProfissionaisImport({ data: { cpfs, matriculas, nomes } });
-      const base = resolveRows(rawRows, mapeamento, {
-        byCpf: maps.byCpf,
-        byMatricula: maps.byMatricula,
-      });
+      const base = resolveRows(
+        rawRows,
+        mapeamento,
+        { byCpf: maps.byCpf, byMatricula: maps.byMatricula },
+        { numericos: customNumericos },
+      );
       const candidatos = maps.candidatos ?? [];
       const enriched = base.map((r) => {
         if (r.status_match !== "nao_localizado" || !r.nome) return r;
         const hit = bestFuzzy(r.nome, candidatos, 0.88);
         return hit ? { ...r, profissional_id: hit.id, status_match: "nome" as const } : r;
       });
-      setResolved(enriched);
+      // Aplica a matemática aprendida do modelo (BRUTO, ISS, TOTAL, LÍQUIDO…),
+      // garantindo que o resultado importado bata com o da planilha.
+      const comFormulas = regrasAplicaveis.length
+        ? (aplicarRegrasFormulas(
+            enriched as unknown as Record<string, unknown>[],
+            regrasAplicaveis,
+          ) as unknown as ResolvedRow[])
+        : enriched;
+      const comTemplate = templateDet
+        ? (aplicarTemplate(templateDet.template, comFormulas as unknown as Record<string, unknown>[]) as unknown as ResolvedRow[])
+        : comFormulas;
+      setResolved(comTemplate);
+      if (regrasAplicaveis.length)
+        toast.success(
+          `${regrasAplicaveis.length} regra(s) do modelo aplicadas aos valores calculados.`,
+        );
       setPasso(3);
     },
     onError: (e: unknown) =>
@@ -741,6 +932,7 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
                 }
               : {}),
           },
+          modelo_planilha_id: modeloSalvoId,
           total: resolved.length,
         },
       });
@@ -831,8 +1023,22 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
             competencia,
             total_linhas: resolved.length,
             duracao_ms: Date.now() - inicioRef.current,
+            detalhes: {
+              reconhecimento_pct: reconhecimentoRef.current.pct,
+              mapeamento_manual_pct: reconhecimentoRef.current.manualPct,
+              colunas: reconhecimentoRef.current.total,
+            },
           },
         });
+        void registrarUsoAliases({
+          data: {
+            modulo: versaoAtiva?.modulo || "piso",
+            pares: Object.entries(mapeamento)
+              .filter(([, v]) => !!v)
+              .slice(0, 200)
+              .map(([alias, campo]) => ({ campo_interno: String(campo), alias })),
+          },
+        }).catch(() => undefined);
       }
       setProgresso((p) => ({ ...p, ativo: false }));
       toast.success(
@@ -866,29 +1072,217 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao salvar modelo"),
   });
 
-  const baixarFopagMut = useMutation({
-    mutationFn: () =>
-      gerarPlanilhaOficialPiso({
-        data: { competencia, tipo: layout.tipo === "efetivos" ? "efetivos" : "contratados" },
-      }),
-    onSuccess: (r) => {
-      const bin = atob(r.base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const url = URL.createObjectURL(
-        new Blob([bytes], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        }),
-      );
+  // O gerador de cabeçalho fixo (FOPAG) foi aposentado no fluxo final: ele
+  // emitia colunas escritas em código e perdia colunas do modelo (GRAT.INCENTIVO).
+  // O arquivo final agora sai sempre do motor de clone da planilha modelo.
+
+
+
+  /**
+   * ESPELHO FIEL DO MODELO (engenharia reversa): exporta o mesmo arquivo, com a
+   * mesma estrutura, ordem de colunas, cabeçalhos e formatação — apenas com as
+   * fórmulas do modelo reaplicadas em todas as linhas de dados (ativas).
+   * Nada é adicionado, removido, renomeado ou reposicionado.
+   */
+  const espelhoMut = useMutation({
+    mutationFn: async () => {
+      if (!arquivoBuf) throw new Error("Envie um arquivo .xlsx para gerar o espelho do modelo.");
+      const { gerarPlanilhaEspelho } = await import("@/lib/planilha-espelho");
+      return gerarPlanilhaEspelho(arquivoBuf.slice(0));
+    },
+    onSuccess: ({ blob, resumo }) => {
+      const base = (file?.name ?? "planilha").replace(/\.[a-z0-9]+$/i, "");
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = r.filename;
+      a.download = `${base} - FORMULAS.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success(
+        `Cópia fiel: ${resumo.totalFormulas} fórmula(s) copiadas célula a célula em ${resumo.totalLinhas} linha(s).`,
+      );
     },
     onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar a planilha FOPAG"),
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar o espelho do modelo"),
   });
+
+  /**
+   * CLONE DE PLANILHA MODELO: usa o arquivo enviado no passo 1 como dados do mês
+   * e a planilha modelo escolhida aqui como fonte da estrutura. Para cada pessoa
+   * (casada por CPF, depois nome, depois cargo) o sistema copia a receita da
+   * célula do modelo: fórmula igual onde o modelo tem fórmula, valor fixo do mês
+   * onde o modelo tem valor digitado. Nada é recalculado por regra geral.
+   */
+  /** Salva o .xlsx modelo no cadastro para uso nos downloads das Importações. */
+  type ArgsSalvarModelo = {
+    buf: ArrayBuffer;
+    nomeArquivo: string;
+    nome: string;
+    resumo: NonNullable<typeof modeloResumo>;
+  };
+
+  const salvarModeloMut = useMutation({
+    mutationFn: async (args?: ArgsSalvarModelo) => {
+      const buf = args?.buf ?? modeloBuf;
+      const resumo = args?.resumo ?? modeloResumo;
+      const nome = (args?.nome ?? modeloSalvarNome).trim();
+      const nomeArquivo = args?.nomeArquivo ?? modeloNome;
+      if (!buf) throw new Error("Anexe a planilha modelo (.xlsx).");
+      if (!resumo) throw new Error("Não foi possível ler a planilha modelo.");
+      const bytes = new Uint8Array(buf.slice(0));
+      let bin = "";
+      for (let i = 0; i < bytes.length; i += 8192)
+        bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      return salvarModeloPlanilha({
+        data: {
+          nome,
+          descricao: `Modelo lido de ${nomeArquivo} — aba ${resumo.aba}, cabeçalho na linha ${resumo.linhaCabecalho}.`,
+          modulo: "piso",
+          vinculo: layout.tipo,
+          nome_arquivo: nomeArquivo,
+          aba: resumo.aba,
+          linha_cabecalho: resumo.linhaCabecalho,
+          colunas: resumo.colunas,
+          colunas_estruturais: resumo.estruturais,
+          arquivo_base64: btoa(bin),
+          padrao: true,
+        },
+      });
+    },
+    onSuccess: (r: { id?: string; nome?: string } | null) => {
+      if (r?.id) setModeloSalvoId(r.id);
+      toast.success(
+        `Modelo "${r?.nome ?? modeloSalvarNome}" salvo como padrão de ${layout.label}. ` +
+          "Os cálculos da importação e os downloads passam a seguir este modelo.",
+      );
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar o modelo de planilha."),
+  });
+
+  const cloneMut = useMutation({
+    mutationFn: async () => {
+      if (!arquivoBuf) throw new Error("Envie a planilha .xlsx do mês.");
+      if (!modeloBuf) throw new Error("Selecione a planilha modelo (.xlsx).");
+      const { clonarPlanilhaModelo } = await import("@/lib/planilha-clone");
+      return clonarPlanilhaModelo(modeloBuf.slice(0), arquivoBuf.slice(0));
+    },
+    onSuccess: ({ blob, resumo }) => {
+      const base = (arquivoMesNome || "planilha").replace(/\.[a-z0-9]+$/i, "");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${base} - GERADO.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(
+        `Clone concluído: ${resumo.registros} linha(s) — ${resumo.casadosPorCpf} por CPF, ` +
+          `${resumo.casadosPorNome} por nome. ` +
+          `${resumo.formulasCopiadas} fórmula(s) e ${resumo.valoresFixosCopiados} valor(es) fixo(s) copiados.`,
+      );
+      // Relatório de divergência: nada passa silencioso.
+      if (resumo.colunasModeloSemDado.length > 0) {
+        toast.warning(
+          `Colunas do modelo sem dado no arquivo do mês: ${resumo.colunasModeloSemDado.join(", ")}. ` +
+            "Elas foram mantidas na estrutura, mas ficaram vazias.",
+          { duration: 12000 },
+        );
+      }
+      if (resumo.linhasSemCasamento.length > 0) {
+        const nomes = resumo.linhasSemCasamento.map((l) => l.nome || `linha ${l.linha}`);
+        toast.warning(
+          `${resumo.linhasSemCasamento.length} pessoa(s) sem correspondência no modelo ` +
+            `(${nomes.slice(0, 5).join(", ")}${nomes.length > 5 ? "…" : ""}). ` +
+            "Receberam só as colunas calculadas do modelo; nenhuma receita de outra pessoa foi herdada.",
+          { duration: 12000 },
+        );
+      }
+
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao clonar a planilha modelo"),
+  });
+
+  async function gerarModeloClone(f: File) {
+    if (!f.name.toLowerCase().endsWith(".xlsx")) {
+      toast.error("O motor de clonagem exige uma planilha .xlsx.");
+      return;
+    }
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellFormula: true });
+      const nomeAba = wb.SheetNames[0];
+      const ws = wb.Sheets[nomeAba];
+      const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      const idx = detectHeaderRow(matrix);
+      const cabecalho = (matrix[idx] ?? []).map((v) => String(v ?? ""));
+      let formulas = 0;
+      for (const [ref, celula] of Object.entries(ws as Record<string, any>)) {
+        if (!ref.startsWith("!") && celula?.f) formulas += 1;
+      }
+      setModeloBuf(buf.slice(0));
+      setModeloNome(f.name);
+      setClonePreview({
+        aba: nomeAba,
+        cabecalho,
+        linhas: matrix.slice(idx + 1, idx + 6),
+        totalLinhas: Math.max(0, matrix.length - idx - 1),
+        formulas,
+      });
+      setArquivoBuf(null);
+      setArquivoMesNome("");
+      setCloneEtapa(2);
+      toast.success("Modelo gerado. Estrutura e receitas das células foram preservadas.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível ler a planilha modelo.");
+    }
+  }
+
+  async function selecionarArquivoMes(f: File) {
+    if (!f.name.toLowerCase().endsWith(".xlsx")) {
+      toast.error("O arquivo do mês deve estar no formato .xlsx.");
+      return;
+    }
+    setArquivoBuf((await f.arrayBuffer()).slice(0));
+    setArquivoMesNome(f.name);
+    setCloneEtapa(3);
+  }
+
+  function baixarModeloClonado() {
+    if (!modeloBuf) return;
+    const blob = new Blob([modeloBuf.slice(0)], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${modeloNome.replace(/\.xlsx$/i, "")} - MODELO CLONADO.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Exporta as linhas validadas nas 16 colunas fiéis do modelo
+   * `SAUDE - UBS'S (4)`, na ordem definida pelo template detectado.
+   */
+  function baixarPlanilhaTemplate() {
+    const aoaSaida = montarPlanilhaUbs(
+      validacao.linhasValidas as unknown as Record<string, unknown>[],
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaSaida), "FOLHA");
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PLANILHA-CONTRATADOS-${(competencia || "SEM-COMPETENCIA").replace(/\//g, "-")}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
 
   const resumoFopag = fopag ? resumoCategorias(fopag) : null;
 
@@ -904,7 +1298,258 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     { key: "mensagem", header: "Detalhe", cell: (i) => i.mensagem },
   ];
 
+  /**
+   * Autoaprendizado do motor: ao mapear manualmente um cabeçalho desconhecido,
+   * oferece salvá-lo como sinônimo permanente do campo no layout ativo.
+   */
+  function sugerirAprenderAlias(header: string, destino: string) {
+    const v = versaoAtiva;
+    if (!v || !header.trim()) return;
+    const campo = v.campos.find((c) => c.campo_interno === destino);
+    if (!campo) return;
+    const norm = normalizarHeader(header);
+    if (!norm || termosDoCampo(campo).includes(norm)) return;
+
+    // Aprendizado por confirmação: cada mapeamento manual conta um voto;
+    // com 3 confirmações de usuários diferentes o sinônimo é promovido.
+    void registrarConfirmacaoAlias({
+      data: {
+        modulo: v.modulo || "piso",
+        campo_interno: destino,
+        alias: header,
+        origem: "manual",
+      },
+    })
+      .then((r) => {
+        if (r.promover) {
+          toast("Este cabeçalho já foi confirmado por 3 pessoas. Adicionar ao catálogo?", {
+            description: `"${header}" → ${campo.label ?? destino}`,
+            action: { label: "Adicionar", onClick: () => salvarAlias(v, destino, header, campo.label) },
+          });
+          return;
+        }
+        toast("Deseja adicionar este cabeçalho como sinônimo permanente deste campo?", {
+          description: `"${header}" → ${campo.label ?? destino} · ${r.confirmacoes}/${r.limiar} confirmações`,
+          action: { label: "Salvar sinônimo", onClick: () => salvarAlias(v, destino, header, campo.label) },
+        });
+      })
+      .catch(() => {
+        toast("Deseja adicionar este cabeçalho como sinônimo permanente deste campo?", {
+          description: `"${header}" → ${campo.label ?? destino}`,
+          action: { label: "Salvar sinônimo", onClick: () => salvarAlias(v, destino, header, campo.label) },
+        });
+      });
+  }
+
+  function salvarAlias(
+    v: { versao_id: string; modulo: string },
+    destino: string,
+    header: string,
+    label?: string | null,
+  ) {
+    void aprenderAliasCampo({
+      data: {
+        versao_id: v.versao_id,
+        campo_interno: destino,
+        alias: header,
+        modulo: v.modulo || "piso",
+      },
+    })
+      .then(() =>
+        toast.success(`Sinônimo salvo — o motor reconhecerá "${header}" como ${label ?? destino}.`),
+      )
+      .catch((e: unknown) =>
+        toast.error(e instanceof Error ? e.message : "Falha ao salvar o sinônimo"),
+      );
+  }
+
   const destinosDisponiveis = CAMPOS_SISTEMA.filter((c) => !CAMPOS_CALCULADOS.has(c.key));
+
+  /** Rótulo de um destino, considerando também os campos personalizados. */
+  function labelDoDestino(key: string): string {
+    return (
+      CAMPOS_SISTEMA.find((c) => c.key === key)?.label ??
+      camposCustom.find((c) => c.key === key)?.label ??
+      key
+    );
+  }
+
+  /** Chaves personalizadas que devem ser lidas como valor monetário. */
+  const customNumericos = useMemo(
+    () => camposCustom.filter((c) => c.tipo === "valor").map((c) => c.key),
+    [camposCustom],
+  );
+
+  /** Heurística: a coluna parece conter valores numéricos? */
+  function colunaParecerValor(header: string): boolean {
+    const amostra = rawRows.slice(0, 20).map((r) => r[header]);
+    const preenchidos = amostra.filter((v) => v != null && v !== "");
+    if (preenchidos.length === 0) return false;
+    const numericos = preenchidos.filter((v) => parseNumeric(v) != null).length;
+    return numericos / preenchidos.length >= 0.7;
+  }
+
+  /**
+   * Cria um campo interno novo a partir do título da coluna e já o vincula.
+   * Resolve o caso "coluna sem destino no catálogo" sem depender de suporte.
+   */
+  function criarCampoPersonalizado(header: string, label: string, tipo: TipoCampoCustom) {
+    const nome = label.trim();
+    if (!nome) {
+      toast.error("Informe o nome do campo.");
+      return;
+    }
+    const key = chaveDeCampo(nome);
+    const campo: CampoCustom = { key, label: nome, tipo };
+    setCamposCustom((prev) => {
+      const next = upsertCampoCustom(prev, campo);
+      salvarCamposCustom(layout.modelo, next);
+      return next;
+    });
+    setMapeamento((prev) => ({ ...prev, [header]: key }));
+    setColunasIgnoradas((prev) => prev.filter((x) => x !== header));
+    setCriandoEm(null);
+    setNovoLabel("");
+    if (versaoAtiva) sugerirAprenderAlias(header, key);
+    toast.success(`Campo "${nome}" criado e vinculado à coluna "${header}".`);
+  }
+
+  /** Cria campos automaticamente para todas as colunas ainda sem destino. */
+  function criarCamposParaColunasSemMapeamento() {
+    const pendentes = headers.filter(
+      (h) => !mapeamento[h] && !colunasIgnoradas.includes(h) && h.trim(),
+    );
+    if (pendentes.length === 0) {
+      toast.message("Nenhuma coluna sem mapeamento.");
+      return;
+    }
+    const novos: CampoCustom[] = pendentes.map((h) => ({
+      key: chaveDeCampo(h),
+      label: h.trim(),
+      tipo: colunaParecerValor(h) ? "valor" : "texto",
+    }));
+    setCamposCustom((prev) => {
+      let next = prev;
+      for (const c of novos) next = upsertCampoCustom(next, c);
+      salvarCamposCustom(layout.modelo, next);
+      return next;
+    });
+    setMapeamento((prev) => {
+      const next = { ...prev };
+      pendentes.forEach((h, i) => {
+        next[h] = novos[i].key;
+      });
+      return next;
+    });
+    toast.success(`${pendentes.length} campo(s) criado(s) a partir dos títulos das colunas.`);
+  }
+
+  /** Pré-visualização: quanto do arquivo o motor entendeu antes de importar. */
+  const reconhecimento = useMemo(
+    () =>
+      previsualizarReconhecimento(
+        headers,
+        mapeamento as Record<string, string | null>,
+        (versaoAtiva as any) ?? null,
+        (campo) => labelDoDestino(campo),
+        colunasIgnoradas,
+      ),
+    [headers, mapeamento, versaoAtiva, colunasIgnoradas, camposCustom],
+  );
+
+  /** Snapshot do reconhecimento para registrar métricas ao final da importação. */
+  const reconhecimentoRef = useRef({ pct: 0, manualPct: 0, total: 0 });
+  reconhecimentoRef.current = {
+    pct: reconhecimento.percentual,
+    manualPct: reconhecimento.relevantes
+      ? Math.round((reconhecimento.naoReconhecidas / reconhecimento.relevantes) * 100)
+      : 0,
+    total: reconhecimento.total,
+  };
+
+  const iaMut = useMutation({
+    mutationFn: () =>
+      sugerirCamposIA({
+        data: {
+          headers: reconhecimento.linhas
+            .filter((l) => l.status === "nao_reconhecido" && l.header.trim())
+            .map((l) => l.header)
+            .slice(0, 60),
+          modulo: versaoAtiva?.modulo || "piso",
+        },
+      }),
+    onSuccess: (r) => {
+      if (r.erro) {
+        toast.error(r.erro);
+        return;
+      }
+      const validos = new Set(destinosDisponiveis.map((c) => c.key));
+      const usados = new Set(Object.values(mapeamento).filter(Boolean) as string[]);
+      let aplicadas = 0;
+      setMapeamento((prev) => {
+        const next = { ...prev };
+        for (const s of r.sugestoes) {
+          if (!validos.has(s.campo as PisoDestino) || usados.has(s.campo)) continue;
+          if (next[s.header]) continue;
+          next[s.header] = s.campo as PisoDestino;
+          usados.add(s.campo);
+          aplicadas += 1;
+        }
+        return next;
+      });
+      toast[aplicadas ? "success" : "message"](
+        aplicadas
+          ? `IA sugeriu ${aplicadas} mapeamento(s). Revise antes de continuar.`
+          : "A IA não encontrou correspondências novas.",
+      );
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao consultar a IA"),
+  });
+
+  /**
+   * Aprendizado por Modelo de Referência: a IA lê cabeçalhos, amostras e as
+   * fórmulas do Excel e cria um layout completo — sem mapeamento manual.
+   */
+  const modeloMut = useMutation({
+    mutationFn: () =>
+      gerarLayoutDeModelo({
+        data: {
+          nome: nomeLayoutIA.trim() || `Modelo ${layout.label} — ${file?.name ?? "planilha"}`,
+          modulo: "piso",
+          tipo: layout.tipo,
+          nome_arquivo: file?.name ?? "",
+          headers: headers.filter((h) => String(h).trim()).slice(0, 120),
+          amostra: rawRows
+            .slice(0, 3)
+            .map((r) => headers.map((h) => String(r[h] ?? "").slice(0, 200))),
+          formulas: formulasModelo.map((f) => ({
+            coluna: f.coluna,
+            expressao: f.expressao.slice(0, 400),
+            constante: f.constante,
+            termos: f.termos,
+          })),
+          usar_ia: true,
+        },
+      }),
+    onSuccess: async (r) => {
+      const { data } = await versoesQ.refetch();
+      const nova = (data?.versoes ?? []).find((v: any) => v.versao_id === r.versao_id) ?? null;
+      setVersaoId(r.versao_id);
+      if (nova) setMapeamento(mapearComMotor(headers, nova as LayoutVersaoResolvida));
+      setMotivoDeteccao(
+        `Layout gerado pela IA a partir deste arquivo: ${r.campos} campo(s) e ${r.regras.length} regra(s) de cálculo aprendidas.`,
+      );
+      if (r.erro_ia) toast.warning(r.erro_ia);
+      toast.success(
+        `Layout criado automaticamente — ${r.campos} campos e ${r.regras.length} fórmulas aprendidas.`,
+      );
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar o layout automático"),
+  });
+
+
 
   return (
     <div className="space-y-4 p-4 md:p-6">
@@ -1355,6 +2000,235 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
 
       {passo === 2 && (
         <div className="space-y-4 rounded-md border p-4">
+          {/* Aprendizado por Modelo de Referência (aditivo aos layouts manuais) */}
+          <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Aprender este arquivo como modelo
+              </div>
+              <Badge variant="outline">
+                {formulasModelo.length} fórmula(s) detectada(s) no Excel
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A IA lê os cabeçalhos e as fórmulas da planilha modelo e cria o layout de importação
+              sozinha — sem mapear coluna por coluna. Nos próximos meses, o sistema reconhece a
+              planilha e aplica a mesma matemática (BRUTO, ISS, LÍQUIDO).
+            </p>
+            {arquivoBuf && (
+              <div className="space-y-2 rounded-md border bg-background/60 p-3">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Cópia fiel do modelo (motor de cópia):</strong> exporta este mesmo arquivo com
+                  estrutura, ordem das colunas, cabeçalhos e formatação idênticos. O sistema lê a
+                  fórmula exata de CADA célula, linha por linha, e devolve a mesma fórmula na mesma
+                  célula. Linha com valor fixo continua fixa; nenhuma regra geral é criada, nada é
+                  deduzido, adicionado, removido, renomeado ou reposicionado.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => espelhoMut.mutate()}
+                  disabled={espelhoMut.isPending}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {espelhoMut.isPending
+                    ? "Gerando cópia..."
+                    : "Baixar planilha do modelo (cópia fiel das fórmulas)"}
+                </Button>
+              </div>
+            )}
+
+            {/* CLONE DE PLANILHA MODELO — sem aprendizado de matemática. */}
+            <div className="space-y-2 rounded-md border bg-background/60 p-3">
+              <p className="text-xs font-medium">Clone de planilha modelo</p>
+              <p className="text-xs text-muted-foreground">
+                Escolha a planilha modelo (o arquivo do mês anterior, já conferido). O sistema grava
+                um mapa de referência linha a linha e coluna a coluna com a fórmula exata ou o valor
+                fixo de cada célula e aplica essa mesma receita nos dados do arquivo enviado no passo
+                1 (casamento por CPF, depois nome, depois cargo). Nada é recalculado por regra geral:
+                onde o modelo tem <code>=BASE*20%</code> sai a mesma fórmula; onde o modelo tem 517,20
+                digitado, sai 517,20.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".xlsx"
+                  className="w-72"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const buf = await f.arrayBuffer();
+                    setModeloBuf(buf);
+                    setModeloNome(f.name);
+                    const nomeSugerido = f.name
+                      .replace(/\.[a-z0-9]+$/i, "")
+                      .replace(/[^\w\s'.-]+/g, " ")
+                      .trim();
+                    setModeloSalvarNome(nomeSugerido);
+                    // Painel de matemática e resumo: lidos DESTE modelo, nada fixo.
+                    setMatModelo([]);
+                    setMatModeloErro(null);
+                    setModeloResumo(null);
+                    setModeloSalvoId(null);
+                    setFormulasDoModelo([]);
+                    try {
+                      const ExcelJS = (await import("exceljs")).default ?? (await import("exceljs"));
+                      const wb = new (ExcelJS as any).Workbook();
+                      await wb.xlsx.load(buf.slice(0));
+                      const ws = wb.worksheets[0];
+                      if (!ws) throw new Error("A planilha modelo não tem abas legíveis.");
+                      const mapa: MapaModelo = lerMapaModelo(ws);
+                      setMatModelo(matematicaEstrutural(mapa));
+                      const estr = colunasEstruturaisDoModelo(mapa);
+                      const resumo = {
+                        aba: mapa.aba,
+                        linhaCabecalho: mapa.linhaCabecalho,
+                        colunas: Array.from(mapa.titulos.values()),
+                        estruturais: Array.from(estr).map((c) => mapa.titulos.get(c) ?? ""),
+                        linhas: mapa.linhas.length,
+                      };
+                      setModeloResumo(resumo);
+
+                      // Fórmulas do MODELO por cabeçalho: é a matemática que vale
+                      // ao clicar em "Validar e cruzar cadastro".
+                      const wbX = XLSX.read(buf.slice(0), { type: "array", cellFormula: true });
+                      const wsX = wbX.Sheets[wbX.SheetNames[0]];
+                      const headersX: string[] = [];
+                      for (let c = 1; c <= mapa.ultimaColuna; c += 1)
+                        headersX.push(mapa.titulos.get(c) ?? "");
+                      setFormulasDoModelo(
+                        wsX ? formulasDaPlanilha(wsX, headersX, mapa.linhaCabecalho - 1) : [],
+                      );
+
+                      // Salva automaticamente como modelo padrão deste vínculo.
+                      salvarModeloMut.mutate({
+                        buf: buf.slice(0),
+                        nomeArquivo: f.name,
+                        nome: nomeSugerido || f.name,
+                        resumo,
+                      });
+                    } catch (err) {
+                      setMatModeloErro(err instanceof Error ? err.message : String(err));
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cloneMut.mutate()}
+                  disabled={cloneMut.isPending || !modeloBuf || !arquivoBuf}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {cloneMut.isPending
+                    ? "Clonando..."
+                    : !modeloBuf
+                      ? "Anexe a planilha modelo"
+                      : !arquivoBuf
+                        ? "Falta a planilha do mês (passo 1)"
+                        : "Gerar planilha clonada do modelo"}
+                </Button>
+              </div>
+              {modeloNome && (
+                <p className="text-xs text-muted-foreground">Modelo: {modeloNome}</p>
+              )}
+
+              {/* Modelo lido: resumo + salvar no cadastro (usado nos downloads). */}
+              {modeloResumo && (
+                <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-xs">
+                    Modelo lido: aba <strong>{modeloResumo.aba}</strong>, cabeçalho na linha{" "}
+                    <strong>{modeloResumo.linhaCabecalho}</strong>,{" "}
+                    <strong>{modeloResumo.colunas.length}</strong> colunas e{" "}
+                    <strong>{modeloResumo.linhas}</strong> linhas de referência.
+                    {modeloResumo.estruturais.length > 0 && (
+                      <>
+                        {" "}
+                        Colunas calculadas pelo modelo:{" "}
+                        <strong>{modeloResumo.estruturais.join(", ")}</strong>.
+                      </>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Salve como modelo oficial para que os downloads em{" "}
+                    <strong>Importações</strong> saiam com esta mesma estrutura, em vez do formato
+                    antigo do sistema.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1">
+                      <Label>Nome do modelo de planilha</Label>
+                      <Input
+                        className="w-64"
+                        placeholder="UBS"
+                        value={modeloSalvarNome}
+                        onChange={(ev) => setModeloSalvarNome(ev.target.value)}
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => salvarModeloMut.mutate(undefined)}
+                      disabled={salvarModeloMut.isPending || modeloSalvarNome.trim().length < 2}
+                    >
+                      {salvarModeloMut.isPending ? "Salvando..." : "Salvar modelo de planilha"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label>Nome do modelo</Label>
+                <Input
+                  className="w-72"
+                  placeholder={`Modelo ${layout.label}`}
+                  value={nomeLayoutIA}
+                  onChange={(e) => setNomeLayoutIA(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={() => modeloMut.mutate()}
+                disabled={modeloMut.isPending || headers.length === 0}
+              >
+                {modeloMut.isPending
+                  ? "Gerando layout..."
+                  : "Gerar layout automático a partir deste arquivo"}
+              </Button>
+            </div>
+            {matModelo.length > 0 && (
+              <div className="space-y-1 rounded-md border bg-background p-2">
+                <div className="text-xs font-medium">
+                  Matemática aplicada na importação — lida do modelo
+                  {modeloNome ? ` ${modeloNome}` : ""} ({matModelo.length}):
+                </div>
+                <ul className="space-y-0.5 text-[11px] text-muted-foreground">
+                  {matModelo.map((r) => (
+                    <li key={r.coluna}>{r.descricao}</li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground">
+                  Este resumo é gerado automaticamente para cada modelo enviado (UBS, H.M.O, CER,
+                  CAPS…). Somente colunas calculadas pelo próprio modelo aparecem aqui; colunas com
+                  valor digitado em alguma linha (ex.: insalubridade, auxílio transporte) são
+                  copiadas exatamente como estão.
+                </p>
+              </div>
+            )}
+            {matModelo.length === 0 && !matModeloErro && modeloNome && (
+              <p className="text-[11px] text-muted-foreground">
+                O modelo {modeloNome} não tem colunas calculadas por fórmula — todos os valores serão
+                copiados célula a célula, exatamente como estão no modelo.
+              </p>
+            )}
+
+            {matModeloErro && (
+              <p className="text-[11px] text-destructive">
+                Não foi possível ler a matemática do modelo: {matModeloErro}
+              </p>
+            )}
+
+          </div>
+
           {versoes.length > 0 && (
             <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
               <div className="space-y-1">
@@ -1442,6 +2316,110 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
             )}
           </div>
 
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-medium">
+                Compatibilidade do layout:{" "}
+                <span
+                  className={
+                    reconhecimento.percentual >= 80
+                      ? "text-emerald-600"
+                      : reconhecimento.percentual >= 50
+                        ? "text-amber-600"
+                        : "text-destructive"
+                  }
+                >
+                  {reconhecimento.percentual}%
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  ({reconhecimento.reconhecidas} de {reconhecimento.relevantes} campos relevantes
+                  reconhecidos
+                  {reconhecimento.ignoradas > 0
+                    ? ` · ${reconhecimento.ignoradas} coluna(s) ignorada(s)`
+                    : ""}
+                  {reconhecimento.vazias > 0 ? ` · ${reconhecimento.vazias} vazia(s)` : ""})
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => iaMut.mutate()}
+                disabled={iaMut.isPending || reconhecimento.naoReconhecidas === 0}
+              >
+                {iaMut.isPending ? "Consultando IA..." : "Sugerir com IA"}
+              </Button>
+            </div>
+            <Progress value={reconhecimento.percentual} />
+            {reconhecimento.compativel ? (
+              <p className="text-xs text-emerald-600">
+                ✔ Layout totalmente compatível — todas as colunas necessárias foram identificadas.
+                {reconhecimento.ignoradas > 0
+                  ? ` ${reconhecimento.ignoradas} coluna(s) foram ignoradas conforme configuração do layout.`
+                  : ""}
+              </p>
+            ) : null}
+            {reconhecimento.naoReconhecidas > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {reconhecimento.naoReconhecidas} coluna(s) sem correspondência:{" "}
+                {reconhecimento.linhas
+                  .filter((l) => l.status === "nao_reconhecido")
+                  .slice(0, 8)
+                  .map((l) => l.header || "(sem título)")
+                  .join(", ")}
+              </p>
+            )}
+            {reconhecimento.obrigatoriosAusentes > 0 && (
+              <p className="text-xs text-destructive">
+                Campos obrigatórios ausentes:{" "}
+                {reconhecimento.camposFaltando
+                  .filter((c) => c.estado === "obrigatorio")
+                  .map((c) => c.label)
+                  .join(", ")}
+              </p>
+            )}
+            <div className="grid gap-x-6 gap-y-1 pt-1 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex justify-between">
+                <span>Campos reconhecidos</span>
+                <span className="font-medium text-foreground">{reconhecimento.reconhecidas}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Obrigatórios ausentes</span>
+                <span className="font-medium text-foreground">
+                  {reconhecimento.obrigatoriosAusentes}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Opcionais ausentes</span>
+                <span className="font-medium text-foreground">
+                  {reconhecimento.opcionaisAusentes}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Colunas ignoradas</span>
+                <span className="font-medium text-foreground">{reconhecimento.ignoradas}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Sem correspondência</span>
+                <span className="font-medium text-foreground">
+                  {reconhecimento.naoReconhecidas}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Compatibilidade</span>
+                <span className="font-medium text-foreground">{reconhecimento.percentual}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Nenhuma coluna precisa ficar "Sem mapeamento": crie o campo interno direto aqui.
+            </p>
+            <Button variant="outline" size="sm" onClick={criarCamposParaColunasSemMapeamento}>
+              <Sparkles className="mr-2 h-4 w-4" /> Criar campos para colunas sem mapeamento
+            </Button>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {headers.map((h) => (
               <div key={h} className="space-y-1 rounded-md border p-2">
@@ -1449,36 +2427,115 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
                   {h || "(sem título)"}
                 </div>
                 <Select
-                  value={mapeamento[h] ?? "__none"}
-                  onValueChange={(v) =>
+                  value={
+                    mapeamento[h] ?? (colunasIgnoradas.includes(h) ? "__ignorar" : "__none")
+                  }
+                  onValueChange={(v) => {
+                    if (v === "__novo") {
+                      setCriandoEm(h);
+                      setNovoLabel(h.trim());
+                      setNovoTipo(colunaParecerValor(h) ? "valor" : "texto");
+                      return;
+                    }
+                    const ignorar = v === "__ignorar";
+                    const semDestino = ignorar || v === "__none";
                     setMapeamento((prev) => ({
                       ...prev,
-                      [h]: v === "__none" ? null : (v as PisoDestino),
-                    }))
-                  }
+                      [h]: semDestino ? null : v,
+                    }));
+                    setColunasIgnoradas((prev) =>
+                      ignorar ? [...new Set([...prev, h])] : prev.filter((x) => x !== h),
+                    );
+                    if (!semDestino) sugerirAprenderAlias(h, v);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">Ignorar coluna</SelectItem>
+                    <SelectItem value="__none">Sem mapeamento</SelectItem>
+                    <SelectItem value="__ignorar">Ignorar coluna</SelectItem>
+                    <SelectItem value="__novo">+ Criar campo personalizado…</SelectItem>
                     {destinosDisponiveis.map((c) => (
                       <SelectItem key={c.key} value={c.key}>
                         {c.label}
                       </SelectItem>
                     ))}
+                    {camposCustom.map((c) => (
+                      <SelectItem key={c.key} value={c.key}>
+                        {c.label} (personalizado)
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+
+                {isCampoCustom(mapeamento[h]) && criandoEm !== h && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Campo personalizado —{" "}
+                    {camposCustom.find((c) => c.key === mapeamento[h])?.tipo === "valor"
+                      ? "lido como valor (R$)"
+                      : "lido como texto"}
+                  </p>
+                )}
+
+                {criandoEm === h && (
+                  <div className="space-y-2 rounded-md border bg-muted/40 p-2">
+                    <Input
+                      value={novoLabel}
+                      placeholder="Nome do campo (ex.: Grat. Incentivo)"
+                      onChange={(e) => setNovoLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") criarCampoPersonalizado(h, novoLabel, novoTipo);
+                      }}
+                    />
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={novoTipo === "valor" ? "default" : "outline"}
+                        onClick={() => setNovoTipo("valor")}
+                      >
+                        Valor (R$)
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={novoTipo === "texto" ? "default" : "outline"}
+                        onClick={() => setNovoTipo("texto")}
+                      >
+                        Texto
+                      </Button>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => criarCampoPersonalizado(h, novoLabel, novoTipo)}
+                      >
+                        Criar e vincular
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setCriandoEm(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPasso(1)}>
               Voltar
             </Button>
             <Button onClick={() => matchMut.mutate()} disabled={matchMut.isPending}>
-              {matchMut.isPending ? "Cruzando com o Cadastro..." : "Validar e cruzar cadastro"}
+              {matchMut.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cruzando com o Cadastro...
+                </>
+              ) : (
+                "Validar e cruzar cadastro"
+              )}
             </Button>
           </div>
         </div>
@@ -1498,6 +2555,36 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
               tone="warn"
             />
           </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <Kpi label="Registros lidos" value={rawRows.length} />
+            <Kpi label="Registros validados" value={validacao.linhasValidas.length} tone="ok" />
+            <div className="rounded-md border p-3">
+              <div className="text-xs text-muted-foreground">Valor total da folha calculada</div>
+              <div className="text-lg font-semibold">
+                {validacao.linhasValidas
+                  .reduce((s, r) => s + (r.valor_liquido ?? 0), 0)
+                  .toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </div>
+            </div>
+          </div>
+
+          {templateDet && (
+            <div className="rounded-md border p-3 text-sm">
+              <div className="font-medium">
+                Modelo aplicado: {templateDet.template.nome}
+              </div>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+                {templateDet.template.descricaoRegras.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <ImportPreviewTable rows={resolved} issues={validacao.issues} />
+
+
 
           {validacao.issues.length > 0 ? (
             <div className="rounded-md border">
@@ -1529,9 +2616,20 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
                 setPasso(4);
                 commitMut.mutate();
               }}
-              disabled={validacao.linhasValidas.length === 0 || !competencia.trim()}
+              disabled={
+                validacao.linhasValidas.length === 0 ||
+                !competencia.trim() ||
+                commitMut.isPending
+              }
             >
-              Importar {validacao.linhasValidas.length} linha(s)
+              {commitMut.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importando...
+                </>
+              ) : (
+                `Importar ${validacao.linhasValidas.length} linha(s)`
+              )}
+
             </Button>
           </div>
         </div>
@@ -1545,10 +2643,31 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
             {concluido.pendencias} pendência(s).
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => baixarFopagMut.mutate()} disabled={baixarFopagMut.isPending}>
-              <Download className="mr-2 h-4 w-4" />
-              {baixarFopagMut.isPending ? "Gerando..." : "Baixar FOPAG"}
-            </Button>
+            {arquivoBuf && modeloBuf && (
+              <Button onClick={() => cloneMut.mutate()} disabled={cloneMut.isPending}>
+                <Download className="mr-2 h-4 w-4" />
+                {cloneMut.isPending ? "Clonando..." : "Baixar planilha clonada do modelo"}
+              </Button>
+            )}
+            {arquivoBuf && (
+              <Button
+                variant="secondary"
+                onClick={() => espelhoMut.mutate()}
+                disabled={espelhoMut.isPending}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {espelhoMut.isPending ? "Gerando..." : "Baixar planilha do modelo (cópia fiel)"}
+              </Button>
+            )}
+            {templateDet?.template.id === "UBS_SAUDE" && (
+              <Button variant="secondary" onClick={baixarPlanilhaTemplate}>
+                <Download className="mr-2 h-4 w-4" />
+                Baixar planilha do modelo (16 colunas)
+              </Button>
+            )}
+
+
+
             <Button variant="outline" onClick={() => navigate({ to: "/piso-enfermagem" })}>
               Voltar ao módulo
             </Button>

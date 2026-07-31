@@ -4,6 +4,7 @@
 
 import {
   CAMPOS_CALCULADOS,
+  contemAlias,
   normalize,
   suggestDestino,
   type PisoDestino,
@@ -30,6 +31,34 @@ export type LayoutFolha = {
   headerHints: string[];
 };
 
+/**
+ * Mapeamento exato do modelo institucional "SAUDE - UBS'S" (cabeçalho na linha 6).
+ * Chave = cabeçalho normalizado; valor = destino interno (null = ignorar).
+ * Tem prioridade sobre aliases e heurísticas, garantindo 100% de compatibilidade.
+ */
+export const MAPA_EXATO_UBS: Record<string, PisoDestino | null> = {
+  n: null,
+  no: null,
+  nome: "nome",
+  "data admissao": "data_admissao",
+  "c p f": "cpf",
+  cpf: "cpf",
+  lotacao: "unidade",
+  cargo: "cargo",
+  dias: "dias_trabalhados",
+  base: "salario_base",
+  insalubridade: "insalubridade",
+  "h e": "hora_extra_50",
+  "ad noturno": "adicional_noturno",
+  bruto: "total_proventos",
+  iss: "iss",
+  total: "total_liquido_base",
+  "grat incentivo": "gratificacao_incentivo",
+  "aux transp": "auxilio_transporte",
+  "v liquido": "valor_liquido",
+  conta: "conta_bancaria",
+};
+
 export const LAYOUT_CONTRATADOS: LayoutFolha = {
   tipo: "contratados",
   label: "Contratados",
@@ -41,20 +70,28 @@ export const LAYOUT_CONTRATADOS: LayoutFolha = {
   aliases: {
     cpf: ["c p f", "cpf", "n cpf"],
     nome: ["nome", "nome do prestador", "prestador"],
+    data_admissao: ["data admissao", "admissao"],
     unidade: ["lotacao", "unidade", "local"],
     cargo: ["cargo", "funcao"],
+    dias_trabalhados: ["dias", "dias trabalhados"],
     salario_base: ["base", "valor base", "salario base"],
     insalubridade: ["insalubridade", "insalub"],
     hora_extra_50: ["h e", "he", "hora extra", "horas extras"],
     adicional_noturno: ["ad noturno", "adicional noturno", "adn"],
     plantao: ["plantai e sobreaviso", "plantao e sobreaviso", "plantao"],
     total_proventos: ["bruto", "total bruto", "total proventos"],
-    total_descontos: ["iss", "pensao alimenticia", "total descontos", "descontos"],
-    valor_liquido: ["liquido", "valor liquido"],
+    iss: ["iss", "issqn"],
+    total_liquido_base: ["total"],
+    gratificacao_incentivo: ["grat incentivo", "gratificacao incentivo", "incentivo"],
+    auxilio_transporte: ["aux transp", "auxilio transporte"],
+    total_descontos: ["pensao alimenticia", "total descontos", "descontos"],
+    valor_liquido: ["v liquido", "liquido", "valor liquido"],
+    conta_bancaria: ["conta", "conta bancaria"],
   },
-  arquivoHints: [/contrat/, /hmsds/, /h m s d s/, /prestad/],
+  arquivoHints: [/contrat/, /hmsds/, /h m s d s/, /prestad/, /ubs/, /saude/],
   headerHints: ["lotacao", "data admissao", "dias", "bruto", "liquido"],
 };
+
 
 export const LAYOUT_EFETIVOS: LayoutFolha = {
   tipo: "efetivos",
@@ -128,12 +165,15 @@ export function detectarTipoFolha(
 
 function matchAlias(norm: string, aliases: string[]): boolean {
   if (aliases.some((a) => a === norm)) return true;
-  return aliases.some((a) => a.length >= 3 && norm.includes(a));
+  return aliases.some((a) => a.length >= 3 && contemAlias(norm, a));
 }
 
 /**
- * Mapeamento automático usando primeiro os aliases do layout e, como fallback,
- * a heurística global. Nunca mapeia campos recalculados pelo sistema.
+ * Mapeamento automático. Ordem de prioridade:
+ *  1) mapa exato do modelo institucional (UBS) — garante 100% de compatibilidade;
+ *  2) aliases do layout (exato, depois palavra completa);
+ *  3) heurística global.
+ * Campos recalculados não recebem auto-map, exceto quando vêm do mapa exato.
  */
 export function autoMapLayout(
   headers: string[],
@@ -146,16 +186,25 @@ export function autoMapLayout(
   for (const h of headers) {
     const norm = normalize(h);
     let dest: PisoDestino | null = null;
+    let exato = false;
+
     if (norm) {
-      // 1) alias exato do layout
-      for (const [d, al] of entradas) {
-        if (al.some((a) => a === norm)) {
-          dest = d;
-          break;
+      // 1) mapa exato do modelo institucional
+      if (Object.prototype.hasOwnProperty.call(MAPA_EXATO_UBS, norm)) {
+        dest = MAPA_EXATO_UBS[norm];
+        exato = true;
+      }
+      // 2) alias exato do layout
+      if (!dest && !exato) {
+        for (const [d, al] of entradas) {
+          if (al.some((a) => a === norm)) {
+            dest = d;
+            break;
+          }
         }
       }
-      // 2) alias por inclusão do layout
-      if (!dest) {
+      // 3) alias por palavra completa do layout
+      if (!dest && !exato) {
         for (const [d, al] of entradas) {
           if (matchAlias(norm, al)) {
             dest = d;
@@ -163,15 +212,17 @@ export function autoMapLayout(
           }
         }
       }
-      // 3) heurística global
-      if (!dest) dest = suggestDestino(h);
+      // 4) heurística global
+      if (!dest && !exato) dest = suggestDestino(h);
     }
-    if (dest && !usados.has(dest) && !CAMPOS_CALCULADOS.has(dest)) {
+
+    if (dest && !usados.has(dest) && (exato || !CAMPOS_CALCULADOS.has(dest))) {
       out[h] = dest;
       usados.add(dest);
     } else {
       out[h] = null;
     }
   }
+
   return out;
 }

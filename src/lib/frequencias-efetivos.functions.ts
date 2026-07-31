@@ -155,7 +155,7 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       .eq("unidade_id", data.unidade_id)
       .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
-      .eq("vinculos.natureza", "efetivo")
+      .in("vinculos.natureza", ["efetivo", "comissionado"])
       .order("nome_completo");
     if (pErr) throw new Error(pErr.message);
 

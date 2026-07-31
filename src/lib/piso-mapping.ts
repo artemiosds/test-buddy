@@ -9,18 +9,25 @@ export type PisoDestino =
   | "unidade"
   | "setor"
   | "vinculo"
+  | "data_admissao"
+  | "dias_trabalhados"
   | "salario_base"
   | "piso_complementacao"
   | "insalubridade"
   | "gratificacao"
+  | "gratificacao_incentivo"
   | "hora_extra_50"
   | "hora_extra_100"
   | "adicional_noturno"
   | "auxilio_financeiro"
+  | "auxilio_transporte"
   | "ferias_1_3"
   | "ferias"
   | "inss"
   | "irrf"
+  | "iss"
+  | "total_liquido_base"
+  | "conta_bancaria"
   | "valor_liquido"
   | "valor_final"
   | "tempo_servico"
@@ -30,6 +37,7 @@ export type PisoDestino =
   | "total_descontos"
   | "total_proventos"
   | "competencia";
+
 
 export const CAMPOS_SISTEMA: {
   key: PisoDestino;
@@ -60,6 +68,14 @@ export const CAMPOS_SISTEMA: {
   { key: "irrf", label: "IRRF", financeiro: true },
   { key: "valor_liquido", label: "Valor Líquido", financeiro: true, calculado: true },
   { key: "valor_final", label: "Valor Final", financeiro: true, calculado: true },
+  { key: "data_admissao", label: "Data de Admissão", financeiro: false },
+  { key: "dias_trabalhados", label: "Dias Trabalhados", financeiro: false },
+  { key: "conta_bancaria", label: "Conta Bancária", financeiro: false },
+  { key: "gratificacao_incentivo", label: "Gratificação/Incentivo", financeiro: true },
+  { key: "auxilio_transporte", label: "Auxílio Transporte", financeiro: true },
+  { key: "iss", label: "ISS", financeiro: true },
+  { key: "total_liquido_base", label: "Total Líquido Base", financeiro: true },
+
   { key: "tempo_servico", label: "Tempo de Serviço", financeiro: true },
   { key: "plantao", label: "Plantão", financeiro: true },
   { key: "sobreaviso", label: "Sobreaviso", financeiro: true },
@@ -184,12 +200,29 @@ const ALIASES: Record<PisoDestino, string[]> = {
   sobreaviso: ["sobreaviso", "sobre aviso", "sobre-aviso"],
   vale_transporte: ["vale transporte", "vt", "auxilio transporte", "vale trans"],
   total_descontos: ["total descontos", "total de descontos", "descontos", "tot desc"],
-  total_proventos: ["total proventos", "total de proventos", "proventos", "tot prov", "total vantagens"],
+  total_proventos: ["total proventos", "total de proventos", "proventos", "tot prov", "total vantagens", "bruto"],
+  data_admissao: ["data admissao", "admissao", "dt admissao", "data de admissao", "data contratacao"],
+  dias_trabalhados: ["dias", "dias trabalhados", "qtd dias", "qtde dias", "n dias"],
+  gratificacao_incentivo: ["grat incentivo", "gratificacao incentivo", "incentivo"],
+  auxilio_transporte: ["aux transp", "auxilio transporte", "aux transporte"],
+  iss: ["iss", "issqn", "imposto sobre servicos"],
+  total_liquido_base: ["total liquido base", "total base"],
+  conta_bancaria: ["conta", "conta bancaria", "conta corrente", "c c"],
 };
 
 /**
+ * Verifica se o alias aparece no header como sequência de palavras completas.
+ * Evita falsos positivos clássicos (ex.: "DATA ADMISSÃO" casando com "iss").
+ */
+export function contemAlias(norm: string, alias: string): boolean {
+  if (!alias) return false;
+  const esc = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\s)${esc}(\\s|$)`).test(norm);
+}
+
+/**
  * Sugere um destino para um header do arquivo. Devolve `null` quando não há
- * palavra-chave clara. Prioriza correspondência exata; depois `includes`.
+ * palavra-chave clara. Prioriza correspondência exata; depois palavras completas.
  */
 export function suggestDestino(header: string): PisoDestino | null {
   const norm = normalize(header);
@@ -199,12 +232,13 @@ export function suggestDestino(header: string): PisoDestino | null {
   for (const [dest, aliases] of Object.entries(ALIASES) as [PisoDestino, string[]][]) {
     if (aliases.some((a) => a === norm)) return dest;
   }
-  // Match por inclusão — evita palavras curtas ambíguas
+  // Match por palavra completa — evita colisões de substrings curtas
   for (const [dest, aliases] of Object.entries(ALIASES) as [PisoDestino, string[]][]) {
-    if (aliases.some((a) => a.length >= 3 && norm.includes(a))) return dest;
+    if (aliases.some((a) => a.length >= 3 && contemAlias(norm, a))) return dest;
   }
   return null;
 }
+
 
 /**
  * Recebe a lista de headers do arquivo e devolve o mapeamento sugerido:

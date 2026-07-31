@@ -16,10 +16,14 @@ const campoSchema = z.object({
   campo_interno: z.string().trim().min(1).max(80),
   label: z.string().trim().max(120).nullable().optional(),
   coluna_padrao: z.string().trim().max(160).nullable().optional(),
-  aliases: z.array(z.string().trim().max(160)).max(50).default([]),
+  aliases: z.array(z.string().trim().max(160)).max(80).default([]),
   obrigatorio: z.boolean().default(false),
+  /** "Obrigatório se existir" — nunca bloqueia a importação quando ausente. */
+  condicional: z.boolean().default(false),
   ignorado: z.boolean().default(false),
   tipo_dado: z.string().trim().max(30).default("texto"),
+  /** Peso (0..100) por sinônimo, usado como desempate na detecção. */
+  pesos: z.record(z.string(), z.number()).default({}),
   ordem: z.number().int().min(0).default(0),
 });
 
@@ -32,11 +36,14 @@ function mapCampos(rows: any[]): LayoutCampo[] {
     coluna_padrao: c.coluna_padrao ?? null,
     aliases: c.aliases ?? [],
     obrigatorio: !!c.obrigatorio,
+    condicional: !!c.condicional,
     ignorado: !!c.ignorado,
     tipo_dado: c.tipo_dado ?? "texto",
+    pesos: (c.pesos ?? {}) as Record<string, number>,
     ordem: c.ordem ?? 0,
   }));
 }
+
 
 // -----------------------------------------------------------------------------
 // Consulta
@@ -49,7 +56,10 @@ export const listLayouts = createServerFn({ method: "GET" })
     const supabase = context.supabase as any;
     let q = supabase
       .from("import_layouts")
-      .select("id, codigo, nome, descricao, tipo, modulo, ativo, versao_atual, created_at, updated_at")
+      .select(
+        "id, codigo, nome, descricao, tipo, modulo, ativo, classificacao, versao_atual, created_at, updated_at",
+      )
+
       .order("nome");
     if (data.modulo) q = q.eq("modulo", data.modulo);
     if (!data.incluirInativos) q = q.eq("ativo", true);
@@ -195,9 +205,12 @@ async function inserirCampos(supabase: any, versao_id: string, campos: CampoInpu
     coluna_padrao: c.coluna_padrao ?? null,
     aliases: c.aliases ?? [],
     obrigatorio: c.obrigatorio,
+    condicional: c.condicional,
     ignorado: c.ignorado,
     tipo_dado: c.tipo_dado,
+    pesos: c.pesos ?? {},
     ordem: c.ordem ?? i,
+
   }));
   const { error } = await supabase.from("import_layout_campos").insert(rows);
   if (error) throw new Error(error.message);
@@ -453,6 +466,67 @@ export const removerAliasCatalogo = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// Autoaprendizado: o usuário mapeia manualmente uma coluna desconhecida e o
+// cabeçalho vira sinônimo permanente do campo (na versão ativa do layout).
+// Não cria nova versão nem altera campos existentes — apenas acrescenta alias.
+// -----------------------------------------------------------------------------
+
+export const aprenderAliasCampo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        versao_id: z.string().uuid(),
+        campo_interno: z.string().trim().min(1).max(80),
+        alias: z.string().trim().min(1).max(160),
+        modulo: z.string().trim().max(40).default("geral"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as any;
+    await ensurePermission(supabase, context.userId, PERM_CONFIG);
+
+    const { data: campo, error } = await supabase
+      .from("import_layout_campos")
+      .select("id, aliases")
+      .eq("versao_id", data.versao_id)
+      .eq("campo_interno", data.campo_interno)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!campo) throw new Error("Campo não encontrado nesta versão do layout.");
+
+    const atuais: string[] = campo.aliases ?? [];
+    const jaExiste = atuais.some(
+      (a) => a.trim().toLowerCase() === data.alias.trim().toLowerCase(),
+    );
+    if (!jaExiste) {
+      const { error: e2 } = await supabase
+        .from("import_layout_campos")
+        .update({ aliases: [...atuais, data.alias] })
+        .eq("id", campo.id);
+      if (e2) throw new Error(e2.message);
+    }
+
+    // Também alimenta o catálogo global de sinônimos (reuso entre layouts).
+    await supabase
+      .from("import_campo_aliases")
+      .upsert(
+        {
+          modulo: data.modulo,
+          campo_interno: data.campo_interno,
+          alias: data.alias,
+          criado_por: context.userId,
+        },
+        { onConflict: "modulo,campo_interno,alias" },
+      );
+
+    return { ok: true, jaExistia: jaExiste };
+  });
+
+
 
 // -----------------------------------------------------------------------------
 // Auditoria de utilização do motor

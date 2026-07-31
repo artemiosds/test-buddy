@@ -1,104 +1,39 @@
-## Objetivo
+## Diagnóstico
 
-Inverter a arquitetura do módulo: hoje a lista nasce do arquivo importado; passará a nascer do **Cadastro de Profissionais**. A importação deixa de criar pessoas e passa a apenas atualizar valores financeiros da competência, sempre casando por CPF.
+Analisei os dois arquivos que você anexou (`SAUDE - UBS'S (3)` e `(4)`): são estruturalmente idênticos — cabeçalho na linha 6, colunas `Nº, NOME, DATA ADMISSÃO, C.P.F., LOTAÇÃO, CARGO, DIAS, BASE, INSALUBRIDADE, H.E., AD. NOTURNO, BRUTO, ISS, TOTAL, GRAT.INCENTIVO, AUX. TRANSP., INCENTIVO...` com fórmulas reais (`=H7*20%`, `=H7+I7+J7+K7`, `=L7*5%`, `=L7-M7`) misturadas com valores fixos (insalubridade 974,26; grat. incentivo 2.147). O arquivo está perfeito — o problema é do sistema.
 
-```text
-Cadastro de Profissionais  →  Lista automática (por competência)
-                                      ↑
-                       Importação Piso + Importação FOPAG (por CPF)
-                                      ↓
-                        Registro consolidado da competência
-```
+Encontrei três causas:
 
-## 1. Normalização de cargos
+**1. O modelo não é salvo em lugar nenhum.**
+No assistente, o arquivo modelo vive só na memória da tela (`modeloBuf`, um estado React). Ao fechar o assistente ou recarregar a página, ele desaparece. Não existe hoje nenhum cadastro de "Modelo de Planilha da UBS".
 
-Nova função de normalização (`src/lib/piso-categorias.ts`) que converte qualquer grafia em três categorias:
+**2. Nada sai depois de anexar só o modelo.**
+O botão "Gerar planilha clonada do modelo" exige **dois** arquivos: a planilha do mês *e* o modelo. Se você anexa apenas o modelo, o botão fica desabilitado e nada acontece — sem nenhuma mensagem explicando o motivo.
 
-- `ENFERMEIRO` — Enfermeira, Enfermeiro, ENFERMEIRO(A), Enfermeiro(a)
-- `TECNICO_ENFERMAGEM` — TEC. EM ENFERMAGEM, Técnico/Técnica de Enfermagem
-- `AUXILIAR_ENFERMAGEM` — Auxiliar de Enfermagem
+**3. O download em "Importações" não usa o modelo — usa um gerador antigo e fixo.**
+Os botões "Baixar Planilha (3)", "Baixar FOPAG" e "Baixar por unidade" chamam um gerador hardcoded (`gerarPlanilhaContratados`), com colunas, ordem e matemática próprias, escritas em código. Ele não conhece o seu modelo UBS, por isso o arquivo baixado sai com estrutura diferente da sua — é exatamente o "sai tudo errado".
 
-Comparação sem acento, sem pontuação, caixa única. Qualquer outro cargo fica fora da elegibilidade. Testes unitários cobrindo todas as grafias listadas.
+## Solução proposta
 
-## 2. Banco de dados (migração)
+### A. Cadastro de Modelos de Planilha (persistente)
+- Nova tabela `planilha_modelos`: nome, módulo/vínculo, unidade opcional, nome do arquivo, aba, linha de cabeçalho, colunas detectadas e o binário do `.xlsx` guardado no bucket `documentos` (`tipo_entidade = 'planilha_modelo'`, sem novos buckets).
+- Ao anexar o modelo no assistente, o sistema mostra "Salvar como modelo" com nome sugerido (ex.: **UBS**), grava e passa a listar em um seletor "Modelo: UBS / Efetivos / ...".
+- Marcar um modelo como **padrão** por vínculo/unidade.
 
-Nova tabela `piso_competencia_profissional` — um registro consolidado por (profissional, competência):
+### B. Download das Importações passando pelo clone
+- Os botões de download passam a resolver, nesta ordem: modelo salvo escolhido → modelo padrão do vínculo → gerador legado (fallback).
+- Existindo modelo, o arquivo é produzido pelo motor de clone: mesma estrutura, mesmas colunas (inclusive `GRAT.INCENTIVO`, `AUX. TRANSP.`, `INCENTIVO`), mesmas fórmulas deslocadas, valores fixos preservados (insalubridade 517,20 não vira 20% da base).
+- O nome do arquivo continua padronizado (`PLANILHA-CONTRATADOS-{competência}.xlsx`).
 
-- vínculo ao profissional e à competência (texto, ex. "Julho/2026")
-- valores do Piso: salário base, insalubridade, auxílio financeiro piso, valor de referência, complementação, total remuneração
-- valores FOPAG: tempo de serviço, HE 50%, HE 100%, plantão, sobreaviso, gratificações, vale transporte, INSS, IRRF, total descontos, total proventos, valor líquido
-- origem de cada bloco (piso / fopag / ambos), status da importação, flag e detalhe de divergência
-- referência à importação que gerou (para desfazer)
-
-A tabela `piso_enfermagem` atual continua existindo como *staging* das linhas cruas do arquivo; o consolidado passa a ser a nova tabela. RLS espelhando exatamente as políticas já usadas em `piso_enfermagem` (nada de regra de segurança nova ou relaxada), com GRANTs para `authenticated`/`service_role`.
-
-Também nova tabela `piso_pendencias` (ou view derivada) para as ocorrências: CPF não encontrado, profissional inativo, cargo incompatível, competência duplicada, valores divergentes, CPF duplicado.
-
-## 3. Tela principal (`/piso-enfermagem`)
-
-- Nunca abre vazia: `listPisoElegiveis` faz LEFT JOIN entre profissionais ativos das categorias de enfermagem e o consolidado da competência selecionada.
-- Cards: elegíveis, enfermeiros, técnicos, auxiliares, importados, pendentes, valor total do complemento.
-- Tabela com as colunas pedidas: Nome, CPF, Matrícula, Cargo, Categoria normalizada, Unidade, Carga Horária, Situação Funcional, Salário Base, Insalubridade, Auxílio Financeiro Piso, Valor de Referência, Total da Remuneração, Status da Importação.
-- Filtros por categoria, unidade, status (importado/pendente/divergente) e busca por nome/CPF; paginação mantida.
-
-## 4. Importação
-
-Assistente atual é mantido (upload → mapeamento → pré-visualização → gravação em lotes com barra de progresso), com mudanças:
-
-- Dois tipos de arquivo: **Piso** e **FOPAG**. O tipo é escolhido no início e define o mapeamento automático de colunas.
-- Mapeamento automático FOPAG: CPF, Salário Base, Tempo de Serviço, Insalubridade, HE 50%, HE 100%, Plantão, Sobreaviso, Gratificações, Vale Transporte, Auxílio Financeiro, INSS, IRRF, Total Descontos, Total Proventos, Valor Líquido, Competência.
-- Match **exclusivamente por CPF** contra o cadastro. Sem CPF correspondente → linha vai para pendências, nunca cria profissional.
-- Upsert no consolidado por (profissional, competência): a segunda planilha complementa a primeira em vez de sobrescrever tudo.
-- Nenhuma escrita em `profissionais`.
-
-## 5. Aba "Cálculo" (memória de cálculo)
-
-No dossiê/drawer do profissional, aba mostrando a conta passo a passo:
-
-```text
-Salário Base            R$ x
-+ Insalubridade         R$ x
-= Base considerada      R$ x
-Valor de Referência     R$ x
-= Complementação        R$ x
-```
-
-Quando o valor calculado diferir do importado, exibe "⚠ Divergência encontrada" com a diferença em reais, e a linha é marcada como divergente na tabela e nas pendências.
-
-## 6. Histórico por profissional
-
-Aba "Histórico" listando todas as competências do profissional (Julho/2026, Agosto/2026, …) com salário base, complementação e total, mais gráfico de evolução.
-
-## 7. Dashboard
-
-Indicadores: total elegíveis, importados, pendentes, valor total pago, maior e menor complemento, quantidade por unidade, por categoria e por carga horária, valor total por unidade e por categoria.
-
-## 8. Tela de Pendências (`/piso-enfermagem/pendencias`)
-
-Lista agrupada pelos seis tipos de ocorrência, com CPF/nome do arquivo, competência, detalhe e ação de ir para o cadastro do profissional.
-
-## 9. Integração com a Folha
-
-Nas páginas de Folha de Efetivos e Contratados, colunas adicionais alimentadas pelo consolidado da competência: Complementação Piso, Valor de Referência, Valor Total — sem sair da tela.
-
-## 10. Auditoria
-
-`historico_importacoes` passa a registrar por importação: usuário, data/hora, arquivo, tipo (Piso/FOPAG), competência, quantidade importada, atualizada, rejeitada, pendências e tempo de execução. "Desfazer importação" reverte o consolidado ao estado anterior daquela importação.
+### C. UX e diagnóstico
+- Anexar somente o modelo passa a ser válido: o sistema lê, mostra o resumo ("18 colunas, cabeçalho na linha 6, 4 colunas estruturais") e oferece salvar, sem exigir o arquivo do mês.
+- Mensagem clara no botão quando falta a planilha do mês, em vez de botão morto.
+- Painel de divergência ao gerar: colunas do modelo sem dado, pessoas sem correspondência, colunas do mês ignoradas.
 
 ## Detalhes técnicos
 
-- Servidor: novas server functions em `src/lib/piso-enfermagem.functions.ts` (`listPisoElegiveis`, `getPisoDashboard`, `listPisoPendencias`, `getPisoHistoricoProfissional`, `commitImportFopag`), todas com `requireSupabaseAuth` + checagem de permissão (`piso.visualizar` / `piso.importar`) igual ao que já existe.
-- Cálculo em módulo puro `src/lib/piso-calculo.ts`, testado, reaproveitado no servidor e na UI.
-- Gravação em chunks com progresso e rollback por importação (já existe em `startImportPiso`/`appendPisoLinhas`/`finalizeImportPiso`, será estendido).
-- Nenhuma alteração nas políticas RLS existentes; as novas tabelas seguem o mesmo padrão.
-
-## Ordem de execução
-
-1. Migração das novas tabelas + RLS/GRANTs
-2. Normalização de cargos e cálculo (com testes)
-3. Server functions de listagem/dashboard/pendências
-4. Tela principal reescrita
-5. Importação Piso + FOPAG com consolidação por CPF
-6. Dossiê: abas Cálculo e Histórico
-7. Tela de Pendências
-8. Integração com as Folhas + auditoria
+- Migração: `planilha_modelos` com GRANTs para `authenticated`/`service_role`, RLS por unidade/permissão `configuracao.editar` para escrita e leitura para usuários autenticados com acesso à unidade.
+- Server functions novas em `src/lib/planilha-modelos.functions.ts` (salvar, listar, obter binário assinado) com `requireSupabaseAuth` + `ensurePermission`.
+- Reuso integral de `src/lib/planilha-clone.ts` (`lerMapaModelo`, `lerRegistrosNovos`, `aplicarClone`, `clonarPlanilhaModelo`) — nenhuma mudança na regra de cópia célula a célula.
+- Em `piso-planilha-cliente.ts`, novo caminho: quando há modelo, montar as linhas consolidadas em uma pasta de trabalho temporária no formato do modelo e rodar o clone no navegador (evita o "Failed to fetch" do runtime serverless).
+- `piso-enfermagem.index.tsx`: seletor de modelo ao lado dos botões de download.

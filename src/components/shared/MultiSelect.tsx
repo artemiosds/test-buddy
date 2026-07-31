@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { cn } from "@/lib/utils";
 
 export type MultiSelectOption = {
@@ -137,8 +137,13 @@ export function MultiSelect({
             Limpar
           </button>
         </div>
-        <ScrollArea className="max-h-64">
-          <div className="space-y-0.5 pr-2">
+        {/* Rolagem própria da lista: max-h + overflow no elemento que contém os itens.
+            (ScrollArea do Radix não limita a altura só com max-h no root.) */}
+        <div
+          className="max-h-64 overflow-y-auto overscroll-contain pr-1"
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <div className="space-y-0.5">
             {filtered.length === 0 && (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">{emptyText}</div>
             )}
@@ -156,7 +161,13 @@ export function MultiSelect({
               );
             })}
           </div>
-        </ScrollArea>
+          {filtered.length > 0 && (
+            <div className="px-2 pt-1 text-center text-[10px] text-muted-foreground">
+              {filtered.length} opç{filtered.length === 1 ? "ão" : "ões"}
+            </div>
+          )}
+        </div>
+
       </PopoverContent>
     </Popover>
   );

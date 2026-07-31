@@ -34,7 +34,16 @@ export type LayoutCampo = {
   ignorado: boolean;
   tipo_dado: TipoDado | string;
   ordem: number;
+  /**
+   * "Obrigatório se existir": quando true, o campo é lido caso a coluna exista
+   * no arquivo, mas a ausência nunca bloqueia a importação.
+   * Campos antigos (sem a propriedade) continuam com o comportamento original.
+   */
+  condicional?: boolean;
+  /** Peso (0..100) por sinônimo — usado como desempate na detecção automática. */
+  pesos?: Record<string, number>;
 };
+
 
 export type LayoutVersaoResolvida = {
   layout_id: string;
@@ -92,9 +101,47 @@ function combina(headerNorm: string, termos: string[]): "exato" | "parcial" | nu
 
 export type Mapeamento = Record<string, string | null>;
 
+/** Termos genéricos demais para decidir sozinhos um mapeamento. */
+const TERMOS_GENERICOS = new Set([
+  "total",
+  "valor",
+  "documento",
+  "numero",
+  "num",
+  "codigo",
+  "data",
+  "descricao",
+  "tipo",
+  "referencia",
+]);
+
+/**
+ * Peso (0..100) do casamento entre um cabeçalho normalizado e um campo.
+ * Pesos explícitos (campo.pesos) têm prioridade; senão usa a heurística:
+ * nome/coluna padrão = 100, sinônimos decrescem conforme a ordem cadastrada e
+ * termos genéricos valem pouco.
+ */
+export function pesoDoCampoParaHeader(campo: LayoutCampo, headerNorm: string): number {
+  const alvo = headerNorm.replace(/\s+/g, "");
+  const pesos = campo.pesos ?? {};
+  for (const [alias, peso] of Object.entries(pesos)) {
+    const n = normalizarTexto(alias).replace(/\s+/g, "");
+    if (n && n === alvo) return Math.max(0, Math.min(100, Number(peso) || 0));
+  }
+  const principais = [campo.coluna_padrao ?? "", campo.label ?? "", campo.campo_interno];
+  if (principais.some((t) => normalizarTexto(t).replace(/\s+/g, "") === alvo)) return 100;
+  const idx = campo.aliases.findIndex(
+    (a) => normalizarTexto(a).replace(/\s+/g, "") === alvo,
+  );
+  if (TERMOS_GENERICOS.has(headerNorm)) return 20;
+  if (idx >= 0) return Math.max(40, 95 - idx * 5);
+  return 30;
+}
+
 /**
  * Mapeia cada cabeçalho encontrado no arquivo para um campo interno do layout.
  * Prioriza correspondências exatas; um campo nunca recebe duas colunas.
+ * Havendo mais de um campo compatível, vence o de maior peso de sinônimo.
  */
 export function mapearColunas(headers: string[], versao: LayoutVersaoResolvida): Mapeamento {
   const campos = versao.campos.filter((c) => !c.ignorado);
@@ -106,13 +153,17 @@ export function mapearColunas(headers: string[], versao: LayoutVersaoResolvida):
     for (const h of headers) {
       if (out[h]) continue;
       const norm = normalizarTexto(h);
+      let melhor: { campo: LayoutCampo; peso: number } | null = null;
       for (const c of campos) {
         if (usados.has(c.campo_interno)) continue;
         if (combina(norm, termos.get(c.campo_interno) ?? []) === modo) {
-          out[h] = c.campo_interno;
-          usados.add(c.campo_interno);
-          break;
+          const peso = pesoDoCampoParaHeader(c, norm);
+          if (!melhor || peso > melhor.peso) melhor = { campo: c, peso };
         }
+      }
+      if (melhor) {
+        out[h] = melhor.campo.campo_interno;
+        usados.add(melhor.campo.campo_interno);
       }
     }
   };
@@ -122,6 +173,7 @@ export function mapearColunas(headers: string[], versao: LayoutVersaoResolvida):
   for (const h of headers) if (!(h in out)) out[h] = null;
   return out;
 }
+
 
 // -----------------------------------------------------------------------------
 // Detecção automática de layout
@@ -158,7 +210,7 @@ export function pontuarLayout(
   const reconhecidos = new Set(Object.values(mapa).filter(Boolean) as string[]);
   score += reconhecidos.size;
 
-  const obrigatorios = versao.campos.filter((c) => c.obrigatorio && !c.ignorado);
+  const obrigatorios = versao.campos.filter((c) => c.obrigatorio && !c.condicional && !c.ignorado);
   const ausentes = obrigatorios
     .filter((c) => !reconhecidos.has(c.campo_interno))
     .map((c) => c.campo_interno);
@@ -289,15 +341,20 @@ export function validarEstrutura(
   for (const c of versao.campos) {
     if (c.ignorado) continue;
     if (usados.has(c.campo_interno)) continue;
+    // "Obrigatório se existir": ausência nunca bloqueia.
+    const bloqueia = c.obrigatorio && !c.condicional;
     issues.push({
-      tipo: c.obrigatorio ? "campo_obrigatorio_ausente" : "campo_sem_coluna",
-      severidade: c.obrigatorio ? "erro" : "alerta",
+      tipo: bloqueia ? "campo_obrigatorio_ausente" : "campo_sem_coluna",
+      severidade: bloqueia ? "erro" : "alerta",
       referencia: c.campo_interno,
-      mensagem: c.obrigatorio
+      mensagem: bloqueia
         ? `Campo obrigatório "${c.label ?? c.campo_interno}" não foi encontrado no arquivo.`
-        : `Campo opcional "${c.label ?? c.campo_interno}" não foi encontrado no arquivo.`,
+        : c.condicional
+          ? `Campo "${c.label ?? c.campo_interno}" (obrigatório se existir) não está presente no arquivo — a importação segue normalmente.`
+          : `Campo opcional "${c.label ?? c.campo_interno}" não foi encontrado no arquivo.`,
     });
   }
+
 
   const linhas = amostra.slice(0, 25);
   for (const [destino, cols] of usados) {

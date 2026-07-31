@@ -1,8 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, Eye, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  Eye,
+  Pencil,
+  Plus,
+  Power,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
@@ -11,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,10 +37,13 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { campoCatalogo, camposPorGrupo, labelCampoInterno } from "@/lib/layout-campos-catalogo";
 
 import {
   alterarSituacaoLayout,
@@ -39,7 +54,28 @@ import {
   listLayouts,
   listUsoLayouts,
 } from "@/lib/layout-engine.functions";
+import {
+  atualizarAliasCatalogo,
+  definirClassificacaoLayout,
+  estatisticasLayouts,
+  exportarLayout,
+  importarLayoutPacote,
+  listHistoricoAliases,
+  listSugestoesAlias,
+  resolverSugestaoAlias,
+} from "@/lib/layout-inteligencia.functions";
+import {
+  CLASSIFICACOES,
+  LABEL_CLASSIFICACAO,
+  LABEL_OBRIGATORIEDADE,
+  aplicarObrigatoriedade,
+  classificacaoValida,
+  estadoObrigatoriedade,
+  nomeArquivoPacote,
+  type EstadoObrigatoriedade,
+} from "@/lib/layout-inteligencia";
 import type { LayoutCampo } from "@/lib/layout-engine";
+
 
 export const Route = createFileRoute("/_authenticated/layouts-importacao")({
   head: () => ({
@@ -72,7 +108,9 @@ type LayoutRow = {
   tipo: string;
   modulo: string;
   ativo: boolean;
+  classificacao?: string | null;
   versao_atual: number;
+
   qtd_campos: number;
   updated_at: string;
 };
@@ -112,6 +150,8 @@ function LayoutsPage() {
   const [modulo, setModulo] = useState<string>("__todos__");
   const [incluirInativos, setIncluirInativos] = useState(true);
   const [ed, setEd] = useState<EditorState>(VAZIO);
+  const fileRef = useRef<HTMLInputElement>(null);
+
 
   const layoutsQ = useQuery({
     queryKey: ["layouts", modulo, incluirInativos],
@@ -125,6 +165,44 @@ function LayoutsPage() {
     queryKey: ["layouts", "uso"],
     queryFn: () => listUsoLayouts({ data: { limit: 100 } }),
   });
+
+  const moduloFiltro = modulo === "__todos__" ? null : modulo;
+
+  const sugestoesQ = useQuery({
+    queryKey: ["layouts", "sugestoes", moduloFiltro],
+    queryFn: () => listSugestoesAlias({ data: { modulo: moduloFiltro } }),
+  });
+
+  const aliasesQ = useQuery({
+    queryKey: ["layouts", "aliases", moduloFiltro],
+    queryFn: () => listHistoricoAliases({ data: { modulo: moduloFiltro } }),
+  });
+
+  const statsQ = useQuery({
+    queryKey: ["layouts", "stats", moduloFiltro],
+    queryFn: () => estatisticasLayouts({ data: { modulo: moduloFiltro } }),
+  });
+
+  const resolverMut = useMutation({
+    mutationFn: (v: { id: string; status: "aceita" | "rejeitada" }) =>
+      resolverSugestaoAlias({ data: v }),
+    onSuccess: () => {
+      toast.success("Sugestão atualizada.");
+      void qc.invalidateQueries({ queryKey: ["layouts"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao atualizar"),
+  });
+
+  const aliasMut = useMutation({
+    mutationFn: (v: { id: string; peso?: number; ativo?: boolean }) =>
+      atualizarAliasCatalogo({ data: v }),
+    onSuccess: () => {
+      toast.success("Sinônimo atualizado.");
+      void qc.invalidateQueries({ queryKey: ["layouts"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao atualizar"),
+  });
+
 
   const layouts = (layoutsQ.data?.layouts ?? []) as LayoutRow[];
   const modulos = useMemo(
@@ -214,6 +292,47 @@ function LayoutsPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao alterar"),
   });
 
+  const classificacaoMut = useMutation({
+    mutationFn: (v: { layout_id: string; classificacao: string }) =>
+      definirClassificacaoLayout({ data: v as any }),
+    onSuccess: () => {
+      toast.success("Classificação atualizada.");
+      invalidate();
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Falha ao classificar o layout"),
+  });
+
+  /** Exporta o layout (versão atual) como pacote JSON para a biblioteca compartilhada. */
+  async function baixarPacote(l: LayoutRow) {
+    try {
+      const pacote = await exportarLayout({ data: { layout_id: l.id } });
+      const blob = new Blob([JSON.stringify(pacote, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeArquivoPacote(l.codigo, pacote.versao.versao);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar o layout");
+    }
+  }
+
+  const importarMut = useMutation({
+    mutationFn: async (file: File) => {
+      const texto = await file.text();
+      return importarLayoutPacote({ data: { pacote: JSON.parse(texto) } });
+    },
+    onSuccess: (r) => {
+      toast.success(`Layout importado como "${r.codigo}".`);
+      invalidate();
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Arquivo de layout inválido"),
+  });
+
+
   const cols: DataTableColumn<LayoutRow>[] = [
     { key: "nome", header: "Nome", cell: (l) => <span className="font-medium">{l.nome}</span> },
     { key: "codigo", header: "Código", cell: (l) => <code className="text-xs">{l.codigo}</code> },
@@ -225,6 +344,27 @@ function LayoutsPage() {
       header: "Status",
       cell: (l) => (
         <Badge variant={l.ativo ? "default" : "secondary"}>{l.ativo ? "Ativo" : "Inativo"}</Badge>
+      ),
+    },
+    {
+      key: "classificacao",
+      header: "Biblioteca",
+      cell: (l) => (
+        <Select
+          value={classificacaoValida(l.classificacao)}
+          onValueChange={(v) => classificacaoMut.mutate({ layout_id: l.id, classificacao: v })}
+        >
+          <SelectTrigger className="h-8 w-40 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CLASSIFICACOES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {LABEL_CLASSIFICACAO[c]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ),
     },
     { key: "campos", header: "Campos", cell: (l) => l.qtd_campos },
@@ -240,6 +380,14 @@ function LayoutsPage() {
         <div className="flex gap-1">
           <Button size="icon" variant="ghost" onClick={() => void abrir(l.id, true)} title="Visualizar">
             <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => void baixarPacote(l)}
+            title="Exportar layout (JSON)"
+          >
+            <Download className="h-4 w-4" />
           </Button>
           <PermissionGate permission="configuracao.editar">
             <Button size="icon" variant="ghost" onClick={() => void abrir(l.id, false)} title="Editar">
@@ -259,6 +407,7 @@ function LayoutsPage() {
           </PermissionGate>
         </div>
       ),
+
     },
   ];
 
@@ -275,9 +424,29 @@ function LayoutsPage() {
         description="Motor de Layouts: modelos de planilha configuráveis, com sinônimos, campos obrigatórios, validação e versionamento — reutilizável por todos os módulos."
         actions={
           <PermissionGate permission="configuracao.editar">
-            <Button onClick={() => setEd({ ...VAZIO, aberto: true })}>
-              <Plus className="mr-2 h-4 w-4" /> Novo layout
-            </Button>
+            <div className="flex gap-2">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) importarMut.mutate(f);
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                disabled={importarMut.isPending}
+              >
+                <Upload className="mr-2 h-4 w-4" /> Importar (JSON)
+              </Button>
+              <Button onClick={() => setEd({ ...VAZIO, aberto: true })}>
+                <Plus className="mr-2 h-4 w-4" /> Novo layout
+              </Button>
+            </div>
           </PermissionGate>
         }
       />
@@ -285,8 +454,11 @@ function LayoutsPage() {
       <Tabs defaultValue="layouts">
         <TabsList>
           <TabsTrigger value="layouts">Layouts</TabsTrigger>
+          <TabsTrigger value="sinonimos">Sinônimos</TabsTrigger>
+          <TabsTrigger value="estatisticas">Estatísticas</TabsTrigger>
           <TabsTrigger value="uso">Utilização</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="layouts" className="space-y-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -324,6 +496,182 @@ function LayoutsPage() {
             emptyDescription="Crie o primeiro modelo de planilha."
           />
         </TabsContent>
+
+        <TabsContent value="sinonimos" className="space-y-4">
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">
+              Sugestões de sinônimos (3 confirmações promovem ao catálogo)
+            </h3>
+            <DataTable
+              columns={[
+                { key: "campo", header: "Campo", cell: (s: any) => labelCampoInterno(s.campo_interno) },
+                { key: "alias", header: "Cabeçalho", cell: (s: any) => <code className="text-xs">{s.alias}</code> },
+                { key: "modulo", header: "Módulo", cell: (s: any) => <Badge variant="outline">{s.modulo}</Badge> },
+                { key: "origem", header: "Origem", cell: (s: any) => s.origem },
+                {
+                  key: "conf",
+                  header: "Confirmações",
+                  cell: (s: any) => `${s.confirmacoes}/3`,
+                },
+                {
+                  key: "status",
+                  header: "Situação",
+                  cell: (s: any) => (
+                    <Badge variant={s.status === "aceita" ? "default" : "secondary"}>{s.status}</Badge>
+                  ),
+                },
+                {
+                  key: "acoes",
+                  header: "Ações",
+                  cell: (s: any) => (
+                    <PermissionGate permission="configuracao.editar">
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Aceitar sugestão"
+                          onClick={() => resolverMut.mutate({ id: s.id, status: "aceita" })}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Rejeitar sugestão"
+                          onClick={() => resolverMut.mutate({ id: s.id, status: "rejeitada" })}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </PermissionGate>
+                  ),
+                },
+              ]}
+              rows={(sugestoesQ.data?.sugestoes ?? []) as any[]}
+              getRowKey={(s: any) => s.id}
+              loading={sugestoesQ.isLoading}
+              emptyTitle="Nenhuma sugestão"
+              emptyDescription="Os cabeçalhos mapeados manualmente aparecem aqui até serem confirmados."
+            />
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Catálogo de sinônimos (histórico)</h3>
+            <DataTable
+              columns={[
+                { key: "campo", header: "Campo", cell: (a: any) => labelCampoInterno(a.campo_interno) },
+                { key: "alias", header: "Sinônimo", cell: (a: any) => <code className="text-xs">{a.alias}</code> },
+                { key: "modulo", header: "Módulo", cell: (a: any) => <Badge variant="outline">{a.modulo}</Badge> },
+                {
+                  key: "peso",
+                  header: "Peso",
+                  cell: (a: any) => (
+                    <PesoInput
+                      valor={a.peso}
+                      onSalvar={(peso) => aliasMut.mutate({ id: a.id, peso })}
+                    />
+                  ),
+                },
+                { key: "origem", header: "Origem", cell: (a: any) => a.origem },
+                { key: "criador", header: "Criado por", cell: (a: any) => a.criado_por_nome },
+                { key: "usos", header: "Usos", cell: (a: any) => a.usos ?? 0 },
+                {
+                  key: "ultimo",
+                  header: "Último uso",
+                  cell: (a: any) =>
+                    a.ultimo_uso ? new Date(a.ultimo_uso).toLocaleDateString("pt-BR") : "—",
+                },
+                {
+                  key: "ativo",
+                  header: "Situação",
+                  cell: (a: any) => (
+                    <PermissionGate
+                      permission="configuracao.editar"
+                      fallback={<Badge variant={a.ativo ? "default" : "secondary"}>{a.ativo ? "Ativo" : "Inativo"}</Badge>}
+                    >
+                      <Button
+                        size="sm"
+                        variant={a.ativo ? "default" : "secondary"}
+                        onClick={() => aliasMut.mutate({ id: a.id, ativo: !a.ativo })}
+                      >
+                        {a.ativo ? "Ativo" : "Inativo"}
+                      </Button>
+                    </PermissionGate>
+                  ),
+                },
+              ]}
+              rows={(aliasesQ.data?.aliases ?? []) as any[]}
+              getRowKey={(a: any) => a.id}
+              loading={aliasesQ.isLoading}
+              emptyTitle="Catálogo vazio"
+              emptyDescription="Nenhum sinônimo registrado no catálogo global."
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="estatisticas" className="space-y-4">
+          {statsQ.isLoading || !statsQ.data ? (
+            <p className="text-sm text-muted-foreground">Carregando estatísticas…</p>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { t: "Layouts ativos", v: `${statsQ.data.layouts_ativos}/${statsQ.data.layouts}` },
+                  {
+                    t: "Reconhecimento médio",
+                    v: statsQ.data.taxa_reconhecimento === null ? "—" : `${statsQ.data.taxa_reconhecimento}%`,
+                  },
+                  {
+                    t: "Mapeamento manual",
+                    v: statsQ.data.taxa_manual === null ? "—" : `${statsQ.data.taxa_manual}%`,
+                  },
+                  { t: "Importações registradas", v: statsQ.data.importacoes },
+                  { t: "Sinônimos no catálogo", v: statsQ.data.aliases_catalogo },
+                  { t: "Sinônimos aprendidos", v: statsQ.data.aliases_aprendidos },
+                  { t: "Sugestões pendentes", v: statsQ.data.sugestoes_pendentes },
+                  { t: "Campos condicionais", v: statsQ.data.campos_condicionais },
+                ].map((k) => (
+                  <Card key={k.t}>
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">{k.t}</p>
+                      <p className="text-2xl font-semibold">{k.v}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Layouts mais utilizados</h3>
+                  <DataTable
+                    columns={[
+                      { key: "codigo", header: "Layout", cell: (r: any) => r.codigo },
+                      { key: "usos", header: "Importações", cell: (r: any) => r.usos },
+                    ]}
+                    rows={statsQ.data.mais_utilizados as any[]}
+                    getRowKey={(r: any) => r.codigo}
+                    emptyTitle="Sem dados"
+                    emptyDescription="Nenhuma importação registrada."
+                  />
+                </div>
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Campos que mais exigem ajuste manual</h3>
+                  <DataTable
+                    columns={[
+                      { key: "campo", header: "Campo", cell: (r: any) => labelCampoInterno(r.campo) },
+                      { key: "qtd", header: "Ocorrências", cell: (r: any) => r.qtd },
+                    ]}
+                    rows={statsQ.data.campos_dificeis as any[]}
+                    getRowKey={(r: any) => r.campo}
+                    emptyTitle="Sem dados"
+                    emptyDescription="Nenhum cabeçalho desconhecido mapeado até o momento."
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
 
         <TabsContent value="uso">
           <DataTable
@@ -442,9 +790,12 @@ function LayoutsPage() {
                           coluna_padrao: "",
                           aliases: [],
                           obrigatorio: false,
+                          condicional: false,
                           ignorado: false,
                           tipo_dado: "texto",
+                          pesos: {},
                           ordem: s.campos.length,
+
                         },
                       ],
                     }))
@@ -457,12 +808,49 @@ function LayoutsPage() {
               <div className="space-y-2">
                 {ed.campos.map((c, i) => (
                   <div key={i} className="grid gap-2 rounded-md border p-2 md:grid-cols-12">
-                    <Input
-                      className="md:col-span-2"
-                      placeholder="campo_interno"
-                      value={c.campo_interno}
-                      onChange={(e) => setCampo(i, { campo_interno: e.target.value })}
-                    />
+                    <div className="space-y-1 md:col-span-2">
+                      <Select
+                        value={campoCatalogo(c.campo_interno) ? c.campo_interno : "__custom"}
+                        onValueChange={(v) => {
+                          if (v === "__custom") {
+                            setCampo(i, { campo_interno: "" });
+                            return;
+                          }
+                          const cat = campoCatalogo(v);
+                          setCampo(i, {
+                            campo_interno: v,
+                            label: c.label ? c.label : (cat?.label ?? v),
+                            tipo_dado: cat?.tipo_dado ?? c.tipo_dado,
+                            aliases: c.aliases.length ? c.aliases : (cat?.aliases ?? []),
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Campo interno" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          <SelectItem value="__custom">Personalizado…</SelectItem>
+                          {camposPorGrupo().map((g) => (
+                            <SelectGroup key={g.grupo}>
+                              <SelectLabel>{g.grupo}</SelectLabel>
+                              {g.campos.map((cc) => (
+                                <SelectItem key={cc.key} value={cc.key}>
+                                  {cc.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!campoCatalogo(c.campo_interno) && (
+                        <Input
+                          placeholder="campo_interno"
+                          value={c.campo_interno}
+                          onChange={(e) => setCampo(i, { campo_interno: e.target.value })}
+                        />
+                      )}
+                    </div>
+
                     <Input
                       className="md:col-span-2"
                       placeholder="Rótulo"
@@ -476,7 +864,7 @@ function LayoutsPage() {
                       onChange={(e) => setCampo(i, { coluna_padrao: e.target.value })}
                     />
                     <Input
-                      className="md:col-span-3"
+                      className="md:col-span-2"
                       placeholder="Sinônimos (vírgula)"
                       value={c.aliases.join(", ")}
                       onChange={(e) =>
@@ -497,14 +885,26 @@ function LayoutsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="flex items-center gap-3 md:col-span-2">
-                      <label className="flex items-center gap-1 text-xs">
-                        <Checkbox
-                          checked={c.obrigatorio}
-                          onCheckedChange={(v) => setCampo(i, { obrigatorio: v === true })}
-                        />
-                        Obrig.
-                      </label>
+                    <Select
+                      value={estadoObrigatoriedade(c)}
+                      onValueChange={(v) =>
+                        setCampo(i, aplicarObrigatoriedade(v as EstadoObrigatoriedade))
+                      }
+                    >
+                      <SelectTrigger className="md:col-span-2" title="Obrigatoriedade do campo">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(["obrigatorio", "condicional", "opcional"] as EstadoObrigatoriedade[]).map(
+                          (e) => (
+                            <SelectItem key={e} value={e}>
+                              {LABEL_OBRIGATORIEDADE[e]}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2 md:col-span-1">
                       <label className="flex items-center gap-1 text-xs">
                         <Checkbox
                           checked={c.ignorado}
@@ -523,6 +923,7 @@ function LayoutsPage() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+
                   </div>
                 ))}
                 {ed.campos.length === 0 && (
@@ -547,5 +948,25 @@ function LayoutsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/** Edição rápida do peso de um sinônimo (0..100). */
+function PesoInput({ valor, onSalvar }: { valor: number; onSalvar: (peso: number) => void }) {
+  const [v, setV] = useState(String(valor ?? 0));
+  return (
+    <Input
+      className="h-8 w-20 text-xs"
+      type="number"
+      min={0}
+      max={100}
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => {
+        const n = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+        setV(String(n));
+        if (n !== valor) onSalvar(n);
+      }}
+    />
   );
 }

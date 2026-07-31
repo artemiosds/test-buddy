@@ -7,7 +7,7 @@ import { UploadCloud, Lightbulb, CheckCircle2, AlertTriangle } from "lucide-reac
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const CAMPOS_NAO_MONETARIOS = new Set(["cpf", "nome", "matricula"]);
-function fmtPreviewCell(v: unknown, destino?: PisoDestino | null): string {
+function fmtPreviewCell(v: unknown, destino?: PisoDestino | (string & {}) | null): string {
   if (v == null || v === "") return "—";
   const isMoney = destino != null && !CAMPOS_NAO_MONETARIOS.has(destino);
   const num =

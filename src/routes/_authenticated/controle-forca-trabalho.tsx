@@ -1,3 +1,4 @@
+import { grupoSituacao } from "@/lib/situacao-funcional";
 import { createFileRoute, useNavigate, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -123,13 +124,14 @@ function ControleForcaTrabalhoPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profissionais")
-        .select("unidade_id, status, updated_at")
+        .select("unidade_id, status, situacao_funcional, updated_at")
         .is("deleted_at", null)
         .limit(10000);
       if (error) throw error;
       return (data ?? []) as Array<{
         unidade_id: string | null;
         status: string | null;
+        situacao_funcional: string | null;
         updated_at: string;
       }>;
     },
@@ -198,10 +200,13 @@ function ControleForcaTrabalhoPage() {
         licencas = 0;
       let last: string | null = u.updated_at ?? null;
       for (const p of uProfs) {
-        if (p.status === "ativo") ativos += 1;
-        else if (p.status === "afastado") afastados += 1;
-        else if (p.status === "ferias") ferias += 1;
-        else if (p.status === "licenca") licencas += 1;
+        // Situações detalhadas do cadastro (afastamento_inss, licenca_saude,
+        // falta_pad, vacancia…) consolidadas nos grupos do painel.
+        const g = grupoSituacao(p.situacao_funcional ?? p.status);
+        if (g === "ativo") ativos += 1;
+        else if (g === "afastado") afastados += 1;
+        else if (g === "ferias") ferias += 1;
+        else if (g === "licenca") licencas += 1;
         last = maxDate(last, p.updated_at);
       }
       for (const p of uPends) last = maxDate(last, p.updated_at);

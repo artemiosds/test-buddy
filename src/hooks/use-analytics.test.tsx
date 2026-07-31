@@ -151,7 +151,13 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.quadroLotacao.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
 
-    expect(result.current.statusBreakdown.data).toEqual({ ativo: 2, ferias: 1, afastado: 1 });
+    expect(result.current.statusBreakdown.data).toEqual({
+      ativo: 2,
+      ferias: 1,
+      licenca: 0,
+      afastado: 1,
+      desligado: 0,
+    });
     expect(result.current.vinculoBreakdown.data).toEqual({
       efetivos: 2,
       temporarios: 1,
@@ -185,7 +191,13 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.quadroLotacao.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
 
-    expect(result.current.statusBreakdown.data).toEqual({});
+    expect(result.current.statusBreakdown.data).toEqual({
+      ativo: 0,
+      ferias: 0,
+      licenca: 0,
+      afastado: 0,
+      desligado: 0,
+    });
     expect(result.current.vinculoBreakdown.data).toEqual({
       efetivos: 0,
       temporarios: 0,

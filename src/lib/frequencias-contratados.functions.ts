@@ -3,11 +3,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 
-// Contratados = qualquer vínculo cuja natureza NÃO seja estatutário.
+// Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
   "temporario",
   "celetista",
-  "comissionado",
   "terceirizado",
   "estagiario",
   "residente",

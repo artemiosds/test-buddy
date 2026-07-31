@@ -9,6 +9,12 @@ import {
 } from "@/lib/piso-consolidacao.functions";
 import { STATUS_CONSOLIDACAO_LABEL } from "@/lib/piso-consolidacao";
 import { gerarPlanilhaOficialPiso } from "@/lib/piso-planilha.functions";
+import { baixarPlanilhaPiso } from "@/lib/piso-planilha-cliente";
+import {
+  listarModelosPlanilha,
+  obterModeloPlanilha,
+} from "@/lib/planilha-modelos.functions";
+import { baixarPeloModeloSalvo } from "@/lib/planilha-modelo-cliente";
 
 import {
   Upload,
@@ -235,20 +241,69 @@ function PisoIndex() {
     queryFn: () => getResumoConsolidacao({ data: {} }),
   });
 
-  function baixarBase64(base64: string, filename: string) {
-    const bin = atob(base64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const url = URL.createObjectURL(
-      new Blob([bytes], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }),
+  // Modelos de planilha salvos: quando existe um modelo (ex.: "UBS"), o arquivo
+  // baixado é gerado pelo motor de clone com a estrutura, colunas e fórmulas do
+  // modelo — e não pelo gerador fixo antigo.
+  const modelosQ = useQuery({
+    queryKey: ["piso", "planilha-modelos"],
+    queryFn: () => listarModelosPlanilha({ data: { modulo: "piso" } }),
+  });
+  const [modeloSel, setModeloSel] = useState<string>("auto");
+
+  function resolverModelo(tipo: string, preferidoId?: string | null) {
+    const modelos = (modelosQ.data?.modelos ?? []) as {
+      id: string;
+      nome: string;
+      vinculo: string | null;
+      padrao: boolean;
+    }[];
+    // Modelo registrado na própria importação tem prioridade absoluta.
+    if (preferidoId) {
+      const doHistorico = modelos.find((m) => m.id === preferidoId);
+      if (doHistorico) return doHistorico;
+    }
+    if (modeloSel === "legado") return null;
+    if (modeloSel !== "auto") return modelos.find((m) => m.id === modeloSel) ?? null;
+    return (
+      modelos.find((m) => m.padrao && m.vinculo === tipo) ??
+      modelos.find((m) => m.padrao && !m.vinculo) ??
+      null
     );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+  }
+
+  /** Entrega o arquivo: pelo modelo salvo quando houver, senão pelo gerador legado. */
+  async function entregar(
+    r: Awaited<ReturnType<typeof gerarPlanilhaOficialPiso>>,
+    tipo: string,
+    filename?: string,
+    modeloIdPreferido?: string | null,
+  ) {
+    const escolhido = resolverModelo(tipo, modeloIdPreferido);
+    if (!escolhido) {
+      baixarPlanilhaPiso(r, filename);
+      return;
+    }
+    const modelo = await obterModeloPlanilha({ data: { id: escolhido.id } });
+    const resumo = await baixarPeloModeloSalvo({
+      modeloBase64: String(modelo.arquivo_base64),
+      colunasModelo: (modelo.colunas ?? []) as string[],
+      linhas: r.linhas,
+      filename: filename ?? r.filename,
+    });
+    if (resumo.colunasModeloSemDado.length > 0) {
+      toast.warning(
+        `Colunas do modelo sem dado consolidado: ${resumo.colunasModeloSemDado.join(", ")}. ` +
+          "Elas mantiveram o valor ou a fórmula do próprio modelo.",
+        { duration: 10000 },
+      );
+    }
+    if (resumo.linhasSemCasamento.length > 0) {
+      toast.warning(
+        `${resumo.linhasSemCasamento.length} pessoa(s) sem correspondência no modelo "${escolhido.nome}". ` +
+          "Receberam apenas as colunas calculadas.",
+        { duration: 10000 },
+      );
+    }
   }
 
   const gerarMut = useMutation({
@@ -261,9 +316,13 @@ function PisoIndex() {
           categoria: categoria || null,
         },
       }),
-    onSuccess: (r) => {
-      baixarBase64(r.base64, r.filename);
-      toast.success(`Planilha gerada com ${r.total} profissional(is).`);
+    onSuccess: async (r, tipo) => {
+      await entregar(r, tipo);
+      const modelo = resolverModelo(tipo);
+      toast.success(
+        `Planilha gerada com ${r.total} profissional(is)` +
+          (modelo ? ` no modelo "${modelo.nome}".` : "."),
+      );
     },
     onError: (e: unknown) =>
       toast.error(
@@ -286,7 +345,12 @@ function PisoIndex() {
   const [baixandoHist, setBaixandoHist] = useState<string | null>(null);
 
   async function baixarImportacao(
-    hist: { id: string; nome_arquivo?: string | null; competencia?: string | null },
+    hist: {
+      id: string;
+      nome_arquivo?: string | null;
+      competencia?: string | null;
+      modelo_planilha_id?: string | null;
+    },
     tipo: "contratados" | "efetivos" | "calculo_piso",
   ) {
     setBaixandoHist(hist.id);
@@ -303,7 +367,12 @@ function PisoIndex() {
         return;
       }
       const sufixo = sanitizar(String(hist.nome_arquivo ?? "IMPORTACAO").replace(/\.[^.]+$/, ""));
-      baixarBase64(r.base64, r.filename.replace(/\.xlsx$/i, `-${sufixo}.xlsx`));
+      await entregar(
+        r,
+        tipo,
+        r.filename.replace(/\.xlsx$/i, `-${sufixo}.xlsx`),
+        (hist.modelo_planilha_id as string | null) ?? null,
+      );
       toast.success(`Arquivo gerado com ${r.total} profissional(is).`);
     } catch (e) {
       toast.error(
@@ -345,7 +414,7 @@ function PisoIndex() {
             vazias++;
             continue;
           }
-          baixarBase64(r.base64, r.filename.replace(/\.xlsx$/i, `-${sanitizar(u.nome)}.xlsx`));
+          await entregar(r, tipo, r.filename.replace(/\.xlsx$/i, `-${sanitizar(u.nome)}.xlsx`));
           gerados++;
           await new Promise((res) => setTimeout(res, 350));
         } catch {
@@ -397,7 +466,7 @@ function PisoIndex() {
         toast.error("Nenhum profissional consolidado nesta competência.");
         return;
       }
-      baixarBase64(r.base64, r.filename);
+      baixarPlanilhaPiso(r);
       toast.success(`Planilha gerada com ${r.total} profissional(is).`);
     } catch (e) {
       toast.error(
@@ -741,6 +810,24 @@ function PisoIndex() {
               </Link>
             </Button>
           </PermissionGate>
+
+          <Select value={modeloSel} onValueChange={setModeloSel}>
+            <SelectTrigger className="h-9 w-[230px]">
+              <SelectValue placeholder="Modelo da planilha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">Modelo salvo (automático)</SelectItem>
+              <SelectItem value="legado">Formato antigo do sistema</SelectItem>
+              {(modelosQ.data?.modelos ?? []).map((m: any) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.nome}
+                  {m.vinculo ? ` · ${m.vinculo}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+
 
           <Button
             size="sm"
