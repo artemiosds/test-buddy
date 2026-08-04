@@ -1,5 +1,7 @@
 import logoSmsMarca from "@/assets/logo-sms-marca.png.asset.json";
 import logoSmsPiso from "@/assets/logo-sms-piso.png.asset.json";
+import logoSmsFixed from "@/assets/logo-sms-fixed.png.asset.json";
+import logoSmsOficial from "@/assets/logo-sms-oficial.png.asset.json";
 import {
   createFileRoute,
   Outlet,
@@ -654,7 +656,7 @@ function AuthenticatedLayout() {
         {!compact ? (
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="sb-logo-mark sb-logo-mark--img bg-white rounded p-0.5">
-              <img src={logoSmsPiso.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
+              <img src={logoSmsOficial.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
             </span>
             <div className="min-w-0">
               <h2 className="truncate">ORIXIMINÁ · SMS</h2>
@@ -663,7 +665,7 @@ function AuthenticatedLayout() {
           </div>
         ) : (
           <span className="sb-logo-mark sb-logo-mark--img bg-white rounded p-0.5">
-            <img src={logoSmsPiso.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
+            <img src={logoSmsOficial.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
           </span>
         )}
         <button

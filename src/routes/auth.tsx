@@ -1,5 +1,7 @@
 import logoSmsMarca from "@/assets/logo-sms-marca.png.asset.json";
 import logoSmsPiso from "@/assets/logo-sms-piso.png.asset.json";
+import logoSmsFixed from "@/assets/logo-sms-fixed.png.asset.json";
+import logoSmsOficial from "@/assets/logo-sms-oficial.png.asset.json";
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -224,7 +226,7 @@ function AuthPage() {
       <div className="w-full max-w-md rounded-lg border bg-card p-8 shadow-sm">
         <div className="mb-6 text-center">
           <img
-            src={logoSmsPiso.url}
+            src={logoSmsOficial.url}
             alt="Secretaria Municipal de Saúde de Oriximiná"
             className="mx-auto mb-4 h-32 w-auto object-contain"
           />
