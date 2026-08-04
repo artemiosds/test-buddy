@@ -72,16 +72,12 @@ import { HsmExpertLauncher } from "@/components/hsm-expert/hsm-expert-launcher";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // Skip on server: this route is ssr:false, and the Supabase client
-    // requires envs that may not exist in prerender/SSR environments.
-    // The auth check re-runs on the client after hydration.
     if (typeof window === "undefined") {
       return {
         user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"],
       };
     }
     try {
-      await supabase.auth.getSession();
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) throw redirect({ to: "/auth" });
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -89,7 +85,8 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/auth" });
       }
       return { user: data.user };
-    } catch {
+    } catch (e) {
+      if (e instanceof Error && e.message === "Redirect") throw e;
       throw redirect({ to: "/auth" });
     }
   },
@@ -324,7 +321,8 @@ const GROUPS: NavGroup[] = [
 ];
 
 function AuthenticatedLayout() {
-  const { user } = Route.useRouteContext();
+  const context = Route.useRouteContext();
+  const { user } = context;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: userCtx } = useCurrentUser();
@@ -465,7 +463,14 @@ function AuthenticatedLayout() {
       navigate({ to: "/seguranca", replace: true });
     }
   }, [mfaRequired, mfaMissing, isSegurancaRoute, navigate]);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("sidebar-collapsed") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", String(collapsed));
+  }, [collapsed]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -694,14 +699,15 @@ function AuthenticatedLayout() {
   );
 
   return (
-    <div className="flex min-h-dvh w-full bg-muted/20">
+    <div className="flex h-dvh w-full overflow-hidden bg-muted/20">
       {/* Desktop sidebar */}
       <aside
         data-collapsed={collapsed ? "true" : "false"}
         className={
-          "enterprise-sidebar hidden flex-col transition-[width] md:flex " +
-          (collapsed ? "is-collapsed w-16" : "is-expanded w-72")
+          "enterprise-sidebar relative z-40 hidden h-full flex-col transition-[width] duration-300 md:flex " +
+          (collapsed ? "is-collapsed !w-16 !min-w-[4rem]" : "is-expanded !w-72 !min-w-[18rem]")
         }
+        style={{ flexShrink: 0 }}
       >
         {sidebarInner(collapsed)}
       </aside>
@@ -720,7 +726,7 @@ function AuthenticatedLayout() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar
           onOpenMobile={() => setMobileOpen(true)}
           onToggleCollapsed={() => setCollapsed((c) => !c)}

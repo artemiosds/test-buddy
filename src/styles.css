@@ -383,7 +383,8 @@
   }
 }
 
-#lovable-badge {
+#lovable-badge,
+.lovable-badge {
   display: none !important;
 }
 
@@ -457,6 +458,7 @@
   background: #FFFFFF !important;
   border-right: 1px solid #E2E8F0;
   box-shadow: none;
+  min-height: 100vh;
 }
 [data-sidebar="sidebar"] [data-sidebar="header"],
 [data-sidebar="sidebar"] [data-sidebar="footer"] {
@@ -674,8 +676,7 @@ main > * {
    Escopo: .enterprise-sidebar
    ========================================================= */
 .enterprise-sidebar {
-  --sidebar-width: 240px;
-  background: #FFFFFF;
+  background: #FFFFFF !important;
   box-shadow: none;
   border-right: 1px solid #E2E8F0;
   color: #475569;

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarRange,
@@ -21,6 +21,14 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
+  beforeLoad: async () => {
+    // Redirecionamos para /analitico para garantir que o layout autenticado
+    // (com sidebar) seja carregado corretamente. O "/" por ser raiz e flat
+    // as vezes não renderiza o layout de _authenticated dependendo da hierarquia.
+    // O /analitico está sob _authenticated e forçará o login se necessário.
+    throw redirect({ to: "/analitico" });
+  },
   component: Dashboard,
 });
 
@@ -273,46 +281,6 @@ function Dashboard() {
         )}
       </header>
 
-      {/* Resumo do Reset de Dados Operacionais */}
-      <Card className="border-amber-500/20 bg-amber-500/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CheckSquare className="h-5 w-5 text-amber-500" />
-            Limpeza de Dados Operacionais Concluída
-          </CardTitle>
-          <CardDescription>
-            Validado em {new Date().toLocaleDateString("pt-BR")} — Status: <strong>Sistema Zerado para Nova Competência</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <h4 className="font-semibold flex items-center gap-2">🧹 Itens Zerados (0 Lançamentos)</h4>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Folhas de Pagamento e Frequências Mensais</li>
-                <li>Aprovações e Pendências Institucionais</li>
-                <li>Documentos Emitidos e Notificações</li>
-                <li>Histórico do Piso Nacional da Enfermagem</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold flex items-center gap-2 text-emerald-600">🛡️ Cadastros Preservados</h4>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Base de Profissionais (888+ registros ativos)</li>
-                <li>Estrutura de Unidades, Setores e Cargos</li>
-                <li>Vínculos (Prestadores de Serviços e Contrato)</li>
-                <li>Permissões e Acessos de Usuários</li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-amber-500/10">
-            <p className="text-xs text-muted-foreground italic">
-              A operação foi executada via transação atômica e o cache global foi invalidado. 
-              O sistema está pronto para o início do ciclo operacional do zero.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {!competencia && (
         <EmptyState
