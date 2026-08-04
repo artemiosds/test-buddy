@@ -25,6 +25,7 @@ import {
   useVinculosLookup,
 } from "@/hooks/use-lookups";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/profissionais")({
   component: RelatoriosProfissionaisGerencial,
@@ -104,7 +105,80 @@ function RelatoriosProfissionaisGerencial() {
     ]);
   }
 
+  async function relatorioAbnt() {
+    const full = await listProfissionais(filters, 1, 3000);
+    const linhas = full.rows;
+    const contar = (get: (r: (typeof linhas)[number]) => string | null | undefined) => {
+      const m = new Map<string, number>();
+      for (const r of linhas) m.set(get(r) || "Não informado", (m.get(get(r) || "Não informado") ?? 0) + 1);
+      return Array.from(m, ([label, valor]) => ({ label, valor }));
+    };
+    const pendencias = linhas.filter(
+      (r) => !r.cpf || !r.matricula || !r.unidade_id || !r.cargo_id,
+    ).length;
+    return {
+      arquivo: `relatorio-profissionais-${preset}`,
+      titulo: "Relatório Gerencial de Profissionais",
+      subtitulo: `Visão: ${PRESETS.find((p) => p.value === preset)?.label ?? "Cadastro Geral"}`,
+      orientacao: "landscape" as const,
+      filtros: [
+        { label: "Visão", valor: PRESETS.find((p) => p.value === preset)?.label ?? "—" },
+        { label: "Busca", valor: q || "todos" },
+        { label: "Unidade", valor: unidades.data?.find((u) => u.id === unidadeId)?.nome ?? "Todas" },
+        { label: "Setor", valor: setores.data?.find((s) => s.id === setorId)?.nome ?? "Todos" },
+        { label: "Cargo", valor: cargos.data?.find((c) => c.id === cargoId)?.nome ?? "Todos" },
+        { label: "Função", valor: funcoes.data?.find((f) => f.id === funcaoId)?.nome ?? "Todas" },
+        { label: "Vínculo", valor: vinculos.data?.find((v) => v.id === vinculoId)?.nome ?? "Todos" },
+      ],
+      kpis: [
+        { label: "Profissionais listados", valor: linhas.length },
+        { label: "Unidades envolvidas", valor: new Set(linhas.map((r) => r.unidade_id)).size },
+        { label: "Cargos distintos", valor: new Set(linhas.map((r) => r.cargo_id)).size },
+        { label: "Com pendência cadastral", valor: pendencias },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Distribuição por unidade (10 maiores)",
+          dados: contar((r) => r.unidade_nome),
+          limite: 10,
+        },
+        {
+          tipo: "rosca" as const,
+          titulo: "2.1 Composição por vínculo",
+          dados: contar((r) => r.vinculo_nome),
+          limite: 6,
+        },
+        {
+          tipo: "barras" as const,
+          titulo: "2.2 Cargos mais frequentes",
+          dados: contar((r) => r.cargo_nome),
+          limite: 8,
+        },
+      ],
+      colunas: [
+        { header: "Nome", value: (r: (typeof linhas)[number]) => r.nome_completo },
+        { header: "Matrícula", value: (r: (typeof linhas)[number]) => r.matricula },
+        { header: "Unidade", value: (r: (typeof linhas)[number]) => r.unidade_nome },
+        { header: "Setor", value: (r: (typeof linhas)[number]) => r.setor_nome },
+        { header: "Cargo", value: (r: (typeof linhas)[number]) => r.cargo_nome },
+        { header: "Função", value: (r: (typeof linhas)[number]) => r.funcao_nome },
+        { header: "Vínculo", value: (r: (typeof linhas)[number]) => r.vinculo_nome },
+        { header: "Status", value: (r: (typeof linhas)[number]) => r.status },
+      ],
+      linhas,
+      notas: [
+        "Dados extraídos do cadastro funcional vigente na data de emissão.",
+        "Pendência cadastral considera ausência de CPF, matrícula, unidade de lotação ou cargo.",
+      ],
+      assinaturas: ["Responsável pela Gestão de Pessoas", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
   const groups = Array.from(new Set(PRESETS.map((p) => p.group)));
+
+
+
 
   return (
     <div className="space-y-4">
@@ -132,9 +206,12 @@ function RelatoriosProfissionaisGerencial() {
         <TabsContent value={preset} className="mt-4 space-y-4">
           <FilterBar
             actions={
-              <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
-                <Download className="mr-1 h-4 w-4" /> CSV
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+                  <Download className="mr-1 h-4 w-4" /> CSV
+                </Button>
+                <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!total} />
+              </div>
             }
           >
             <FilterBar.Field label="Buscar (nome, CPF, matrícula)">

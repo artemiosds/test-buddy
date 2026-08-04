@@ -78,7 +78,7 @@ export const LAYOUT_CONTRATADOS: LayoutFolha = {
     insalubridade: ["insalubridade", "insalub"],
     hora_extra_50: ["h e", "he", "hora extra", "horas extras"],
     adicional_noturno: ["ad noturno", "adicional noturno", "adn"],
-    plantao: ["plantai e sobreaviso", "plantao e sobreaviso", "plantao"],
+    plantao: ["plantai e sobreaviso", "plantao e sobreaviso", "planto e sobreaviso", "plantao sobreaviso", "plantao"],
     total_proventos: ["bruto", "total bruto", "total proventos"],
     iss: ["iss", "issqn"],
     total_liquido_base: ["total"],

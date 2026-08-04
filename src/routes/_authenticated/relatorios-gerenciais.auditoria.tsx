@@ -18,6 +18,7 @@ import { PermissionGate } from "@/components/permission-gate";
 import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/auditoria")({
   component: AuditoriaGerencial,
@@ -273,6 +274,95 @@ function AuditoriaGerencial() {
     URL.revokeObjectURL(url);
   };
 
+  async function relatorioAbnt() {
+    let q = supabase
+      .from("audit_log")
+      .select("*")
+      .gte("ocorrido_em", desde)
+      .order("ocorrido_em", { ascending: false })
+      .limit(3000);
+    if (cfg.tabelas?.length) q = q.in("tabela", cfg.tabelas);
+    if (cfg.operacoes?.length) q = q.in("operacao", cfg.operacoes);
+    if (operacao !== "todas") q = q.eq("operacao", operacao);
+    if (tabela !== "todas") q = q.eq("tabela", tabela);
+    if (usuario.trim()) q = q.ilike("usuario_email", `%${usuario.trim()}%`);
+    if (busca.trim()) {
+      const b = busca.trim();
+      q = q.or(`registro_id.ilike.%${b}%,tabela.ilike.%${b}%,usuario_email.ilike.%${b}%`);
+    }
+    const { data: linhas, error } = await q;
+    if (error) throw error;
+    const lista = (linhas ?? []) as AuditRow[];
+    const contar = (get: (r: AuditRow) => string | null) => {
+      const m = new Map<string, number>();
+      for (const r of lista) {
+        const k = get(r) || "—";
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+      return Array.from(m, ([label, valor]) => ({ label, valor }));
+    };
+    return {
+      arquivo: `relatorio-auditoria-${cfg.id}`,
+      titulo: "Relatório de Trilha de Auditoria",
+      subtitulo: `Foco: ${cfg.label} · Últimos ${dias} dias`,
+      orientacao: "landscape" as const,
+      filtros: [
+        { label: "Foco", valor: cfg.label },
+        { label: "Período", valor: `Últimos ${dias} dias` },
+        { label: "Operação", valor: operacao === "todas" ? "Todas" : operacao },
+        { label: "Tabela", valor: tabela === "todas" ? "Todas" : tabela },
+        { label: "Usuário", valor: usuario || "Todos" },
+        { label: "Busca", valor: busca || "—" },
+      ],
+      kpis: [
+        { label: "Eventos no período", valor: kpis?.total ?? lista.length },
+        { label: "Inclusões", valor: kpis?.ins ?? 0 },
+        { label: "Alterações", valor: kpis?.upd ?? 0 },
+        { label: "Exclusões", valor: kpis?.del ?? 0 },
+      ],
+      graficos: [
+        {
+          tipo: "rosca" as const,
+          titulo: "2 Eventos por tipo de operação",
+          dados: contar((r) => r.operacao),
+          limite: 5,
+        },
+        {
+          tipo: "barras" as const,
+          titulo: "2.1 Tabelas mais movimentadas",
+          dados: contar((r) => r.tabela),
+          limite: 10,
+        },
+        {
+          tipo: "barras" as const,
+          titulo: "2.2 Usuários com mais ações",
+          dados: contar((r) => r.usuario_email),
+          limite: 10,
+        },
+      ],
+      colunas: [
+        {
+          header: "Data/Hora",
+          value: (r: AuditRow) => new Date(r.ocorrido_em).toLocaleString("pt-BR"),
+        },
+        { header: "Operação", value: (r: AuditRow) => r.operacao },
+        { header: "Tabela", value: (r: AuditRow) => r.tabela },
+        { header: "Registro", value: (r: AuditRow) => r.registro_id },
+        { header: "Usuário", value: (r: AuditRow) => r.usuario_email },
+        { header: "IP", value: (r: AuditRow) => r.ip },
+      ],
+      linhas: lista,
+      notas: [
+        "Trilha de auditoria imutável, registrada automaticamente pelo sistema a cada operação.",
+        lista.length >= 3000
+          ? "Exportação limitada aos 3.000 eventos mais recentes do filtro aplicado."
+          : "Todos os eventos do filtro aplicado estão contemplados neste documento.",
+      ],
+      assinaturas: ["Controle Interno", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
+
   return (
     <PermissionGate permission="auditoria.visualizar">
       <div className="space-y-4">
@@ -287,18 +377,20 @@ function AuditoriaGerencial() {
               Quem alterou o quê, quando e onde. Escolha um foco abaixo para filtrar a trilha.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
             <PermissionGate permission="auditoria.exportar" fallback={null}>
-              <Button size="sm" onClick={() => void exportarCsv()}>
+              <Button size="sm" variant="outline" onClick={() => void exportarCsv()}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar CSV
               </Button>
+              <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!total} />
             </PermissionGate>
           </div>
+
         </div>
 
         <div className="flex flex-wrap gap-2">

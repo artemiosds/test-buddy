@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listFuncoesGerencial, type FuncaoPreset } from "@/lib/relatorios-gerenciais";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/funcoes")({
   component: FuncoesGerencial,
@@ -54,6 +55,59 @@ function FuncoesGerencial() {
     ]);
   }
 
+  function relatorioAbnt() {
+    const comGratificacao = ordenadas.filter((r) => (r.gratificacao_percentual ?? 0) > 0);
+    return {
+      arquivo: `relatorio-funcoes-${preset}`,
+      titulo: "Relatório Gerencial de Funções Gratificadas",
+      subtitulo: `Visão: ${PRESETS.find((p) => p.value === preset)?.label ?? "Todas"}`,
+      filtros: [{ label: "Visão", valor: PRESETS.find((p) => p.value === preset)?.label ?? "—" }],
+      kpis: [
+        { label: "Funções listadas", valor: totais.total },
+        { label: "Funções ocupadas", valor: totais.ocupadas },
+        { label: "Com gratificação", valor: comGratificacao.length },
+        { label: "Profissionais designados", valor: totais.profissionais },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Funções com maior número de designações",
+          dados: ordenadas.map((r) => ({ label: r.nome, valor: r.qtd_profissionais })),
+          limite: 10,
+        },
+        {
+          tipo: "barras" as const,
+          titulo: "2.1 Percentual de gratificação por função",
+          dados: comGratificacao.map((r) => ({
+            label: r.nome,
+            valor: r.gratificacao_percentual ?? 0,
+          })),
+          limite: 10,
+        },
+      ],
+      colunas: [
+        { header: "Função", value: (r: (typeof ordenadas)[number]) => r.nome },
+        { header: "Código", value: (r: (typeof ordenadas)[number]) => r.codigo },
+        {
+          header: "Gratificação (%)",
+          value: (r: (typeof ordenadas)[number]) => r.gratificacao_percentual,
+          align: "right" as const,
+        },
+        { header: "Status", value: (r: (typeof ordenadas)[number]) => r.status },
+        {
+          header: "Profissionais",
+          value: (r: (typeof ordenadas)[number]) => r.qtd_profissionais,
+          align: "right" as const,
+        },
+      ],
+      linhas: ordenadas,
+      notas: [
+        "Designações para função gratificada devem estar amparadas em ato administrativo publicado.",
+      ],
+      assinaturas: ["Coordenação de Gestão de Pessoas", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
   return (
     <div className="space-y-4">
       <IntelligencePanel foco="funcoes" titulo="Funções" />
@@ -67,11 +121,13 @@ function FuncoesGerencial() {
         </TabsList>
       </Tabs>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
+        <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!rows.length} />
       </div>
+
 
       <div className="grid gap-3 sm:grid-cols-3">
         <KpiCard label="Funções" value={totais.total} />

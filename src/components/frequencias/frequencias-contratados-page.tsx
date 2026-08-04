@@ -395,19 +395,27 @@ export function FrequenciasContratadosPage() {
     // `filtradas` + `linhasFinais`). Assim, o PDF/Excel exportam somente
     // as linhas visíveis atualmente na tabela.
     const visiveis = linhasFinais.map((x) => x.it);
-    return visiveis.map((it: any) => ({
-      profissional: {
-        matricula: it.profissional.matricula,
-        nome: it.profissional.nome,
-        cpf: it.profissional.cpf ?? null,
-        cargo: it.profissional.cargo,
-        setor: it.profissional.setor,
-        banco: it.profissional.banco,
-        agencia: it.profissional.agencia,
-        conta_corrente: it.profissional.conta_corrente,
-      },
-      linha: it.linha,
-    }));
+    return visiveis.map((it: any) => {
+      // Mescla o que está digitado na tela (mesmo ainda não salvo) sobre o
+      // registro persistido, para o PDF/Excel refletirem exatamente a grade.
+      const editada = linhas[it.profissional.id];
+      const linha = editada
+        ? { ...(it.linha ?? {}), ...editada, status: it.linha?.status ?? "rascunho" }
+        : it.linha;
+      return {
+        profissional: {
+          matricula: it.profissional.matricula,
+          nome: it.profissional.nome,
+          cpf: it.profissional.cpf ?? null,
+          cargo: it.profissional.cargo,
+          setor: it.profissional.setor,
+          banco: it.profissional.banco,
+          agencia: it.profissional.agencia,
+          conta_corrente: it.profissional.conta_corrente,
+        },
+        linha,
+      };
+    });
   }
 
   async function handleExportarExcel() {

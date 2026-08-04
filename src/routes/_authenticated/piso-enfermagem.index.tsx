@@ -278,6 +278,10 @@ function PisoIndex() {
     filename?: string,
     modeloIdPreferido?: string | null,
   ) {
+    if (r.origem_modelo === "UBS_SAUDE" || r.origem_modelo === "HMO_SAUDE") {
+      baixarPlanilhaPiso(r, filename);
+      return;
+    }
     const escolhido = resolverModelo(tipo, modeloIdPreferido);
     if (!escolhido) {
       baixarPlanilhaPiso(r, filename);
@@ -1591,6 +1595,7 @@ function PisoIndex() {
                         id: String(r.id ?? ""),
                         nome_arquivo: (r.nome_arquivo as string) ?? null,
                         competencia: (r.competencia as string) ?? null,
+                        modelo_planilha_id: (r.modelo_planilha_id as string) ?? null,
                       };
                       return (
                         <DropdownMenu>

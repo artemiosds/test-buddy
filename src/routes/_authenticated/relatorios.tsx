@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
+import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos-panel";
+import { nivelPrivacidade } from "@/lib/lgpd";
+import { gerarCertificado, linhasCertificadoPlanilha, registrarDownload } from "@/lib/fe-publica";
 import type { Database } from "@/integrations/supabase/types";
 
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
@@ -62,6 +65,7 @@ function RelatoriosPage() {
   const isMaster = !!userCtx?.is_master;
   const canView = isMaster || has("relatorio.visualizar");
   const canExport = isMaster || has("relatorio.exportar");
+  const nivel = nivelPrivacidade({ isMaster, has });
 
   const [competenciaId, setCompetenciaId] = useState<string>("all");
   const [unidadeId, setUnidadeId] = useState<string>("all");
@@ -145,7 +149,19 @@ function RelatoriosPage() {
     return acc;
   }, [linhas]);
 
-  function exportarCSV() {
+  const filtrosAtuais = { competenciaId, unidadeId, tipo };
+
+  async function certificar(rows: unknown) {
+    return gerarCertificado({
+      conteudo: { filtros: filtrosAtuais, rows },
+      usuario: {
+        nome: userCtx?.nome_completo ?? "Usuário",
+        identificador: userCtx?.email ?? "—",
+      },
+    });
+  }
+
+  async function exportarCSV() {
     if (!linhas?.length) {
       toast.error("Nada para exportar.");
       return;
@@ -176,7 +192,8 @@ function RelatoriosPage() {
         l.total_horas_extras ?? 0,
       ];
     });
-    const csv = [header, ...rows]
+    const cert = await certificar(rows);
+    const csv = [header, ...rows, ...linhasCertificadoPlanilha(cert)]
       .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";"))
       .join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -186,7 +203,14 @@ function RelatoriosPage() {
     a.download = `relatorio_frequencias_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Relatório exportado.");
+    registrarDownload({
+      relatorio: "relatorios.frequencias",
+      formato: "csv",
+      filtros: filtrosAtuais,
+      hash: cert.hash,
+      registros: rows.length,
+    });
+    toast.success("Relatório exportado com certificado de fé pública.");
   }
 
   async function exportarXLSX() {
@@ -210,7 +234,9 @@ function RelatoriosPage() {
         "Horas extras": l.total_horas_extras ?? 0,
       };
     });
+    const cert = await certificar(data);
     const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.sheet_add_aoa(ws, linhasCertificadoPlanilha(cert), { origin: -1 });
     ws["!cols"] = [
       { wch: 12 },
       { wch: 32 },
@@ -225,7 +251,14 @@ function RelatoriosPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Frequências");
     XLSX.writeFile(wb, `relatorio_frequencias_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Planilha exportada.");
+    registrarDownload({
+      relatorio: "relatorios.frequencias",
+      formato: "xlsx",
+      filtros: filtrosAtuais,
+      hash: cert.hash,
+      registros: data.length,
+    });
+    toast.success("Planilha exportada com certificado de fé pública.");
   }
 
   if (permLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
@@ -255,14 +288,14 @@ function RelatoriosPage() {
           <Button
             variant="outline"
             className="w-full sm:w-auto"
-            onClick={exportarCSV}
+            onClick={() => void exportarCSV()}
             disabled={!canExport || !linhas?.length}
           >
             <Download className="mr-2 h-4 w-4" /> CSV
           </Button>
           <Button
             className="w-full sm:w-auto"
-            onClick={exportarXLSX}
+            onClick={() => void exportarXLSX()}
             disabled={!canExport || !linhas?.length}
           >
             <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (XLSX)
@@ -324,6 +357,15 @@ function RelatoriosPage() {
           </Select>
         </div>
       </div>
+
+      <ComplianceRiscosPanel
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        nivel={nivel}
+        enabled={canView}
+      />
+
+
 
       <div className="grid gap-3 md:grid-cols-6">
         <Card label="Folhas" value={totais.folhas} />

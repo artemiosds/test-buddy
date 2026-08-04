@@ -183,13 +183,6 @@ const GROUPS: NavGroup[] = [
         section: "📊 Visão Executiva",
       },
       { to: "/gestao-rh", label: "Dashboard RH", icon: BarChart3, section: "📊 Visão Executiva" },
-      {
-        to: "/analitico",
-        label: "Indicadores",
-        icon: BarChart3,
-        perm: ["relatorio.visualizar", "relatorio.exportar"],
-        section: "📊 Visão Executiva",
-      },
       // 👥 Profissionais
       {
         to: "/profissionais",
@@ -441,11 +434,12 @@ function AuthenticatedLayout() {
   }
 
   const canSee = (item: NavItem) => {
-    if (item.masterOnly && !userCtx?.is_master) return false;
+    const isMaster = userCtx?.is_master || has("usuario.gerenciar");
+    if (item.masterOnly && !isMaster) return false;
     const perm = item.perm;
     if (!perm) return true;
     if (permLoading) return false;
-    if (userCtx?.is_master) return true;
+    if (isMaster) return true;
     return Array.isArray(perm) ? perm.some(has) : has(perm);
   };
 

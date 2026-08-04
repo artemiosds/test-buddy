@@ -38,7 +38,22 @@ type Setor = {
   status: "ativa" | "inativa" | "suspensa" | "arquivada";
   gestor_id: string | null;
   observacoes: string | null;
+  cnes: string | null;
+  tipo: string | null;
+  cnpj: string | null;
+  endereco: string | null;
   gestor: { id: string; nome_completo: string } | null;
+};
+
+const emptyForm = {
+  nome: "",
+  sigla: "",
+  gestor_id: "",
+  observacoes: "",
+  cnes: "",
+  tipo: "",
+  cnpj: "",
+  endereco: "",
 };
 
 function SetoresPage() {
@@ -52,7 +67,7 @@ function SetoresPage() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Setor | null>(null);
-  const [form, setForm] = useState({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
+  const [form, setForm] = useState({ ...emptyForm });
 
   const { data: unidades = [] } = useQuery({
     queryKey: ["unidades-select"],
@@ -94,7 +109,7 @@ function SetoresPage() {
       const { data, error } = await supabase
         .from("setores")
         .select(
-          "id, unidade_id, nome, sigla, status, gestor_id, observacoes, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
+          "id, unidade_id, nome, sigla, status, gestor_id, observacoes, cnes, tipo, cnpj, endereco, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
         )
         .eq("unidade_id", unidadeId)
         .is("deleted_at", null)
@@ -136,6 +151,10 @@ function SetoresPage() {
         sigla: form.sigla.trim() || null,
         gestor_id: form.gestor_id || null,
         observacoes: form.observacoes.trim() || null,
+        cnes: form.cnes.trim() || null,
+        tipo: form.tipo.trim() || null,
+        cnpj: form.cnpj.trim() || null,
+        endereco: form.endereco.trim() || null,
       };
       if (editing) {
         const { error } = await supabase.from("setores").update(payload).eq("id", editing.id);
@@ -151,7 +170,7 @@ function SetoresPage() {
       toast.success(editing ? "Setor atualizado" : "Setor criado");
       setOpen(false);
       setEditing(null);
-      setForm({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
+      setForm({ ...emptyForm });
       qc.invalidateQueries({ queryKey: ["setores-admin"] });
       qc.invalidateQueries({ queryKey: ["setores-select"] });
     },
@@ -207,7 +226,7 @@ function SetoresPage() {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", sigla: "", gestor_id: "", observacoes: "" });
+    setForm({ ...emptyForm });
     setOpen(true);
   };
   const abrirEdit = (s: Setor) => {
@@ -217,6 +236,10 @@ function SetoresPage() {
       sigla: s.sigla ?? "",
       gestor_id: s.gestor_id ?? "",
       observacoes: s.observacoes ?? "",
+      cnes: s.cnes ?? "",
+      tipo: s.tipo ?? "",
+      cnpj: s.cnpj ?? "",
+      endereco: s.endereco ?? "",
     });
     setOpen(true);
   };
@@ -287,11 +310,51 @@ function SetoresPage() {
                     onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   />
                 </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>Sigla</Label>
+                    <Input
+                      value={form.sigla}
+                      onChange={(e) => setForm({ ...form, sigla: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Tipo</Label>
+                    <Input
+                      placeholder="Ex.: Administrativo, Assistencial"
+                      value={form.tipo}
+                      onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>CNES</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="Somente números"
+                      value={form.cnes}
+                      onChange={(e) =>
+                        setForm({ ...form, cnes: e.target.value.replace(/\D/g, "").slice(0, 15) })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>CNPJ</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="00.000.000/0000-00"
+                      value={form.cnpj}
+                      onChange={(e) =>
+                        setForm({ ...form, cnpj: e.target.value.replace(/\D/g, "").slice(0, 14) })
+                      }
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label>Sigla</Label>
+                  <Label>Endereço</Label>
                   <Input
-                    value={form.sigla}
-                    onChange={(e) => setForm({ ...form, sigla: e.target.value })}
+                    placeholder="Rua, nº, bairro, cidade"
+                    value={form.endereco}
+                    onChange={(e) => setForm({ ...form, endereco: e.target.value })}
                   />
                 </div>
                 <div>

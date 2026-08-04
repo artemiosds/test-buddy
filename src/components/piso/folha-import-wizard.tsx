@@ -106,8 +106,20 @@ import {
   aplicarTemplate,
   detectarTemplate,
   montarPlanilhaUbs,
+  montarPlanilhaHmo,
+  montarPlanilhaHmsds,
+  montarPlanilhaCaps,
+  montarPlanilhaPadraoAdm,
+  ABA_HMO,
+  ABA_HMSDS,
+  ABA_CAPS,
+  ABA_PADRAO_ADM,
+
+
+  normalizarCabecalho,
   type DeteccaoTemplate,
 } from "@/lib/import-templates";
+
 import { ImportPreviewTable } from "@/components/piso/import-preview-table";
 import { matematicaEstrutural, type RegraEstrutural } from "@/lib/matematica-modelo";
 import {
@@ -120,6 +132,20 @@ import {
 } from "@/lib/layout-formulas";
 
 const CHUNK = 100;
+
+function mapearComTemplate(
+  headers: string[],
+  templateDet: DeteccaoTemplate | null,
+  base: Mapeamento,
+): Mapeamento {
+  if (!templateDet) return base;
+  const combinado: Mapeamento = { ...base };
+  for (const header of headers) {
+    const destino = templateDet.template.columnMap[normalizarCabecalho(header)];
+    if (destino) combinado[header] = destino;
+  }
+  return combinado;
+}
 /** Páginas por chamada à IA de Visão (lotes pequenos = baixo consumo de memória). */
 /** Limite técnico de páginas por requisição à IA (só usado se o PDF for grande). */
 const MAX_PAGINAS_POR_JANELA = 12;
@@ -427,7 +453,7 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
               : "Compatibilidade baixa com o layout sugerido: confira o mapeamento."
           : `Layout identificado automaticamente: ${escolhido?.layout_nome} (v${escolhido?.versao}).`,
     );
-    setMapeamento(mapearComMotor(hs, escolhido));
+    setMapeamento(mapearComTemplate(hs, tpl, mapearComMotor(hs, escolhido)));
     setResolved([]);
 
     // Competência: nome do arquivo → texto das primeiras linhas do documento
@@ -804,7 +830,15 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     setHeaderRowIndex(newIdx);
     setHeaders(hs);
     setRawRows(rows);
-    setMapeamento(mapearComMotor(hs, versoes.find((v) => v.versao_id === versaoId) ?? null));
+    const tpl = detectarTemplate(file?.name ?? "", hs);
+    setTemplateDet(tpl);
+    setMapeamento(
+      mapearComTemplate(
+        hs,
+        tpl,
+        mapearComMotor(hs, versoes.find((v) => v.versao_id === versaoId) ?? null),
+      ),
+    );
   }
 
   const matchMut = useMutation({
@@ -1262,15 +1296,62 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
   }
 
   /**
-   * Exporta as linhas validadas nas 16 colunas fiéis do modelo
-   * `SAUDE - UBS'S (4)`, na ordem definida pelo template detectado.
+   * Exporta as linhas validadas nas colunas fiéis do modelo detectado
+   * (UBS = 16 colunas; H.M.O = 14 colunas; H.M.S.D.S = 16 colunas), com as
+   * fórmulas vivas.
    */
   function baixarPlanilhaTemplate() {
-    const aoaSaida = montarPlanilhaUbs(
-      validacao.linhasValidas as unknown as Record<string, unknown>[],
+    const id = templateDet?.template.id;
+    const linhasCalc = validacao.linhasValidas as unknown as Record<string, unknown>[];
+    const aoaSaida =
+      id === "HMSDS_SAUDE"
+        ? montarPlanilhaHmsds(linhasCalc)
+        : id === "HMO_SAUDE"
+          ? montarPlanilhaHmo(linhasCalc)
+          : id === "CAPS_SAUDE"
+            ? montarPlanilhaCaps(linhasCalc)
+            : id === "PADRAO_ADM"
+              ? montarPlanilhaPadraoAdm(linhasCalc)
+              : montarPlanilhaUbs(linhasCalc);
+
+    const ws: XLSX.WorkSheet = {};
+    let maxCol = 0;
+    aoaSaida.forEach((linha, r) => {
+      linha.forEach((valor, c) => {
+        maxCol = Math.max(maxCol, c);
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (valor && typeof valor === "object" && "f" in (valor as object)) {
+          ws[ref] = { t: "n", f: (valor as { f: string }).f, z: "#,##0.00" };
+        } else if (typeof valor === "number") {
+          ws[ref] = { t: "n", v: valor, z: "#,##0.00" };
+        } else {
+          ws[ref] = { t: "s", v: String(valor ?? "") };
+        }
+      });
+    });
+    ws["!ref"] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: aoaSaida.length - 1, c: maxCol },
+    });
+    ws["!cols"] = [{ wch: 38 }, { wch: 16 }, { wch: 30 }, { wch: 24 }].concat(
+      Array.from({ length: maxCol - 3 }, () => ({ wch: 14 })),
     );
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaSaida), "FOLHA");
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      id === "HMSDS_SAUDE"
+        ? ABA_HMSDS
+        : id === "HMO_SAUDE"
+          ? ABA_HMO
+          : id === "CAPS_SAUDE"
+            ? ABA_CAPS
+            : id === "PADRAO_ADM"
+              ? ABA_PADRAO_ADM
+              : "UBS (3)",
+    );
+
+
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
     const blob = new Blob([buf], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1282,6 +1363,7 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     a.click();
     URL.revokeObjectURL(url);
   }
+
 
 
   const resumoFopag = fopag ? resumoCategorias(fopag) : null;
@@ -2582,7 +2664,11 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
             </div>
           )}
 
-          <ImportPreviewTable rows={resolved} issues={validacao.issues} />
+          <ImportPreviewTable
+            rows={resolved}
+            issues={validacao.issues}
+            templateId={templateDet?.template.id}
+          />
 
 
 
@@ -2659,12 +2745,23 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
                 {espelhoMut.isPending ? "Gerando..." : "Baixar planilha do modelo (cópia fiel)"}
               </Button>
             )}
-            {templateDet?.template.id === "UBS_SAUDE" && (
+            {(templateDet?.template.id === "UBS_SAUDE" ||
+              templateDet?.template.id === "HMO_SAUDE" ||
+              templateDet?.template.id === "CAPS_SAUDE" ||
+              templateDet?.template.id === "PADRAO_ADM" ||
+              templateDet?.template.id === "HMSDS_SAUDE") && (
               <Button variant="secondary" onClick={baixarPlanilhaTemplate}>
                 <Download className="mr-2 h-4 w-4" />
-                Baixar planilha do modelo (16 colunas)
+                {templateDet?.template.id === "HMO_SAUDE"
+                  ? "Baixar planilha do modelo (14 colunas)"
+                  : templateDet?.template.id === "CAPS_SAUDE" ||
+                      templateDet?.template.id === "PADRAO_ADM"
+                    ? "Baixar planilha do modelo (13 colunas)"
+                    : "Baixar planilha do modelo (16 colunas)"}
               </Button>
+
             )}
+
 
 
 
@@ -2678,8 +2775,7 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
       {passo === 4 && !concluido && (
         <div className="space-y-3 rounded-md border p-4">
           <p className="text-sm text-muted-foreground">
-            Atualizando apenas os dados financeiros da competência {competencia}. O cadastro dos
-            profissionais não é alterado.
+            LEMBRANDO O SISTEMA TEM USAR O BANCO DE DADOS DO CADASTRO DO PROFISSIONAL, QUANDO IMPORTA O ARQUIVO MESMO ASSIM O SISTEMA TEM ANALISAR OS NOMES, CPF, LOTAÇÃO CARGO.
           </p>
           <Progress
             value={progresso.total ? Math.round((progresso.feito / progresso.total) * 100) : 0}

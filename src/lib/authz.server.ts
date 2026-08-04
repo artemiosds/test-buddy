@@ -54,6 +54,7 @@ export const ACOES = {
   USUARIO_EDITAR: "usuario.editar",
   USUARIO_INATIVAR: "usuario.inativar",
   USUARIO_PERMISSOES: "usuario.permissoes",
+  USUARIO_GERENCIAR: "usuario.gerenciar",
 
   // Assinatura / Auditoria / Config
   ASSINATURA_APLICAR: "assinatura.aplicar",

@@ -39,13 +39,48 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
     // Restrição por importação específica (histórico)
     let idsDaImportacao: Set<string> | null = null;
     let competenciaHist = "";
+    let linhasHistorico: any[] | null = null;
+    let origemModelo:
+      | "UBS_SAUDE"
+      | "HMO_SAUDE"
+      | "HMSDS_SAUDE"
+      | "CAPS_SAUDE"
+      | "PADRAO_ADM"
+      | null = null;
     if (data.historico_id) {
       const { data: hist } = await supabase
         .from("historico_importacoes")
-        .select("competencia")
+        .select("competencia, nome_arquivo")
         .eq("id", data.historico_id)
         .maybeSingle();
       competenciaHist = (hist?.competencia ?? "").trim();
+      const nomeArq = hist?.nome_arquivo ?? "";
+      // H.M.S.D.S primeiro (mais específico), depois H.M.O, CAPS, UBS e por fim
+      // o genérico PADRÃO ADM (CER / Centro Especializado / demais unidades).
+      origemModelo = /H\W*M\W*S\W*D\W*S/i.test(nomeArq)
+        ? "HMSDS_SAUDE"
+        : /H\W*M\W*O/i.test(nomeArq)
+          ? "HMO_SAUDE"
+          : /CAPS/i.test(nomeArq)
+            ? "CAPS_SAUDE"
+            : /UBS/i.test(nomeArq)
+              ? "UBS_SAUDE"
+              : /\bCER\b|CENTRO[\s_.-]*ESPECIALIZAD|PADRAO[\s_.-]*ADM/i.test(nomeArq)
+                ? "PADRAO_ADM"
+                : null;
+
+
+      if (data.tipo === "contratados" && origemModelo) {
+
+        const { data: importadas, error: importadasErro } = await supabase
+          .from("piso_enfermagem")
+          .select("*")
+          .eq("historico_id", data.historico_id)
+          .order("nome", { ascending: true })
+          .limit(20000);
+        if (importadasErro) throw new Error(importadasErro.message);
+        linhasHistorico = importadas ?? [];
+      }
       const { data: vinc } = await supabase
         .from("piso_competencia_profissional")
         .select("profissional_id")
@@ -54,7 +89,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
         )
         .limit(20000);
       idsDaImportacao = new Set((vinc ?? []).map((v: any) => v.profissional_id));
-      if (idsDaImportacao.size === 0) {
+      if (idsDaImportacao.size === 0 && !linhasHistorico?.length) {
         throw new Error(
           "Esta importação não gerou registros consolidados (nenhum profissional vinculado).",
         );
@@ -134,7 +169,46 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
     const referencias = await carregarReferencias(supabase, competencia || null);
 
     const linhas: LinhaPlanilha[] = [];
-    for (const p of profs) {
+    if (linhasHistorico) {
+      for (const r of linhasHistorico) {
+        const origem = (r.dados_origem ?? {}) as Record<string, unknown>;
+        const horaExtra = Number(r.hora_extra_50) || 0;
+        const gratificacao = Number(r.gratificacao_incentivo ?? r.gratificacao) || 0;
+        const incentivo = Number(r.incentivo ?? r.auxilio_financeiro) || 0;
+        const valorFinal = Number(r.valor_final) || 0;
+        const auxilioTransporte =
+          Number(r.auxilio_transporte ?? origem.auxilio_transporte) ||
+          Math.max(0, valorFinal - horaExtra - gratificacao - incentivo);
+        linhas.push({
+          nome: r.nome ?? "",
+          cpf: r.cpf ?? null,
+          lotacao: r.unidade ?? null,
+          cargo: r.cargo ?? null,
+          categoria: null,
+          dias: Number(r.dias_trabalhados ?? origem.dias_trabalhados) || 30,
+          salario_base: r.salario_base ?? null,
+          insalubridade: r.insalubridade ?? null,
+          hora_extra: horaExtra || null,
+          adicional_noturno: r.adicional_noturno ?? null,
+          plantao_sobreaviso:
+            (Number(r.plantao ?? origem.plantao) || 0) +
+              (Number(r.sobreaviso ?? origem.sobreaviso) || 0) || null,
+          plantao:
+            (Number(r.plantao ?? origem.plantao) || 0) +
+              (Number(r.sobreaviso ?? origem.sobreaviso) || 0) || null,
+
+          pensao_alimenticia: null,
+          incentivo: incentivo || null,
+          gratificacoes: gratificacao || null,
+          gratificacao_incentivo: gratificacao || null,
+          vale_transporte: auxilioTransporte || null,
+          auxilio_transporte: auxilioTransporte || null,
+          total_liquido_base: r.total_liquido_base ?? r.valor_liquido ?? null,
+          valor_final: valorFinal || null,
+        });
+      }
+    }
+    for (const p of linhasHistorico ? [] : profs) {
       const cargo = resolverElegivel(p, catalogo);
       const vinculo = p.vinculo_id ? (vinculos.get(p.vinculo_id) ?? null) : null;
       const efetivo = ehEfetivo(vinculo);
@@ -215,6 +289,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
             : data.tipo === "piso_enfermagem"
               ? `piso-enfermagem_${rotuloMes(competencia)}.xlsx`
               : `FOPAG-${sufixo}.xlsx`,
+      origem_modelo: origemModelo,
     };
 
   });

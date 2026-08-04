@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { downloadCsv } from "@/lib/csv-export";
 import { listCargosGerencial, type CargoPreset } from "@/lib/relatorios-gerenciais";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/cargos")({
   component: CargosGerencial,
@@ -55,6 +56,55 @@ function CargosGerencial() {
     ]);
   }
 
+  function relatorioAbnt() {
+    const porNivel = new Map<string, number>();
+    for (const r of ordenados) {
+      const k = r.nivel || "Sem nível";
+      porNivel.set(k, (porNivel.get(k) ?? 0) + 1);
+    }
+    return {
+      arquivo: `relatorio-cargos-${preset}`,
+      titulo: "Relatório Gerencial de Cargos",
+      subtitulo: `Visão: ${PRESETS.find((p) => p.value === preset)?.label ?? "Todos"}`,
+      filtros: [{ label: "Visão", valor: PRESETS.find((p) => p.value === preset)?.label ?? "—" }],
+      kpis: [
+        { label: "Cargos listados", valor: totais.total },
+        { label: "Cargos ocupados", valor: totais.ocupados },
+        { label: "Cargos vazios", valor: totais.total - totais.ocupados },
+        { label: "Profissionais", valor: totais.profissionais },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Cargos com maior ocupação",
+          dados: ordenados.map((r) => ({ label: r.nome, valor: r.qtd_profissionais })),
+          limite: 10,
+        },
+        {
+          tipo: "rosca" as const,
+          titulo: "2.1 Distribuição por nível",
+          dados: Array.from(porNivel, ([label, valor]) => ({ label, valor })),
+          limite: 6,
+        },
+      ],
+      colunas: [
+        { header: "Cargo", value: (r: (typeof ordenados)[number]) => r.nome },
+        { header: "Código", value: (r: (typeof ordenados)[number]) => r.codigo },
+        { header: "CBO", value: (r: (typeof ordenados)[number]) => r.cbo },
+        { header: "Nível", value: (r: (typeof ordenados)[number]) => r.nivel },
+        { header: "Status", value: (r: (typeof ordenados)[number]) => r.status },
+        {
+          header: "Profissionais",
+          value: (r: (typeof ordenados)[number]) => r.qtd_profissionais,
+          align: "right" as const,
+        },
+      ],
+      linhas: ordenados,
+      notas: ["Cargos sem ocupação podem indicar vagas disponíveis no quadro autorizado."],
+      assinaturas: ["Coordenação de Gestão de Pessoas", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
   return (
     <div className="space-y-4">
       <IntelligencePanel foco="cargos" titulo="Cargos" />
@@ -68,11 +118,13 @@ function CargosGerencial() {
         </TabsList>
       </Tabs>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
+        <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!rows.length} />
       </div>
+
 
       <div className="grid gap-3 sm:grid-cols-3">
         <KpiCard label="Cargos" value={totais.total} />

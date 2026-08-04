@@ -33,6 +33,8 @@ import {
   updateUsuario,
   deleteUsuario,
   alterarPerfilStatusUsuario,
+  definirVinculosUsuario,
+
 } from "@/lib/users-admin.functions";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
@@ -151,6 +153,9 @@ function UsuariosList() {
     password: "",
   });
   const [editError, setEditError] = useState<string | null>(null);
+  const [editUnidades, setEditUnidades] = useState<string[]>([]);
+  const [editPrincipal, setEditPrincipal] = useState("");
+  const vincularFn = useServerFn(definirVinculosUsuario);
 
   const editMut = useMutation({
     mutationFn: async () => {
@@ -165,6 +170,13 @@ function UsuariosList() {
           password: editForm.password || undefined,
         },
       });
+      await vincularFn({
+        data: {
+          usuario_id: editing.id,
+          unidade_ids: editUnidades,
+          unidade_principal_id: editPrincipal || null,
+        },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["usuarios"] });
@@ -176,6 +188,7 @@ function UsuariosList() {
       toast.error(e.message);
     },
   });
+
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
@@ -563,11 +576,28 @@ function UsuariosList() {
                               telefone: "",
                               password: "",
                             });
+                            setEditUnidades([]);
+                            setEditPrincipal("");
                             setEditing(u);
+                            void (async () => {
+                              const { data } = await supabase
+                                .from("usuario_unidades")
+                                .select("unidade_id, is_principal")
+                                .eq("usuario_id", u.id)
+                                .is("deleted_at", null);
+                              const rows = data ?? [];
+                              setEditUnidades(rows.map((r) => r.unidade_id));
+                              setEditPrincipal(
+                                rows.find((r) => r.is_principal)?.unidade_id ??
+                                  rows[0]?.unidade_id ??
+                                  "",
+                              );
+                            })();
                           }}
                         >
                           <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                         </Button>
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -601,7 +631,7 @@ function UsuariosList() {
       </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar usuário</DialogTitle>
           </DialogHeader>
@@ -644,7 +674,59 @@ function UsuariosList() {
                 placeholder="mín. 6 caracteres — deixe em branco para manter"
               />
             </div>
+            <div className="grid gap-1.5">
+              <Label>Unidades vinculadas</Label>
+              <p className="text-xs text-muted-foreground">
+                Marque a(s) unidade(s) que este usuário poderá acessar.
+              </p>
+              <div className="max-h-40 overflow-auto rounded-md border p-2 space-y-1">
+                {unidades.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">Nenhuma unidade cadastrada.</div>
+                ) : (
+                  unidades.map((u) => (
+                    <label key={u.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editUnidades.includes(u.id)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...editUnidades, u.id]
+                            : editUnidades.filter((x) => x !== u.id);
+                          setEditUnidades(next);
+                          setEditPrincipal(
+                            editPrincipal && next.includes(editPrincipal)
+                              ? editPrincipal
+                              : (next[0] ?? ""),
+                          );
+                        }}
+                      />
+                      <span>{u.nome}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+            {editUnidades.length > 1 && (
+              <div className="grid gap-1.5">
+                <Label>Unidade principal</Label>
+                <Select value={editPrincipal} onValueChange={setEditPrincipal}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a unidade principal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unidades
+                      .filter((u) => editUnidades.includes(u.id))
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.nome}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>
               Cancelar

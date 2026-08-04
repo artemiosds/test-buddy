@@ -18,6 +18,12 @@ import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { Pagination } from "@/components/shared/Pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolhaTimeline } from "@/components/auditoria/folha-timeline";
+import { DownloadsLog } from "@/components/auditoria/downloads-log";
+import { PrivacidadeLgpd } from "@/components/auditoria/privacidade-lgpd";
+import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { nivelPrivacidade } from "@/lib/lgpd";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
   component: AuditoriaPage,
@@ -67,7 +73,16 @@ function AuditoriaPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
+  const { has } = usePermissions();
+  const { data: me } = useCurrentUser();
+  const nivel = nivelPrivacidade({ isMaster: me?.is_master ?? false, has });
+  const usuarioRastreio = {
+    nome: me?.nome_completo ?? me?.email ?? "usuário",
+    identificador: me?.email ?? "—",
+  };
+
   useEffect(() => {
+
     setPage(1);
   }, [operacao, tabela, busca, dias, pageSize]);
 
@@ -200,6 +215,25 @@ function AuditoriaPage() {
           </div>
         </div>
 
+        <Tabs defaultValue="trilha" className="space-y-4">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="trilha">Trilha de operações</TabsTrigger>
+            <TabsTrigger value="folha">Linha do tempo da folha</TabsTrigger>
+            <TabsTrigger value="downloads">Downloads e extrações</TabsTrigger>
+            <TabsTrigger value="lgpd">Privacidade e fé pública</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="folha">
+            <FolhaTimeline nivel={nivel} usuario={usuarioRastreio} />
+          </TabsContent>
+          <TabsContent value="downloads">
+            <DownloadsLog />
+          </TabsContent>
+          <TabsContent value="lgpd">
+            <PrivacidadeLgpd nivel={nivel} usuario={usuarioRastreio} />
+          </TabsContent>
+
+          <TabsContent value="trilha" className="space-y-4">
         <div className="grid gap-3 md:grid-cols-4">
           <Input
             placeholder="Buscar por e-mail, tabela ou registro..."
@@ -315,6 +349,10 @@ function AuditoriaPage() {
           onPageSizeChange={setPageSize}
           disabled={isFetching}
         />
+          </TabsContent>
+        </Tabs>
+
+
 
         <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">

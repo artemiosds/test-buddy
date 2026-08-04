@@ -3,6 +3,10 @@
 // registre a config aqui. Nada mais precisa ser alterado no assistente.
 
 import { UBS_SAUDE } from "./calculators/ubsCalculator";
+import { HMO_SAUDE } from "./calculators/hmoCalculator";
+import { HMSDS_SAUDE } from "./calculators/hmsdsCalculator";
+import { CAPS_SAUDE } from "./calculators/capsCalculator";
+import { PADRAO_ADM } from "./calculators/padraoAdmCalculator";
 import {
   normalizarCabecalho,
   type ImportTemplateConfig,
@@ -17,8 +21,47 @@ export {
   COLUNAS_SAIDA_UBS,
   ISS_ALIQUOTA,
 } from "./calculators/ubsCalculator";
+export {
+  HMO_SAUDE,
+  calcularHmo,
+  montarPlanilhaHmo,
+  COLUNAS_SAIDA_HMO,
+  ABA_HMO,
+} from "./calculators/hmoCalculator";
+export {
+  HMSDS_SAUDE,
+  calcularHmsds,
+  montarPlanilhaHmsds,
+  COLUNAS_SAIDA_HMSDS,
+  ABA_HMSDS,
+} from "./calculators/hmsdsCalculator";
+export {
+  CAPS_SAUDE,
+  calcularCaps,
+  montarPlanilhaCaps,
+  COLUNAS_SAIDA_CAPS,
+  ABA_CAPS,
+} from "./calculators/capsCalculator";
+export {
+  PADRAO_ADM,
+  calcularPadraoAdm,
+  montarPlanilhaPadraoAdm,
+  COLUNAS_SAIDA_PADRAO_ADM,
+  ABA_PADRAO_ADM,
+} from "./calculators/padraoAdmCalculator";
 
-export const IMPORT_TEMPLATES: ImportTemplateConfig[] = [UBS_SAUDE];
+// Modelos mais específicos devem vir primeiro. H.M.S.D.S e H.M.O compartilham
+// quase todos os cabeçalhos básicos da UBS; o H.M.S.D.S é o mais específico
+// (plantão + pensão alimentícia). PADRAO_ADM é o genérico e fica por último.
+export const IMPORT_TEMPLATES: ImportTemplateConfig[] = [
+  HMSDS_SAUDE,
+  HMO_SAUDE,
+  CAPS_SAUDE,
+  UBS_SAUDE,
+  PADRAO_ADM,
+];
+
+
 
 export type DeteccaoTemplate = {
   template: ImportTemplateConfig;
@@ -39,6 +82,8 @@ export function detectarTemplate(
   let melhor: DeteccaoTemplate | null = null;
 
   for (const template of IMPORT_TEMPLATES) {
+    // RegExp com flag global/sticky mantém estado entre chamadas de test().
+    template.filePattern.lastIndex = 0;
     const casouNome = template.filePattern.test(nomeArquivo);
     const esperados = template.cabecalhosEsperados.map(normalizarCabecalho);
     const encontrados = esperados.filter((h) =>
@@ -48,10 +93,15 @@ export function detectarTemplate(
     const confiante = casouNome ? aderencia >= 0.5 : aderencia >= 0.9;
     if (!confiante) continue;
     const cand: DeteccaoTemplate = { template, aderencia, casouNome };
+    const especificidade = template.cabecalhosEsperados.length;
+    const melhorEspecificidade = melhor?.template.cabecalhosEsperados.length ?? 0;
     if (
       !melhor ||
       Number(cand.casouNome) - Number(melhor.casouNome) > 0 ||
-      (cand.casouNome === melhor.casouNome && cand.aderencia > melhor.aderencia)
+      (cand.casouNome === melhor.casouNome && cand.aderencia > melhor.aderencia) ||
+      (cand.casouNome === melhor.casouNome &&
+        cand.aderencia === melhor.aderencia &&
+        especificidade > melhorEspecificidade)
     ) {
       melhor = cand;
     }

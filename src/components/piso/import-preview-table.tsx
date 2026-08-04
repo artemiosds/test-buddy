@@ -50,14 +50,112 @@ export function statusPorLinha(
 export function ImportPreviewTable({
   rows,
   issues,
+  templateId,
   limite = 200,
 }: {
   rows: ResolvedRow[];
   issues: Issue[];
+  templateId?: string;
   limite?: number;
 }) {
   const status = statusPorLinha(rows, issues);
   const visiveis = rows.slice(0, limite);
+  const ehHmsds = templateId === "HMSDS_SAUDE";
+  const ehCaps = templateId === "CAPS_SAUDE";
+  const ehAdm = templateId === "PADRAO_ADM";
+  const ehHmo = templateId === "HMO_SAUDE" || ehHmsds;
+  const cabecalhos = ehAdm
+    ? [
+        "Status",
+        "Nome",
+        "C.P.F.",
+        "Lotação",
+        "Cargo",
+        "Dias",
+        "Base",
+        "Insalub.",
+        "H.E.",
+        "Ad. Not.",
+        "Bruto",
+        "ISS",
+        "Incentivo",
+        "Total",
+      ]
+    : ehCaps
+    ? [
+        "Status",
+        "Nome",
+        "C.P.F.",
+        "Lotação",
+        "Cargo",
+        "Dias",
+        "Base",
+        "Insalub.",
+        "H.E.",
+        "Bruto",
+        "ISS",
+        "Líquido",
+        "Incentivo",
+        "Total",
+      ]
+    : ehHmsds
+    ? [
+        "Status",
+        "Nome",
+        "C.P.F.",
+        "Lotação",
+        "Cargo",
+        "Dias",
+        "Base",
+        "Insalub.",
+        "H.E.",
+        "Ad. Not.",
+        "Plantão e sobreaviso",
+        "Bruto",
+        "ISS",
+        "Total",
+        "Pensão alimentícia",
+        "Incentivo",
+        "Total final",
+      ]
+    : ehHmo
+    ? [
+        "Status",
+        "Nome",
+        "C.P.F.",
+        "Lotação",
+        "Cargo",
+        "Dias",
+        "Base",
+        "Insalub.",
+        "H.E.",
+        "Ad. Not.",
+        "Plantão e sobreaviso",
+        "Bruto",
+        "ISS",
+        "Incentivo",
+        "Total",
+      ]
+    : [
+        "Status",
+        "Nome",
+        "C.P.F.",
+        "Lotação",
+        "Cargo",
+        "Dias",
+        "Base",
+        "Insalub.",
+        "H.E.",
+        "Ad. Not.",
+        "Bruto",
+        "ISS",
+        "Total",
+        "Grat.Incentivo",
+        "Aux. Transp.",
+        "Incentivo",
+        "Total final",
+      ];
+
 
   return (
     <div className="rounded-md border">
@@ -68,25 +166,7 @@ export function ImportPreviewTable({
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-muted/60 text-left">
             <tr>
-              {[
-                "Status",
-                "Nome",
-                "C.P.F.",
-                "Lotação",
-                "Cargo",
-                "Dias",
-                "Base",
-                "Insalub.",
-                "H.E.",
-                "Ad. Not.",
-                "Bruto",
-                "ISS",
-                "Total",
-                "Grat.Incentivo",
-                "Aux. Transp.",
-                "Incentivo",
-                "Total final",
-              ].map((h) => (
+              {cabecalhos.map((h) => (
                 <th key={h} className="whitespace-nowrap px-2 py-2 font-medium">
                   {h}
                 </th>
@@ -134,16 +214,38 @@ export function ImportPreviewTable({
                   <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.salario_base)}</td>
                   <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.insalubridade)}</td>
                   <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.hora_extra_50)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.adicional_noturno)}</td>
+                  {!ehCaps && (
+                    <td className="whitespace-nowrap px-2 py-1.5">
+                      {moedaBr(r.adicional_noturno)}
+                    </td>
+                  )}
+                  {ehHmo && (
+                    <td className="whitespace-nowrap px-2 py-1.5">
+                      {moedaBr(r.plantao ?? r.sobreaviso)}
+                    </td>
+                  )}
                   <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.total_proventos)}</td>
                   <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.total_descontos)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 font-medium">
-                    {moedaBr(r.valor_liquido)}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.gratificacao)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.vale_transporte)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.auxilio_financeiro)}</td>
+                  {((!ehHmo && !ehAdm) || ehHmsds) && (
+                    <td className="whitespace-nowrap px-2 py-1.5 font-medium">
+                      {moedaBr(
+                        ehHmsds || ehCaps ? extra(r, "total_liquido_base") : r.valor_liquido,
+                      )}
+                    </td>
+                  )}
+                  {ehHmsds && (
+                    <td className="whitespace-nowrap px-2 py-1.5">
+                      {moedaBr(extra(r, "pensao_alimenticia"))}
+                    </td>
+                  )}
 
+                  {!ehHmo && !ehCaps && !ehAdm && (
+                    <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.gratificacao)}</td>
+                  )}
+                  {!ehHmo && !ehCaps && !ehAdm && (
+                    <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.vale_transporte)}</td>
+                  )}
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.auxilio_financeiro)}</td>
                   <td className="whitespace-nowrap px-2 py-1.5 font-medium">
                     {moedaBr(r.valor_final)}
                   </td>

@@ -54,6 +54,11 @@ export type LinhaPlanilha = {
   encargo_trabalhista?: number | null;
   vantagem_fixa?: number | null;
   vantagem_variavel?: number | null;
+  /** Campos específicos preservados do modelo SAÚDE — UBS. */
+  gratificacao_incentivo?: number | null;
+  auxilio_transporte?: number | null;
+  total_liquido_base?: number | null;
+  valor_final?: number | null;
 };
 
 /** Incentivo (auxílio) parametrizável por categoria. */

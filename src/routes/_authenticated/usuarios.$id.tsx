@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertCircle, ArrowLeft, Check, Minus, X } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
-import { useCurrentUser } from "@/hooks/use-permissions";
+import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/usuarios/$id")({
   component: UsuarioDetail,
@@ -30,7 +30,8 @@ function UsuarioDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { data: userCtx } = useCurrentUser();
-  const isMaster = userCtx?.is_master === true;
+  const { has } = usePermissions();
+  const isMaster = userCtx?.is_master === true || has("usuario.gerenciar");
 
   const { data: usuario } = useQuery({
     queryKey: ["usuario", id],

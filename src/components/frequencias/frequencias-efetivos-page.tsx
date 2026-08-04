@@ -312,6 +312,20 @@ export function FrequenciasEfetivosPage() {
       }));
   }
 
+  /** Itens para exportação: mescla o que está digitado na grade (mesmo não salvo). */
+  function itensParaExport() {
+    return ((folha?.itens ?? []) as any[]).map((it) => {
+      const editada = (linhas as any)[it.profissional.id];
+      return {
+        ...it,
+        linha: editada
+          ? { ...(it.linha ?? {}), ...editada, status_linha: it.linha?.status_linha ?? "pendente" }
+          : (it.linha ?? null),
+      };
+    });
+  }
+
+
   const mSalvar = useMutation({
     mutationFn: async () => {
       const list = payloadDirty();
@@ -549,7 +563,7 @@ export function FrequenciasEfetivosPage() {
             title="Gerar PDF no padrão oficial"
             onClick={async () => {
               try {
-                const itensExportacao = folha?.itens ?? [];
+                const itensExportacao = itensParaExport();
                 const unidadeNome =
                   unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
                 const grupos: Record<
@@ -614,7 +628,7 @@ export function FrequenciasEfetivosPage() {
             title="Exportar Excel"
             onClick={async () => {
               try {
-                const itensExportacao = folha?.itens ?? [];
+                const itensExportacao = itensParaExport();
                 const unidadeNome =
                   unidadesVisiveis.find((u: any) => u.id === unidadeId)?.nome ?? "UNIDADE";
                 const { gerarExcelFolhaEfetivos } = await import("@/lib/excel-folha-efetivos");

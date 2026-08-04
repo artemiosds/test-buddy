@@ -11,7 +11,7 @@ import { Save, Settings2, Upload } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 
-export const Route = createFileRoute("/_authenticated/configuracao")({
+export const Route = createFileRoute("/_authenticated/configuracao/")({
   component: ConfiguracaoPage,
 });
 

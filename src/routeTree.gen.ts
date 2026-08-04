@@ -40,7 +40,6 @@ import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
 import { Route as AuthenticatedDocumentosEmitidosRouteImport } from './routes/_authenticated/documentos-emitidos'
 import { Route as AuthenticatedControleForcaTrabalhoRouteImport } from './routes/_authenticated/controle-forca-trabalho'
-import { Route as AuthenticatedConfiguracaoRouteImport } from './routes/_authenticated/configuracao'
 import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authenticated/competencias'
 import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
@@ -51,6 +50,7 @@ import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './routes/_authenticated/relatorios-gerenciais.index'
 import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
+import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -254,12 +254,6 @@ const AuthenticatedControleForcaTrabalhoRoute =
     path: '/controle-forca-trabalho',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedConfiguracaoRoute =
-  AuthenticatedConfiguracaoRouteImport.update({
-    id: '/configuracao',
-    path: '/configuracao',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedCompetenciasRoute =
   AuthenticatedCompetenciasRouteImport.update({
     id: '/competencias',
@@ -315,6 +309,12 @@ const AuthenticatedGestaoPessoasIndexRoute =
   AuthenticatedGestaoPessoasIndexRouteImport.update({
     id: '/gestao-pessoas/',
     path: '/gestao-pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedConfiguracaoIndexRoute =
+  AuthenticatedConfiguracaoIndexRouteImport.update({
+    id: '/configuracao/',
+    path: '/configuracao/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
@@ -459,9 +459,9 @@ const AuthenticatedFrequenciaContratadosRoute =
   } as any)
 const AuthenticatedConfiguracaoPerfisRoute =
   AuthenticatedConfiguracaoPerfisRouteImport.update({
-    id: '/perfis',
-    path: '/perfis',
-    getParentRoute: () => AuthenticatedConfiguracaoRoute,
+    id: '/configuracao/perfis',
+    path: '/configuracao/perfis',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedCompetenciasIdRoute =
   AuthenticatedCompetenciasIdRouteImport.update({
@@ -510,7 +510,6 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
@@ -564,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
@@ -583,7 +583,6 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/feriados': typeof AuthenticatedFeriadosRoute
@@ -637,6 +636,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
@@ -658,7 +658,6 @@ export interface FileRoutesById {
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
   '/_authenticated/competencias': typeof AuthenticatedCompetenciasRouteWithChildren
-  '/_authenticated/configuracao': typeof AuthenticatedConfiguracaoRouteWithChildren
   '/_authenticated/controle-forca-trabalho': typeof AuthenticatedControleForcaTrabalhoRoute
   '/_authenticated/documentos-emitidos': typeof AuthenticatedDocumentosEmitidosRoute
   '/_authenticated/feriados': typeof AuthenticatedFeriadosRoute
@@ -713,6 +712,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
   '/_authenticated/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
@@ -735,7 +735,6 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/cargos-funcoes'
     | '/competencias'
-    | '/configuracao'
     | '/controle-forca-trabalho'
     | '/documentos-emitidos'
     | '/feriados'
@@ -789,6 +788,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/configuracao/'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
     | '/relatorios-gerenciais/'
@@ -808,7 +808,6 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/cargos-funcoes'
     | '/competencias'
-    | '/configuracao'
     | '/controle-forca-trabalho'
     | '/documentos-emitidos'
     | '/feriados'
@@ -862,6 +861,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/configuracao'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
     | '/relatorios-gerenciais'
@@ -882,7 +882,6 @@ export interface FileRouteTypes {
     | '/_authenticated/auditoria'
     | '/_authenticated/cargos-funcoes'
     | '/_authenticated/competencias'
-    | '/_authenticated/configuracao'
     | '/_authenticated/controle-forca-trabalho'
     | '/_authenticated/documentos-emitidos'
     | '/_authenticated/feriados'
@@ -937,6 +936,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
     | '/_authenticated/relatorios-gerenciais/'
@@ -1177,13 +1177,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedControleForcaTrabalhoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/configuracao': {
-      id: '/_authenticated/configuracao'
-      path: '/configuracao'
-      fullPath: '/configuracao'
-      preLoaderRoute: typeof AuthenticatedConfiguracaoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/competencias': {
       id: '/_authenticated/competencias'
       path: '/competencias'
@@ -1252,6 +1245,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao-pessoas'
       fullPath: '/gestao-pessoas/'
       preLoaderRoute: typeof AuthenticatedGestaoPessoasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/configuracao/': {
+      id: '/_authenticated/configuracao/'
+      path: '/configuracao'
+      fullPath: '/configuracao/'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/usuarios/$id': {
@@ -1424,10 +1424,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/configuracao/perfis': {
       id: '/_authenticated/configuracao/perfis'
-      path: '/perfis'
+      path: '/configuracao/perfis'
       fullPath: '/configuracao/perfis'
       preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisRouteImport
-      parentRoute: typeof AuthenticatedConfiguracaoRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/competencias/$id': {
       id: '/_authenticated/competencias/$id'
@@ -1486,36 +1486,6 @@ const AuthenticatedCompetenciasRouteChildren: AuthenticatedCompetenciasRouteChil
 const AuthenticatedCompetenciasRouteWithChildren =
   AuthenticatedCompetenciasRoute._addFileChildren(
     AuthenticatedCompetenciasRouteChildren,
-  )
-
-interface AuthenticatedConfiguracaoPerfisRouteChildren {
-  AuthenticatedConfiguracaoPerfisIdRoute: typeof AuthenticatedConfiguracaoPerfisIdRoute
-}
-
-const AuthenticatedConfiguracaoPerfisRouteChildren: AuthenticatedConfiguracaoPerfisRouteChildren =
-  {
-    AuthenticatedConfiguracaoPerfisIdRoute:
-      AuthenticatedConfiguracaoPerfisIdRoute,
-  }
-
-const AuthenticatedConfiguracaoPerfisRouteWithChildren =
-  AuthenticatedConfiguracaoPerfisRoute._addFileChildren(
-    AuthenticatedConfiguracaoPerfisRouteChildren,
-  )
-
-interface AuthenticatedConfiguracaoRouteChildren {
-  AuthenticatedConfiguracaoPerfisRoute: typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
-}
-
-const AuthenticatedConfiguracaoRouteChildren: AuthenticatedConfiguracaoRouteChildren =
-  {
-    AuthenticatedConfiguracaoPerfisRoute:
-      AuthenticatedConfiguracaoPerfisRouteWithChildren,
-  }
-
-const AuthenticatedConfiguracaoRouteWithChildren =
-  AuthenticatedConfiguracaoRoute._addFileChildren(
-    AuthenticatedConfiguracaoRouteChildren,
   )
 
 interface AuthenticatedProfissionaisRouteChildren {
@@ -1595,6 +1565,21 @@ const AuthenticatedUsuariosRouteWithChildren =
     AuthenticatedUsuariosRouteChildren,
   )
 
+interface AuthenticatedConfiguracaoPerfisRouteChildren {
+  AuthenticatedConfiguracaoPerfisIdRoute: typeof AuthenticatedConfiguracaoPerfisIdRoute
+}
+
+const AuthenticatedConfiguracaoPerfisRouteChildren: AuthenticatedConfiguracaoPerfisRouteChildren =
+  {
+    AuthenticatedConfiguracaoPerfisIdRoute:
+      AuthenticatedConfiguracaoPerfisIdRoute,
+  }
+
+const AuthenticatedConfiguracaoPerfisRouteWithChildren =
+  AuthenticatedConfiguracaoPerfisRoute._addFileChildren(
+    AuthenticatedConfiguracaoPerfisRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAnaliticoRoute: typeof AuthenticatedAnaliticoRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
@@ -1602,7 +1587,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedCargosFuncoesRoute: typeof AuthenticatedCargosFuncoesRoute
   AuthenticatedCompetenciasRoute: typeof AuthenticatedCompetenciasRouteWithChildren
-  AuthenticatedConfiguracaoRoute: typeof AuthenticatedConfiguracaoRouteWithChildren
   AuthenticatedControleForcaTrabalhoRoute: typeof AuthenticatedControleForcaTrabalhoRoute
   AuthenticatedDocumentosEmitidosRoute: typeof AuthenticatedDocumentosEmitidosRoute
   AuthenticatedFeriadosRoute: typeof AuthenticatedFeriadosRoute
@@ -1630,6 +1614,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCargosIdRoute: typeof AuthenticatedCargosIdRoute
+  AuthenticatedConfiguracaoPerfisRoute: typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
   AuthenticatedFrequenciaEfetivosRoute: typeof AuthenticatedFrequenciaEfetivosRoute
   AuthenticatedFrequenciasIdRoute: typeof AuthenticatedFrequenciasIdRoute
@@ -1643,6 +1628,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPisoEnfermagemImportarContratadosRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   AuthenticatedPisoEnfermagemImportarEfetivosRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
+  AuthenticatedConfiguracaoIndexRoute: typeof AuthenticatedConfiguracaoIndexRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedPisoEnfermagemIndexRoute: typeof AuthenticatedPisoEnfermagemIndexRoute
   AuthenticatedUnidadesIndexRoute: typeof AuthenticatedUnidadesIndexRoute
@@ -1655,7 +1641,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedCargosFuncoesRoute: AuthenticatedCargosFuncoesRoute,
   AuthenticatedCompetenciasRoute: AuthenticatedCompetenciasRouteWithChildren,
-  AuthenticatedConfiguracaoRoute: AuthenticatedConfiguracaoRouteWithChildren,
   AuthenticatedControleForcaTrabalhoRoute:
     AuthenticatedControleForcaTrabalhoRoute,
   AuthenticatedDocumentosEmitidosRoute: AuthenticatedDocumentosEmitidosRoute,
@@ -1688,6 +1673,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCargosIdRoute: AuthenticatedCargosIdRoute,
+  AuthenticatedConfiguracaoPerfisRoute:
+    AuthenticatedConfiguracaoPerfisRouteWithChildren,
   AuthenticatedFrequenciaContratadosRoute:
     AuthenticatedFrequenciaContratadosRoute,
   AuthenticatedFrequenciaEfetivosRoute: AuthenticatedFrequenciaEfetivosRoute,
@@ -1709,6 +1696,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPisoEnfermagemImportarEfetivosRoute:
     AuthenticatedPisoEnfermagemImportarEfetivosRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
+  AuthenticatedConfiguracaoIndexRoute: AuthenticatedConfiguracaoIndexRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedPisoEnfermagemIndexRoute: AuthenticatedPisoEnfermagemIndexRoute,
   AuthenticatedUnidadesIndexRoute: AuthenticatedUnidadesIndexRoute,

@@ -25,6 +25,7 @@ export type ItemContratado = {
     conta_corrente: string | null;
   };
   linha: {
+    dias_trabalhados?: number | null;
     dias_falta?: number | null;
     atestado?: number | null;
     he_50?: number | null;

@@ -3,6 +3,20 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensureMaster, ensurePermission, emitEvento } from "./authz.server";
 
+/**
+ * Master OU qualquer perfil com a permissão administrativa `usuario.gerenciar`
+ * pode administrar usuários (criar, editar, excluir, perfil/status e vínculos).
+ */
+async function ensureGestaoUsuarios(supabase: any, userId: string) {
+  try {
+    await ensureMaster(supabase, userId);
+  } catch (e) {
+    // Bloqueio por 2FA deve continuar bloqueando
+    if (e instanceof Error && /2fa|mfa/i.test(e.message)) throw e;
+    await ensurePermission(supabase, userId, ACOES.USUARIO_GERENCIAR);
+  }
+}
+
 export const createUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) =>
@@ -21,8 +35,7 @@ export const createUsuario = createServerFn({ method: "POST" })
   )
 
   .handler(async ({ data, context }) => {
-    // Only MASTER can create users (ensureMaster diferencia bloqueio por 2FA)
-    await ensureMaster(context.supabase, context.userId);
+    await ensureGestaoUsuarios(context.supabase, context.userId);
 
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -157,11 +170,7 @@ export const createUsuario = createServerFn({ method: "POST" })
   });
 
 async function assertMaster(context: { supabase: any; userId: string }) {
-  const { data: isMaster, error } = await context.supabase.rpc("is_master", {
-    _user_id: context.userId,
-  });
-  if (error) throw new Error(error.message);
-  if (!isMaster) throw new Error("Apenas o perfil Master pode executar esta ação.");
+  await ensureGestaoUsuarios(context.supabase, context.userId);
 }
 
 export const updateUsuario = createServerFn({ method: "POST" })
@@ -256,7 +265,7 @@ export const alterarPerfilStatusUsuario = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    await ensureMaster(context.supabase, context.userId);
+    await ensureGestaoUsuarios(context.supabase, context.userId);
     if (data.id === context.userId && (data.status === "inativo" || data.status === "bloqueado")) {
       throw new Error("Você não pode inativar/bloquear a própria conta.");
     }
@@ -305,7 +314,8 @@ export const setUsuarioPermissao = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMaster(supabase, userId);
+    // Master or anyone with 'usuario.gerenciar' can manage permissions
+    await ensureGestaoUsuarios(supabase, userId);
 
     // Verifica se já há override ativo
     const { data: existing, error: exErr } = await supabase
@@ -372,7 +382,7 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMaster(supabase, userId);
+    await ensureGestaoUsuarios(supabase, userId);
 
     // Soft-delete atuais
     const nowIso = new Date().toISOString();

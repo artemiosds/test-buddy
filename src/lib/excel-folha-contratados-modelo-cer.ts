@@ -218,7 +218,7 @@ export async function gerarExcelFolhaContratadosModeloCer(
       fmtCPF(p.cpf),
       p.cargo ?? "-",
       p.setor ?? "-",
-      "",
+      num(l.dias_trabalhados as number),
       num(l.dias_falta as number),
       num(l.atestado as number),
       num(l.he_50 as number),

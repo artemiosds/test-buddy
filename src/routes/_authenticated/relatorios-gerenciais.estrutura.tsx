@@ -26,6 +26,7 @@ import { downloadCsv } from "@/lib/csv-export";
 import { getOrganograma, type OrgUnidade } from "@/lib/relatorios-gerenciais";
 import { useUnidadesLookup } from "@/hooks/use-lookups";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/estrutura")({
   component: EstruturaOrganizacional,
@@ -93,17 +94,18 @@ function EstruturaOrganizacional() {
     setExpanded(new Set());
   }
 
-  function exportCsv() {
-    type Flat = {
-      unidade: string;
-      diretor: string;
-      setor: string;
-      coordenador: string;
-      nome: string;
-      cargo: string;
-      funcao: string;
-      status: string;
-    };
+  type Flat = {
+    unidade: string;
+    diretor: string;
+    setor: string;
+    coordenador: string;
+    nome: string;
+    cargo: string;
+    funcao: string;
+    status: string;
+  };
+
+  function achatar(): Flat[] {
     const rows: Flat[] = [];
     for (const u of filtered) {
       for (const s of u.setores) {
@@ -133,7 +135,11 @@ function EstruturaOrganizacional() {
         });
       }
     }
-    downloadCsv("estrutura-organizacional.csv", rows, [
+    return rows;
+  }
+
+  function exportCsv() {
+    downloadCsv("estrutura-organizacional.csv", achatar(), [
       { header: "Unidade", value: (r) => r.unidade },
       { header: "Diretor", value: (r) => r.diretor },
       { header: "Setor", value: (r) => r.setor },
@@ -145,12 +151,57 @@ function EstruturaOrganizacional() {
     ]);
   }
 
+  function relatorioAbnt() {
+    const linhas = achatar();
+    const porUnidade = new Map<string, number>();
+    for (const r of linhas) porUnidade.set(r.unidade, (porUnidade.get(r.unidade) ?? 0) + 1);
+    return {
+      arquivo: "relatorio-estrutura-organizacional",
+      titulo: "Relatório de Estrutura Organizacional",
+      subtitulo: "Organograma funcional: unidade → setor → profissional",
+      orientacao: "landscape" as const,
+      filtros: [
+        { label: "Unidade", valor: unidades.data?.find((u) => u.id === unidadeId)?.nome ?? "Todas" },
+        { label: "Busca", valor: q || "todos" },
+      ],
+      kpis: [
+        { label: "Unidades", valor: totals.unidades },
+        { label: "Setores", valor: totals.setores },
+        { label: "Profissionais", valor: totals.profissionais },
+        { label: "Sem setor definido", valor: linhas.filter((r) => r.setor === "(sem setor)").length },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Profissionais por unidade (10 maiores)",
+          dados: Array.from(porUnidade, ([label, valor]) => ({ label, valor })),
+          limite: 10,
+        },
+      ],
+      colunas: [
+        { header: "Unidade", value: (r: Flat) => r.unidade },
+        { header: "Diretor(a)", value: (r: Flat) => r.diretor },
+        { header: "Setor", value: (r: Flat) => r.setor },
+        { header: "Coordenador(a)", value: (r: Flat) => r.coordenador },
+        { header: "Profissional", value: (r: Flat) => r.nome },
+        { header: "Cargo", value: (r: Flat) => r.cargo },
+        { header: "Função", value: (r: Flat) => r.funcao },
+        { header: "Status", value: (r: Flat) => r.status },
+      ],
+      linhas,
+      notas: [
+        "Profissionais sem setor definido devem ser lotados formalmente para fins de controle interno.",
+      ],
+      assinaturas: ["Coordenação Administrativa", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
   return (
     <div className="space-y-4">
       <IntelligencePanel foco="estrutura" titulo="Estrutura Organizacional" />
       <FilterBar
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={expandAll}>
               Expandir tudo
             </Button>
@@ -160,6 +211,7 @@ function EstruturaOrganizacional() {
             <Button size="sm" variant="outline" onClick={exportCsv} disabled={!filtered.length}>
               <Download className="mr-1 h-4 w-4" /> CSV
             </Button>
+            <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!filtered.length} />
           </div>
         }
       >

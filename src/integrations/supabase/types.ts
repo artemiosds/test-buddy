@@ -2930,30 +2930,40 @@ export type Database = {
         Row: {
           adicional_noturno: number | null
           auxilio_financeiro: number | null
+          auxilio_transporte: number | null
           cargo: string | null
           competencia: string | null
+          conta_bancaria: string | null
           cpf: string | null
           created_at: string
+          dados_origem: Json
           data_importacao: string
+          dias_trabalhados: number | null
           ferias: number | null
           ferias_1_3: number | null
           gratificacao: number | null
+          gratificacao_incentivo: number | null
           historico_id: string
           hora_extra_100: number | null
           hora_extra_50: number | null
           id: string
           importado_por: string | null
+          incentivo: number | null
           insalubridade: number | null
           inss: number | null
           irrf: number | null
+          iss: number | null
           matricula: string | null
           nome: string | null
           origem_arquivo: string | null
           piso_complementacao: number | null
+          plantao: number | null
           profissional_id: string | null
           salario_base: number | null
           setor: string | null
+          sobreaviso: number | null
           status_match: string
+          total_liquido_base: number | null
           unidade: string | null
           updated_at: string
           valor_final: number | null
@@ -2963,30 +2973,40 @@ export type Database = {
         Insert: {
           adicional_noturno?: number | null
           auxilio_financeiro?: number | null
+          auxilio_transporte?: number | null
           cargo?: string | null
           competencia?: string | null
+          conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
+          dados_origem?: Json
           data_importacao?: string
+          dias_trabalhados?: number | null
           ferias?: number | null
           ferias_1_3?: number | null
           gratificacao?: number | null
+          gratificacao_incentivo?: number | null
           historico_id: string
           hora_extra_100?: number | null
           hora_extra_50?: number | null
           id?: string
           importado_por?: string | null
+          incentivo?: number | null
           insalubridade?: number | null
           inss?: number | null
           irrf?: number | null
+          iss?: number | null
           matricula?: string | null
           nome?: string | null
           origem_arquivo?: string | null
           piso_complementacao?: number | null
+          plantao?: number | null
           profissional_id?: string | null
           salario_base?: number | null
           setor?: string | null
+          sobreaviso?: number | null
           status_match?: string
+          total_liquido_base?: number | null
           unidade?: string | null
           updated_at?: string
           valor_final?: number | null
@@ -2996,30 +3016,40 @@ export type Database = {
         Update: {
           adicional_noturno?: number | null
           auxilio_financeiro?: number | null
+          auxilio_transporte?: number | null
           cargo?: string | null
           competencia?: string | null
+          conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
+          dados_origem?: Json
           data_importacao?: string
+          dias_trabalhados?: number | null
           ferias?: number | null
           ferias_1_3?: number | null
           gratificacao?: number | null
+          gratificacao_incentivo?: number | null
           historico_id?: string
           hora_extra_100?: number | null
           hora_extra_50?: number | null
           id?: string
           importado_por?: string | null
+          incentivo?: number | null
           insalubridade?: number | null
           inss?: number | null
           irrf?: number | null
+          iss?: number | null
           matricula?: string | null
           nome?: string | null
           origem_arquivo?: string | null
           piso_complementacao?: number | null
+          plantao?: number | null
           profissional_id?: string | null
           salario_base?: number | null
           setor?: string | null
+          sobreaviso?: number | null
           status_match?: string
+          total_liquido_base?: number | null
           unidade?: string | null
           updated_at?: string
           valor_final?: number | null
@@ -3891,11 +3921,14 @@ export type Database = {
       }
       setores: {
         Row: {
+          cnes: string | null
+          cnpj: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
           deleted_by: string | null
           descricao: string | null
+          endereco: string | null
           gestor_id: string | null
           id: string
           nome: string
@@ -3904,16 +3937,20 @@ export type Database = {
           responsavel_nome: string | null
           sigla: string | null
           status: Database["public"]["Enums"]["status_entidade"]
+          tipo: string | null
           unidade_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          cnes?: string | null
+          cnpj?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          endereco?: string | null
           gestor_id?: string | null
           id?: string
           nome: string
@@ -3922,16 +3959,20 @@ export type Database = {
           responsavel_nome?: string | null
           sigla?: string | null
           status?: Database["public"]["Enums"]["status_entidade"]
+          tipo?: string | null
           unidade_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          cnes?: string | null
+          cnpj?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           descricao?: string | null
+          endereco?: string | null
           gestor_id?: string | null
           id?: string
           nome?: string
@@ -3940,6 +3981,7 @@ export type Database = {
           responsavel_nome?: string | null
           sigla?: string | null
           status?: Database["public"]["Enums"]["status_entidade"]
+          tipo?: string | null
           unidade_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -4100,6 +4142,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       uso_eventos: {
         Row: {
@@ -4579,6 +4639,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compliance_riscos: {
+        Args: { _competencia_id?: string; _unidade_id?: string }
+        Returns: Json
+      }
       descartar_evento_dominio: {
         Args: { _id: string; _motivo?: string }
         Returns: undefined
@@ -4649,6 +4713,13 @@ export type Database = {
           _codigo: string
           _secretaria_id?: string
           _unidade_id?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
@@ -4803,6 +4874,7 @@ export type Database = {
     }
     Enums: {
       abrangencia_calendario: "municipal" | "estadual" | "nacional"
+      app_role: "admin" | "moderator" | "user"
       canal_notificacao: "interno" | "email" | "sms" | "push"
       categoria_permissao:
         | "visualizacao"
@@ -5106,6 +5178,7 @@ export const Constants = {
   public: {
     Enums: {
       abrangencia_calendario: ["municipal", "estadual", "nacional"],
+      app_role: ["admin", "moderator", "user"],
       canal_notificacao: ["interno", "email", "sms", "push"],
       categoria_permissao: [
         "visualizacao",

@@ -138,7 +138,7 @@ export async function gerarFolhaContratadosModeloCer(
       fmtCPF(p.cpf),
       p.cargo ?? "-",
       p.setor ?? "-",
-      "-",
+      fmtNum(l.dias_trabalhados as number),
       fmtNum(l.dias_falta as number),
       fmtNum(l.atestado as number),
       fmtNum(l.he_50 as number),

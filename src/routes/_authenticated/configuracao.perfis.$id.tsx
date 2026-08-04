@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "@/hooks/use-permissions";
+import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import {
   setPerfilPermissao,
   setPerfilPermissoesEmMassa,
@@ -92,7 +92,8 @@ function PerfilMatriz() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { data: userCtx } = useCurrentUser();
-  const isMaster = userCtx?.is_master === true;
+  const { has } = usePermissions();
+  const isMaster = userCtx?.is_master === true || has("usuario.gerenciar");
 
   const [busca, setBusca] = useState("");
   const [moduloFiltro, setModuloFiltro] = useState<string>("__all");

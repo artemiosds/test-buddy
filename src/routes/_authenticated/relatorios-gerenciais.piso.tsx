@@ -23,6 +23,7 @@ import {
   listPisoHistorico,
 } from "@/lib/relatorios-gerenciais";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/piso")({
   component: PisoGerencial,
@@ -121,6 +122,70 @@ function Comparativo({ comps }: { comps: string[] }) {
     ]);
   }
 
+  function relatorioAbnt() {
+    return {
+      arquivo: `relatorio-piso-comparativo-${compA}-vs-${compB}`,
+      titulo: "Relatório Comparativo — Piso Nacional da Enfermagem",
+      subtitulo: `Competência ${compA} versus ${compB}`,
+      orientacao: "landscape" as const,
+      filtros: [
+        { label: "Competência A (referência)", valor: compA },
+        { label: "Competência B (comparada)", valor: compB },
+      ],
+      kpis: [
+        { label: `Total ${compA}`, valor: brl(resumoA.data?.somaFinal ?? totais.somaA) },
+        { label: `Total ${compB}`, valor: brl(resumoB.data?.somaFinal ?? totais.somaB) },
+        { label: "Variação", valor: brl(totais.diff) },
+        { label: "Aumentos / Reduções", valor: `${totais.aumentos} / ${totais.reducoes}` },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Maiores variações individuais (R$)",
+          dados: [...rows]
+            .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+            .map((r) => ({ label: r.nome ?? r.cpf, valor: Math.abs(r.diff) })),
+          limite: 10,
+        },
+      ],
+      colunas: [
+        { header: "CPF", value: (r: (typeof rows)[number]) => r.cpf },
+        { header: "Nome", value: (r: (typeof rows)[number]) => r.nome },
+        { header: "Unidade", value: (r: (typeof rows)[number]) => r.unidade },
+        {
+          header: `${compA} (R$)`,
+          value: (r: (typeof rows)[number]) => r.valorA,
+          formato: "moeda" as const,
+          align: "right" as const,
+        },
+        {
+          header: `${compB} (R$)`,
+          value: (r: (typeof rows)[number]) => r.valorB,
+          formato: "moeda" as const,
+          align: "right" as const,
+        },
+        {
+          header: "Diferença",
+          value: (r: (typeof rows)[number]) => r.diff,
+          formato: "moeda" as const,
+          align: "right" as const,
+        },
+        {
+          header: "Var. %",
+          value: (r: (typeof rows)[number]) => r.diffPct,
+          formato: "percentual" as const,
+          align: "right" as const,
+        },
+      ],
+      linhas: rows,
+      notas: [
+        "Valores correspondentes ao complemento do Piso Nacional da Enfermagem apurado por competência.",
+        "Variações relevantes devem ser justificadas documentalmente para fins de prestação de contas.",
+      ],
+      assinaturas: ["Setor de Folha de Pagamento", "Secretário(a) Municipal de Saúde"],
+    };
+  }
+
   if (comps.length < 2)
     return (
       <EmptyState
@@ -133,9 +198,12 @@ function Comparativo({ comps }: { comps: string[] }) {
     <div className="space-y-4">
       <FilterBar
         actions={
-          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
-            <Download className="mr-1 h-4 w-4" /> CSV
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+              <Download className="mr-1 h-4 w-4" /> CSV
+            </Button>
+            <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!rows.length} />
+          </div>
         }
       >
         <FilterBar.Field label="Competência A (referência)">
@@ -282,6 +350,58 @@ function Divergencias({ comps }: { comps: string[] }) {
     ]);
   }
 
+  function relatorioAbnt() {
+    const porStatus = new Map<string, number>();
+    for (const r of rows) porStatus.set(r.status_match, (porStatus.get(r.status_match) ?? 0) + 1);
+    return {
+      arquivo: `relatorio-piso-divergencias-${comp}-${tipo}`,
+      titulo: "Relatório de Divergências — Piso da Enfermagem",
+      subtitulo: `Competência ${comp} · Filtro: ${tipo.replace("_", " ")}`,
+      orientacao: "landscape" as const,
+      filtros: [
+        { label: "Competência", valor: comp },
+        { label: "Tipo", valor: tipo.replace("_", " ") },
+      ],
+      kpis: [
+        { label: "Registros analisados", valor: rows.length },
+        { label: "Total apurado", valor: brl(resumo.data?.somaFinal ?? 0) },
+        {
+          label: "Não encontrados",
+          valor: rows.filter((r) => r.status_match === "nao_encontrado").length,
+        },
+        { label: "Divergentes", valor: rows.filter((r) => r.status_match === "divergente").length },
+      ],
+      graficos: [
+        {
+          tipo: "rosca" as const,
+          titulo: "2 Composição por situação de cruzamento",
+          dados: Array.from(porStatus, ([label, valor]) => ({ label, valor })),
+          limite: 6,
+        },
+      ],
+      colunas: [
+        { header: "CPF", value: (r: (typeof rows)[number]) => r.cpf },
+        { header: "Nome", value: (r: (typeof rows)[number]) => r.nome },
+        { header: "Matrícula", value: (r: (typeof rows)[number]) => r.matricula },
+        { header: "Unidade", value: (r: (typeof rows)[number]) => r.unidade },
+        { header: "Cargo", value: (r: (typeof rows)[number]) => r.cargo },
+        { header: "Situação", value: (r: (typeof rows)[number]) => r.status_match },
+        {
+          header: "Valor final",
+          value: (r: (typeof rows)[number]) => r.valor_final,
+          formato: "moeda" as const,
+          align: "right" as const,
+        },
+      ],
+      linhas: rows,
+      notas: [
+        "Registros não encontrados indicam ausência de correspondência no cadastro funcional (nome, CPF, lotação ou cargo).",
+        "Cada divergência deve ser tratada antes do fechamento da competência.",
+      ],
+      assinaturas: ["Setor de Folha de Pagamento", "Controle Interno"],
+    };
+  }
+
   if (!comps.length)
     return (
       <EmptyState
@@ -294,9 +414,12 @@ function Divergencias({ comps }: { comps: string[] }) {
     <div className="space-y-4">
       <FilterBar
         actions={
-          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
-            <Download className="mr-1 h-4 w-4" /> CSV
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+              <Download className="mr-1 h-4 w-4" /> CSV
+            </Button>
+            <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!rows.length} />
+          </div>
         }
       >
         <FilterBar.Field label="Competência">
@@ -414,13 +537,86 @@ function Historico() {
     ]);
   }
 
+  function relatorioAbnt() {
+    return {
+      arquivo: "relatorio-piso-historico-importacoes",
+      titulo: "Relatório de Histórico de Importações — Piso da Enfermagem",
+      subtitulo: "Trilha de processamento das folhas importadas",
+      orientacao: "landscape" as const,
+      kpis: [
+        { label: "Importações registradas", valor: data.length },
+        {
+          label: "Registros importados",
+          valor: data.reduce((a, r) => a + (r.registros_importados ?? 0), 0),
+        },
+        {
+          label: "Divergentes",
+          valor: data.reduce((a, r) => a + (r.registros_divergentes ?? 0), 0),
+        },
+        {
+          label: "Não encontrados",
+          valor: data.reduce((a, r) => a + (r.registros_nao_encontrados ?? 0), 0),
+        },
+      ],
+      graficos: [
+        {
+          tipo: "barras" as const,
+          titulo: "2 Volume importado por competência",
+          dados: Array.from(
+            data.reduce((m, r) => {
+              const k = r.competencia ?? "Sem competência";
+              return m.set(k, (m.get(k) ?? 0) + (r.registros_importados ?? 0));
+            }, new Map<string, number>()),
+            ([label, valor]) => ({ label, valor }),
+          ),
+          limite: 10,
+        },
+      ],
+      colunas: [
+        {
+          header: "Data",
+          value: (r: (typeof data)[number]) => new Date(r.data_importacao).toLocaleString("pt-BR"),
+        },
+        { header: "Arquivo", value: (r: (typeof data)[number]) => r.nome_arquivo },
+        { header: "Competência", value: (r: (typeof data)[number]) => r.competencia },
+        { header: "Modelo", value: (r: (typeof data)[number]) => r.modelo },
+        { header: "Status", value: (r: (typeof data)[number]) => r.status },
+        {
+          header: "Total",
+          value: (r: (typeof data)[number]) => r.total_registros,
+          align: "right" as const,
+        },
+        {
+          header: "Import.",
+          value: (r: (typeof data)[number]) => r.registros_importados,
+          align: "right" as const,
+        },
+        {
+          header: "Diverg.",
+          value: (r: (typeof data)[number]) => r.registros_divergentes,
+          align: "right" as const,
+        },
+        {
+          header: "N/ encontr.",
+          value: (r: (typeof data)[number]) => r.registros_nao_encontrados,
+          align: "right" as const,
+        },
+      ],
+      linhas: data,
+      notas: ["Histórico mantido para fins de auditoria e rastreabilidade das folhas processadas."],
+      assinaturas: ["Setor de Folha de Pagamento", "Controle Interno"],
+    };
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={!data.length}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
+        <BotaoRelatorioAbnt relatorio={relatorioAbnt} disabled={!data.length} />
       </div>
+
       <div className="overflow-auto rounded-md border bg-card">
         <table className="w-full table-auto text-sm">
           <thead className="bg-muted/40 text-left">

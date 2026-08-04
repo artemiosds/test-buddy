@@ -75,6 +75,7 @@ import {
   type EstadoObrigatoriedade,
 } from "@/lib/layout-inteligencia";
 import type { LayoutCampo } from "@/lib/layout-engine";
+import { IMPORT_TEMPLATES } from "@/lib/import-templates";
 
 
 export const Route = createFileRoute("/_authenticated/layouts-importacao")({
@@ -454,6 +455,7 @@ function LayoutsPage() {
       <Tabs defaultValue="layouts">
         <TabsList>
           <TabsTrigger value="layouts">Layouts</TabsTrigger>
+          <TabsTrigger value="nativos">Modelos nativos</TabsTrigger>
           <TabsTrigger value="sinonimos">Sinônimos</TabsTrigger>
           <TabsTrigger value="estatisticas">Estatísticas</TabsTrigger>
           <TabsTrigger value="uso">Utilização</TabsTrigger>
@@ -496,6 +498,43 @@ function LayoutsPage() {
             emptyDescription="Crie o primeiro modelo de planilha."
           />
         </TabsContent>
+
+        <TabsContent value="nativos" className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Modelos oficiais embutidos no sistema (detecção automática na importação de
+            contratados). Servem como alternativa aos layouts cadastrados e não podem ser
+            editados.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {IMPORT_TEMPLATES.map((t) => (
+              <Card key={t.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-medium">{t.nome}</div>
+                      <div className="text-xs text-muted-foreground">{t.id}</div>
+                    </div>
+                    <Badge variant="secondary">Nativo</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <Badge variant="outline">{t.colunasSaida.length} colunas</Badge>
+                    <Badge variant="outline">
+                      {t.headerRowIndex === null
+                        ? "Cabeçalho dinâmico"
+                        : `Cabeçalho na linha ${t.headerRowIndex + 1}`}
+                    </Badge>
+                  </div>
+                  <ul className="list-inside list-disc space-y-1 text-xs text-muted-foreground">
+                    {t.descricaoRegras.slice(0, 4).map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
 
         <TabsContent value="sinonimos" className="space-y-4">
           <div>
