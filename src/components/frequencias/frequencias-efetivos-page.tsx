@@ -271,6 +271,7 @@ export function FrequenciasEfetivosPage() {
   const folhaEditavel =
     folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada";
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel;
+  const canEnviar = folhaStatus === "rascunho" && has("frequencia.enviar");
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
     setLinhas((prev) => {
@@ -541,7 +542,6 @@ export function FrequenciasEfetivosPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge domain="frequencia" value={folhaStatus} />
           <Button
             variant="outline"
             onClick={() => mSalvar.mutate()}
@@ -551,11 +551,9 @@ export function FrequenciasEfetivosPage() {
           </Button>
           <Button
             onClick={() => setEnviarAberto(true)}
-            disabled={
-              !canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.itens?.length
-            }
+            disabled={!canEnviar || mEnviar.isPending || !folha?.itens?.length}
           >
-            <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
+            <Send className="mr-1.5 h-4 w-4" /> Enviar para análise
           </Button>
           <Button
             variant="secondary"
@@ -762,7 +760,15 @@ export function FrequenciasEfetivosPage() {
       )}
 
       {/* Painel gerencial (UI-only) */}
-      <KpiFolhaBar k={kpi} />
+      <div className="flex items-center justify-between gap-4">
+        <KpiFolhaBar k={kpi} className="flex-1" />
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border bg-card shadow-sm">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Status da Unidade:
+          </span>
+          <StatusBadge domain="frequencia" value={folhaStatus} />
+        </div>
+      </div>
       <ResumoDiasFaltasAtt
         totais={{
           dias: totCampo.dias_trabalhados ?? 0,
@@ -1089,6 +1095,9 @@ export function FrequenciasEfetivosPage() {
             }
             unidadeId={unidadeId}
             canEdit={canEdit}
+            competenciaId={competenciaId}
+            profissionalId={dossieProf?.id ?? null}
+            folha="efetivos"
           />
         }
       />

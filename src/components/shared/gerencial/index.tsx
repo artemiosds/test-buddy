@@ -1,5 +1,5 @@
 import type { ReactNode, CSSProperties } from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -595,49 +595,29 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
             </section>
           )}
 
-          {/* Campos numéricos da folha */}
+          {/* Campos da folha (aceitam número ou texto livre, como no grid) */}
           <section>
             <div style={labelStyle} className="mb-2">
               Dados da Folha
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {campos.map((c) => {
-                const raw = linha ? (linha as any)[c.key] : 0;
-                const val = Number(raw ?? 0);
-                const dec = c.decimals ?? 0;
-                return (
-                  <div key={c.key}>
-                    <Label htmlFor={`edm-${c.key}`} style={labelStyle}>
-                      {c.label}
-                    </Label>
-                    <Input
-                      id={`edm-${c.key}`}
-                      type="number"
-                      inputMode="decimal"
-                      step={dec > 0 ? Math.pow(10, -dec) : 1}
-                      min={c.min ?? 0}
-                      max={c.max}
-                      disabled={!canEdit}
-                      value={Number.isFinite(val) ? val : 0}
-                      onChange={(e) => {
-                        const n = Number(e.target.value);
-                        onChangeCampo(c.key, isNaN(n) || n < 0 ? 0 : n);
-                      }}
-                      style={{
-                        color: "#0F172A",
-                        fontWeight: 600,
-                        background: c.group === "sms" ? "#FEF9C3" : "#FFFFFF",
-                        border: "1px solid #94A3B8",
-                        borderRadius: 6,
-                        fontSize: 13,
-                        textAlign: "right",
-                      }}
-                    />
-                  </div>
-                );
-              })}
+              {campos.map((c) => (
+                <div key={c.key}>
+                  <Label htmlFor={`edm-${c.key}`} style={labelStyle}>
+                    {c.label}
+                  </Label>
+                  <CampoFolhaInput
+                    id={`edm-${c.key}`}
+                    value={linha ? (linha as any)[c.key] : 0}
+                    disabled={!canEdit}
+                    destaque={c.group === "sms"}
+                    onChange={(v) => onChangeCampo(c.key, v)}
+                  />
+                </div>
+              ))}
             </div>
           </section>
+
 
           {/* Justificativa / Observações + anexos de comprovação */}
           <div className={anexosSlot ? "grid gap-4 md:grid-cols-2" : undefined}>
@@ -690,5 +670,93 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* -----------------------------------------------------------------------
+ * CampoFolhaInput — aceita número OU texto livre (mesma regra do grid ERP).
+ * Números são normalizados; qualquer outro texto é mantido como digitado e
+ * propagado como string para o estado da linha.
+ * ----------------------------------------------------------------------- */
+function isNumericText(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+([.,]\d+)?$/.test(t);
+}
+
+function parseNum(s: string): number {
+  if (!s) return 0;
+  const t = s.trim().replace(/\./g, "").replace(",", ".");
+  const n = Number(t.includes(".") || t.includes("-") ? t : s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function CampoFolhaInput({
+  id,
+  value,
+  disabled,
+  destaque,
+  onChange,
+}: {
+  id: string;
+  value: unknown;
+  disabled?: boolean;
+  destaque?: boolean;
+  onChange: (v: number | string) => void;
+}) {
+  const externo = value ?? "";
+  const [local, setLocal] = useState<string>(String(externo));
+  const emitido = useRef<string>(String(externo));
+
+  useEffect(() => {
+    const s = String(value ?? "");
+    if (s === emitido.current) return;
+    emitido.current = s;
+    setLocal(s);
+  }, [value]);
+
+  return (
+    <Input
+      id={id}
+      type="text"
+      inputMode="text"
+      disabled={disabled}
+      value={local}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => {
+        const s = e.target.value;
+        setLocal(s);
+        if (s.trim() === "") {
+          emitido.current = "0";
+          onChange(0);
+          return;
+        }
+        if (isNumericText(s)) {
+          const n = parseNum(s);
+          emitido.current = String(n);
+          onChange(n);
+          return;
+        }
+        emitido.current = s;
+        onChange(s);
+      }}
+      onBlur={() => {
+        if (isNumericText(local)) {
+          const n = parseNum(local);
+          emitido.current = String(n);
+          setLocal(String(n));
+          onChange(n);
+        }
+      }}
+      style={{
+        color: "#0F172A",
+        fontWeight: 600,
+        background: destaque ? "#FEF9C3" : "#FFFFFF",
+        border: "1px solid #94A3B8",
+        borderRadius: 6,
+        fontSize: 13,
+        textAlign: "right",
+      }}
+    />
   );
 }

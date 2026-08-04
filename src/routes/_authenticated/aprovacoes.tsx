@@ -93,7 +93,7 @@ const ACAO_STATUS: Record<AcaoTipo, StatusFreq> = {
   em_analise: "em_analise",
   aprovar: "aprovada",
   rejeitar: "rejeitada",
-  retornar: "com_pendencias",
+  retornar: "devolvida" as StatusFreq,
 };
 
 function AprovacoesPage() {
@@ -120,6 +120,8 @@ function AprovacoesPage() {
           id, tipo, status, data_envio, data_aprovacao, total_profissionais,
           competencia_unidade_id,
           competencia_unidades:competencia_unidade_id(
+            unidade_id,
+            competencia_id,
             unidades:unidade_id(id, nome),
             competencias:competencia_id(ano, mes)
           )
@@ -289,12 +291,27 @@ function AprovacoesPage() {
                     </td>
                     <td className="p-3">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to="/frequencias/$id" params={{ id: r.id }}>
-                            <Eye className="mr-1 h-4 w-4" />
-                            Abrir
-                          </Link>
-                        </Button>
+                        {r.tipo === "contratados" ? (
+                          <Button asChild size="sm" variant="ghost">
+                            <Link
+                              to="/frequencia/contratados"
+                              search={{
+                                competenciaId: cu?.competencia_id,
+                                unidadeId: cu?.unidade_id,
+                              }}
+                            >
+                              <Eye className="mr-1 h-4 w-4" />
+                              Abrir
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to="/frequencias/$id" params={{ id: r.id }}>
+                              <Eye className="mr-1 h-4 w-4" />
+                              Abrir
+                            </Link>
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => setTrilhaFreqId(r.id)}>
                           <History className="mr-1 h-4 w-4" />
                           Trilha
@@ -431,7 +448,10 @@ function AprovacoesPage() {
       <TrilhaDialog freqId={trilhaFreqId} onClose={() => setTrilhaFreqId(null)} />
       <LinhasAnaliseDialog
         freqId={linhasFreqId}
-        onClose={() => setLinhasFreqId(null)}
+        onClose={() => {
+          setLinhasFreqId(null);
+          qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
+        }}
         meId={me?.id}
         canAprovar={canAprovar}
         canRejeitar={canRejeitar}
@@ -552,14 +572,54 @@ function LinhasAnaliseDialog({
   const [soExcecoes, setSoExcecoes] = useState(false);
   const { data: parametros } = useMunicipioParametros();
 
-  const { data: linhas, isLoading } = useQuery({
-    queryKey: ["frequencia-linhas-analise", freqId],
+  const { data: freqBase } = useQuery({
+    queryKey: ["frequencia-base", freqId],
     enabled: !!freqId,
     queryFn: async () => {
       const { data, error } = await supabase
+        .from("frequencias")
+        .select("id, tipo, competencia_unidade_id, competencia_unidades(unidade_id, competencia_id)")
+        .eq("id", freqId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: linhas, isLoading } = useQuery({
+    queryKey: ["frequencia-linhas-analise", freqId, freqBase?.tipo],
+    enabled: !!freqId && !!freqBase,
+    queryFn: async () => {
+      if (freqBase?.tipo === "contratados") {
+        const cu = freqBase.competencia_unidades as any;
+        const { data, error } = await supabase
+          .from("frequencias_contratados")
+          .select(
+            "id:profissional_id, profissional_id, status:status, observacoes, dias_trabalhados, dias_falta, atestado, he_50, he_100, profissionais:profissional_id(nome_completo, matricula)",
+          )
+          .eq("competencia_id", cu.competencia_id)
+          .eq("unidade_id", cu.unidade_id)
+          .is("deleted_at", null);
+        
+        if (error) throw error;
+        return (data ?? []).map(d => ({
+          ...d,
+          id: d.profissional_id, 
+          status_linha: (d.status === "aprovada" || d.status === "rejeitada") ? d.status : "pendente",
+          observacao_analise: d.observacoes,
+          analisado_em: null,
+          analisado_por_usuario: null,
+          plantoes_extras: 0,
+          ferias: 0,
+          licencas: 0,
+          faltas_injustificadas: d.dias_falta
+        })) as any[];
+      }
+
+      const { data, error } = await supabase
         .from("frequencia_profissional")
         .select(
-          "id, profissional_id, status_linha, observacao_analise, analisado_em, he_50, he_100, plantoes_extras, profissionais:profissional_id(nome_completo, matricula), analisado_por_usuario:analisado_por(nome_completo)",
+          "id, profissional_id, status_linha, observacao_analise, analisado_em, dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, he_50, he_100, plantoes_extras, profissionais:profissional_id(nome_completo, matricula), analisado_por_usuario:analisado_por(nome_completo)",
         )
         .eq("frequencia_id", freqId!)
         .is("deleted_at", null)
@@ -631,7 +691,11 @@ function LinhasAnaliseDialog({
     },
   });
 
+  
   // Idempotente: aprovação/rejeição de linha é UPDATE por id com campos determinísticos.
+
+
+
   const mut = useRetryMutation({
     retry: { operation: "frequencia_linha.aprovar_rejeitar" },
     mutationFn: async ({
@@ -646,22 +710,55 @@ function LinhasAnaliseDialog({
       if (status === "rejeitada" && !obs.trim()) {
         throw new Error("Informe a observação para rejeitar a linha.");
       }
-      const { error } = await supabase
-        .from("frequencia_profissional")
-        .update({
-          status_linha: status,
-          observacao_analise: obs.trim() || null,
-          analisado_por: meId,
-          analisado_em: new Date().toISOString(),
-          updated_by: meId,
-        })
-        .eq("id", id);
-      if (error) throw error;
+
+      if (freqBase?.tipo === "contratados") {
+        const cu = freqBase.competencia_unidades as any;
+        const { error } = await supabase
+          .from("frequencias_contratados")
+          .update({
+            status: status,
+            observacoes: obs.trim() || null,
+            aprovada_por: status === "aprovada" ? meId : null,
+            aprovada_em: status === "aprovada" ? new Date().toISOString() : null,
+            updated_by: meId,
+          })
+          .eq("competencia_id", cu.competencia_id)
+          .eq("unidade_id", cu.unidade_id)
+          .eq("profissional_id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("frequencia_profissional")
+          .update({
+            status_linha: status,
+            observacao_analise: obs.trim() || null,
+            analisado_por: meId,
+            analisado_em: new Date().toISOString(),
+            updated_by: meId,
+          })
+          .eq("id", id);
+        if (error) throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Linha atualizada");
       qc.invalidateQueries({ queryKey: ["frequencia-linhas-analise", freqId] });
       qc.invalidateQueries({ queryKey: ["frequencia-profissional", freqId] });
+      
+      // Sincroniza metadados da folha após alterar uma linha
+      if (freqBase) {
+        const cu = freqBase.competencia_unidades as any;
+        const { orquestrarSincronizacao } = await import("@/lib/frequencia-sincronizacao.functions");
+        await orquestrarSincronizacao({
+          data: {
+            evento: "LINHA_ALTERADA",
+            tipo: freqBase.tipo as any,
+            competencia_id: cu.competencia_id,
+            unidade_id: cu.unidade_id,
+          }
+        });
+        qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -707,13 +804,16 @@ function LinhasAnaliseDialog({
         if (!o) onClose();
       }}
     >
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-[95vw] w-[1400px]">
         <DialogHeader>
-          <DialogTitle>Análise por profissional</DialogTitle>
-          <DialogDescription>
-            Aprove ou rejeite cada linha individualmente. O responsável e a data são preenchidos
-            automaticamente.
-          </DialogDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <DialogTitle>Análise detalhada por profissional</DialogTitle>
+              <DialogDescription>
+                Revise os lançamentos e tome decisões individuais. Status e auditoria são registrados automaticamente.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         {(parametros?.limite_he_50 != null ||
           parametros?.limite_he_100 != null ||
@@ -747,14 +847,18 @@ function LinhasAnaliseDialog({
           <div className="p-4 text-sm text-muted-foreground">Nenhuma linha para exibir.</div>
         ) : (
           <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 border-b bg-muted/60">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 border-b bg-muted/90 backdrop-blur-sm z-10">
                 <tr className="text-left">
-                  <th className="p-2">Profissional</th>
-                  <th className="p-2">Status</th>
-                  <th className="p-2">HE50 · HE100 · Plant.</th>
-                  <th className="p-2">Observação</th>
-                  <th className="p-2 text-right">Ações</th>
+                  <th className="p-3 border-r">Profissional / Matrícula</th>
+                  <th className="p-3 border-r text-center">Status</th>
+                  <th className="p-3 border-r text-center w-20">Dias Trab.</th>
+                  <th className="p-3 border-r text-center w-20">Faltas</th>
+                  <th className="p-3 border-r text-center w-20">Atestado</th>
+                  <th className="p-3 border-r text-center w-20 bg-amber-500/5">HE 50%</th>
+                  <th className="p-3 border-r text-center w-20 bg-amber-600/5">HE 100%</th>
+                  <th className="p-3 border-r text-center w-24">Observação / Justificativa</th>
+                  <th className="p-3 text-right w-32">Decisão</th>
                 </tr>
               </thead>
               <tbody>
@@ -769,54 +873,63 @@ function LinhasAnaliseDialog({
                       key={l.id}
                       className={`border-b last:border-0 align-top ${excecao ? "bg-destructive/5" : ""}`}
                     >
-                      <td className="p-2">
-                        <div className="font-medium">{l.profissionais?.nome_completo ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Mat. {l.profissionais?.matricula ?? "—"}
+                      <td className="p-3 border-r">
+                        <div className="font-semibold text-sm">{l.profissionais?.nome_completo ?? "—"}</div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                          <span className="bg-muted px-1 rounded font-mono">Mat. {l.profissionais?.matricula ?? "—"}</span>
                           {l.analisado_em && (
-                            <>
-                              {" "}
-                              · analisado {new Date(l.analisado_em).toLocaleString("pt-BR")}
-                              {l.analisado_por_usuario?.nome_completo
-                                ? ` por ${l.analisado_por_usuario.nome_completo}`
-                                : ""}
-                            </>
+                            <span className="italic flex items-center gap-1">
+                              · <CheckCircle2 className="h-2.5 w-2.5 text-green-600" /> 
+                              {new Date(l.analisado_em).toLocaleDateString("pt-BR")}
+                              {l.analisado_por_usuario?.nome_completo && ` (${l.analisado_por_usuario.nome_completo})`}
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="p-2">
-                        <Badge variant={STATUS_LINHA_VARIANT[l.status_linha]}>
-                          {STATUS_LINHA_LABEL[l.status_linha]}
-                        </Badge>
-                        {excecao && (
-                          <div
-                            className="mt-1 text-[10px] font-semibold uppercase text-destructive"
-                            title={motivos.join(" · ")}
-                          >
-                            Exceção: {motivos.join(" · ")}
-                          </div>
-                        )}
+                      <td className="p-3 border-r text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <Badge variant={STATUS_LINHA_VARIANT[l.status_linha]} className="text-[10px] px-1.5 py-0 h-5">
+                            {STATUS_LINHA_LABEL[l.status_linha]}
+                          </Badge>
+                          {excecao && (
+                            <div className="text-[9px] font-bold text-destructive leading-tight max-w-[100px]" title={motivos.join(" · ")}>
+                              {motivos[0]}
+                            </div>
+                          )}
+                        </div>
                       </td>
-                      <td className="p-2 text-xs whitespace-nowrap">
-                        {Number(l.he_50 ?? 0)} · {Number(l.he_100 ?? 0)} ·{" "}
-                        {Number(l.plantoes_extras ?? 0)}
+                      <td className="p-3 border-r text-center font-medium bg-muted/10">
+                        {String((l as any).dias_trabalhados ?? 0)}
                       </td>
-                      <td className="p-2">
+                      <td className="p-3 border-r text-center font-medium text-destructive/80">
+                        {String((l as any).faltas_injustificadas ?? (l as any).dias_falta ?? 0)}
+                      </td>
+                      <td className="p-3 border-r text-center font-medium text-blue-600/80">
+                        {String((l as any).atestado ?? 0)}
+                      </td>
+                      <td className="p-3 border-r text-center font-bold text-amber-600 bg-amber-500/5">
+                        {String(l.he_50 ?? 0)}
+                      </td>
+                      <td className="p-3 border-r text-center font-bold text-amber-700 bg-amber-600/5">
+                        {String(l.he_100 ?? 0)}
+                      </td>
+                      <td className="p-3 border-r">
                         <Input
-                          placeholder="Observação (obrigatória p/ rejeitar)"
+                          placeholder="Motivo da decisão..."
                           defaultValue={l.observacao_analise ?? ""}
                           onChange={(e) => setObsMap((m) => ({ ...m, [l.id]: e.target.value }))}
-                          className="h-8"
+                          className="h-7 text-[11px] min-w-[150px]"
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-3">
                         <div className="flex justify-end gap-1">
                           {canAprovar && (
                             <Button
                               size="sm"
                               variant={l.status_linha === "aprovada" ? "secondary" : "default"}
+                              className="h-7 w-7 p-0"
                               disabled={mut.isPending || bloqueado}
-                              title={bloqueado ? "Linha em exceção: só MASTER aprova." : undefined}
+                              title={bloqueado ? "Exceção: só MASTER aprova." : "Aprovar linha"}
                               onClick={() =>
                                 mut.mutate({
                                   id: l.id,
@@ -832,7 +945,9 @@ function LinhasAnaliseDialog({
                             <Button
                               size="sm"
                               variant="destructive"
+                              className="h-7 w-7 p-0"
                               disabled={mut.isPending}
+                              title="Rejeitar linha"
                               onClick={() =>
                                 mut.mutate({
                                   id: l.id,

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
+import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 
 const NUM = z.number().nonnegative();
 
@@ -273,6 +274,16 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         .eq("id", u.id);
       if (error) throw new Error(error.message);
     }
+    // Sincronização após salvar
+    await orquestrarSincronizacao({
+      data: {
+        evento: "FOLHA_SALVA",
+        tipo: "efetivos",
+        competencia_id: data.competencia_id,
+        unidade_id: data.unidade_id,
+      }
+    });
+
     return { ok: true, inseridas: toInsert.length, atualizadas: toUpdate.length };
   });
 
@@ -307,6 +318,16 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .eq("frequencia_id", frequencia_id)
       .is("deleted_at", null);
+
+    // Sincronização centralizada após envio
+    await orquestrarSincronizacao({
+      data: {
+        evento: "FOLHA_ENVIADA",
+        tipo: "efetivos",
+        competencia_id: data.competencia_id,
+        unidade_id: data.unidade_id,
+      }
+    });
 
     await emitEvento(
       supabase,

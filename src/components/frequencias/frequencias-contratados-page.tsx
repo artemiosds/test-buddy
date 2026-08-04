@@ -3,12 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useSearch } from "@tanstack/react-router";
 import {
   listarFolhaContratados,
   salvarFolhaContratados,
   enviarFolhaContratados,
 } from "@/lib/frequencias-contratados.functions";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
@@ -68,6 +70,7 @@ import {
 } from "@/components/frequencias/resumo-dias-faltas-att";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
+
 
 const MESES = [
   "Janeiro",
@@ -137,13 +140,15 @@ function formatContaBancaria(
 
 export function FrequenciasContratadosPage() {
   const qc = useQueryClient();
+  const search = useSearch({ from: "/_authenticated/frequencia/contratados" });
   const [enviarAberto, setEnviarAberto] = useState(false);
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const { data: compAtiva } = useCompetenciaAtiva();
 
-  const [competenciaId, setCompetenciaId] = useState<string>("");
-  const [unidadeId, setUnidadeId] = useState<string>("");
+  const [competenciaId, setCompetenciaId] = useState<string>(search.competenciaId || "");
+  const [unidadeId, setUnidadeId] = useState<string>(search.unidadeId || "");
+
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
@@ -220,6 +225,7 @@ export function FrequenciasContratadosPage() {
 
   // Unidades visíveis
   const isGestor = !!me?.is_master || !!me?.acesso_todas_unidades;
+
   const { data: unidades } = useQuery({
     queryKey: ["unidades-contratados", me?.id],
     enabled: !!me,
@@ -266,6 +272,66 @@ export function FrequenciasContratadosPage() {
     queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId } }),
   });
 
+  // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
+  const { data: summary } = useQuery({
+    queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"],
+    enabled: !!competenciaId && !!unidadeId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("frequencias")
+        .select("status")
+        .eq("tipo", "contratados")
+        .eq("competencia_unidades.competencia_id", competenciaId)
+        .eq("competencia_unidades.unidade_id", unidadeId)
+        .maybeSingle();
+      return data;
+    }
+  });
+
+  const folhaStatusUnificado = useMemo(() => {
+    // Se temos um resumo sincronizado no banco, ele é a fonte da verdade para o status global
+    if (summary?.status) return summary.status;
+    
+    if (!folha?.length) return "rascunho";
+    const statuses = new Set(folha.map((it: any) => it.linha?.status ?? "rascunho"));
+    
+    if (statuses.has("rejeitada")) return "rejeitada";
+    if (statuses.has("devolvida" as any)) return "devolvida";
+    if (statuses.has("com_pendencias")) return "com_pendencias";
+    if (statuses.has("em_analise")) return "em_analise";
+    if (statuses.has("enviada")) return "enviada";
+    if (statuses.size === 1 && statuses.has("aprovada")) return "aprovada";
+    
+    return "rascunho";
+  }, [folha, summary]);
+
+  // Carrega última justificativa se devolvida
+  const { data: ultimaAcao } = useQuery({
+    queryKey: ["frequencia-ultima-acao", competenciaId, unidadeId, "contratados"],
+    enabled: !!competenciaId && !!unidadeId && (folhaStatusUnificado as string) === "devolvida",
+    queryFn: async () => {
+      const { data: res } = await supabase
+        .from("frequencias")
+        .select("id")
+        .eq("tipo", "contratados")
+        .eq("competencia_unidades.competencia_id", competenciaId)
+        .eq("competencia_unidades.unidade_id", unidadeId)
+        .maybeSingle();
+
+      if (!res?.id) return null;
+
+      const { data } = await supabase
+        .from("frequencia_aprovacoes")
+        .select("observacoes, executado_por, created_at")
+        .eq("frequencia_id", res.id)
+        .eq("status_novo", "devolvida" as any)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   // Estado local editável
   const [linhas, setLinhas] = useState<Record<string, LinhaState>>({});
   useEffect(() => {
@@ -297,7 +363,7 @@ export function FrequenciasContratadosPage() {
     if (!l) return true;
     if (!canEdit) return true;
     // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada");
+    return !(l.status === "rascunho" || l.status === "rejeitada" || (l.status as string) === "devolvida");
   }
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
@@ -379,15 +445,14 @@ export function FrequenciasContratadosPage() {
       toast.success(`Enviado para aprovação (${r?.enviadas ?? 0} linhas).`);
       setEnviarAberto(false);
       qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
+      qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar."),
   });
 
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
-  const folhaAprovada = useMemo(() => {
-    if (!folha?.length) return false;
-    return folha.every((it: any) => it.linha?.status === "aprovada");
-  }, [folha]);
+  
+  const folhaAprovada = folhaStatusUnificado === "aprovada";
 
   function mapExportItens(): ItemContratado[] {
     // Respeita os filtros aplicados na tela (competência já vem embutida
@@ -737,9 +802,9 @@ export function FrequenciasContratadosPage() {
           </Button>
           <Button
             onClick={() => setEnviarAberto(true)}
-            disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.length}
+            disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.length || folhaStatusUnificado !== "rascunho"}
           >
-            <Send className="mr-1.5 h-4 w-4" /> Enviar para aprovação
+            <Send className="mr-1.5 h-4 w-4" /> Enviar para análise
           </Button>
           <TooltipProvider>
             <Tooltip>
@@ -894,7 +959,30 @@ export function FrequenciasContratadosPage() {
         </div>
       )}
 
-      <KpiFolhaBar k={kpi} />
+      {folhaStatusUnificado === "devolvida" && (
+        <Alert variant="destructive" className="mb-6 border-amber-200 bg-amber-50 text-amber-900">
+          <AlertOctagon className="h-4 w-4 stroke-amber-600" />
+          <AlertTitle className="font-semibold text-amber-800">Folha devolvida para correção</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            Esta frequência foi devolvida pelo analista e está aberta para edição.
+            {ultimaAcao?.observacoes && (
+              <div className="mt-2 rounded bg-amber-100/50 p-2 text-sm italic border border-amber-200">
+                <strong>Motivo:</strong> {ultimaAcao.observacoes}
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center justify-between gap-4">
+        <KpiFolhaBar k={kpi} className="flex-1" />
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border bg-card shadow-sm">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Status da Unidade:
+          </span>
+          <StatusBadge domain="frequencia" value={folhaStatusUnificado} />
+        </div>
+      </div>
       <ResumoDiasFaltasAtt
         totais={{
           dias: totCampo.dias_trabalhados ?? 0,
@@ -1184,6 +1272,9 @@ export function FrequenciasContratadosPage() {
             }
             unidadeId={unidadeId}
             canEdit={canEdit}
+            competenciaId={competenciaId}
+            profissionalId={dossieProf?.id ?? null}
+            folha="contratados"
           />
         }
       />

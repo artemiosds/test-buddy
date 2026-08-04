@@ -4003,6 +4003,69 @@ export type Database = {
           },
         ]
       }
+      sistemas_externos: {
+        Row: {
+          ativo: boolean | null
+          audience: string | null
+          cor: string | null
+          created_at: string | null
+          descricao: string | null
+          endpoint_logout: string | null
+          endpoint_refresh: string | null
+          endpoint_sso: string | null
+          icone: string | null
+          id: string
+          issuer: string | null
+          nome: string
+          ordem: number | null
+          status: string | null
+          tipo_autenticacao: string | null
+          token_exp_segundos: number | null
+          updated_at: string | null
+          url_base: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          audience?: string | null
+          cor?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          endpoint_logout?: string | null
+          endpoint_refresh?: string | null
+          endpoint_sso?: string | null
+          icone?: string | null
+          id?: string
+          issuer?: string | null
+          nome: string
+          ordem?: number | null
+          status?: string | null
+          tipo_autenticacao?: string | null
+          token_exp_segundos?: number | null
+          updated_at?: string | null
+          url_base: string
+        }
+        Update: {
+          ativo?: boolean | null
+          audience?: string | null
+          cor?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          endpoint_logout?: string | null
+          endpoint_refresh?: string | null
+          endpoint_sso?: string | null
+          icone?: string | null
+          id?: string
+          issuer?: string | null
+          nome?: string
+          ordem?: number | null
+          status?: string | null
+          tipo_autenticacao?: string | null
+          token_exp_segundos?: number | null
+          updated_at?: string | null
+          url_base?: string
+        }
+        Relationships: []
+      }
       tipos_unidade: {
         Row: {
           created_at: string

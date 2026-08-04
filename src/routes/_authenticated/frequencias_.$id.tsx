@@ -122,25 +122,25 @@ const ALL_NUM_FIELDS: NumField[] = [
 type Linha = {
   id?: string;
   profissional_id: string;
-  dias_trabalhados: number;
-  faltas_justificadas: number;
-  faltas_injustificadas: number;
-  ferias: number;
-  licencas: number;
-  afastamentos: number;
-  horas_extras: number;
-  plantoes_extras: number;
-  adicional_noturno: number;
-  atestado: number;
-  he_50: number;
-  he_100: number;
-  sobreaviso: number;
-  incentivo: number;
-  licenca_premio: number;
-  ferias_terco: number;
-  ferias_integral: number;
-  sal_sub_h: number;
-  aulas_suplementares: number;
+  dias_trabalhados: number | string;
+  faltas_justificadas: number | string;
+  faltas_injustificadas: number | string;
+  ferias: number | string;
+  licencas: number | string;
+  afastamentos: number | string;
+  horas_extras: number | string;
+  plantoes_extras: number | string;
+  adicional_noturno: number | string;
+  atestado: number | string;
+  he_50: number | string;
+  he_100: number | string;
+  sobreaviso: number | string;
+  incentivo: number | string;
+  licenca_premio: number | string;
+  ferias_terco: number | string;
+  ferias_integral: number | string;
+  sal_sub_h: number | string;
+  aulas_suplementares: number | string;
   observacoes: string | null;
   status_linha: StatusLinha;
   observacao_analise: string | null;
@@ -407,7 +407,7 @@ function FrequenciaDetalhe() {
 
   const temDadosParaExportar = isEfetivo ? linhasEfetivosExportacao.length > 0 : linhas.length > 0;
 
-  const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias";
+  const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || (frequencia?.status as string) === "devolvida";
   const canEditar = has("frequencia.editar");
 
   // Contagem de pendências abertas/respondidas por linha (frequencia_profissional_id)
@@ -708,25 +708,25 @@ function FrequenciaDetalhe() {
             _new: !!l._new,
             _dirty: !!l._dirty,
             profissional_id: l.profissional_id,
-            dias_trabalhados: Number(l.dias_trabalhados) || 0,
-            faltas_justificadas: Number(l.faltas_justificadas) || 0,
-            faltas_injustificadas: Number(l.faltas_injustificadas) || 0,
-            ferias: Number(l.ferias) || 0,
-            licencas: Number(l.licencas) || 0,
-            afastamentos: Number(l.afastamentos) || 0,
-            horas_extras: Number(l.horas_extras) || 0,
-            plantoes_extras: Number(l.plantoes_extras) || 0,
-            adicional_noturno: Number(l.adicional_noturno) || 0,
-            atestado: Number(l.atestado) || 0,
-            he_50: Number(l.he_50) || 0,
-            he_100: Number(l.he_100) || 0,
-            sobreaviso: Number(l.sobreaviso) || 0,
-            incentivo: Number(l.incentivo) || 0,
-            licenca_premio: Number(l.licenca_premio) || 0,
-            ferias_terco: Number(l.ferias_terco) || 0,
-            ferias_integral: Number(l.ferias_integral) || 0,
-            sal_sub_h: Number(l.sal_sub_h) || 0,
-            aulas_suplementares: Number(l.aulas_suplementares) || 0,
+            dias_trabalhados: l.dias_trabalhados as any,
+            faltas_justificadas: l.faltas_justificadas as any,
+            faltas_injustificadas: l.faltas_injustificadas as any,
+            ferias: l.ferias as any,
+            licencas: l.licencas as any,
+            afastamentos: l.afastamentos as any,
+            horas_extras: l.horas_extras as any,
+            plantoes_extras: l.plantoes_extras as any,
+            adicional_noturno: l.adicional_noturno as any,
+            atestado: l.atestado as any,
+            he_50: l.he_50 as any,
+            he_100: l.he_100 as any,
+            sobreaviso: l.sobreaviso as any,
+            incentivo: l.incentivo as any,
+            licenca_premio: l.licenca_premio as any,
+            ferias_terco: l.ferias_terco as any,
+            ferias_integral: l.ferias_integral as any,
+            sal_sub_h: l.sal_sub_h as any,
+            aulas_suplementares: l.aulas_suplementares as any,
             observacoes: l.observacoes ?? null,
           })),
         },
@@ -1232,22 +1232,26 @@ function FrequenciaDetalhe() {
                         className={`p-1 ${cIdx === firstExtraIdx ? "border-l-2 border-dashed border-muted-foreground/30" : ""}`}
                       >
                         <Input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="text"
                           className="h-8 w-20"
                           disabled={!editable || !canEditar || l.status_linha !== "pendente"}
                           value={l[c.field]}
                           ref={(el) => {
-                            inputsRef.current[idx] ??= [];
+                            if (!inputsRef.current[idx]) inputsRef.current[idx] = [];
                             inputsRef.current[idx][cIdx] = el;
                           }}
                           onKeyDown={(e) => handleCellKeyDown(e, idx, cIdx)}
                           onPaste={(e) => handleCellPaste(e, idx, cIdx)}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const numericVal = val.trim().replace(",", ".");
+                            const parsed = numericVal === "" ? 0 : Number(numericVal);
+                            
                             updateLinha(idx, {
-                              [c.field]: Number(e.target.value),
-                            } as Partial<Linha>)
-                          }
+                              [c.field]: isNaN(parsed) || numericVal === "" ? val : parsed,
+                            } as any)
+                          }}
                         />
                       </td>
                     ))}

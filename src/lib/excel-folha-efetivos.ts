@@ -23,18 +23,18 @@ export type ItemEfetivo = {
     setor: string | null;
   };
   linha: {
-    faltas_injustificadas?: number | null;
-    atestado?: number | null;
-    he_50?: number | null;
-    he_100?: number | null;
-    ferias_terco?: number | null;
-    ferias_integral?: number | null;
-    sal_sub_h?: number | null;
-    adicional_noturno?: number | null;
-    aulas_suplementares?: number | null;
-    plantoes_extras?: number | null;
-    sobreaviso?: number | null;
-    incentivo?: number | null;
+    faltas_injustificadas?: number | string | null;
+    atestado?: number | string | null;
+    he_50?: number | string | null;
+    he_100?: number | string | null;
+    ferias_terco?: number | string | null;
+    ferias_integral?: number | string | null;
+    sal_sub_h?: number | string | null;
+    adicional_noturno?: number | string | null;
+    aulas_suplementares?: number | string | null;
+    plantoes_extras?: number | string | null;
+    sobreaviso?: number | string | null;
+    incentivo?: number | string | null;
   } | null;
 };
 
@@ -59,7 +59,9 @@ const MESES = [
   "DEZEMBRO",
 ];
 
-function n(v: number | null | undefined): number | string {
+function n(v: number | string | null | undefined): number | string {
+  if (v == null || v === 0 || v === "") return "";
+  if (typeof v === "string") return v;
   const x = Number(v ?? 0);
   return x || "";
 }

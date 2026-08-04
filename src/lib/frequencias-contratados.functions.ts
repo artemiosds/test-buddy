@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
+import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -72,7 +73,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
-    const { data: profs, error: pErr } = await supabase
+    const { data: allProfs, error: pErr } = await supabase
       .from("profissionais")
       .select(
         `
@@ -82,15 +83,23 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         cargos ( nome ),
         funcoes ( nome ),
         setores!profissionais_setor_id_fkey ( nome ),
-        vinculos!inner ( natureza )
+        vinculos!inner ( natureza, nome )
       `,
       )
       .eq("unidade_id", data.unidade_id)
       .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
-      .in("vinculos.natureza", [...NATUREZAS_CONTRATADO])
       .order("nome_completo");
+    
     if (pErr) throw new Error(pErr.message);
+
+    // Filtro de contratados: Qualquer profissional que NÃO seja estatutário/efetivo
+    const profs = (allProfs ?? []).filter((p: any) => {
+      const natureza = p.vinculos?.natureza?.toLowerCase() || "";
+      const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
+      const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
+      return !ehEstatutario;
+    });
 
     const profIds = (profs ?? []).map((p: any) => p.id);
     let freqs: any[] = [];
@@ -165,7 +174,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
-      if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada") continue;
+      if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
 
       const payload: Record<string, unknown> = {};
       for (const f of PAYLOAD_FIELDS)
@@ -186,8 +195,9 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     }
 
     if (toInsert.length) {
-      const { error } = await supabase.from("frequencias_contratados").insert(toInsert as never);
-      if (error) throw new Error(error.message);
+      const { error } = await (supabase.from("frequencias_contratados") as any)
+        .upsert(toInsert, { onConflict: "competencia_id, unidade_id, profissional_id" });
+      if (error) throw new Error(error.error ? error.error.message : (error as any).message || "Erro no upsert");
     }
     for (const u of toUpdate) {
       const { error } = await supabase
@@ -196,6 +206,17 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         .eq("id", u.id);
       if (error) throw new Error(error.message);
     }
+
+    // Sincronização após salvar
+    await orquestrarSincronizacao({
+      data: {
+        evento: "FOLHA_SALVA",
+        tipo: "contratados",
+        competencia_id: data.competencia_id,
+        unidade_id: data.unidade_id,
+      }
+    });
+
     return { ok: true, inseridas: toInsert.length, atualizadas: toUpdate.length };
   });
 
@@ -217,7 +238,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       } as never)
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
-      .in("status", ["rascunho", "rejeitada"])
+      .in("status", ["rascunho", "rejeitada", "devolvida" as any])
       .is("deleted_at", null)
       .select("id");
     if (error) throw new Error(error.message);
@@ -234,5 +255,16 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
         linhas: (updated ?? []).length,
       },
     );
+
+    // Sincronização centralizada e atômica após envio
+    await orquestrarSincronizacao({
+      data: {
+        evento: "FOLHA_ENVIADA",
+        tipo: "contratados",
+        competencia_id: data.competencia_id,
+        unidade_id: data.unidade_id,
+      }
+    });
+
     return { ok: true, enviadas: (updated ?? []).length };
   });

@@ -2,9 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
+import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { ANEXO_MIMES_ACEITOS, ANEXO_TAMANHO_MAX } from "./anexos-linha";
 
-const NUM = z.number().nonnegative().default(0);
+const NUM = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   id: z.string().uuid().nullable().optional(),
@@ -127,6 +128,7 @@ const StatusEnum = z.enum([
   "enviada",
   "em_analise",
   "com_pendencias",
+  "devolvida",
   "aprovada",
   "rejeitada",
   "arquivada",
@@ -144,6 +146,7 @@ const PERM_STATUS: Record<string, string> = {
   aprovada: ACOES.FREQUENCIA_APROVAR,
   rejeitada: ACOES.FREQUENCIA_REJEITAR,
   com_pendencias: ACOES.FREQUENCIA_REJEITAR,
+  devolvida: ACOES.FREQUENCIA_REJEITAR,
   arquivada: ACOES.FREQUENCIA_ARQUIVAR,
   rascunho: ACOES.FREQUENCIA_REABRIR,
 };
@@ -154,6 +157,7 @@ const EVENTO_STATUS: Record<string, string> = {
   aprovada: EVENTOS.FREQUENCIA_APROVADA,
   rejeitada: EVENTOS.FREQUENCIA_REJEITADA,
   com_pendencias: EVENTOS.FREQUENCIA_COM_PENDENCIAS,
+  devolvida: "frequencia.devolvida",
   arquivada: EVENTOS.FREQUENCIA_ARQUIVADA,
   rascunho: EVENTOS.FREQUENCIA_REABERTA,
 };
@@ -163,6 +167,7 @@ const ACAO_LABEL: Record<string, string> = {
   em_analise: "Colocada em análise",
   aprovada: "Aprovação",
   com_pendencias: "Retorno com pendências",
+  devolvida: "Devolvida para correção",
   rejeitada: "Rejeição",
   arquivada: "Arquivada",
   rascunho: "Reabertura",
@@ -215,6 +220,57 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       .update(patch as never)
       .eq("id", data.frequencia_id);
     if (upErr) throw new Error(upErr.message);
+
+    const { data: fInfo } = await supabase
+      .from("frequencias")
+      .select("tipo, status, competencia_unidade_id, competencia_unidades(competencia_id, unidade_id)")
+      .eq("id", data.frequencia_id)
+      .maybeSingle();
+
+    // Sincronização bidirecional após alteração de status (Aprovação/Rejeição/Análise)
+    if (fInfo && fInfo.competencia_unidades) {
+      const cu = fInfo.competencia_unidades as any;
+      const compId = cu.competencia_id;
+      const unidId = cu.unidade_id;
+
+      if (compId && unidId) {
+        // 1. Atualiza a tabela especializada (se for contratados) ou linhas (se for efetivos)
+        const updatePayload: any = { 
+          status: data.status,
+          updated_by: userId 
+        };
+        if (data.status === "aprovada") {
+          updatePayload.aprovada_por = userId;
+          updatePayload.aprovada_em = new Date().toISOString();
+        }
+
+        if (fInfo.tipo === "contratados") {
+          await (supabase.from("frequencias_contratados") as any)
+            .update(updatePayload)
+            .eq("competencia_id", compId)
+            .eq("unidade_id", unidId)
+            .in("status", ["enviada", "em_analise", "com_pendencias", "devolvida"]);
+        } else if (fInfo.tipo === "efetivos" || fInfo.tipo === "mensal") {
+          await (supabase.from("frequencia_profissional") as any)
+            .update({ status_linha: data.status === "aprovada" ? "aprovada" : "rejeitada" })
+            .eq("frequencia_id", data.frequencia_id);
+        }
+
+        // 2. Dispara orquestração para consolidar metadados finais (totais, etc)
+        const eventoStatus = data.status === "aprovada" ? "FOLHA_APROVADA" : 
+                             data.status === "rejeitada" ? "FOLHA_REJEITADA" : 
+                             data.status === "devolvida" ? "FOLHA_DEVOLVIDA" : "FOLHA_SALVA";
+
+        await orquestrarSincronizacao({
+          data: {
+            evento: eventoStatus as any,
+            tipo: fInfo.tipo as any,
+            competencia_id: compId,
+            unidade_id: unidId,
+          }
+        });
+      }
+    }
 
     const label = ACAO_LABEL[data.status];
     if (label) {

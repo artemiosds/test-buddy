@@ -1,3 +1,4 @@
+import logoSmsMarca from "@/assets/logo-sms-marca.png.asset.json";
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -221,6 +222,11 @@ function AuthPage() {
     <div className="flex min-h-dvh items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md rounded-lg border bg-card p-8 shadow-sm">
         <div className="mb-6 text-center">
+          <img
+            src={logoSmsMarca.url}
+            alt="Secretaria Municipal de Saúde de Oriximiná"
+            className="mx-auto mb-4 h-24 w-auto object-contain"
+          />
           <h1 className="text-2xl font-semibold text-foreground">GESTÃO SAÚDE ORIXIMINÁ - SMS</h1>
           <p className="mt-1 text-sm text-muted-foreground">Secretaria Municipal de Saúde</p>
         </div>

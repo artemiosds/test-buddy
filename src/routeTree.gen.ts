@@ -13,7 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
@@ -78,6 +78,7 @@ import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes
 import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_authenticated/configuracao.perfis'
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
 import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
+import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
@@ -102,10 +103,10 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ValidarIdRoute = ValidarIdRouteImport.update({
   id: '/validar/$id',
@@ -474,6 +475,12 @@ const AuthenticatedCargosIdRoute = AuthenticatedCargosIdRouteImport.update({
   path: '/cargos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdministracaoSistemasExternosRoute =
+  AuthenticatedAdministracaoSistemasExternosRouteImport.update({
+    id: '/administracao/sistemas-externos',
+    path: '/administracao/sistemas-externos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicHooksPurgarDocumentosRoute =
   ApiPublicHooksPurgarDocumentosRouteImport.update({
     id: '/api/public/hooks/purgar-documentos',
@@ -500,7 +507,7 @@ const AuthenticatedConfiguracaoPerfisIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -536,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
@@ -574,6 +582,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -608,7 +617,7 @@ export interface FileRoutesByTo {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
-  '/': typeof AuthenticatedIndexRoute
+  '/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
@@ -648,6 +657,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
@@ -684,7 +694,7 @@ export interface FileRoutesById {
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/_authenticated/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
   '/_authenticated/configuracao/perfis': typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
@@ -761,6 +771,7 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
+    | '/administracao/sistemas-externos'
     | '/cargos/$id'
     | '/competencias/$id'
     | '/configuracao/perfis'
@@ -799,6 +810,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/purgar-documentos'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/auth'
     | '/login'
     | '/reset-password'
@@ -833,7 +845,7 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
-    | '/'
+    | '/administracao/sistemas-externos'
     | '/cargos/$id'
     | '/competencias/$id'
     | '/configuracao/perfis'
@@ -872,6 +884,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/purgar-documentos'
   id:
     | '__root__'
+    | '/'
     | '/_authenticated'
     | '/auth'
     | '/login'
@@ -908,7 +921,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tipos-unidade'
     | '/_authenticated/usuarios'
     | '/validar/$id'
-    | '/_authenticated/'
+    | '/_authenticated/administracao/sistemas-externos'
     | '/_authenticated/cargos/$id'
     | '/_authenticated/competencias/$id'
     | '/_authenticated/configuracao/perfis'
@@ -948,6 +961,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
@@ -988,12 +1002,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/validar/$id': {
       id: '/validar/$id'
@@ -1443,6 +1457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCargosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/administracao/sistemas-externos': {
+      id: '/_authenticated/administracao/sistemas-externos'
+      path: '/administracao/sistemas-externos'
+      fullPath: '/administracao/sistemas-externos'
+      preLoaderRoute: typeof AuthenticatedAdministracaoSistemasExternosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/hooks/purgar-documentos': {
       id: '/api/public/hooks/purgar-documentos'
       path: '/api/public/hooks/purgar-documentos'
@@ -1612,7 +1633,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdministracaoSistemasExternosRoute: typeof AuthenticatedAdministracaoSistemasExternosRoute
   AuthenticatedCargosIdRoute: typeof AuthenticatedCargosIdRoute
   AuthenticatedConfiguracaoPerfisRoute: typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
   AuthenticatedFrequenciaContratadosRoute: typeof AuthenticatedFrequenciaContratadosRoute
@@ -1671,7 +1692,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdministracaoSistemasExternosRoute:
+    AuthenticatedAdministracaoSistemasExternosRoute,
   AuthenticatedCargosIdRoute: AuthenticatedCargosIdRoute,
   AuthenticatedConfiguracaoPerfisRoute:
     AuthenticatedConfiguracaoPerfisRouteWithChildren,
@@ -1707,6 +1729,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,

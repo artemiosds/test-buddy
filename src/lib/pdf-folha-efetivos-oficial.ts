@@ -25,26 +25,26 @@ export type ProfissionalFolha = {
   nome: string;
   cargo: string | null;
   setor: string | null;
-  proj: number | null;
-  h_p: number | null;
-  c_h: number | null;
-  jorn: number | null;
+  proj: number | string | null;
+  h_p: number | string | null;
+  c_h: number | string | null;
+  jorn: number | string | null;
 };
 
 export type LinhaTotais = {
-  dias_falta?: number;
-  atestado?: number;
-  maternidade?: number;
-  he_50?: number;
-  he_100?: number;
-  ferias_terco?: number;
-  ferias_integral?: number;
-  sal_sub_h?: number;
-  adicional_noturno?: number;
-  aulas_suplementares?: number;
-  plantao?: number;
-  sobreaviso?: number;
-  incentivo?: number;
+  dias_falta?: number | string;
+  atestado?: number | string;
+  maternidade?: number | string;
+  he_50?: number | string;
+  he_100?: number | string;
+  ferias_terco?: number | string;
+  ferias_integral?: number | string;
+  sal_sub_h?: number | string;
+  adicional_noturno?: number | string;
+  aulas_suplementares?: number | string;
+  plantao?: number | string;
+  sobreaviso?: number | string;
+  incentivo?: number | string;
 };
 
 export type ItemFolha = {
@@ -113,8 +113,9 @@ const LINHA_ALTURA = 14; // altura da linha de profissional (2 sub-linhas)
 
 /* -------------------- Helpers de desenho -------------------- */
 
-function fmt(v: number | null | undefined): string {
-  if (v == null || v === 0) return "";
+function fmt(v: number | string | null | undefined): string {
+  if (v == null || v === 0 || v === "") return "";
+  if (typeof v === "string") return v;
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(2).replace(".", ",");
 }

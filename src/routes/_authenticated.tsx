@@ -1,3 +1,4 @@
+import logoSmsMarca from "@/assets/logo-sms-marca.png.asset.json";
 import {
   createFileRoute,
   Outlet,
@@ -38,7 +39,7 @@ import {
   KeyRound,
   Sun,
   Moon,
-  Hospital,
+  Globe,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -310,6 +311,12 @@ const GROUPS: NavGroup[] = [
         label: "Configuração Municipal",
         icon: Settings2,
         perm: "configuracao.editar",
+      },
+      {
+        to: "/administracao/sistemas-externos",
+        label: "Sistemas Externos",
+        icon: Globe,
+        perm: ["configuracao.editar", "usuario.gerenciar"],
       },
       { to: "/seguranca", label: "Segurança (MFA)", icon: KeyRound },
     ],
@@ -640,8 +647,8 @@ function AuthenticatedLayout() {
       >
         {!compact ? (
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="sb-logo-mark">
-              <Hospital className="h-5 w-5" strokeWidth={2} />
+            <span className="sb-logo-mark sb-logo-mark--img">
+              <img src={logoSmsMarca.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
             </span>
             <div className="min-w-0">
               <h2 className="truncate">ORIXIMINÁ · SMS</h2>
@@ -649,8 +656,8 @@ function AuthenticatedLayout() {
             </div>
           </div>
         ) : (
-          <span className="sb-logo-mark">
-            <Hospital className="h-5 w-5" strokeWidth={2} />
+          <span className="sb-logo-mark sb-logo-mark--img">
+            <img src={logoSmsMarca.url} alt="Secretaria Municipal de Saúde de Oriximiná" />
           </span>
         )}
         <button

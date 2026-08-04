@@ -122,7 +122,13 @@ export async function consolidarCompetencia(
   const { data: existentes, error: errEx } = await qEx;
   if (errEx) throw new Error(errEx.message);
   const mapEx = new Map<string, any>((existentes ?? []).map((r: any) => [r.profissional_id, r]));
+
   const referencias = await carregarReferencias(supabase, competencia);
+  const compId = (referencias as any)?.[0]?.competencia_id || "";
+
+
+
+
 
   const agora = new Date().toISOString();
   const rows: any[] = [];
@@ -141,8 +147,10 @@ export async function consolidarCompetencia(
 
   for (const p of profissionais) {
     const cargo = resolverElegivel(p, cargos);
+    const fq = null;
     const ex = mapEx.get(p.id);
     const inc: Inconsistencia[] = [];
+
 
     if (!digitos(p.cpf)) inc.push({ tipo: "cpf_ausente", detalhe: "Profissional sem CPF no cadastro." });
     if (!cargo)
@@ -156,12 +164,17 @@ export async function consolidarCompetencia(
     if (ex && ex.origem_fopag && !ex.origem_piso)
       inc.push({ tipo: "importacao_parcial", detalhe: "Somente a Folha (FOPAG) foi importada." });
 
+    const salarioBase = ex?.salario_base ?? null;
+    const insalubridade = ex?.insalubridade ?? null;
+    const auxilioPiso = ex?.auxilio_financeiro ?? null;
+
+
     const memoria = calcularPiso({
       categoria: cargo?.categoria ?? null,
       cargaHoraria: p.carga_horaria_semanal,
-      salarioBase: ex?.salario_base ?? null,
-      insalubridade: ex?.insalubridade ?? null,
-      auxilioImportado: ex?.auxilio_financeiro ?? null,
+      salarioBase,
+      insalubridade,
+      auxilioImportado: auxilioPiso,
       ...refDe(referencias, cargo?.categoria ?? null),
     });
     if (memoria.divergencia)
@@ -181,6 +194,17 @@ export async function consolidarCompetencia(
 
     rows.push({
       ...(ex ?? {}),
+      salario_base: salarioBase,
+      insalubridade: insalubridade,
+      auxilio_financeiro: auxilioPiso,
+      gratificacoes: ex?.gratificacoes ?? null,
+      gratificacao_incentivo: ex?.gratificacao_incentivo ?? null,
+      hora_extra_50: ex?.hora_extra_50 ?? null,
+      hora_extra_100: ex?.hora_extra_100 ?? null,
+      plantoes_extras: ex?.plantoes_extras ?? null,
+      adicional_noturno: ex?.adicional_noturno ?? null,
+      origem_frequencia: false,
+
       profissional_id: p.id,
       competencia,
       // Cadastro é sempre a fonte oficial — sobrescreve o que veio da planilha.

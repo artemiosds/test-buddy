@@ -407,7 +407,7 @@ export type KpiTotais = {
   totalFaltas: number;
 };
 
-export function KpiFolhaBar({ k }: { k: KpiTotais }) {
+export function KpiFolhaBar({ k, className }: { k: KpiTotais; className?: string }) {
   const nf = new Intl.NumberFormat("pt-BR");
   const item = (label: string, value: number, tone?: "ok" | "info" | "warn" | "danger") => (
     <div className="erp-kpi" data-tone={tone}>
@@ -416,7 +416,7 @@ export function KpiFolhaBar({ k }: { k: KpiTotais }) {
     </div>
   );
   return (
-    <div className="erp-kpi-bar">
+    <div className={cn("erp-kpi-bar", className)}>
       {item("Total", k.total)}
       {item("Ativos", k.ativos, "ok")}
       {item("Férias", k.ferias, "info")}
