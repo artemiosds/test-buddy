@@ -75,15 +75,15 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
       }
 
       // 3. Variável de Ambiente SSO_JWT_SECRET
-      const secret = process.env.SSO_JWT_SECRET;
+      const secret = process.env.SSO_JWT_SECRET || 'emergency_fallback_secret_gestao_saude_2024';
       diagnostico.passos.push({ 
         nome: "Variável SSO_JWT_SECRET", 
-        status: !!secret,
-        mensagem: secret ? "Configurada" : "SSO_JWT_SECRET ausente no servidor" 
+        status: !!process.env.SSO_JWT_SECRET,
+        mensagem: process.env.SSO_JWT_SECRET ? "Configurada" : "Utilizando chave de contingência (Aviso: configure SSO_JWT_SECRET no ambiente para maior segurança)" 
       });
       
-      if (!secret) {
-        await logAudit("env_var", false, "SSO_JWT_SECRET ausente.");
+      if (!process.env.SSO_JWT_SECRET) {
+        await logAudit("env_var", false, "SSO_JWT_SECRET ausente, usando fallback.");
       }
 
       // 4. SERVICE_ROLE_KEY (Implícito se o supabaseAdmin funcionar)
@@ -292,16 +292,13 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       throw new Error("Sistema não encontrado ou inativo");
     }
 
-    // 2. Validar Configurações Obrigatórias e definir Secret
-    let ssoSecret = process.env.SSO_JWT_SECRET;
-    let isFallbackSecret = false;
 
-    if (!ssoSecret) {
-      console.warn(`[SSO][${correlationId}] SSO_JWT_SECRET não configurada. Verificando private_key do sistema.`);
-      // Se não houver segredo global, usamos a private_key do sistema (RS256) 
-      // ou o fallback de emergência para HS256 se a private_key também faltar.
-      ssoSecret = (sistema as any).private_key || "emergencia-secret-oriximina-2024";
-      isFallbackSecret = true;
+    // 2. Validar Configurações Obrigatórias e definir Secret
+    // Fallback para quando a variável de ambiente não está configurada na Vercel/Produção
+    const ssoSecret = process.env.SSO_JWT_SECRET || 'emergency_fallback_secret_gestao_saude_2024';
+
+    if (!process.env.SSO_JWT_SECRET) {
+      console.warn(`[SSO][${correlationId}] SSO_JWT_SECRET ausente no servidor. Utilizando chave de emergência.`);
     }
 
     if (!sistema.issuer) {
@@ -360,8 +357,8 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       nome: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       secretaria_id: profile?.secretaria_id || null,
       role: profile?.perfil_nome || profile?.role || 'profissional',
-      iss: sistema.issuer,
-      aud: sistema.audience,
+      iss: sistema.issuer || 'https://gestao-saude-sms-oriximina.vercel.app',
+      aud: sistema.audience || 'plantao-inteligente',
       iat: now,
       exp: exp,
       correlation_id: correlationId,
@@ -399,27 +396,15 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     // 8. Assinar JWT
     let token = "";
     try {
-      if ((sistema as any).private_key && sistema.tipo_autenticacao === "JWT SSO") {
-        // Uso de RS256 com chave privada interna
-        const { importPKCS8 } = await import("jose");
-        const privateKey = await importPKCS8((sistema as any).private_key, "RS256");
-        
-        token = await new SignJWT(payload)
-          .setProtectedHeader({ alg: "RS256" })
-          .setIssuedAt(now)
-          .setExpirationTime(exp)
-          .sign(privateKey);
-      } else {
-        // Fallback para HS256 com secret global ou fallback manual
-        const secretKey = new TextEncoder().encode(ssoSecret);
-        const alg = "HS256"; 
+      // Forçar HS256 conforme solicitado, ignorando private_key/RS256
+      const secretKey = new TextEncoder().encode(ssoSecret);
+      const alg = "HS256"; 
 
-        token = await new SignJWT(payload)
-          .setProtectedHeader({ alg })
-          .setIssuedAt(now)
-          .setExpirationTime(exp)
-          .sign(secretKey);
-      }
+      token = await new SignJWT(payload)
+        .setProtectedHeader({ alg })
+        .setIssuedAt(now)
+        .setExpirationTime(exp)
+        .sign(secretKey);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",

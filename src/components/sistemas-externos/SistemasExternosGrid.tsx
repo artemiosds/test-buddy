@@ -100,14 +100,19 @@ export function SistemasExternosGrid() {
           formattedUrl = `https://${formattedUrl}`;
         }
 
+        // Se for o Plantão Inteligente, garantir a URL exata solicitada
+        if (sistema.nome?.toLowerCase().includes("plantão inteligente") || sistema.nome?.toLowerCase().includes("plantao inteligente")) {
+           window.open(`https://plantao-inteligente.vercel.app/auth/sso?token=${result.token}`, "_blank");
+           return;
+        }
+
         try {
           const targetUrl = new URL(formattedUrl);
           targetUrl.searchParams.set('token', result.token);
           window.open(targetUrl.toString(), "_blank");
         } catch (e) {
           console.error("Invalid URL construction:", e);
-          // Fallback simple concatenation if URL parsing fails for some reason
-          window.open(formattedUrl, "_blank");
+          window.open(`${formattedUrl}?token=${result.token}`, "_blank");
         }
       }
     } catch (error: any) {
