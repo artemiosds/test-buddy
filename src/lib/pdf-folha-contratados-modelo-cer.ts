@@ -5,11 +5,7 @@
  */
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
-import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
-import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
-import { fetchAssetDataUrl } from "@/lib/asset-url";
 
 export type PdfContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
@@ -48,11 +44,9 @@ export async function gerarFolhaContratadosModeloCer(
   const pageH = doc.internal.pageSize.getHeight();
   const MARGEM = 10;
 
-  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = await Promise.all([
-    fetchAssetDataUrl(brasaoOriximina.url),
-    fetchAssetDataUrl(brasaoOriximinaAlt.url),
-    fetchAssetDataUrl(logoSms.url),
-  ]);
+  const logoPrefeitura = "/icon-512.png";
+  const logoBrasaoAlt = "/icon-192.png";
+  const logoSaude = "/icon-512.png";
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
   const compStr = `${mesNome}/${input.competencia.ano}`;
@@ -137,7 +131,7 @@ export async function gerarFolhaContratadosModeloCer(
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "-",
-      p.setor ?? "-",
+      p.setor || input.unidadeNome || "-",
       fmtNum(l.dias_trabalhados as number),
       fmtNum(l.dias_falta as number),
       fmtNum(l.atestado as number),

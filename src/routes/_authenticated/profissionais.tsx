@@ -1852,11 +1852,11 @@ function ProfissionalFormBody({
           </Card>
         ) : null}
 
-        {/* Dados bancários (Contratados) */}
-        {isContratado && canSeeBanco ? (
+        {/* Dados bancários (Contratados e Comissionados) */}
+        {(isContratado || nat === "comissionado") && canSeeBanco ? (
           <Card className="bg-muted/40 p-4">
             <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-              Dados bancários (folha de pagamento — Contratados)
+              Dados bancários (folha de pagamento — Contratados/Comissionados)
             </h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>

@@ -4007,6 +4007,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           audience: string | null
+          clock_skew_segundos: number | null
           cor: string | null
           created_at: string | null
           descricao: string | null
@@ -4016,7 +4017,9 @@ export type Database = {
           icone: string | null
           id: string
           issuer: string | null
+          jti_enabled: boolean | null
           nome: string
+          nonce: string | null
           ordem: number | null
           status: string | null
           tipo_autenticacao: string | null
@@ -4027,6 +4030,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           audience?: string | null
+          clock_skew_segundos?: number | null
           cor?: string | null
           created_at?: string | null
           descricao?: string | null
@@ -4036,7 +4040,9 @@ export type Database = {
           icone?: string | null
           id?: string
           issuer?: string | null
+          jti_enabled?: boolean | null
           nome: string
+          nonce?: string | null
           ordem?: number | null
           status?: string | null
           tipo_autenticacao?: string | null
@@ -4047,6 +4053,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           audience?: string | null
+          clock_skew_segundos?: number | null
           cor?: string | null
           created_at?: string | null
           descricao?: string | null
@@ -4056,7 +4063,9 @@ export type Database = {
           icone?: string | null
           id?: string
           issuer?: string | null
+          jti_enabled?: boolean | null
           nome?: string
+          nonce?: string | null
           ordem?: number | null
           status?: string | null
           tipo_autenticacao?: string | null

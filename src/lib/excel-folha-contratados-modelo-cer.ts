@@ -5,11 +5,7 @@
  * autoFilter e larguras de coluna calibradas.
  */
 import ExcelJS from "exceljs";
-import brasaoOriximina from "@/assets/brasao-oriximina.png.asset.json";
-import brasaoOriximinaAlt from "@/assets/brasao-oriximina-alt.png.asset.json";
-import logoSms from "@/assets/logo-sms.png.asset.json";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
-import { fetchAssetArrayBuffer } from "@/lib/asset-url";
 
 export type ExcelContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
@@ -126,10 +122,14 @@ export async function gerarExcelFolhaContratadosModeloCer(
   //  Centro horizontal do bloco A1:O1 ≈ 6.705M EMU → cai dentro da coluna E.
   // Altura row1 = 83.25pt ≈ 1.057M EMU. Rows 2-4 = 15.6pt ≈ 198k EMU cada.
   // Bloco total (row1..row4) ≈ 1.651M EMU.
+  const fetchBuffer = async (path: string) => {
+    const res = await fetch(path);
+    return res.arrayBuffer();
+  };
   const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
-    fetchAssetArrayBuffer(brasaoOriximina.url),
-    fetchAssetArrayBuffer(brasaoOriximinaAlt.url),
-    fetchAssetArrayBuffer(logoSms.url),
+    fetchBuffer("/icon-512.png"),
+    fetchBuffer("/icon-192.png"),
+    fetchBuffer("/icon-512.png"),
   ]);
   // Tamanhos-alvo em px (ExcelJS converte px → EMU internamente via *9525).
   const SIDE = 80; // logos laterais ~80x80px

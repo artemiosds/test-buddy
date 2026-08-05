@@ -16,8 +16,6 @@
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
-import { fetchAssetDataUrl } from "@/lib/asset-url";
-import brasaoAsset from "@/assets/brasao-oriximina-efetivos.png.asset.json";
 
 export type ProfissionalFolha = {
   id: string;
@@ -362,7 +360,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
 export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
-  const fallbackLogo = await fetchAssetDataUrl(brasaoAsset.url);
+  const fallbackLogo = "/icon-512.png";
 
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,

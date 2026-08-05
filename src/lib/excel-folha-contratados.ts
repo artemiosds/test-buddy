@@ -122,7 +122,7 @@ export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): 
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "-",
-      p.setor ?? "-",
+      p.setor || input.unidadeNome || "-",
       "", // DIAS trabalhados (não persistido — deixado em branco)
       n(l.dias_falta as number),
       n(l.atestado as number),
