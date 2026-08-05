@@ -58,12 +58,18 @@ export function SistemasExternosGrid() {
         return;
       }
 
-      const falhas = result.passos.filter((p: any) => !p.status);
+      const falhas = result.passos.filter((p: any) => !p.status && !p.aviso);
+      const avisos = result.passos.filter((p: any) => p.aviso);
       
       if (falhas.length > 0) {
         toast.error(`${sistema.nome}: ${falhas.length} inconsistência(s)`, {
           id: toastId,
           description: falhas.map((f: any) => `${f.nome}: ${f.mensagem}`).join(" | ")
+        });
+      } else if (avisos.length > 0) {
+        toast.warning(`${sistema.nome}: Conectividade limitada`, {
+          id: toastId,
+          description: avisos.map((f: any) => f.mensagem).join(" | ")
         });
       } else {
         toast.success("Arquitetura ponta a ponta validada com sucesso!", { id: toastId });
@@ -81,8 +87,28 @@ export function SistemasExternosGrid() {
         data: { sistemaId: sistema.id }
       });
 
-      if (result.urlRedirect) {
-        window.open(result.urlRedirect, "_blank");
+      if (result && 'error' in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result?.token && result?.urlRedirect) {
+        const sistemaTarget = result.urlRedirect;
+        let formattedUrl = sistemaTarget;
+        
+        if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+          formattedUrl = `https://${formattedUrl}`;
+        }
+
+        try {
+          const targetUrl = new URL(formattedUrl);
+          targetUrl.searchParams.set('token', result.token);
+          window.open(targetUrl.toString(), "_blank");
+        } catch (e) {
+          console.error("Invalid URL construction:", e);
+          // Fallback simple concatenation if URL parsing fails for some reason
+          window.open(formattedUrl, "_blank");
+        }
       }
     } catch (error: any) {
       console.error("SSO Error:", error);

@@ -365,8 +365,25 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
   
-  // Logo institucional (Brasão)
-  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  // Helper para converter URL em Base64
+  async function getBase64Image(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Erro ao carregar imagem para o PDF:", e);
+      return null;
+    }
+  }
+
+  // Logo institucional (Brasão) convertido para Base64 para estabilidade na Vercel
+  const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoBrasaoAlt = await getBase64Image(logoBrasaoAltUrl);
 
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,

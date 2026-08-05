@@ -44,10 +44,32 @@ export async function gerarFolhaContratadosModeloCer(
   const pageH = doc.internal.pageSize.getHeight();
   const MARGEM = 10;
 
-  // Importar os assets JSON para pegar as URLs do CDN
-  const logoPrefeitura = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
-  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
-  const logoSaude = (await import("@/assets/logo-saude.png.asset.json")).default.url;
+  // Helper para converter URL em Base64
+  async function getBase64Image(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Erro ao carregar imagem para o PDF:", e);
+      return null;
+    }
+  }
+
+  // Importar os assets JSON para pegar as URLs do CDN e converter para Base64 (mais estável na Vercel)
+  const logoPrefeituraUrl = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
+  const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoSaudeUrl = (await import("@/assets/logo-saude.png.asset.json")).default.url;
+
+  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = await Promise.all([
+    getBase64Image(logoPrefeituraUrl),
+    getBase64Image(logoBrasaoAltUrl),
+    getBase64Image(logoSaudeUrl),
+  ]);
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
   const compStr = `${mesNome}/${input.competencia.ano}`;
@@ -60,16 +82,16 @@ export async function gerarFolhaContratadosModeloCer(
     if (logoPrefeitura) {
       try {
         doc.addImage(logoPrefeitura, "JPEG", MARGEM, logoY, logoSize, logoSize);
-      } catch {
-        /* noop */
+      } catch (e) {
+        console.warn("Erro ao desenhar logoPrefeitura", e);
       }
     }
     // Logo 3 (direita) — Secretaria Municipal de Saúde
     if (logoSaude) {
       try {
         doc.addImage(logoSaude, "PNG", pageW - MARGEM - logoSize, logoY, logoSize, logoSize);
-      } catch {
-        /* noop */
+      } catch (e) {
+        console.warn("Erro ao desenhar logoSaude", e);
       }
     }
 
@@ -79,8 +101,8 @@ export async function gerarFolhaContratadosModeloCer(
       try {
         // A segunda imagem (brasão) deve ficar ACIMA do texto "ESTADO DO PARÁ"
         doc.addImage(logoBrasaoAlt, "PNG", cx - (logoSize * 0.8) / 2, logoY - 2, logoSize * 0.8, logoSize * 0.8);
-      } catch {
-        /* noop */
+      } catch (e) {
+        console.warn("Erro ao desenhar logoBrasaoAlt", e);
       }
     }
     doc.setTextColor(0, 0, 0);

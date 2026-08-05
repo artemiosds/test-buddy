@@ -246,10 +246,32 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
   
-  // Logos institucionais dinâmicas
-  const logoPrefeitura = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
-  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
-  const logoSaude = (await import("@/assets/logo-saude.png.asset.json")).default.url;
+  // Helper para converter URL em Base64
+  async function getBase64Image(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Erro ao carregar imagem para o PDF:", e);
+      return null;
+    }
+  }
+
+  // Logos institucionais dinâmicas convertidas para Base64 para estabilidade na Vercel
+  const logoPrefeituraUrl = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
+  const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoSaudeUrl = (await import("@/assets/logo-saude.png.asset.json")).default.url;
+
+  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = await Promise.all([
+    getBase64Image(logoPrefeituraUrl),
+    getBase64Image(logoBrasaoAltUrl),
+    getBase64Image(logoSaudeUrl),
+  ]);
 
   const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
     secretariaId: input.secretariaId ?? null,
@@ -279,7 +301,11 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
   const drawTopo = (cont: boolean) => {
-    drawInstitutionalBox(doc, info, { prefeitura: logoPrefeitura, brasao: logoBrasaoAlt, saude: logoSaude }, `FREQUÊNCIA — PRESTADORES • ${compStr}`);
+    drawInstitutionalBox(doc, info, { 
+      prefeitura: logoPrefeitura || "", 
+      brasao: logoBrasaoAlt || "", 
+      saude: logoSaude || "" 
+    }, `FREQUÊNCIA — PRESTADORES • ${compStr}`);
     let y = 32;
     y = drawHierBar(doc, y, COR_NIVEL_1, "1 - Raiz");
     y = drawHierBar(doc, y, COR_NIVEL_2, "1.18 - SECRETARIA MUNICIPAL DE SAÚDE");

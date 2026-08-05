@@ -4007,6 +4007,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           audience: string | null
+          clock_skew: number | null
           clock_skew_segundos: number | null
           cor: string | null
           created_at: string | null
@@ -4014,6 +4015,7 @@ export type Database = {
           endpoint_logout: string | null
           endpoint_refresh: string | null
           endpoint_sso: string | null
+          expiracao: number | null
           icone: string | null
           id: string
           issuer: string | null
@@ -4021,6 +4023,8 @@ export type Database = {
           nome: string
           nonce: string | null
           ordem: number | null
+          private_key: string | null
+          public_key: string | null
           status: string | null
           tipo_autenticacao: string | null
           token_exp_segundos: number | null
@@ -4030,6 +4034,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           audience?: string | null
+          clock_skew?: number | null
           clock_skew_segundos?: number | null
           cor?: string | null
           created_at?: string | null
@@ -4037,6 +4042,7 @@ export type Database = {
           endpoint_logout?: string | null
           endpoint_refresh?: string | null
           endpoint_sso?: string | null
+          expiracao?: number | null
           icone?: string | null
           id?: string
           issuer?: string | null
@@ -4044,6 +4050,8 @@ export type Database = {
           nome: string
           nonce?: string | null
           ordem?: number | null
+          private_key?: string | null
+          public_key?: string | null
           status?: string | null
           tipo_autenticacao?: string | null
           token_exp_segundos?: number | null
@@ -4053,6 +4061,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           audience?: string | null
+          clock_skew?: number | null
           clock_skew_segundos?: number | null
           cor?: string | null
           created_at?: string | null
@@ -4060,6 +4069,7 @@ export type Database = {
           endpoint_logout?: string | null
           endpoint_refresh?: string | null
           endpoint_sso?: string | null
+          expiracao?: number | null
           icone?: string | null
           id?: string
           issuer?: string | null
@@ -4067,6 +4077,8 @@ export type Database = {
           nome?: string
           nonce?: string | null
           ordem?: number | null
+          private_key?: string | null
+          public_key?: string | null
           status?: string | null
           tipo_autenticacao?: string | null
           token_exp_segundos?: number | null

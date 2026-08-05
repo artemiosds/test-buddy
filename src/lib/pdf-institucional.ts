@@ -28,10 +28,14 @@ async function urlToDataUrl(url: string): Promise<string | null> {
     return await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(String(r.result));
-      r.onerror = reject;
+      r.onerror = (e) => {
+        console.error("FileReader error:", e);
+        reject(e);
+      };
       r.readAsDataURL(blob);
     });
-  } catch {
+  } catch (e) {
+    console.error("fetch to DataUrl error:", e, "URL:", url);
     return null;
   }
 }

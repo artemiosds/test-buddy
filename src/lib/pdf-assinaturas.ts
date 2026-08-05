@@ -156,7 +156,11 @@ export async function resolverAssinaturasDocumento(
         const { data: signed } = await supabase.storage
           .from("assinaturas")
           .createSignedUrl(r.storage_path, 300);
-        if (signed?.signedUrl) imageData = await urlToDataUrl(signed.signedUrl);
+        if (signed?.signedUrl) {
+          // Na Vercel, URLs assinadas do Supabase podem ter restrições de CORS ou rede
+          // Converter para DataURL garante que o jsPDF consiga ler a imagem
+          imageData = await urlToDataUrl(signed.signedUrl);
+        }
       }
       const p = r.assinatura_id ? posMap.get(r.assinatura_id) : undefined;
       const alin = (p?.alinhamento as "esquerda" | "centro" | "direita" | null) ?? "direita";

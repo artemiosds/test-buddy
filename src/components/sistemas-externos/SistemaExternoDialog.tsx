@@ -51,8 +51,8 @@ const formSchema = z.object({
   endpoint_refresh: z.string().optional(),
   audience: z.string().optional(),
   issuer: z.string().optional(),
-  token_exp_segundos: z.coerce.number(),
-  clock_skew_segundos: z.coerce.number().optional(),
+  expiracao: z.coerce.number(),
+  clock_skew: z.coerce.number().optional(),
   nonce: z.string().optional(),
   jti_enabled: z.boolean().optional(),
   ativo: z.boolean(),
@@ -86,9 +86,9 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
       endpoint_logout: "",
       endpoint_refresh: "",
       audience: "",
-      issuer: "",
-      token_exp_segundos: 60,
-      clock_skew_segundos: 0,
+      issuer: "https://gestao-saude-sms-oriximina.vercel.app",
+      expiracao: 300,
+      clock_skew: 60,
       nonce: "",
       jti_enabled: true,
       ativo: true,
@@ -101,27 +101,37 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
         // Se for o Plantão Inteligente e os campos estiverem vazios, aplica fallbacks oficiais
         const isPlantao = sistema.nome?.toLowerCase().includes("plantão inteligente");
         
-        form.reset({
+        const defaultValues: FormValues = {
           nome: sistema.nome || "",
-          descricao: sistema.descricao || "",
-          url_base: sistema.url_base || "",
-          icone: sistema.icone || "Globe",
-          cor: sistema.cor || "#3b82f6",
-          ordem: sistema.ordem || 0,
+          descricao: sistema.descricao || (isPlantao ? "Gestão de Plantões, Escalas e Escopos Médicos" : ""),
+          url_base: sistema.url_base || (isPlantao ? "https://plantao-inteligente.vercel.app" : ""),
+          icone: sistema.icone || (isPlantao ? "CalendarClock" : "Globe"),
+          cor: sistema.cor || (isPlantao ? "#0F766E" : "#3b82f6"),
+          ordem: sistema.ordem || (isPlantao ? 1 : 0),
           tipo_autenticacao: sistema.tipo_autenticacao || "JWT SSO",
           endpoint_sso: sistema.endpoint_sso || (isPlantao ? "https://plantao-inteligente.vercel.app/auth/sso" : ""),
           endpoint_logout: sistema.endpoint_logout || "",
           endpoint_refresh: sistema.endpoint_refresh || "",
           audience: sistema.audience || (isPlantao ? "plantao-inteligente" : ""),
-          issuer: sistema.issuer || (isPlantao ? "https://gestao-saude-sms-oriximina.vercel.app" : "https://gestaosaudeoriximina.vercel.app"),
-          token_exp_segundos: sistema.token_exp_segundos || 300,
-          clock_skew_segundos: sistema.clock_skew_segundos || 60,
+          issuer: sistema.issuer || "https://gestao-saude-sms-oriximina.vercel.app",
+          expiracao: sistema.expiracao || 300,
+          clock_skew: sistema.clock_skew || 60,
           nonce: sistema.nonce || "",
           jti_enabled: sistema.jti_enabled ?? true,
           ativo: sistema.ativo ?? true,
           public_key: sistema.public_key || "",
           private_key: sistema.private_key || "",
-        });
+        };
+
+        form.reset(defaultValues);
+
+        // Se for Plantão Inteligente e não tiver chaves, gera agora
+        if (isPlantao && (!sistema.public_key || !sistema.private_key)) {
+          gerarParDeChaves().then(chaves => {
+            form.setValue("public_key", chaves.publicKeyPem);
+            form.setValue("private_key", chaves.privateKeyPem);
+          }).catch(console.error);
+        }
       } else {
         // Valores padrão para novo sistema
         form.reset({
@@ -137,8 +147,8 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
           endpoint_refresh: "",
           audience: "",
           issuer: "https://gestao-saude-sms-oriximina.vercel.app",
-          token_exp_segundos: 300,
-          clock_skew_segundos: 60,
+          expiracao: 300,
+          clock_skew: 60,
           nonce: "",
           jti_enabled: true,
           ativo: true,
@@ -151,14 +161,35 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
 
   // Efeito para preencher dados padrão se o nome for alterado para Plantão Inteligente manualmente
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
+    const subscription = form.watch(async (value, { name }) => {
       if (name === "nome" && value.nome?.toLowerCase().includes("plantão inteligente")) {
-        // Só preenche se estiver vazio para não sobrescrever edições intencionais
-        if (!form.getValues("audience")) form.setValue("audience", "plantao-inteligente");
-        if (!form.getValues("issuer")) form.setValue("issuer", "https://gestao-saude-sms-oriximina.vercel.app");
-        if (!form.getValues("endpoint_sso")) form.setValue("endpoint_sso", "https://plantao-inteligente.vercel.app/auth/sso");
-        if (form.getValues("token_exp_segundos") === 60) form.setValue("token_exp_segundos", 300);
-        if (form.getValues("clock_skew_segundos") === 0) form.setValue("clock_skew_segundos", 60);
+        // Aba Geral
+        form.setValue("url_base", "https://plantao-inteligente.vercel.app");
+        form.setValue("descricao", "Gestão de Plantões, Escalas e Escopos Médicos");
+        form.setValue("icone", "CalendarClock");
+        form.setValue("cor", "#0F766E");
+        form.setValue("ordem", 1);
+        form.setValue("ativo", true);
+
+        // Aba Segurança/SSO
+        form.setValue("issuer", "https://gestao-saude-sms-oriximina.vercel.app");
+        form.setValue("audience", "plantao-inteligente");
+        form.setValue("endpoint_sso", "https://plantao-inteligente.vercel.app/auth/sso");
+        form.setValue("expiracao", 300);
+        form.setValue("clock_skew", 60);
+        form.setValue("jti_enabled", true);
+        form.setValue("tipo_autenticacao", "JWT SSO");
+
+        // Geração automática de chaves se estiverem vazias
+        if (!form.getValues("public_key") || !form.getValues("private_key")) {
+          try {
+            const chaves = await gerarParDeChaves();
+            form.setValue("public_key", chaves.publicKeyPem);
+            form.setValue("private_key", chaves.privateKeyPem);
+          } catch (e) {
+            console.error("Erro ao gerar chaves automáticas:", e);
+          }
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -189,24 +220,23 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
 
 
   const handleGenerateKeys = async () => {
-    const toastId = toast.loading("Gerando novo par de chaves RSA...");
+    const toastId = toast.loading("Gerando novo par de chaves RSA 2048 bits...");
     try {
-      // Tenta gerar via servidor primeiro (para auditoria)
-      const chaves = await obterNovasChavesSSO();
+      // Prioriza geração local para garantir que o usuário veja as chaves imediatamente e possa salvar
+      const chaves = await gerarParDeChaves();
       form.setValue("public_key", chaves.publicKeyPem);
       form.setValue("private_key", chaves.privateKeyPem);
-      toast.success("Chaves RSA geradas via servidor!", { id: toastId });
-    } catch (error: any) {
-      console.warn("Falha na geração via servidor, tentando localmente:", error);
+      toast.success("Novo par de chaves RSA gerado localmente!", { id: toastId });
+      
+      // Tenta registrar no servidor se possível (opcional, apenas para manter consistência com o log de auditoria se necessário)
       try {
-        // Fallback para geração local se o servidor falhar ou não houver permissão MASTER temporária
-        const chaves = await gerarParDeChaves();
-        form.setValue("public_key", chaves.publicKeyPem);
-        form.setValue("private_key", chaves.privateKeyPem);
-        toast.success("Chaves RSA geradas localmente com sucesso!", { id: toastId });
-      } catch (localError: any) {
-        toast.error("Erro crítico ao gerar chaves: " + localError.message, { id: toastId });
+        await obterNovasChavesSSO();
+      } catch (e) {
+        // Ignora erro do servidor já que a geração local funcionou
+        console.debug("Log de geração no servidor falhou, mas chaves locais foram geradas.");
       }
+    } catch (error: any) {
+      toast.error("Erro crítico ao gerar chaves: " + error.message, { id: toastId });
     }
   };
 
@@ -392,12 +422,12 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
                   />
                   <FormField
                     control={form.control}
-                    name="token_exp_segundos"
+                    name="expiracao"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Expiração (s)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} value={typeof field.value === 'boolean' ? '' : field.value} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -408,12 +438,12 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="clock_skew_segundos"
+                    name="clock_skew"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Clock Skew (s)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} value={typeof field.value === 'boolean' ? '' : field.value} />
                         </FormControl>
                         <FormDescription>Tolerância de atraso de relógio.</FormDescription>
                         <FormMessage />
