@@ -25,6 +25,12 @@ type Endereco = {
   cep?: string;
 };
 
+type PdfConfig = {
+  logo_size: number;
+  logo_x: number;
+  logo_y: number;
+};
+
 type FormState = {
   nome_municipio: string;
   uf: string;
@@ -49,6 +55,13 @@ type FormState = {
   limite_plantoes: string;
   mensagem_topo: string;
   permitir_envio_fora_prazo: boolean;
+  pdf_config: PdfConfig;
+};
+
+const DEFAULT_PDF_CONFIG: PdfConfig = {
+  logo_size: 18,
+  logo_x: 14,
+  logo_y: 8,
 };
 
 const EMPTY: FormState = {
@@ -75,6 +88,7 @@ const EMPTY: FormState = {
   limite_plantoes: "",
   mensagem_topo: "",
   permitir_envio_fora_prazo: false,
+  pdf_config: DEFAULT_PDF_CONFIG,
 };
 
 function ConfiguracaoPage() {
@@ -131,6 +145,7 @@ function ConfiguracaoPage() {
       limite_plantoes: asStr(params.limite_plantoes),
       mensagem_topo: typeof params.mensagem_topo === "string" ? params.mensagem_topo : "",
       permitir_envio_fora_prazo: params.permitir_envio_fora_prazo === true,
+      pdf_config: (params.pdf_config as PdfConfig) || DEFAULT_PDF_CONFIG,
     });
   }, [config]);
 
@@ -163,6 +178,7 @@ function ConfiguracaoPage() {
           limite_plantoes: form.limite_plantoes === "" ? null : Number(form.limite_plantoes),
           mensagem_topo: form.mensagem_topo.trim() || null,
           permitir_envio_fora_prazo: form.permitir_envio_fora_prazo,
+          pdf_config: form.pdf_config,
         } as unknown as never,
       };
       if (config?.id) {
@@ -596,6 +612,56 @@ function ConfiguracaoPage() {
                 />
               </label>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-lg border bg-card p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Configuração de Documentos (PDF)
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Ajuste o tamanho e a posição da logo nos documentos gerados.
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <Label>Tamanho da Logo (mm)</Label>
+            <Input
+              type="number"
+              value={form.pdf_config.logo_size}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  pdf_config: { ...form.pdf_config, logo_size: Number(e.target.value) },
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label>Posição X (Esquerda/Direita)</Label>
+            <Input
+              type="number"
+              value={form.pdf_config.logo_x}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  pdf_config: { ...form.pdf_config, logo_x: Number(e.target.value) },
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label>Posição Y (Cima/Baixo)</Label>
+            <Input
+              type="number"
+              value={form.pdf_config.logo_y}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  pdf_config: { ...form.pdf_config, logo_y: Number(e.target.value) },
+                })
+              }
+            />
           </div>
         </div>
       </section>

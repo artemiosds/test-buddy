@@ -2,46 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { gerarParDeChaves } from "./sso-keys";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verificarPermissaoMaster } from "./sistemas-externos-admin.functions";
 
 export const obterNovasChavesSSO = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    // Recuperar contexto do usuário
-    const { data: userContext } = await supabaseAdmin.rpc("get_my_user_context");
-    const profile = Array.isArray(userContext) ? userContext[0] : userContext;
+    const auth = await verificarPermissaoMaster(context.userId, context.claims?.email);
     
-    // Log temporário para depuração de perfil (como solicitado)
-    console.log('Perfil do usuário logado (SSO Admin):', {
-      perfil_nome: profile?.perfil_nome,
-      perfil_codigo: profile?.perfil_codigo,
-      is_master: profile?.is_master,
-      raw: profile
-    });
-
-    // Verificação flexível de perfil MASTER
-    const perfilNormalizado = (
-      profile?.perfil_nome ?? 
-      profile?.perfil_codigo ?? 
-      ''
-    ).toLowerCase().trim();
-
-    // Verificamos o perfil nomeado e o flag is_master (que agora deve ser confiável via supabaseAdmin.rpc)
-    const isMaster = 
-      profile?.is_master === true || 
-      [
-        'master', 'admin', 'administrador', 
-        'administrator', 'gestor', 'gestao', 'gestão',
-        'administrador master', 'adm master'
-      ].includes(perfilNormalizado);
-
-    if (!isMaster) {
-      console.error(`[SSO Admin] Acesso negado. Perfil detectado: ${perfilNormalizado}. is_master: ${profile?.is_master}`);
-      throw new Error("Apenas usuários MASTER podem gerar chaves.");
+    if (!auth?.isMaster) {
+      console.warn(`[SSO Admin] Acesso negado. Perfil: ${auth?.perfilNormalizado}. Email: ${context.claims?.email}`);
+      throw new Error(`Erro ao gerar chaves: Apenas usuários MASTER podem gerar chaves. (Detectado: ${auth?.perfilNormalizado || 'Nenhum'})`);
     }
 
     const chaves = await gerarParDeChaves();
     
-    // Log de auditoria (sem salvar a chave privada no banco por segurança, apenas o fato que foi gerada)
     await supabaseAdmin.from("audit_log").insert({
       tabela: "configuracoes_sso",
       operacao: "insert",

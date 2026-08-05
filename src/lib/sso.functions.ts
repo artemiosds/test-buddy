@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { SignJWT, jwtVerify } from "jose";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { verificarPermissaoMaster } from "./sistemas-externos-admin.functions";
 
 export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
   .inputValidator((data) =>
@@ -53,30 +54,24 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
         throw new Error(msg);
       }
 
-      // 2. Verificar permissão MASTER ou GESTOR
-      const { data: userRole, error: roleError } = await supabaseAdmin
-        .rpc("get_my_user_context");
+      // 2. Verificar permissão MASTER ou GESTOR de forma robusta
+      const auth = await verificarPermissaoMaster(context.userId, context.claims?.email);
       
-      if (roleError) {
-        const msg = `Falha ao validar permissões do usuário: ${roleError.message}`;
-        await logAudit("permission_check", false, msg);
-        throw new Error(msg);
-      }
+      const role = auth.perfilNormalizado;
+      const isMaster = auth.isMaster;
+      const isGestor = role === 'gestor' || role === 'gestao' || role === 'gestão';
 
-      const profile = (Array.isArray(userRole) ? userRole[0] : userRole) as any;
-      const role = profile?.perfil_nome;
-      const isMaster = profile?.is_master === true;
-
-      const hasPermission = isMaster || role === "MASTER" || role === "GESTOR";
+      const hasPermission = isMaster || isGestor;
+      
       diagnostico.passos.push({ 
         nome: "Permissão de Acesso", 
         status: hasPermission,
-        mensagem: hasPermission ? `Perfil ${role || 'MASTER'} autorizado` : `Perfil ${role || 'desconhecido'} não possui permissão para diagnóstico` 
+        mensagem: hasPermission ? `Perfil ${role.toUpperCase()} autorizado` : `Perfil ${role || 'desconhecido'} não possui permissão para diagnóstico` 
       });
 
       if (!hasPermission) {
-        await logAudit("permission", false, "Usuário sem permissão para executar diagnóstico.", { role, isMaster });
-        throw new Error("Usuário sem permissão para executar diagnóstico.");
+        await logAudit("permission", false, `Usuário sem permissão para executar diagnóstico. (Detectado: ${role || 'Nenhum'})`, { role, isMaster });
+        throw new Error(`Usuário sem permissão para executar diagnóstico. (Detectado: ${role || 'Nenhum'})`);
       }
 
       // 3. Variável de Ambiente SSO_JWT_SECRET

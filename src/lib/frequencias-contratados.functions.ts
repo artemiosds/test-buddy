@@ -93,12 +93,13 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     
     if (pErr) throw new Error(pErr.message);
 
-    // Filtro de contratados: Qualquer profissional que NÃO seja estatutário/efetivo
+    // Filtro de contratados: Qualquer profissional que NÃO seja estatutário/efetivo/comissionado
     const profs = (allProfs ?? []).filter((p: any) => {
       const natureza = p.vinculos?.natureza?.toLowerCase() || "";
       const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
       const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
-      return !ehEstatutario;
+      const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
+      return !ehEstatutario && !ehComissionado;
     });
 
     const profIds = (profs ?? []).map((p: any) => p.id);

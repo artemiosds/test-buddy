@@ -205,6 +205,8 @@ function AuthPage() {
           void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO);
           await startMfaChallenge();
         } else {
+          // A verificação de perfil agora é feita de forma flexível no servidor
+          // Não tentamos fazer upsert manual aqui para evitar erros de tipagem/permissão client-side
           void auditClient.login(AUDIT_ACOES.LOGIN_SUCESSO);
         }
       }

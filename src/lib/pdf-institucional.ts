@@ -1,11 +1,21 @@
 import type jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
+import logoBrasao from "@/assets/brasao-oriximina-v2.png.asset.json";
+
+export type PdfConfig = {
+  logo_size: number;
+  logo_x: number;
+  logo_y: number;
+};
 
 export type MunicipioInfo = {
   nome_municipio: string | null;
   uf: string | null;
   razao_social: string | null;
   logotipo_url: string | null;
+  parametros?: {
+    pdf_config?: PdfConfig;
+  };
 };
 
 let cached: { data: MunicipioInfo | null; logoData: string | null } | null = null;
@@ -33,16 +43,28 @@ export async function loadMunicipioInfo(): Promise<{
   if (cached) return cached;
   const { data } = await supabase
     .from("municipio_config")
-    .select("nome_municipio, uf, razao_social, logotipo_url")
+    .select("nome_municipio, uf, razao_social, logotipo_url, parametros")
     .is("deleted_at", null)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+
   let logoData: string | null = null;
-  if (data?.logotipo_url) {
-    logoData = await urlToDataUrl(data.logotipo_url);
+  if (data) {
+    const info: MunicipioInfo = {
+      nome_municipio: data.nome_municipio,
+      uf: data.uf,
+      razao_social: data.razao_social,
+      logotipo_url: data.logotipo_url,
+      parametros: data.parametros as any,
+    };
+    if (info.logotipo_url) {
+      logoData = await urlToDataUrl(info.logotipo_url);
+    }
+    cached = { data: info, logoData };
+  } else {
+    cached = { data: null, logoData: null };
   }
-  cached = { data, logoData };
   return cached;
 }
 
@@ -52,33 +74,47 @@ export function drawInstitutionalHeader(
   subtitle: string,
 ): number {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const nome = info.data?.nome_municipio
-    ? `PREFEITURA MUNICIPAL DE ${info.data.nome_municipio.toUpperCase()}${info.data.uf ? ` - ${info.data.uf}` : ""}`
-    : "PREFEITURA MUNICIPAL DE ORIXIMINÁ - PA";
+  const MARGEM = 14;
+  const logoSize = 18;
+  const logoY = 8;
+  const cx = pageWidth / 2;
 
-  let textX = 14;
-  if (info.logoData) {
+  const nome = info.data?.nome_municipio
+    ? `PREFEITURA MUNICIPAL DE ${info.data.nome_municipio.toUpperCase()}`
+    : "PREFEITURA MUNICIPAL DE ORIXIMINÁ";
+  
+  const uf = info.data?.uf ?? "PA";
+
+  if (logoBrasao.url) {
     try {
-      doc.addImage(info.logoData, "PNG", 14, 8, 18, 18);
-      textX = 36;
-    } catch {
-      /* ignore image errors */
-    }
+      doc.addImage(logoBrasao.url, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
+    } catch { /* ignore */ }
+  } else if (info.logoData) {
+    try {
+      doc.addImage(info.logoData, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
+    } catch { /* ignore */ }
   }
 
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text(nome, textX, 14);
-  doc.setFontSize(10);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  doc.text("SECRETARIA MUNICIPAL DE SAÚDE - GESTÃO SAÚDE ORIXIMINÁ", textX, 20);
+  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : uf}`, cx, logoY + logoSize + 4, { align: "center" });
+  
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(subtitle, textX, 27);
+  doc.text(nome, cx, logoY + logoSize + 9, { align: "center" });
+  
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, logoY + logoSize + 14, { align: "center" });
+  
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text(subtitle, cx, logoY + logoSize + 21, { align: "center" });
+  
   doc.setLineWidth(0.3);
-  doc.line(14, 32, pageWidth - 14, 32);
-  return 36;
+  doc.line(MARGEM, logoY + logoSize + 26, pageWidth - MARGEM, logoY + logoSize + 26);
+  
+  return logoY + logoSize + 30;
 }
 
 export function drawSignatureFooter(doc: jsPDF, y?: number) {

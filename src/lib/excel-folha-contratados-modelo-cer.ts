@@ -126,10 +126,14 @@ export async function gerarExcelFolhaContratadosModeloCer(
     const res = await fetch(path);
     return res.arrayBuffer();
   };
+  const logoPrefeitura = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
+  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoSaude = (await import("@/assets/logo-saude.png.asset.json")).default.url;
+
   const [brasaoBuf, brasaoAltBuf, smsBuf] = await Promise.all([
-    fetchBuffer("/icon-512.png"),
-    fetchBuffer("/icon-192.png"),
-    fetchBuffer("/icon-512.png"),
+    fetchBuffer(logoPrefeitura),
+    fetchBuffer(logoBrasaoAlt),
+    fetchBuffer(logoSaude),
   ]);
   // Tamanhos-alvo em px (ExcelJS converte px → EMU internamente via *9525).
   const SIDE = 80; // logos laterais ~80x80px

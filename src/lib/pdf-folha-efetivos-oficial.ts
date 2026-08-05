@@ -121,7 +121,7 @@ function fmt(v: number | string | null | undefined): string {
 function drawInstitutionalBox(
   doc: jsPDF,
   info: { data: MunicipioInfo | null; logoData: string | null },
-  fallbackLogo: string | null,
+  logoBrasao: string | null,
 ) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = MARGEM;
@@ -133,28 +133,32 @@ function drawInstitutionalBox(
   doc.setLineWidth(0.3);
   doc.rect(x, y, w, h);
 
-  const logo = fallbackLogo ?? info.logoData;
-  if (logo) {
+  const logoSize = 18;
+  const bx = x + 3; // Logo à esquerda
+
+  if (logoBrasao) {
     try {
-      doc.addImage(logo, "PNG", x + 2, y + 2, 18, 18);
-    } catch {
-      /* ignore */
-    }
+      doc.addImage(logoBrasao, "PNG", bx, y + 2, logoSize, logoSize);
+    } catch { /* ignore */ }
+  } else if (info.logoData) {
+    try {
+      doc.addImage(info.logoData, "PNG", bx, y + 2, logoSize, logoSize);
+    } catch { /* ignore */ }
   }
 
   const uf = info.data?.uf ?? "PA";
-  const nome = info.data?.nome_municipio ?? "ORIXIMINÁ";
+  const nome = (info.data?.nome_municipio ?? "ORIXIMINÁ").toUpperCase();
 
   doc.setTextColor(...COR_TEXTO);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : (uf ?? "")}`, x + 24, y + 6);
+  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : uf}`, x + 24, y + 6);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text(`PREFEITURA MUNICIPAL DE ${nome.toUpperCase()}`, x + 24, y + 12);
+  doc.setFontSize(10);
+  doc.text(`PREFEITURA MUNICIPAL DE ${nome}`, x + 24, y + 11);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("SECRETARIA MUNICIPAL DE SAÚDE", x + 24, y + 17);
+  doc.text("SECRETARIA MUNICIPAL DE SAÚDE", x + 24, y + 16);
 }
 
 function drawHierBar(
@@ -360,7 +364,9 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
 export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
-  const fallbackLogo = "/icon-512.png";
+  
+  // Logo institucional (Brasão)
+  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
 
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,
@@ -374,8 +380,8 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const emissaoStr = new Date().toLocaleString("pt-BR");
 
   const desenhaTopo = (): number => {
-    drawInstitutionalBox(doc, info, fallbackLogo);
-    return 30; // Y logo abaixo do cabeçalho institucional
+    drawInstitutionalBox(doc, info, logoBrasaoAlt);
+    return 32;
   };
 
   const primeiraPagina = (unidade: UnidadeFolha, grupo: GrupoFolha) => {

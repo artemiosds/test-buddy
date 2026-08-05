@@ -64,6 +64,7 @@ function n(v: number | null | undefined): string {
 function drawInstitutionalBox(
   doc: jsPDF,
   info: { data: MunicipioInfo | null; logoData: string | null },
+  logos: { prefeitura: string; brasao: string; saude: string },
   subtitulo: string,
 ) {
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -76,12 +77,27 @@ function drawInstitutionalBox(
   doc.setLineWidth(0.3);
   doc.rect(x, y, w, h);
 
-  if (info.logoData) {
+  const logoSize = 18;
+  // Logo 1 (esquerda)
+  if (logos.prefeitura) {
     try {
-      doc.addImage(info.logoData, "PNG", x + 2, y + 2, 18, 18);
-    } catch {
-      /* ignore */
-    }
+      doc.addImage(logos.prefeitura, "JPEG", x + 2, y + 2, logoSize, logoSize);
+    } catch { /* ignore */ }
+  }
+
+  // Logo 3 (direita)
+  if (logos.saude) {
+    try {
+      doc.addImage(logos.saude, "PNG", x + w - logoSize - 2, y + 2, logoSize, logoSize);
+    } catch { /* ignore */ }
+  }
+
+  const cx = x + w / 2;
+  // Logo 2 (centro)
+  if (logos.brasao) {
+    try {
+      doc.addImage(logos.brasao, "PNG", cx - (logoSize * 0.8) / 2, y + 1, logoSize * 0.8, logoSize * 0.8);
+    } catch { /* ignore */ }
   }
 
   const uf = info.data?.uf ?? "PA";
@@ -90,13 +106,13 @@ function drawInstitutionalBox(
   doc.setTextColor(...COR_TEXTO);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : uf}`, x + 24, y + 6);
+  doc.text(`ESTADO DO ${uf === "PA" ? "PARÁ" : uf}`, cx, y + 15.5, { align: "center" });
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text(`PREFEITURA MUNICIPAL DE ${nome}`, x + 24, y + 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text("SECRETARIA MUNICIPAL DE SAÚDE", x + 24, y + 17);
+  doc.setFontSize(10);
+  doc.text(`PREFEITURA MUNICIPAL DE ${nome}`, cx, y + 19.5, { align: "center" });
+  // doc.setFont("helvetica", "normal");
+  // doc.setFontSize(9);
+  // doc.text("SECRETARIA MUNICIPAL DE SAÚDE", x + 24, y + 17);
   if (subtitulo) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -229,6 +245,11 @@ function drawFooter(doc: jsPDF, emitidoPor: string, emissaoStr: string) {
 export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
+  
+  // Logos institucionais dinâmicas
+  const logoPrefeitura = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
+  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoSaude = (await import("@/assets/logo-saude.png.asset.json")).default.url;
 
   const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
     secretariaId: input.secretariaId ?? null,
@@ -258,7 +279,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
   const drawTopo = (cont: boolean) => {
-    drawInstitutionalBox(doc, info, `FREQUÊNCIA — PRESTADORES • ${compStr}`);
+    drawInstitutionalBox(doc, info, { prefeitura: logoPrefeitura, brasao: logoBrasaoAlt, saude: logoSaude }, `FREQUÊNCIA — PRESTADORES • ${compStr}`);
     let y = 32;
     y = drawHierBar(doc, y, COR_NIVEL_1, "1 - Raiz");
     y = drawHierBar(doc, y, COR_NIVEL_2, "1.18 - SECRETARIA MUNICIPAL DE SAÚDE");

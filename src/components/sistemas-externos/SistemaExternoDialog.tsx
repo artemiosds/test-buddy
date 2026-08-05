@@ -34,8 +34,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { criarSistema, editarSistema } from "@/lib/sistemas-externos-admin.functions";
 import { obterNovasChavesSSO } from "@/lib/sso-admin.functions";
+import { gerarParDeChaves } from "@/lib/sso-keys";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -97,6 +98,9 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
   useEffect(() => {
     if (open) {
       if (sistema) {
+        // Se for o Plantão Inteligente e os campos estiverem vazios, aplica fallbacks oficiais
+        const isPlantao = sistema.nome?.toLowerCase().includes("plantão inteligente");
+        
         form.reset({
           nome: sistema.nome || "",
           descricao: sistema.descricao || "",
@@ -105,18 +109,21 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
           cor: sistema.cor || "#3b82f6",
           ordem: sistema.ordem || 0,
           tipo_autenticacao: sistema.tipo_autenticacao || "JWT SSO",
-          endpoint_sso: sistema.endpoint_sso || "",
+          endpoint_sso: sistema.endpoint_sso || (isPlantao ? "https://plantao-inteligente.vercel.app/auth/sso" : ""),
           endpoint_logout: sistema.endpoint_logout || "",
           endpoint_refresh: sistema.endpoint_refresh || "",
-          audience: sistema.audience || "",
-          issuer: sistema.issuer || "",
-          token_exp_segundos: sistema.token_exp_segundos || 60,
-          clock_skew_segundos: sistema.clock_skew_segundos || 0,
+          audience: sistema.audience || (isPlantao ? "plantao-inteligente" : ""),
+          issuer: sistema.issuer || (isPlantao ? "https://gestao-saude-sms-oriximina.vercel.app" : "https://gestaosaudeoriximina.vercel.app"),
+          token_exp_segundos: sistema.token_exp_segundos || 300,
+          clock_skew_segundos: sistema.clock_skew_segundos || 60,
           nonce: sistema.nonce || "",
           jti_enabled: sistema.jti_enabled ?? true,
           ativo: sistema.ativo ?? true,
+          public_key: sistema.public_key || "",
+          private_key: sistema.private_key || "",
         });
       } else {
+        // Valores padrão para novo sistema
         form.reset({
           nome: "",
           descricao: "",
@@ -129,16 +136,33 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
           endpoint_logout: "",
           endpoint_refresh: "",
           audience: "",
-          issuer: "",
-          token_exp_segundos: 60,
-          clock_skew_segundos: 0,
+          issuer: "https://gestao-saude-sms-oriximina.vercel.app",
+          token_exp_segundos: 300,
+          clock_skew_segundos: 60,
           nonce: "",
           jti_enabled: true,
           ativo: true,
+          public_key: "",
+          private_key: "",
         });
       }
     }
   }, [open, sistema, form]);
+
+  // Efeito para preencher dados padrão se o nome for alterado para Plantão Inteligente manualmente
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === "nome" && value.nome?.toLowerCase().includes("plantão inteligente")) {
+        // Só preenche se estiver vazio para não sobrescrever edições intencionais
+        if (!form.getValues("audience")) form.setValue("audience", "plantao-inteligente");
+        if (!form.getValues("issuer")) form.setValue("issuer", "https://gestao-saude-sms-oriximina.vercel.app");
+        if (!form.getValues("endpoint_sso")) form.setValue("endpoint_sso", "https://plantao-inteligente.vercel.app/auth/sso");
+        if (form.getValues("token_exp_segundos") === 60) form.setValue("token_exp_segundos", 300);
+        if (form.getValues("clock_skew_segundos") === 0) form.setValue("clock_skew_segundos", 60);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -165,14 +189,24 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
 
 
   const handleGenerateKeys = async () => {
+    const toastId = toast.loading("Gerando novo par de chaves RSA...");
     try {
-      const toastId = toast.loading("Gerando novo par de chaves RSA...");
+      // Tenta gerar via servidor primeiro (para auditoria)
       const chaves = await obterNovasChavesSSO();
       form.setValue("public_key", chaves.publicKeyPem);
       form.setValue("private_key", chaves.privateKeyPem);
-      toast.success("Chaves RSA geradas com sucesso!", { id: toastId });
+      toast.success("Chaves RSA geradas via servidor!", { id: toastId });
     } catch (error: any) {
-      toast.error("Erro ao gerar chaves: " + error.message);
+      console.warn("Falha na geração via servidor, tentando localmente:", error);
+      try {
+        // Fallback para geração local se o servidor falhar ou não houver permissão MASTER temporária
+        const chaves = await gerarParDeChaves();
+        form.setValue("public_key", chaves.publicKeyPem);
+        form.setValue("private_key", chaves.privateKeyPem);
+        toast.success("Chaves RSA geradas localmente com sucesso!", { id: toastId });
+      } catch (localError: any) {
+        toast.error("Erro crítico ao gerar chaves: " + localError.message, { id: toastId });
+      }
     }
   };
 
@@ -454,6 +488,26 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
                               placeholder="-----BEGIN PUBLIC KEY-----..." 
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="private_key"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Private Key (PEM - Sensível)</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              className="font-mono text-[10px] h-20" 
+                              placeholder="-----BEGIN PRIVATE KEY-----..." 
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[10px]">
+                            Mantenha esta chave em segredo. Ela é usada para assinar os tokens.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

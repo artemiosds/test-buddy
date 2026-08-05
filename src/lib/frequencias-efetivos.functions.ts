@@ -150,17 +150,25 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
         cargos ( nome ),
         funcoes ( nome ),
         setores!profissionais_setor_id_fkey ( nome ),
-        vinculos!inner ( id, natureza )
+        vinculos!inner ( id, natureza, nome )
       `,
       )
       .eq("unidade_id", data.unidade_id)
       .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
-      .in("vinculos.natureza", ["efetivo", "comissionado"])
       .order("nome_completo");
     if (pErr) throw new Error(pErr.message);
 
-    const profIds = (profs ?? []).map((p: any) => p.id);
+    // Filtro de efetivos: Estatutário/Efetivo ou Comissionado
+    const profsFinais = (profs ?? []).filter((p: any) => {
+      const natureza = p.vinculos?.natureza?.toLowerCase() || "";
+      const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
+      const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
+      const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
+      return ehEstatutario || ehComissionado;
+    });
+
+    const profIds = (profsFinais ?? []).map((p: any) => p.id);
     let linhas: any[] = [];
     if (profIds.length) {
       const { data: fs, error } = await supabase
@@ -177,7 +185,7 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     return {
       frequencia_id,
       frequencia_status,
-      itens: (profs ?? []).map((p: any) => ({
+      itens: (profsFinais ?? []).map((p: any) => ({
         profissional: {
           id: p.id,
           matricula: p.matricula,

@@ -32,7 +32,7 @@ const MESES = [
 
 function fmtNum(v: number | null | undefined): string {
   const x = Number(v ?? 0);
-  if (!x) return "-";
+  if (!x) return "";
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
@@ -44,21 +44,22 @@ export async function gerarFolhaContratadosModeloCer(
   const pageH = doc.internal.pageSize.getHeight();
   const MARGEM = 10;
 
-  const logoPrefeitura = "/icon-512.png";
-  const logoBrasaoAlt = "/icon-192.png";
-  const logoSaude = "/icon-512.png";
+  // Importar os assets JSON para pegar as URLs do CDN
+  const logoPrefeitura = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
+  const logoBrasaoAlt = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
+  const logoSaude = (await import("@/assets/logo-saude.png.asset.json")).default.url;
 
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
   const compStr = `${mesNome}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
   const drawHeader = () => {
-    const logoSize = 20;
+    const logoSize = 18;
     const logoY = 8;
     // Logo 1 (esquerda) — Prefeitura
     if (logoPrefeitura) {
       try {
-        doc.addImage(logoPrefeitura, "PNG", MARGEM, logoY, logoSize, logoSize);
+        doc.addImage(logoPrefeitura, "JPEG", MARGEM, logoY, logoSize, logoSize);
       } catch {
         /* noop */
       }
@@ -76,7 +77,8 @@ export async function gerarFolhaContratadosModeloCer(
     // Logo 2 (centro) — brasão alternativo, acima dos textos
     if (logoBrasaoAlt) {
       try {
-        doc.addImage(logoBrasaoAlt, "PNG", cx - logoSize / 2, logoY - 2, logoSize, logoSize);
+        // A segunda imagem (brasão) deve ficar ACIMA do texto "ESTADO DO PARÁ"
+        doc.addImage(logoBrasaoAlt, "PNG", cx - (logoSize * 0.8) / 2, logoY - 2, logoSize * 0.8, logoSize * 0.8);
       } catch {
         /* noop */
       }
@@ -130,8 +132,8 @@ export async function gerarFolhaContratadosModeloCer(
       String(i + 1),
       p.nome ?? "",
       fmtCPF(p.cpf),
-      p.cargo ?? "-",
-      p.setor || input.unidadeNome || "-",
+      p.cargo ?? "",
+      p.setor || input.unidadeNome || "",
       fmtNum(l.dias_trabalhados as number),
       fmtNum(l.dias_falta as number),
       fmtNum(l.atestado as number),
@@ -150,6 +152,7 @@ export async function gerarFolhaContratadosModeloCer(
     body,
     startY: 52,
     margin: { left: MARGEM, right: MARGEM, top: 52, bottom: 12 },
+    rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
       cellPadding: 1.5,

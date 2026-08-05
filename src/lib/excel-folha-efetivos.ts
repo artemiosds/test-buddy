@@ -1,14 +1,7 @@
 /**
  * Gerador Excel — "Frequência de Efetivos" (padrão SMS).
- *
- * Layout de linhas fixo (equivalente ao gerador de Contratados):
- *   1  ESTADO DO PARÁ
- *   2  PREFEITURA MUNICIPAL DE <MUNICIPIO>
- *   3  SECRETARIA MUNICIPAL DE SAÚDE
- *   4  <UNIDADE>
- *   5  FREQUÊNCIA DOS EFETIVOS DE <UNIDADE> - MÊS <MES/ANO>
- *   6  cabeçalho da tabela
- *   7+ dados
+ * 
+ * Layout simplificado conforme padrão anterior solicitado pelo usuário.
  */
 import * as XLSX from "xlsx";
 import { loadMunicipioInfo } from "@/lib/pdf-institucional";
@@ -45,24 +38,13 @@ export type ExcelEfetivosInput = {
 };
 
 const MESES = [
-  "JANEIRO",
-  "FEVEREIRO",
-  "MARÇO",
-  "ABRIL",
-  "MAIO",
-  "JUNHO",
-  "JULHO",
-  "AGOSTO",
-  "SETEMBRO",
-  "OUTUBRO",
-  "NOVEMBRO",
-  "DEZEMBRO",
+  "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
 ];
 
-function n(v: number | string | null | undefined): number | string {
+function num(v: number | string | null | undefined): number | "" {
   if (v == null || v === 0 || v === "") return "";
-  if (typeof v === "string") return v;
-  const x = Number(v ?? 0);
+  const x = Number(v);
   return x || "";
 }
 
@@ -75,25 +57,10 @@ export async function gerarExcelFolhaEfetivos(input: ExcelEfetivosInput): Promis
   const compStr = `${mesNome}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
-  const header = [
-    "Nº",
-    "MATRÍCULA",
-    "NOME",
-    "C.P.F.",
-    "CARGO",
-    "LOTAÇÃO",
-    "FALTAS",
-    "ATT",
-    "H.E 50%",
-    "H.E 100%",
-    "FÉRIAS 1/3",
-    "FÉRIAS INT.",
-    "SAL. SUB. H",
-    "AD. NOTURNO",
-    "AULAS SUPL.",
-    "PLANTÕES",
-    "SOBREAVISOS",
-    "INCENTIVO",
+  const headers = [
+    "Nº", "MATRÍCULA", "NOME", "C.P.F.", "CARGO", "LOTAÇÃO",
+    "FALTAS", "ATT", "H.E 50%", "H.E 100%", "FÉRIAS 1/3", "FÉRIAS INT.",
+    "SAL. SUB. H", "AD. NOTURNO", "AULAS SUPL.", "PLANTÕES", "SOBREAVISOS", "INCENTIVO"
   ];
 
   const rows: (string | number)[][] = [
@@ -102,7 +69,7 @@ export async function gerarExcelFolhaEfetivos(input: ExcelEfetivosInput): Promis
     ["SECRETARIA MUNICIPAL DE SAÚDE"],
     [unidadeUp],
     [`FREQUÊNCIA DOS EFETIVOS DE ${unidadeUp} - MÊS ${compStr}`],
-    header,
+    headers,
   ];
 
   input.itens.forEach((it, i) => {
@@ -111,28 +78,27 @@ export async function gerarExcelFolhaEfetivos(input: ExcelEfetivosInput): Promis
     rows.push([
       i + 1,
       p.matricula ?? "",
-      p.nome ?? "",
+      p.nome,
       fmtCPF(p.cpf),
       p.cargo ?? "-",
       p.setor ?? "-",
-      n(l.faltas_injustificadas as number),
-      n(l.atestado as number),
-      n(l.he_50 as number),
-      n(l.he_100 as number),
-      n(l.ferias_terco as number),
-      n(l.ferias_integral as number),
-      n(l.sal_sub_h as number),
-      n(l.adicional_noturno as number),
-      n(l.aulas_suplementares as number),
-      n(l.plantoes_extras as number),
-      n(l.sobreaviso as number),
-      n(l.incentivo as number),
+      num(l.faltas_injustificadas),
+      num(l.atestado),
+      num(l.he_50),
+      num(l.he_100),
+      num(l.ferias_terco ? "X" : ""),
+      num(l.ferias_integral),
+      num(l.sal_sub_h),
+      num(l.adicional_noturno),
+      num(l.aulas_suplementares),
+      num(l.plantoes_extras),
+      num(l.sobreaviso),
+      num(l.incentivo)
     ]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-
-  const lastCol = header.length - 1;
+  const lastCol = headers.length - 1;
   ws["!merges"] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
@@ -142,24 +108,9 @@ export async function gerarExcelFolhaEfetivos(input: ExcelEfetivosInput): Promis
   ];
 
   ws["!cols"] = [
-    { wch: 4 },
-    { wch: 12 },
-    { wch: 34 },
-    { wch: 16 },
-    { wch: 24 },
-    { wch: 24 },
-    { wch: 8 },
-    { wch: 7 },
-    { wch: 9 },
-    { wch: 10 },
-    { wch: 10 },
-    { wch: 11 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 10 },
-    { wch: 12 },
-    { wch: 11 },
+    { wch: 4 }, { wch: 12 }, { wch: 36 }, { wch: 16 }, { wch: 26 }, { wch: 26 },
+    { wch: 8 }, { wch: 7 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 11 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 11 }
   ];
 
   const wb = XLSX.utils.book_new();
