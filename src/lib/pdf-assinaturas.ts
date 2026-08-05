@@ -62,7 +62,7 @@ export function cargoDoPerfil(perfilCodigo: string | null): string | null {
 
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) return null;
     const blob = await res.blob();
     return await new Promise<string>((resolve, reject) => {

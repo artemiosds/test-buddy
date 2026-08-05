@@ -22,8 +22,8 @@ let cached: { data: MunicipioInfo | null; logoData: string | null } | null = nul
 
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`Status: ${res.status}`);
     const blob = await res.blob();
     return await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
@@ -89,13 +89,13 @@ export function drawInstitutionalHeader(
   
   const uf = info.data?.uf ?? "PA";
 
-  if (logoBrasao.url) {
-    try {
-      doc.addImage(logoBrasao.url, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
-    } catch { /* ignore */ }
-  } else if (info.logoData) {
+  if (info.logoData) {
     try {
       doc.addImage(info.logoData, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
+    } catch { /* ignore */ }
+  } else if (logoBrasao.url) {
+    try {
+      doc.addImage(logoBrasao.url, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
     } catch { /* ignore */ }
   }
 

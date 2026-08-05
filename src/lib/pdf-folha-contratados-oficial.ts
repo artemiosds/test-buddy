@@ -246,18 +246,20 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
   
-  // Helper para converter URL em Base64
+  // Helper unificado para converter URL em Base64 (DataURL)
   async function getBase64Image(url: string): Promise<string | null> {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`Status: ${response.status}`);
       const blob = await response.blob();
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
       });
     } catch (e) {
-      console.error("Erro ao carregar imagem para o PDF:", e);
+      console.error("Erro ao carregar imagem para o PDF:", e, url);
       return null;
     }
   }
@@ -267,11 +269,15 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
   const logoSaudeUrl = (await import("@/assets/logo-saude.png.asset.json")).default.url;
 
-  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = await Promise.all([
-    getBase64Image(logoPrefeituraUrl),
-    getBase64Image(logoBrasaoAltUrl),
-    getBase64Image(logoSaudeUrl),
-  ]);
+  const isBrowser = typeof window !== "undefined";
+
+  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = isBrowser
+    ? await Promise.all([
+        getBase64Image(logoPrefeituraUrl),
+        getBase64Image(logoBrasaoAltUrl),
+        getBase64Image(logoSaudeUrl),
+      ])
+    : [logoPrefeituraUrl, logoBrasaoAltUrl, logoSaudeUrl];
 
   const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
     secretariaId: input.secretariaId ?? null,
