@@ -25,6 +25,7 @@ export const obterNovasChavesSSO = createServerFn({ method: "POST" })
       ''
     ).toLowerCase().trim();
 
+    // Verificamos o perfil nomeado e o flag is_master (que agora deve ser confiável via supabaseAdmin.rpc)
     const isMaster = 
       profile?.is_master === true || 
       [
@@ -34,6 +35,7 @@ export const obterNovasChavesSSO = createServerFn({ method: "POST" })
       ].includes(perfilNormalizado);
 
     if (!isMaster) {
+      console.error(`[SSO Admin] Acesso negado. Perfil detectado: ${perfilNormalizado}. is_master: ${profile?.is_master}`);
       throw new Error("Apenas usuários MASTER podem gerar chaves.");
     }
 

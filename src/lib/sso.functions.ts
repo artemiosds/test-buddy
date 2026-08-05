@@ -256,6 +256,20 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
 
     if (sErr || !sistema) {
       console.error(`[SSO][${correlationId}] Sistema não encontrado:`, sErr);
+      
+      await supabaseAdmin.from("audit_log").insert({
+        tabela: "sistemas_externos",
+        operacao: "custom",
+        usuario_id: user.id,
+        contexto: { 
+          success: false,
+          error: "Sistema não encontrado ou inativo", 
+          correlationId, 
+          sistemaId: data.sistemaId,
+          step: "lookup_system"
+        }
+      });
+
       throw new Error("Sistema não encontrado ou inativo");
     }
 
@@ -267,9 +281,10 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",
-        operacao: "insert",
+        operacao: "custom",
         usuario_id: user.id,
         contexto: { 
+          success: false,
           error: errorMsg, 
           correlationId, 
           sistemaId: data.sistemaId,
@@ -366,17 +381,155 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     });
 
     // 8. Assinar JWT
-    const secret = new TextEncoder().encode(ssoSecret);
-    const alg = "HS256"; 
+    let token = "";
+    try {
+      if ((sistema as any).private_key && sistema.tipo_autenticacao === "JWT SSO") {
+        // Uso de RS256 com chave privada interna
+        const { importPKCS8 } = await import("jose");
+        const privateKey = await importPKCS8((sistema as any).private_key, "RS256");
+        
+        token = await new SignJWT(payload)
+          .setProtectedHeader({ alg: "RS256" })
+          .setIssuedAt(now)
+          .setExpirationTime(exp)
+          .sign(privateKey);
+      } else {
+        // Fallback para HS256 com secret global
+        const secret = new TextEncoder().encode(ssoSecret);
+        const alg = "HS256"; 
 
-    const token = await new SignJWT(payload)
-      .setProtectedHeader({ alg })
-      .setIssuedAt(now)
-      .setExpirationTime(exp)
-      .sign(secret);
+        token = await new SignJWT(payload)
+          .setProtectedHeader({ alg })
+          .setIssuedAt(now)
+          .setExpirationTime(exp)
+          .sign(secret);
+      }
+    } catch (e: any) {
+      await supabaseAdmin.from("audit_log").insert({
+        tabela: "sistemas_externos",
+        operacao: "custom",
+        usuario_id: user.id,
+        contexto: { 
+          success: false,
+          error: `Falha na assinatura do token: ${e.message}`, 
+          correlationId, 
+          sistemaId: data.sistemaId,
+          sistemaNome: sistema.nome,
+          step: "sign_jwt"
+        }
+      });
+      throw e;
+    }
+
+    await supabaseAdmin.from("audit_log").insert({
+      tabela: "sistemas_externos",
+      operacao: "insert",
+      usuario_id: user.id,
+      ip: (context as any).ip || null,
+      user_agent: (context as any).userAgent || null,
+      contexto: { 
+        success: true, 
+        correlationId, 
+        sistemaId: data.sistemaId,
+        sistemaNome: sistema.nome,
+        step: "generate_token"
+      }
+    });
 
     return {
       token,
       urlRedirect: `${sistema.url_base}${sistema.endpoint_sso}?token=${token}`,
     };
+  });
+
+export const getSSOMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    // 1. Total sistemas conectados
+    const { count: totalSistemas } = await supabaseAdmin
+      .from("sistemas_externos")
+      .select("*", { count: "exact", head: true })
+      .eq("ativo", true);
+
+    // 2. Autenticações SSO nas últimas 24h (Sucesso)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { count: ssoSucessos } = await supabaseAdmin
+      .from("audit_log")
+      .select("*", { count: "exact", head: true })
+      .eq("tabela", "sistemas_externos")
+      .contains("contexto", { success: true })
+      .gte("ocorrido_em", yesterday);
+
+    // 3. Falhas nas últimas 24h
+    const { count: ssoFalhas } = await supabaseAdmin
+      .from("audit_log")
+      .select("*", { count: "exact", head: true })
+      .eq("tabela", "sistemas_externos")
+      .contains("contexto", { success: false })
+      .gte("ocorrido_em", yesterday);
+
+    return {
+      totalSistemas: totalSistemas || 0,
+      ssoSucessos: ssoSucessos || 0,
+      ssoFalhas: ssoFalhas || 0,
+      statusCentral: "Operacional",
+    };
+  });
+
+export const getSSOLogs = createServerFn({ method: "GET" })
+  .inputValidator((data) =>
+    z.object({
+      sistemaId: z.string().uuid().optional(),
+      status: z.enum(["success", "error", "all"]).optional(),
+      busca: z.string().optional(),
+      limit: z.number().optional().default(50),
+    }).parse(data),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data }) => {
+    let query = supabaseAdmin
+      .from("audit_log")
+      .select(`*`)
+      .eq("tabela", "sistemas_externos")
+      .order("ocorrido_em", { ascending: false })
+      .limit(data.limit);
+
+    if (data.status === "success") {
+      query = query.contains("contexto", { success: true });
+    } else if (data.status === "error") {
+      query = query.contains("contexto", { success: false });
+    }
+
+    if (data.sistemaId) {
+      query = query.contains("contexto", { sistemaId: data.sistemaId });
+    }
+
+    const { data: logs, error } = await query;
+
+    if (error) throw error;
+
+    // Se houver logs, buscar dados dos usuários para enriquecer
+    const userIds = Array.from(new Set(logs.map(l => l.usuario_id).filter(Boolean))) as string[];
+    const { data: userData } = userIds.length > 0 
+      ? await supabaseAdmin.from("usuarios").select("id, nome_completo, email").in("id", userIds)
+      : { data: [] };
+
+    const userMap = new Map(userData?.map(u => [u.id, u]) || []);
+
+    return logs.map(log => {
+      const u = log.usuario_id ? userMap.get(log.usuario_id) : null;
+      return {
+        id: log.id,
+        timestamp: log.ocorrido_em,
+        usuario: u?.nome_completo || log.usuario_email || "Sistema",
+        cpf: "-", // CPF não disponível na tabela usuários, buscar se necessário via profissionais
+        sistemaDestino: (log.contexto as any)?.sistemaNome || "SSO",
+        ip: log.ip,
+        dispositivo: log.user_agent,
+        resultado: (log.contexto as any)?.success ? "Sucesso" : "Falha",
+        detalhes: log.contexto,
+        operacao: log.operacao
+      };
+    });
   });

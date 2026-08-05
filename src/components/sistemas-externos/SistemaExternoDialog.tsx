@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { criarSistema, editarSistema } from "@/lib/sistemas-externos-admin.functions";
+import { obterNovasChavesSSO } from "@/lib/sso-admin.functions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -54,6 +55,8 @@ const formSchema = z.object({
   nonce: z.string().optional(),
   jti_enabled: z.boolean().optional(),
   ativo: z.boolean(),
+  public_key: z.string().optional(),
+  private_key: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -160,6 +163,18 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
     mutation.mutate(values);
   }
 
+
+  const handleGenerateKeys = async () => {
+    try {
+      const toastId = toast.loading("Gerando novo par de chaves RSA...");
+      const chaves = await obterNovasChavesSSO();
+      form.setValue("public_key", chaves.publicKeyPem);
+      form.setValue("private_key", chaves.privateKeyPem);
+      toast.success("Chaves RSA geradas com sucesso!", { id: toastId });
+    } catch (error: any) {
+      toast.error("Erro ao gerar chaves: " + error.message);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -406,6 +421,45 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Chaves RSA (Internas)</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Utilizadas para assinatura RS256 quando um JWKS externo não é fornecido.
+                      </p>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleGenerateKeys}
+                    >
+                      Gerar Novas Chaves
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <FormField
+                      control={form.control}
+                      name="public_key"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Public Key (PEM)</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              className="font-mono text-[10px] h-20" 
+                              placeholder="-----BEGIN PUBLIC KEY-----..." 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
                 <FormField
                   control={form.control}

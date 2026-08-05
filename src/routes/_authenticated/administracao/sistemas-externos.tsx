@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SistemasExternosGrid } from "@/components/sistemas-externos/SistemasExternosGrid";
-import { Globe, Settings, Plus } from "lucide-react";
+import { Globe, Plus, History, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SistemaExternoDialog } from "@/components/sistemas-externos/SistemaExternoDialog";
 import { GeradorChavesSSO } from "@/components/sistemas-externos/GeradorChavesSSO";
+import { AuditSSOView } from "@/components/sistemas-externos/AuditSSOView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({
@@ -20,10 +22,10 @@ function SistemasExternosPage() {
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Globe className="h-8 w-8 text-primary" />
-            Sistemas Externos
+            Ecossistema de Saúde
           </h2>
           <p className="text-muted-foreground">
-            Integração centralizada via SSO para ecossistema de saúde.
+            Integração Centralizada & SSO — Secretaria Municipal de Saúde de Oriximiná.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -32,13 +34,29 @@ function SistemasExternosPage() {
             <Plus className="mr-2 h-4 w-4" />
             Novo Sistema
           </Button>
-
         </div>
       </div>
 
-      <div className="mt-6">
-        <SistemasExternosGrid />
-      </div>
+      <Tabs defaultValue="grid" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+          <TabsTrigger value="grid" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Sistemas
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Auditoria SSO
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="grid" className="space-y-4">
+          <SistemasExternosGrid />
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4">
+          <AuditSSOView />
+        </TabsContent>
+      </Tabs>
 
       <SistemaExternoDialog 
         open={dialogOpen} 

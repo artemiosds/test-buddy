@@ -28,6 +28,8 @@ const sistemaSchema = z.object({
   nonce: z.string().optional(),
   jti_enabled: z.boolean().default(true),
   ativo: z.boolean().default(true),
+  public_key: z.string().optional(),
+  private_key: z.string().optional(),
 });
 
 export const listarSistemas = createServerFn({ method: "GET" })
@@ -48,9 +50,10 @@ export const listarSistemas = createServerFn({ method: "GET" })
       'master', 'admin', 'administrador', 'administrator', 'gestor', 'gestao', 'gestão', 
       'administrador master', 'adm master'
     ].includes(perfilNormalizado);
-    const isGestor = perfilNormalizado === 'gestor' || perfilNormalizado === 'gestao' || perfilNormalizado === 'gestão' || profile?.perfil_nome === "GESTOR";
+    const isGestor = profile?.perfil_nome === "GESTOR" || perfilNormalizado === 'gestor' || perfilNormalizado === 'gestao' || perfilNormalizado === 'gestão';
 
     if (!isMaster && !isGestor) {
+      console.error(`[Admin] Acesso negado para listar. Perfil: ${perfilNormalizado}`);
       throw new Response("Role insuficiente para listar sistemas.", { status: 403 });
     }
 
@@ -112,7 +115,9 @@ export const criarSistema = createServerFn({ method: "POST" })
         jti_enabled: data.jti_enabled,
         ativo: data.ativo,
         status: data.status,
-      })
+        ...((data as any).public_key ? { public_key: (data as any).public_key } : {}),
+        ...((data as any).private_key ? { private_key: (data as any).private_key } : {}),
+      } as any)
       .select()
       .single();
 
@@ -176,6 +181,8 @@ export const editarSistema = createServerFn({ method: "POST" })
         // Garantir que campos numéricos sejam passados corretamente
         token_exp_segundos: data.updates.token_exp_segundos,
         clock_skew_segundos: data.updates.clock_skew_segundos,
+        public_key: data.updates.public_key,
+        private_key: data.updates.private_key,
       } as any)
       .eq("id", data.id)
       .select()

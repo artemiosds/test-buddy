@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Loader2, CalendarClock, LayoutGrid, Shield, Globe, Terminal, Edit, Trash2, Copy, MoreVertical } from "lucide-react";
-import { testarConfiguracaoSSO } from "@/lib/sso.functions";
-import { gerarTokenSSO, gerarUrlSSO } from "@/lib/sso";
+import { testarConfiguracaoSSO, gerarTokenSSO } from "@/lib/sso.functions";
 import { removerSistema, duplicarSistema } from "@/lib/sistemas-externos-admin.functions";
 import { toast } from "sonner";
 import { SistemaExternoDialog } from "./SistemaExternoDialog";
@@ -78,21 +77,13 @@ export function SistemasExternosGrid() {
   const handleOpenSystem = async (sistema: any) => {
     setOpeningId(sistema.id);
     try {
-      // Obter dados do usuário via RPC ou estado global se disponível
-      const { data: userData } = await supabase.rpc("get_my_user_context");
-      const profile = Array.isArray(userData) ? userData[0] : userData;
-
-      if (!profile) throw new Error("Não foi possível carregar seu perfil.");
-
-      const token = await gerarTokenSSO({
-        id: profile.id,
-        nome: profile.nome_completo || profile.email,
-        email: profile.email,
-        perfil: profile.perfil_nome
+      const result = await gerarTokenSSO({
+        data: { sistemaId: sistema.id }
       });
 
-      const urlRedirect = gerarUrlSSO(token);
-      window.open(urlRedirect, "_blank");
+      if (result.urlRedirect) {
+        window.open(result.urlRedirect, "_blank");
+      }
     } catch (error: any) {
       console.error("SSO Error:", error);
       toast.error("Falha ao gerar acesso automático: " + (error.message || "Erro desconhecido"));
@@ -211,7 +202,7 @@ export function SistemasExternosGrid() {
               <CardContent className="pb-4">
                 <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Shield className="h-3 w-3" />
-                  <span>Tipo: {sistema.tipo_autenticacao}</span>
+                  <span>Tipo: {sistema.tipo_autenticacao || "JWT SSO (Padrão)"}</span>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-2">
