@@ -1,3 +1,7 @@
+import logoSmsMarca from "@/assets/logo-sms-marca.png.asset.json";
+import logoSmsPiso from "@/assets/logo-sms-piso.png.asset.json";
+import logoSmsFixed from "@/assets/logo-sms-fixed.png.asset.json";
+import logoSmsOficial from "@/assets/logo-sms-oficial.png.asset.json";
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -159,6 +163,8 @@ function AuthPage() {
       setRecoveryMode(false);
       setRecoveryCode("");
       setMfaCode("");
+      // O guard de _authenticated leva o usuário para /seguranca quando o
+      // perfil exige 2FA e não há fator ativo.
       setTimeout(() => navigate({ to: "/" }), 800);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível validar o código");
@@ -220,7 +226,7 @@ function AuthPage() {
       <div className="w-full max-w-md rounded-lg border bg-card p-8 shadow-sm">
         <div className="mb-6 text-center">
           <img
-            src="/icon-512.png"
+            src={logoSmsOficial.url}
             alt="Secretaria Municipal de Saúde de Oriximiná"
             className="mx-auto mb-4 h-32 w-auto object-contain"
           />
