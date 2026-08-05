@@ -846,19 +846,19 @@ function LinhasAnaliseDialog({
         ) : !linhasVisiveis.length ? (
           <div className="p-4 text-sm text-muted-foreground">Nenhuma linha para exibir.</div>
         ) : (
-          <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
-            <table className="w-full text-xs">
+          <div className="max-h-[70vh] overflow-auto rounded-lg border custom-scrollbar">
+            <table className="w-full text-xs border-collapse">
               <thead className="sticky top-0 border-b bg-muted/90 backdrop-blur-sm z-10">
                 <tr className="text-left">
-                  <th className="p-3 border-r">Profissional / Matrícula</th>
-                  <th className="p-3 border-r text-center">Status</th>
-                  <th className="p-3 border-r text-center w-20">Dias Trab.</th>
-                  <th className="p-3 border-r text-center w-20">Faltas</th>
-                  <th className="p-3 border-r text-center w-20">Atestado</th>
-                  <th className="p-3 border-r text-center w-20 bg-amber-500/5">HE 50%</th>
-                  <th className="p-3 border-r text-center w-20 bg-amber-600/5">HE 100%</th>
-                  <th className="p-3 border-r text-center w-24">Observação / Justificativa</th>
-                  <th className="p-3 text-right w-32">Decisão</th>
+                  <th className="p-3 border-r bg-muted/95 sticky left-0 z-20">Profissional / Matrícula</th>
+                  <th className="p-3 border-r text-center bg-muted/95">Status</th>
+                  <th className="p-3 border-r text-center w-20 bg-muted/95">Dias Trab.</th>
+                  <th className="p-3 border-r text-center w-20 bg-muted/95">Faltas</th>
+                  <th className="p-3 border-r text-center w-20 bg-muted/95">Atestado</th>
+                  <th className="p-3 border-r text-center w-20 bg-amber-500/10">HE 50%</th>
+                  <th className="p-3 border-r text-center w-20 bg-amber-600/10">HE 100%</th>
+                  <th className="p-3 border-r text-center w-24 bg-muted/95">Observação / Justificativa</th>
+                  <th className="p-3 text-right w-32 bg-muted/95">Decisão</th>
                 </tr>
               </thead>
               <tbody>
@@ -873,7 +873,7 @@ function LinhasAnaliseDialog({
                       key={l.id}
                       className={`border-b last:border-0 align-top ${excecao ? "bg-destructive/5" : ""}`}
                     >
-                      <td className="p-3 border-r">
+                      <td className="p-3 border-r sticky left-0 bg-background/95 z-10">
                         <div className="font-semibold text-sm">{l.profissionais?.nome_completo ?? "—"}</div>
                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
                           <span className="bg-muted px-1 rounded font-mono">Mat. {l.profissionais?.matricula ?? "—"}</span>

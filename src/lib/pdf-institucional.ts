@@ -1,6 +1,6 @@
 import type jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
-import logoBrasao from "@/assets/brasao-oriximina-v2.png.asset.json";
+import { LOGO_BRASAO } from "@/lib/pdf-logos-base64";
 
 export type PdfConfig = {
   logo_size: number;
@@ -93,9 +93,9 @@ export function drawInstitutionalHeader(
     try {
       doc.addImage(info.logoData, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
     } catch { /* ignore */ }
-  } else if (logoBrasao.url) {
+  } else if (LOGO_BRASAO) {
     try {
-      doc.addImage(logoBrasao.url, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
+      doc.addImage(LOGO_BRASAO, "PNG", cx - logoSize / 2, logoY, logoSize, logoSize);
     } catch { /* ignore */ }
   }
 

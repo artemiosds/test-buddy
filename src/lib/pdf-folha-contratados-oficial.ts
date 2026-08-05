@@ -9,6 +9,7 @@ import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { LOGO_PREFEITURA, LOGO_SAUDE, LOGO_BRASAO } from "@/lib/pdf-logos-base64";
 
 export type PdfContratadosInput = {
   competencia: { mes: number; ano: number };
@@ -246,38 +247,9 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
   
-  // Helper unificado para converter URL em Base64 (DataURL)
-  async function getBase64Image(url: string): Promise<string | null> {
-    try {
-      const response = await fetch(url, { cache: 'no-cache' });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.error("Erro ao carregar imagem para o PDF:", e, url);
-      return null;
-    }
-  }
-
-  // Logos institucionais dinâmicas convertidas para Base64 para estabilidade na Vercel
-  const logoPrefeituraUrl = (await import("@/assets/logo-prefeitura.jpg.asset.json")).default.url;
-  const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
-  const logoSaudeUrl = (await import("@/assets/logo-saude.png.asset.json")).default.url;
-
-  const isBrowser = typeof window !== "undefined";
-
-  const [logoPrefeitura, logoBrasaoAlt, logoSaude] = isBrowser
-    ? await Promise.all([
-        getBase64Image(logoPrefeituraUrl),
-        getBase64Image(logoBrasaoAltUrl),
-        getBase64Image(logoSaudeUrl),
-      ])
-    : [logoPrefeituraUrl, logoBrasaoAltUrl, logoSaudeUrl];
+  const logoPrefeitura = LOGO_PREFEITURA;
+  const logoBrasaoAlt = LOGO_BRASAO;
+  const logoSaude = LOGO_SAUDE;
 
   const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
     secretariaId: input.secretariaId ?? null,

@@ -68,6 +68,7 @@ import {
   ResumoDiasFaltasAtt,
   useSelectedErpRow,
 } from "@/components/frequencias/resumo-dias-faltas-att";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -152,7 +153,7 @@ export function FrequenciasContratadosPage() {
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
-  const [setorFilter, setSetorFilter] = useState<string>("todos");
+  const [setorFilter, setSetorFilter] = useState<string[]>([]);
   const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
   const [pendFilter, setPendFilter] = useState<
     "todos" | "sem_conta" | "sem_cargo" | "sem_lotacao" | "sem_matricula" | "sem_cpf"
@@ -198,7 +199,7 @@ export function FrequenciasContratadosPage() {
     },
   });
   useEffect(() => {
-    setSetorFilter("todos");
+    setSetorFilter([]);
   }, [unidadeId]);
 
   // Competências
@@ -560,7 +561,7 @@ export function FrequenciasContratadosPage() {
       const p = it.profissional;
       if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
-      if (setorFilter !== "todos" && p.setor_id !== setorFilter) return false;
+      if (setorFilter.length > 0 && !setorFilter.includes(p.setor_id || "")) return false;
       if (pendFilter !== "todos") {
         const semConta = !p.banco || !p.agencia || !p.conta_corrente;
         if (pendFilter === "sem_conta" && !semConta) return false;
@@ -935,21 +936,16 @@ export function FrequenciasContratadosPage() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Setor</label>
-          <Select value={setorFilter} onValueChange={setSetorFilter} disabled={!unidadeId}>
-            <SelectTrigger>
-              <SelectValue placeholder={unidadeId ? "Todos" : "Selecione uma unidade"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {setoresOpts?.map((s: any) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="w-[200px]">
+          <label className="text-xs text-muted-foreground block mb-1">Setor</label>
+          <MultiSelect
+            options={(setoresOpts ?? []).map((s: any) => ({ label: s.nome, value: s.id }))}
+            onValueChange={setSetorFilter}
+            defaultValue={setorFilter}
+            placeholder={unidadeId ? "Selecionar Setores" : "Selecione uma unidade"}
+            maxCount={2}
+            disabled={!unidadeId}
+          />
         </div>
       </div>
 

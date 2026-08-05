@@ -16,6 +16,7 @@
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { LOGO_BRASAO } from "@/lib/pdf-logos-base64";
 
 export type ProfissionalFolha = {
   id: string;
@@ -365,28 +366,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
   
-  // Helper unificado para converter URL em Base64 (DataURL)
-  async function getBase64Image(url: string): Promise<string | null> {
-    try {
-      const response = await fetch(url, { cache: 'no-cache' });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.error("Erro ao carregar imagem para o PDF:", e, url);
-      return null;
-    }
-  }
-
-  // Logo institucional (Brasão) convertido para Base64 para estabilidade na Vercel
-  const logoBrasaoAltUrl = (await import("@/assets/brasao-oriximina-v2.png.asset.json")).default.url;
-  const isBrowser = typeof window !== "undefined";
-  const logoBrasaoAlt = isBrowser ? await getBase64Image(logoBrasaoAltUrl) : logoBrasaoAltUrl;
+  const logoBrasaoAlt = LOGO_BRASAO;
 
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,
