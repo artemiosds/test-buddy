@@ -258,6 +258,101 @@ export type Database = {
         }
         Relationships: []
       }
+      avisos_mural: {
+        Row: {
+          ativa_modo_manutencao: boolean | null
+          ativo: boolean
+          atualizado_em: string
+          confirmacao_obrigatoria: boolean
+          criado_em: string
+          criado_por: string | null
+          data_fim: string | null
+          data_inicio: string
+          destinatarios: Json
+          email_enviado_em: string | null
+          fixado: boolean
+          id: string
+          mensagem: string
+          notificar_email: boolean | null
+          previsao_termino: string | null
+          prioridade: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ativa_modo_manutencao?: boolean | null
+          ativo?: boolean
+          atualizado_em?: string
+          confirmacao_obrigatoria?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          destinatarios?: Json
+          email_enviado_em?: string | null
+          fixado?: boolean
+          id?: string
+          mensagem: string
+          notificar_email?: boolean | null
+          previsao_termino?: string | null
+          prioridade?: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          ativa_modo_manutencao?: boolean | null
+          ativo?: boolean
+          atualizado_em?: string
+          confirmacao_obrigatoria?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          destinatarios?: Json
+          email_enviado_em?: string | null
+          fixado?: boolean
+          id?: string
+          mensagem?: string
+          notificar_email?: boolean | null
+          previsao_termino?: string | null
+          prioridade?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      avisos_mural_leituras: {
+        Row: {
+          aviso_id: string
+          confirmado: boolean
+          id: string
+          lido_em: string
+          usuario_id: string
+        }
+        Insert: {
+          aviso_id: string
+          confirmado?: boolean
+          id?: string
+          lido_em?: string
+          usuario_id: string
+        }
+        Update: {
+          aviso_id?: string
+          confirmado?: boolean
+          id?: string
+          lido_em?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_mural_leituras_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "avisos_mural"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendario_institucional: {
         Row: {
           abrangencia: Database["public"]["Enums"]["abrangencia_calendario"]
@@ -4003,6 +4098,38 @@ export type Database = {
           },
         ]
       }
+      sistema_config: {
+        Row: {
+          ativado_em: string | null
+          ativado_por: string | null
+          aviso_manutencao_id: string | null
+          id: number
+          modo_manutencao_ativo: boolean | null
+        }
+        Insert: {
+          ativado_em?: string | null
+          ativado_por?: string | null
+          aviso_manutencao_id?: string | null
+          id?: number
+          modo_manutencao_ativo?: boolean | null
+        }
+        Update: {
+          ativado_em?: string | null
+          ativado_por?: string | null
+          aviso_manutencao_id?: string | null
+          id?: number
+          modo_manutencao_ativo?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistema_config_aviso_manutencao_id_fkey"
+            columns: ["aviso_manutencao_id"]
+            isOneToOne: false
+            referencedRelation: "avisos_mural"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sistemas_externos: {
         Row: {
           ativo: boolean | null
@@ -4727,6 +4854,7 @@ export type Database = {
         Args: { _competencia_id?: string; _unidade_id?: string }
         Returns: Json
       }
+      desativar_modo_manutencao_emergencia: { Args: never; Returns: undefined }
       descartar_evento_dominio: {
         Args: { _id: string; _motivo?: string }
         Returns: undefined
@@ -4829,6 +4957,7 @@ export type Database = {
         Returns: Json
       }
       hsm_estatisticas: { Args: { _dias?: number }; Returns: Json }
+      is_aviso_gestor: { Args: { _user_id: string }; Returns: boolean }
       is_master: { Args: { _user_id: string }; Returns: boolean }
       is_master_core: { Args: { _user_id: string }; Returns: boolean }
       log_client_action: {

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
@@ -8,21 +9,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { consumeBackupCodeAndUnenroll, countBackupCodes } from "@/lib/mfa-backup-codes.functions";
 
 export const Route = createFileRoute("/auth")({
+  // Renderizada apenas no cliente: evita hydration mismatch quando o
+  // guard de /_authenticated (ssr: false) redireciona para /auth no cliente.
+  ssr: false,
   beforeLoad: async () => {
-    if (typeof window === "undefined") return;
-    let hasUser = false;
-    let mfaPending = false;
-    try {
-      const { data } = await supabase.auth.getUser();
-      hasUser = !!data.user;
-      if (hasUser) {
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        mfaPending = aal?.nextLevel === "aal2" && aal.currentLevel === "aal1";
-      }
-    } catch {
-      // Se a sessão ainda estiver inicializando ou indisponível, mantém a tela de login.
-    }
-    if (hasUser && !mfaPending) throw redirect({ to: "/" });
+    // Apenas redireciona se tivermos certeza da sessão, 
+    // mas evitamos lógica complexa de redirecionamento aqui que dependa de window/localStorage
+    // para não quebrar o SSR.
   },
   head: () => ({
     meta: [
@@ -38,6 +31,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const hydrated = useHydrated();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +51,8 @@ function AuthPage() {
 
   useEffect(() => {
     let mounted = true;
+    const isSSR = typeof window === "undefined";
+    if (isSSR) return;
 
     const redirectIfAuthenticated = () => {
       void (async () => {
@@ -178,7 +174,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
             data: { nome_completo: nome },
           },
         });
@@ -188,7 +184,7 @@ function AuthPage() {
         );
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
         });
         if (error) throw error;
         setInfo("Se este e-mail estiver cadastrado, enviaremos um link para redefinir a senha.");
@@ -216,6 +212,10 @@ function AuthPage() {
       setLoading(false);
     }
   }
+
+  // Renderiza somente após hidratação completa: quando o usuário chega aqui
+  // via redirecionamento no cliente, o HTML do servidor não contém esta tela.
+  if (!hydrated) return null;
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/30 px-4">

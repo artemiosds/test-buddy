@@ -79,6 +79,7 @@ import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_a
 import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
 import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
 import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
+import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_authenticated/administracao/mural'
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
@@ -481,6 +482,12 @@ const AuthenticatedAdministracaoSistemasExternosRoute =
     path: '/administracao/sistemas-externos',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdministracaoMuralRoute =
+  AuthenticatedAdministracaoMuralRouteImport.update({
+    id: '/administracao/mural',
+    path: '/administracao/mural',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicHooksPurgarDocumentosRoute =
   ApiPublicHooksPurgarDocumentosRouteImport.update({
     id: '/api/public/hooks/purgar-documentos',
@@ -543,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/administracao/mural': typeof AuthenticatedAdministracaoMuralRoute
   '/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
@@ -617,6 +625,7 @@ export interface FileRoutesByTo {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/administracao/mural': typeof AuthenticatedAdministracaoMuralRoute
   '/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
@@ -694,6 +703,7 @@ export interface FileRoutesById {
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/_authenticated/administracao/mural': typeof AuthenticatedAdministracaoMuralRoute
   '/_authenticated/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/_authenticated/cargos/$id': typeof AuthenticatedCargosIdRoute
   '/_authenticated/competencias/$id': typeof AuthenticatedCompetenciasIdRoute
@@ -771,6 +781,7 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
+    | '/administracao/mural'
     | '/administracao/sistemas-externos'
     | '/cargos/$id'
     | '/competencias/$id'
@@ -845,6 +856,7 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
+    | '/administracao/mural'
     | '/administracao/sistemas-externos'
     | '/cargos/$id'
     | '/competencias/$id'
@@ -921,6 +933,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tipos-unidade'
     | '/_authenticated/usuarios'
     | '/validar/$id'
+    | '/_authenticated/administracao/mural'
     | '/_authenticated/administracao/sistemas-externos'
     | '/_authenticated/cargos/$id'
     | '/_authenticated/competencias/$id'
@@ -1464,6 +1477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdministracaoSistemasExternosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/administracao/mural': {
+      id: '/_authenticated/administracao/mural'
+      path: '/administracao/mural'
+      fullPath: '/administracao/mural'
+      preLoaderRoute: typeof AuthenticatedAdministracaoMuralRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/hooks/purgar-documentos': {
       id: '/api/public/hooks/purgar-documentos'
       path: '/api/public/hooks/purgar-documentos'
@@ -1633,6 +1653,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
+  AuthenticatedAdministracaoMuralRoute: typeof AuthenticatedAdministracaoMuralRoute
   AuthenticatedAdministracaoSistemasExternosRoute: typeof AuthenticatedAdministracaoSistemasExternosRoute
   AuthenticatedCargosIdRoute: typeof AuthenticatedCargosIdRoute
   AuthenticatedConfiguracaoPerfisRoute: typeof AuthenticatedConfiguracaoPerfisRouteWithChildren
@@ -1692,6 +1713,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
+  AuthenticatedAdministracaoMuralRoute: AuthenticatedAdministracaoMuralRoute,
   AuthenticatedAdministracaoSistemasExternosRoute:
     AuthenticatedAdministracaoSistemasExternosRoute,
   AuthenticatedCargosIdRoute: AuthenticatedCargosIdRoute,
@@ -1742,13 +1764,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

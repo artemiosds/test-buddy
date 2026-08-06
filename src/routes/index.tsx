@@ -1,7 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  ssr: false,
+  // Sem ssr:false: o redirecionamento acontece no servidor (302), evitando
+  // que o cliente troque de rota durante a hidratação.
   beforeLoad: async () => {
     // Redirecionamos para /analitico para garantir que o layout autenticado
     // (com sidebar) seja carregado corretamente. O "/" por ser raiz e flat

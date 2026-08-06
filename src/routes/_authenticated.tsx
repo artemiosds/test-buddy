@@ -67,30 +67,50 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HsmExpertLauncher } from "@/components/hsm-expert/hsm-expert-launcher";
+import { MuralHeaderSino } from "@/components/mural/MuralHeaderSino";
+import { AvisoModal } from "@/components/mural/AvisoModal";
+import { ManutencaoProvider } from "@/providers/ManutencaoProvider";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    type SbUser = Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"];
     if (typeof window === "undefined") {
-      return {
-        user: null as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"],
-      };
+      return { user: null as unknown as SbUser };
     }
     try {
       const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) throw redirect({ to: "/auth" });
+      if (error || !data.user) return { user: null as unknown as SbUser };
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-        throw redirect({ to: "/auth" });
+        return { user: null as unknown as SbUser };
       }
       return { user: data.user };
-    } catch (e) {
-      if (e instanceof Error && e.message === "Redirect") throw e;
-      throw redirect({ to: "/auth" });
+    } catch {
+      return { user: null as unknown as SbUser };
     }
   },
-  component: AuthenticatedLayout,
+  component: AuthenticatedGuard,
 });
+
+function AuthenticatedGuard() {
+  const { user } = Route.useRouteContext();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) return;
+    // Redirecionamento "hard" para /auth: garante que o documento seja
+    // renderizado do zero, sem trocar o match do router durante a hidratação
+    // (o que causava "Hydration failed" em deep links sem sessão).
+    if (typeof window !== "undefined" && window.location.pathname !== "/auth") {
+      window.location.replace("/auth");
+    }
+  }, [user, navigate]);
+
+  if (!user) return null;
+  return <AuthenticatedLayout />;
+}
+
 
 type NavItem = {
   to: string;
@@ -117,7 +137,7 @@ const GROUPS: NavGroup[] = [
     label: "Operação",
     icon: Activity,
     items: [
-      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analitico", label: "Dashboard", icon: LayoutDashboard },
       {
         to: "/analitico",
         label: "Dashboard Analítico",
@@ -314,12 +334,25 @@ const GROUPS: NavGroup[] = [
         icon: Globe,
         perm: ["configuracao.editar", "usuario.gerenciar"],
       },
+      {
+        to: "/administracao/mural",
+        label: "Mural de Avisos",
+        icon: Megaphone,
+      },
       { to: "/seguranca", label: "Segurança (MFA)", icon: KeyRound },
     ],
   },
 ];
 
 function AuthenticatedLayout() {
+  return (
+    <ManutencaoProvider>
+      <AuthenticatedLayoutInner />
+    </ManutencaoProvider>
+  );
+}
+
+function AuthenticatedLayoutInner() {
   const context = Route.useRouteContext();
   const { user } = context;
   const navigate = useNavigate();
@@ -462,10 +495,14 @@ function AuthenticatedLayout() {
       navigate({ to: "/seguranca", replace: true });
     }
   }, [mfaRequired, mfaMissing, isSegurancaRoute, navigate]);
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("sidebar-collapsed") === "true";
-  });
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setCollapsed(saved === "true");
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
@@ -763,9 +800,9 @@ function AuthenticatedLayout() {
           </div>
         </main>
       </div>
+      <AvisoModal />
       <HsmExpertLauncher />
     </div>
-
   );
 }
 
@@ -904,8 +941,17 @@ function TopBar({
               {theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
             </TooltipContent>
           </Tooltip>
+          {/* Mural de Avisos (Sino) */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <MuralHeaderSino />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Mural de Avisos
+            </TooltipContent>
+          </Tooltip>
 
-          {/* Notificações */}
+          {/* Notificações do Sistema (Comentários/Etc) */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
@@ -913,12 +959,14 @@ function TopBar({
                 className="relative inline-flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-full transition hover:bg-accent"
                 aria-label="Notificações"
               >
-                <Bell className="h-4 w-4" strokeWidth={1.75} />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-sm">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
+                <div className="relative">
+                  <Bell className="h-4 w-4" strokeWidth={1.75} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-sm">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </div>
               </Link>
             </TooltipTrigger>
             <TooltipContent side="bottom">Notificações</TooltipContent>

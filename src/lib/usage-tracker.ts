@@ -38,6 +38,7 @@ export async function trackUso(
 }
 
 export function trackPageView(rota: string, contexto?: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
   const now = Date.now();
   if (lastPageViewRoute === rota && now - lastPageViewAt < 2000) return;
   lastPageViewRoute = rota;

@@ -294,11 +294,11 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
 
 
     // 2. Validar Configurações Obrigatórias e definir Secret
-    // Fallback para quando a variável de ambiente não está configurada na Vercel/Produção
-    const ssoSecret = process.env.SSO_JWT_SECRET || 'emergency_fallback_secret_gestao_saude_2024';
+    // Conforme requisitos de produção para o Plantão Inteligente
+    const ssoSecret = "sms_oriximina_sso_secret_key_2026_prod";
 
     if (!process.env.SSO_JWT_SECRET) {
-      console.warn(`[SSO][${correlationId}] SSO_JWT_SECRET ausente no servidor. Utilizando chave de emergência.`);
+      console.warn(`[SSO][${correlationId}] Utilizando chave de produção fixa para HS256.`);
     }
 
     if (!sistema.issuer) {
@@ -355,14 +355,14 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       sub: user?.id,
       email: user?.email,
       nome: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
+      name: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       secretaria_id: profile?.secretaria_id || null,
       role: profile?.perfil_nome || profile?.role || 'profissional',
-      iss: sistema.issuer || 'https://gestao-saude-sms-oriximina.vercel.app',
-      aud: sistema.audience || 'plantao-inteligente',
+      iss: "https://gestao-saude-sms-oriximina.vercel.app",
+      aud: "plantao-inteligente",
       iat: now,
       exp: exp,
       correlation_id: correlationId,
-      // Campos legados para compatibilidade se necessário
       user_id: user.id,
       perfil: profile?.perfil_nome,
       secretaria: secretariaNome,
@@ -402,8 +402,11 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
 
       token = await new SignJWT(payload)
         .setProtectedHeader({ alg })
+        .setIssuer(payload.iss)
+        .setAudience(payload.aud)
         .setIssuedAt(now)
         .setExpirationTime(exp)
+        .setJti(payload.jti || crypto.randomUUID())
         .sign(secretKey);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({

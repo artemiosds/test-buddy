@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode, useMemo } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
 import { TermoAceiteProvider } from "@/components/documentos/termo-aceite-provider";
+import { AvisoModal } from "@/components/mural/AvisoModal";
 
 function NotFoundComponent() {
   return (
@@ -127,12 +128,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const env = typeof process !== "undefined" ? process.env : undefined;
-  const supabaseConfig = {
-    url: env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? "",
-    publishableKey: env?.SUPABASE_PUBLISHABLE_KEY ?? env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
-  };
-
   return (
     <html lang="en">
       <head>
@@ -140,11 +135,6 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.__SUPABASE_CONFIG__=${JSON.stringify(supabaseConfig)};`,
-          }}
-        />
         <Scripts />
       </body>
     </html>
@@ -166,10 +156,21 @@ function RootComponent() {
     return () => data.subscription.unsubscribe();
   }, [queryClient, router]);
 
+  // Deve ser idêntico no servidor e no cliente (evita hydration mismatch)
+  const supabaseConfigScript = useMemo(
+    () =>
+      `window.__SUPABASE_CONFIG__=${JSON.stringify({
+        url: import.meta.env.VITE_SUPABASE_URL ?? "",
+        publishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+      })};`,
+    [],
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
         <TermoAceiteProvider>
+          <script dangerouslySetInnerHTML={{ __html: supabaseConfigScript }} />
           <Outlet />
           <Toaster richColors position="top-right" />
         </TermoAceiteProvider>

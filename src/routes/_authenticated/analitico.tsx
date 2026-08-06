@@ -19,6 +19,7 @@ import {
 import { TrendingUp, BarChart3, PieChart as PieIcon, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PermissionGate } from "@/components/permission-gate";
+import { DashboardAvisosWidget } from "@/components/dashboard/DashboardAvisosWidget";
 
 export const Route = createFileRoute("/_authenticated/analitico")({
   component: DashboardAnalitico,
@@ -152,25 +153,31 @@ function DashboardAnalitico() {
           </div>
         </header>
 
-        {/* Evolução mensal */}
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold">Evolução mensal de folhas — {ano}</h2>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="rounded-lg border bg-card p-4 h-full">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold">Evolução mensal de folhas — {ano}</h2>
+              </div>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={evolucao}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="mes" fontSize={12} />
+                    <YAxis fontSize={12} allowDecimals={false} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="rascunho" name="Rascunho" fill="#94a3b8" stackId="a" />
+                    <Bar dataKey="enviadas" name="Em análise" fill="#f59e0b" stackId="a" />
+                    <Bar dataKey="aprovadas" name="Aprovadas" fill="#10b981" stackId="a" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={evolucao}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="mes" fontSize={12} />
-                <YAxis fontSize={12} allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="rascunho" name="Rascunho" fill="#94a3b8" stackId="a" />
-                <Bar dataKey="enviadas" name="Em análise" fill="#f59e0b" stackId="a" />
-                <Bar dataKey="aprovadas" name="Aprovadas" fill="#10b981" stackId="a" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="lg:col-span-1">
+            <DashboardAvisosWidget />
           </div>
         </div>
 
