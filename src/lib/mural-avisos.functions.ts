@@ -158,7 +158,6 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-
     const { data: profile } = await supabase
       .from('usuarios')
       .select('id, perfil:perfis(codigo)')
@@ -166,7 +165,6 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (!profile) return [];
-
     const role = (profile.perfil as { codigo: string } | null)?.codigo ?? null;
 
     const { data: vinculos } = await supabase
@@ -174,7 +172,6 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
       .select('unidade_id')
       .eq('usuario_id', userId);
     const unidadeIds = (vinculos ?? []).map((v) => v.unidade_id);
-
 
     const today = new Date().toISOString().split('T')[0];
     const { data: avisos, error } = await supabase
@@ -186,7 +183,9 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
       `)
       .eq('ativo', true)
       .lte('data_inicio', today)
-      .or(`data_fim.is.null,data_fim.gte.${today}`);
+      .or(`data_fim.is.null,data_fim.gte.${today}`)
+      .order('fixado', { ascending: false })
+      .order('criado_em', { ascending: false });
 
     if (error) throw error;
 
@@ -198,6 +197,67 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
       return false;
     });
   });
+
+export const listarAvisosArquivados = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('id, perfil:perfis(codigo)')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const role = (profile?.perfil as { codigo: string } | null)?.codigo ?? null;
+    if (role !== 'MASTER' && role !== 'GESTOR') {
+      throw new Error("Acesso negado");
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data: avisos, error } = await supabase
+      .from('avisos_mural')
+      .select(`
+        *,
+        anexos:avisos_mural_anexos(*),
+        criador:usuarios!avisos_mural_criado_por_fkey(nome)
+      `)
+      .or(`ativo.eq.false,data_fim.lt.${today}`)
+      .order('criado_em', { ascending: false });
+
+    if (error) throw error;
+    return avisos || [];
+  });
+
+export const reativarAviso = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ avisoId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('id, perfil:perfis(codigo)')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const role = (profile?.perfil as { codigo: string } | null)?.codigo ?? null;
+    if (role !== 'MASTER' && role !== 'GESTOR') {
+      throw new Error("Não autorizado");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from('avisos_mural')
+      .update({ 
+        ativo: true,
+        data_fim: null // Limpa expiração ao reativar para evitar loop de arquivo
+      })
+      .eq('id', data.avisoId);
+
+    if (error) throw error;
+    return { success: true };
+  });
+
 
 export const marcarComoLido = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

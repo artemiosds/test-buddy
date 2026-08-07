@@ -32,10 +32,21 @@ export function NetworkBanner() {
           Conexão restabelecida. O sistema está online.
         </>
       ) : (
-        <>
-          <WifiOff className="h-4 w-4" />
-          ⚠️ Você está offline. Exibindo dados salvos em cache. Ações de escrita estão bloqueadas.
-        </>
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <div className="flex items-center gap-2">
+            <WifiOff className="h-4 w-4" />
+            <span>⚠️ Você está offline. Exibindo dados em cache. Escrita bloqueada.</span>
+          </div>
+          <button 
+            onClick={async () => {
+              const { gerarRelatorioOffline } = await import("@/lib/offline-guard");
+              alert(gerarRelatorioOffline());
+            }}
+            className="text-xs underline decoration-dotted underline-offset-4 hover:text-white transition-colors"
+          >
+            Ver Relatório Offline
+          </button>
+        </div>
       )}
     </div>
   );

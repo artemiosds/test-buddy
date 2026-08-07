@@ -76,6 +76,27 @@ export const salvarLinhasFrequencia = createServerFn({ method: "POST" })
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
 
     const dirty = data.linhas.filter((l) => l._dirty);
+    
+    // Validação de segurança: total de dias
+    const { data: freqInfo } = await supabase
+      .from("frequencias")
+      .select("competencia_unidade_id, competencia_unidades(competencia_id, competencias(ano, mes))")
+      .eq("id", data.frequencia_id)
+      .single();
+    
+    const comp = (freqInfo?.competencia_unidades as any)?.competencias;
+    if (comp) {
+      const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
+      for (const l of dirty) {
+        const total = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
+                     Number(l.faltas_justificadas ?? 0) + Number(l.atestado ?? 0) + 
+                     Number(l.ferias ?? 0) + Number(l.licencas ?? 0) + Number(l.licenca_premio ?? 0);
+        if (total > diasNoMes) {
+          throw new Error(`O total de dias (${total}) para o profissional excede os ${diasNoMes} dias do mês.`);
+        }
+      }
+    }
+
     const toInsert = dirty
       .filter((l) => l._new)
       .map((l) => {
@@ -188,6 +209,13 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     const perm = PERM_STATUS[data.status];
     if (perm) await ensurePermission(supabase, userId, perm);
 
+    // Recupera perfil para auditoria rica (usando 'nome' e 'codigo' como substituto de role)
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("nome, codigo")
+      .eq("id", (context as any).user?.user_metadata?.perfil_id || "") // Assumindo que o perfil_id está no metadata
+      .maybeSingle();
+
     const { data: freq, error: fErr } = await supabase
       .from("frequencias")
       .select(
@@ -199,7 +227,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     if (!freq) throw new Error("Frequência não encontrada");
     const anterior = (freq as any).status;
 
-    // Guard: aprovar bloqueado se houver pendências abertas/respondidas
+    // Guard: aprovar bloqueado se houver pendências
     if (data.status === "aprovada") {
       const { count } = await supabase
         .from("frequencia_pendencias")
@@ -207,8 +235,42 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
         .eq("frequencia_id", data.frequencia_id)
         .in("status", ["aberta", "respondida"])
         .is("deleted_at", null);
-      if ((count ?? 0) > 0) {
-        throw new Error(`Existem ${count} pendência(s) não resolvida(s).`);
+      
+      const { count: countLinhas } = await supabase
+        .from("frequencia_pendencias_linhas")
+        .select("id", { count: "exact", head: true })
+        .eq("frequencia_id", data.frequencia_id)
+        .eq("status", "aberta");
+
+      if ((count ?? 0) > 0 || (countLinhas ?? 0) > 0) {
+        throw new Error(`Existem ${(count ?? 0) + (countLinhas ?? 0)} pendência(s) não resolvida(s).`);
+      }
+
+      // Anti-duplicata
+      const { data: fInfo } = await supabase
+        .from("frequencias")
+        .select("tipo, competencia_unidades(competencia_id)")
+        .eq("id", data.frequencia_id)
+        .single();
+      
+      if (fInfo?.tipo === "contratados") {
+        const compId = (fInfo.competencia_unidades as any).competencia_id;
+        const { data: profs } = await supabase
+          .from("frequencias_contratados")
+          .select("profissional_id, profissionais(nome_completo)")
+          .eq("competencia_id", compId)
+          .eq("unidade_id", (fInfo.competencia_unidades as any).unidade_id) // Adicionado segurança de unidade
+          .eq("status", "rascunho"); // Apenas as que estamos tentando aprovar agora
+        
+        for (const p of profs || []) {
+          const { data: duplicado } = await supabase.rpc("check_frequencia_duplicada", {
+            _profissional_id: p.profissional_id,
+            _competencia_id: compId
+          });
+          if (duplicado) {
+            throw new Error(`Frequência duplicada! Profissional ${p.profissionais?.nome_completo} já tem frequência aprovada em outra unidade neste mês.`);
+          }
+        }
       }
     }
 
@@ -228,57 +290,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       .eq("id", data.frequencia_id);
     if (upErr) throw new Error(upErr.message);
 
-    const { data: fInfo } = await supabase
-      .from("frequencias")
-      .select("tipo, status, competencia_unidade_id, competencia_unidades(competencia_id, unidade_id)")
-      .eq("id", data.frequencia_id)
-      .maybeSingle();
-
-    // Sincronização bidirecional após alteração de status (Aprovação/Rejeição/Análise)
-    if (fInfo && fInfo.competencia_unidades) {
-      const cu = fInfo.competencia_unidades as any;
-      const compId = cu.competencia_id;
-      const unidId = cu.unidade_id;
-
-      if (compId && unidId) {
-        // 1. Atualiza a tabela especializada (se for contratados) ou linhas (se for efetivos)
-        const updatePayload: any = { 
-          status: data.status,
-          updated_by: userId 
-        };
-        if (data.status === "aprovada") {
-          updatePayload.aprovada_por = userId;
-          updatePayload.aprovada_em = new Date().toISOString();
-        }
-
-        if (fInfo.tipo === "contratados") {
-          await (supabase.from("frequencias_contratados") as any)
-            .update(updatePayload)
-            .eq("competencia_id", compId)
-            .eq("unidade_id", unidId)
-            .in("status", ["enviada", "em_analise", "com_pendencias", "devolvida"]);
-        } else if (fInfo.tipo === "efetivos" || fInfo.tipo === "mensal") {
-          await (supabase.from("frequencia_profissional") as any)
-            .update({ status_linha: data.status === "aprovada" ? "aprovada" : "rejeitada" })
-            .eq("frequencia_id", data.frequencia_id);
-        }
-
-        // 2. Dispara orquestração para consolidar metadados finais (totais, etc)
-        const eventoStatus = data.status === "aprovada" ? "FOLHA_APROVADA" : 
-                             data.status === "rejeitada" ? "FOLHA_REJEITADA" : 
-                             data.status === "devolvida" ? "FOLHA_DEVOLVIDA" : "FOLHA_SALVA";
-
-        await orquestrarSincronizacao({
-          data: {
-            evento: eventoStatus as any,
-            tipo: fInfo.tipo as any,
-            competencia_id: compId,
-            unidade_id: unidId,
-          }
-        });
-      }
-    }
-
     const label = ACAO_LABEL[data.status];
     if (label) {
       const prazoEnvio = (freq as any).competencia_unidades?.competencias?.prazo_envio;
@@ -286,16 +297,19 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
         data.status === "enviada" &&
         !!prazoEnvio &&
         new Date() > new Date(prazoEnvio + "T23:59:59");
-      const { error: logErr } = await supabase.from("frequencia_aprovacoes").insert({
+      
+      const acaoFinal = foraPrazo ? `${label} (FORA DO PRAZO)` : label;
+
+      await supabase.from("frequencia_historico").insert({
         frequencia_id: data.frequencia_id,
         status_anterior: anterior,
         status_novo: data.status,
-        acao: foraPrazo ? `${label} (FORA DO PRAZO)` : label,
-        observacoes: data.observacoes ?? null,
+        acao: acaoFinal,
+        justificativa: data.observacoes ?? null,
         executado_por: userId,
-        created_by: userId,
+        executado_nome: perfil?.nome || "Usuário HSM",
+        executado_perfil: perfil?.codigo || "Indefinido",
       } as never);
-      if (logErr) throw new Error(logErr.message);
     }
 
     const tipoEvento = EVENTO_STATUS[data.status];

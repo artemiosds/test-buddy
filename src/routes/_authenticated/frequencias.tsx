@@ -46,7 +46,12 @@ function FrequenciasPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const qc = useQueryClient();
-  const [competenciaId, setCompetenciaId] = useState<string>("");
+  const [competenciaId, setCompetenciaId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("hsm-frequencias-last-competencia") ?? "";
+    }
+    return "";
+  });
   const [tipoFiltro, setTipoFiltro] = useState<TipoFreq | "todos">("todos");
   const [busca, setBusca] = useState("");
 
@@ -60,10 +65,19 @@ function FrequenciasPage() {
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
       const list = data ?? [];
-      if (list.length && !competenciaId) setCompetenciaId(list[0].id);
+      
+      // Se não temos competênciaId no estado, tenta o primeiro da lista
+      if (list.length && !competenciaId) {
+        setCompetenciaId(list[0].id);
+      }
       return list;
     },
   });
+
+  const handleCompetenciaChange = (id: string) => {
+    setCompetenciaId(id);
+    localStorage.setItem("hsm-frequencias-last-competencia", id);
+  };
 
   const { data: unidadesComp } = useQuery({
     queryKey: ["competencia-unidades-freq", competenciaId],
@@ -135,7 +149,8 @@ function FrequenciasPage() {
       const q = busca.toLowerCase();
       const nome = u.unidades?.nome?.toLowerCase() ?? "";
       const sigla = u.unidades?.sigla?.toLowerCase() ?? "";
-      return nome.includes(q) || sigla.includes(q);
+      const cnes = u.unidades?.cnes?.toLowerCase() ?? "";
+      return nome.includes(q) || sigla.includes(q) || cnes.includes(q);
     })
     .flatMap((u) => {
       const tipos: TipoFreq[] = tipoFiltro === "todos" ? ["contratados", "efetivos"] : [tipoFiltro];
@@ -157,7 +172,7 @@ function FrequenciasPage() {
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
         <div className="flex-1 min-w-[240px]">
           <label className="text-xs text-muted-foreground">Competência</label>
-          <Select value={competenciaId} onValueChange={setCompetenciaId}>
+          <Select value={competenciaId} onValueChange={handleCompetenciaChange}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
@@ -188,7 +203,7 @@ function FrequenciasPage() {
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Nome ou sigla..."
+            placeholder="Nome, sigla ou CNES..."
           />
         </div>
       </div>

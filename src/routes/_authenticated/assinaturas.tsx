@@ -695,6 +695,52 @@ function NovaAssinaturaDialog({
     });
   }
 
+  async function processImage(file: File): Promise<{ blob: Blob; ext: string }> {
+    // PDF não precisa de tratamento de transparência e nem é suportado pelo canvas
+    if (file.type === "application/pdf") {
+      return { blob: file, ext: "pdf" };
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve({ blob: file, ext: file.name.split(".").pop()?.toLowerCase() ?? "png" });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Limiar para considerar um pixel como "branco/claro"
+        const threshold = 240;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          if (r > threshold && g > threshold && b > threshold) {
+            data[i + 3] = 0;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) resolve({ blob, ext: "png" });
+          else resolve({ blob: file, ext: file.name.split(".").pop()?.toLowerCase() ?? "png" });
+        }, "image/png");
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function salvar() {
     if (!titularNome.trim()) {
       toast.error("Informe o nome do titular");
@@ -715,7 +761,7 @@ function NovaAssinaturaDialog({
 
     setSaving(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+      const { blob: processedBlob, ext } = await processImage(file);
       const scopeSeg =
         escopo === "unidade"
           ? `unidade/${unidadeId}`
@@ -724,8 +770,8 @@ function NovaAssinaturaDialog({
             : "global";
       const path = `${scopeSeg}/${tipo}/${crypto.randomUUID()}.${ext}`;
 
-      const up = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type || undefined,
+      const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
+        contentType: ext === "pdf" ? "application/pdf" : "image/png",
         upsert: false,
       });
       if (up.error) throw up.error;
@@ -735,7 +781,7 @@ function NovaAssinaturaDialog({
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
-        mime_type: file.type || null,
+        mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
             ? secretariaId

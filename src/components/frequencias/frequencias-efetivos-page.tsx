@@ -271,8 +271,16 @@ export function FrequenciasEfetivosPage() {
   const folhaStatus = (folha?.frequencia_status as StatusFreq) ?? "rascunho";
   const folhaEditavel =
     folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada";
-  const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel;
-  const canEnviar = folhaStatus === "rascunho" && has("frequencia.enviar");
+  
+  // Mapeamento de perfis para controle de botões na interface (EFETIVOS)
+  const isMaster = !!me?.is_master;
+  const perfilCodigo = me?.perfil_codigo || ""; // Usa o campo direto do UserContext
+  const isGestorPerfil = perfilCodigo === "GESTOR" || isMaster;
+  const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
+  const isOperacional = perfilCodigo === "OPERACIONAL_ADM" || isMaster;
+
+  const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
+  const canEnviar = folhaStatus === "rascunho" && has("frequencia.enviar") && isDiretor;
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
     setLinhas((prev) => {
@@ -330,6 +338,9 @@ export function FrequenciasEfetivosPage() {
 
   const mSalvar = useMutation({
     mutationFn: async () => {
+      const { offlineGuard } = await import("@/lib/offline-guard");
+      if (offlineGuard()) throw new Error("Offline");
+
       const list = payloadDirty();
       if (!list.length) return { ok: true, sem_alteracoes: true };
       return salvarFn({
@@ -346,6 +357,9 @@ export function FrequenciasEfetivosPage() {
 
   const mEnviar = useMutation({
     mutationFn: async () => {
+      const { offlineGuard } = await import("@/lib/offline-guard");
+      if (offlineGuard()) throw new Error("Offline");
+
       const list = payloadDirty();
       if (list.length) {
         await salvarFn({
@@ -424,10 +438,10 @@ export function FrequenciasEfetivosPage() {
 
   /* ------- ERP grid: derivados de UI (sem impacto em back-end) ------- */
   const FROZEN: FrozenCol[] = [
-    { key: "matricula", label: "Matrícula", width: 100 },
-    { key: "nome", label: "Profissional", width: 260 },
-    { key: "situacao", label: "Situação", width: 130 },
-    { key: "proj", label: "Proj", width: 72 },
+    { key: "matricula", label: "Matrícula", width: 85 },
+    { key: "nome", label: "Profissional", width: 230 },
+    { key: "situacao", label: "Situação", width: 110 },
+    { key: "proj", label: "Proj", width: 60 },
   ];
   const L = frozenLeftMap(FROZEN);
 
@@ -801,28 +815,28 @@ export function FrequenciasEfetivosPage() {
               <tr>
                 <th
                   className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
-                  style={{ textAlign: "left", left: L.matricula, width: 100 }}
+                  style={{ textAlign: "left", left: L.matricula, width: 85 }}
                   rowSpan={2}
                 >
                   Matrícula
                 </th>
                 <th
                   className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
-                  style={{ textAlign: "left", left: L.nome, width: 260 }}
+                  style={{ textAlign: "left", left: L.nome, width: 230 }}
                   rowSpan={2}
                 >
                   Profissional
                 </th>
                 <th
                   className="erp-sticky bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
-                  style={{ textAlign: "left", left: L.situacao, width: 130 }}
+                  style={{ textAlign: "left", left: L.situacao, width: 110 }}
                   rowSpan={2}
                 >
                   Situação
                 </th>
                 <th
                   className="erp-sticky erp-sticky-last bg-slate-900! text-white! font-bold text-xs uppercase tracking-wider border-r border-slate-700"
-                  style={{ textAlign: "right", left: L.proj, width: 72 }}
+                  style={{ textAlign: "right", left: L.proj, width: 60 }}
                   rowSpan={2}
                 >
                   Proj
@@ -881,7 +895,7 @@ export function FrequenciasEfetivosPage() {
                 {CAMPOS_OFICIAIS.map((c) => (
                   <th
                     key={c.key}
-                    className="bg-teal-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700"
+                    className="bg-teal-800! text-white! font-bold text-[10px] whitespace-nowrap border-r border-slate-700 w-[60px] min-w-[60px]"
                     style={{ textAlign: "right" }}
                   >
                     {c.label}
@@ -890,7 +904,7 @@ export function FrequenciasEfetivosPage() {
                 {CAMPOS_SMS.map((c) => (
                   <th
                     key={c.key}
-                    className="bg-amber-800! text-white! font-bold text-[11px] whitespace-nowrap border-r border-slate-700"
+                    className="bg-amber-800! text-white! font-bold text-[10px] whitespace-nowrap border-r border-slate-700 w-[60px] min-w-[60px]"
                     style={{ textAlign: "right" }}
                   >
                     {c.label}
@@ -934,24 +948,24 @@ export function FrequenciasEfetivosPage() {
                         fontFamily: "var(--font-mono, monospace)",
                         fontSize: 11,
                         left: L.matricula,
-                        width: 100,
+                        width: 85,
                       }}
                     >
                       {p.matricula ?? "—"}
                     </td>
-                    <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>
+                    <td className="erp-sticky" style={{ left: L.nome, width: 230 }}>
                       <ProfissionalNomeCell
                         prof={conf}
                         onOpenDossie={openDossie}
                         secondary={p.cargo}
                       />
                     </td>
-                    <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}>
+                    <td className="erp-sticky" style={{ left: L.situacao, width: 110 }}>
                       <SituacaoBadge prof={conf} />
                     </td>
                     <td
                       className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums"
-                      style={{ left: L.proj, width: 72 }}
+                      style={{ left: L.proj, width: 60 }}
                     >
                       {p.proj ?? "-"}
                     </td>
@@ -979,6 +993,7 @@ export function FrequenciasEfetivosPage() {
                             value={Number((l as any)[c.key] ?? 0)}
                             disabled={ro}
                             decimals={0}
+                            className="w-full text-right text-[11px]"
                             validate={
                               isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
                             }
@@ -994,6 +1009,7 @@ export function FrequenciasEfetivosPage() {
                           colKey={c.key}
                           value={Number((l as any)[c.key] ?? 0)}
                           disabled={ro}
+                          className="w-full text-right text-[11px]"
                           validate={validateGeneric}
                           onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
                         />
@@ -1019,12 +1035,12 @@ export function FrequenciasEfetivosPage() {
             </ErpTbody>
             <tfoot>
               <tr>
-                <td className="erp-sticky" style={{ left: L.matricula, width: 100 }}></td>
-                <td className="erp-sticky" style={{ left: L.nome, width: 260 }}>
+                <td className="erp-sticky" style={{ left: L.matricula, width: 85 }}></td>
+                <td className="erp-sticky" style={{ left: L.nome, width: 230 }}>
                   Totais
                 </td>
-                <td className="erp-sticky" style={{ left: L.situacao, width: 130 }}></td>
-                <td className="erp-sticky erp-sticky-last" style={{ left: L.proj, width: 72 }}></td>
+                <td className="erp-sticky" style={{ left: L.situacao, width: 110 }}></td>
+                <td className="erp-sticky erp-sticky-last" style={{ left: L.proj, width: 60 }}></td>
                 <td colSpan={3}></td>
                 {CAMPOS_OFICIAIS.map((c) => (
                   <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>

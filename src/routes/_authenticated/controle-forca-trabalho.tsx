@@ -185,7 +185,7 @@ function ControleForcaTrabalhoPage() {
     const profs = profsPorUnidadeQ.data ?? [];
     const pends = pendenciasPorUnidadeQ.data ?? [];
     const freqs = freqMetaQ.data ?? [];
-    const rankByUnit = new Map(a.ranking.map((r) => [r.unidade_id, r]));
+    const rankByUnit = new Map(a.ranking.data.map((r) => [r.unidade_id, r]));
 
     return unidades.map((u) => {
       const uProfs = profs.filter((p) => p.unidade_id === u.id);
@@ -231,7 +231,7 @@ function ControleForcaTrabalhoPage() {
     profsPorUnidadeQ.data,
     pendenciasPorUnidadeQ.data,
     freqMetaQ.data,
-    a.ranking,
+    a.ranking.data,
   ]);
 
   const totalProf = cards.reduce((s, r) => s + r.total, 0);
@@ -248,8 +248,9 @@ function ControleForcaTrabalhoPage() {
     unidadesQ.isLoading ||
     profsPorUnidadeQ.isLoading ||
     (effectiveCompId
-      ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.frequencias.isLoading
+      ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.ranking.isLoading
       : false);
+
 
   const refetchAll = () => {
     unidadesQ.refetch();

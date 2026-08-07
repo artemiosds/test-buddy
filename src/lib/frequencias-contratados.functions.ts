@@ -147,7 +147,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     // Bloqueia edição se competência já estiver encerrada/arquivada.
     const { data: comp, error: cErr } = await supabase
       .from("competencias")
-      .select("id, status")
+      .select("id, status, ano, mes")
       .eq("id", data.competencia_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -173,8 +173,15 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
+      
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
       if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
+
+      // Validação de segurança: limite de dias no mês
+      const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
+      if (Number(l.dias_trabalhados ?? 0) + Number(l.dias_falta ?? 0) + Number(l.atestado ?? 0) > diasNoMes) {
+        throw new Error(`O total de dias para o profissional (id: ${l.profissional_id}) excede os ${diasNoMes} dias do mês.`);
+      }
 
       const payload: Record<string, unknown> = {
         competencia_id: data.competencia_id,
@@ -224,6 +231,13 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
 
+    // Auditoria rico
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("nome, codigo")
+      .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
+      .maybeSingle();
+
     const now = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("frequencias_contratados")
@@ -240,20 +254,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw new Error(error.message);
 
-    await emitEvento(
-      supabase,
-      EVENTOS.FREQUENCIA_ENVIADA,
-      "frequencia",
-      `${data.competencia_id}:${data.unidade_id}:contratados`,
-      {
-        competencia_id: data.competencia_id,
-        unidade_id: data.unidade_id,
-        folha: "contratados",
-        linhas: (updated ?? []).length,
-      },
-    );
-
-    // Sincronização centralizada e atômica após envio
+    // Orquestração central
     await orquestrarSincronizacao({
       data: {
         evento: "FOLHA_ENVIADA",
@@ -262,6 +263,28 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id,
       }
     });
+
+    // Registra histórico via tabela consolidada (Seção 2)
+    const { data: freq } = await supabase
+      .from("frequencias")
+      .select("id, status")
+      .eq("tipo", "contratados")
+      .eq("competencia_unidades.competencia_id", data.competencia_id)
+      .eq("competencia_unidades.unidade_id", data.unidade_id)
+      .maybeSingle();
+
+    if (freq?.id) {
+      await supabase.from("frequencia_historico").insert({
+        frequencia_id: freq.id,
+        status_anterior: freq.status || "rascunho",
+        status_novo: "enviada",
+        acao: "Envio para análise",
+        executado_por: userId,
+        executado_nome: perfil?.nome || "Usuário HSM",
+        executado_perfil: perfil?.codigo || "Indefinido",
+        detalhes: { total_linhas: (updated ?? []).length }
+      } as never);
+    }
 
     return { ok: true, enviadas: (updated ?? []).length };
   });

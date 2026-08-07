@@ -1,9 +1,9 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { retainSearchParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -84,6 +84,7 @@ const STATUS_VALUE = ["ativo", "afastado", "ferias", "licenca"];
 function SalaSituacaoPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const queryClient = useQueryClient();
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const competenciasQ = useCompetenciasLookup();
   const unidadesQ = useUnidadesLookup({ ativasOnly: true });
@@ -92,6 +93,31 @@ function SalaSituacaoPage() {
     search,
     competenciaAtiva?.id ?? null,
   );
+
+  // Realtime subscription para pendências
+  useEffect(() => {
+    const channel = supabase
+      .channel("sala-situacao-pendencias")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "frequencia_pendencias",
+        },
+        () => {
+          // Invalida a query de pendências críticas e o analytics (que também conta pendências)
+          queryClient.invalidateQueries({ queryKey: ["sala-situacao", "pend-criticas"] });
+          queryClient.invalidateQueries({ queryKey: ["analytics"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, unidadeId]);
+
   const compSel = search.competencia === "" ? "__ativa__" : search.competencia;
   const unidadeSel = search.unidade === "" ? "__all__" : search.unidade;
   const statusSel = search.status === "" ? "__all__" : search.status;
@@ -170,15 +196,15 @@ function SalaSituacaoPage() {
   });
 
   // Rankings vindos de useAnalytics (mesma fonte usada nas demais telas).
-  const rankingUnidades = a.ranking.slice(0, 10);
+  const rankingUnidades = a.ranking.data.slice(0, 10);
   const rankingSetores = (a.distribuicaoSetor.data ?? []).slice(0, 10);
   const rankingCargos = (a.distribuicaoCargo.data ?? []).slice(0, 10);
   const rankingFuncoes = (a.distribuicaoFuncao.data ?? []).slice(0, 10);
   // "Maiores HE" — o dado disponível no modelo é por unidade (limitação
   // documentada no Módulo 05). Reordenamos o ranking por HE.
   const rankingHe = useMemo(
-    () => [...a.ranking].sort((x, y) => y.total_horas_extras - x.total_horas_extras).slice(0, 10),
-    [a.ranking],
+    () => [...a.ranking.data].sort((x, y) => y.total_horas_extras - x.total_horas_extras).slice(0, 10),
+    [a.ranking.data],
   );
   // "Unidades críticas" — mais pendências vencidas.
   const rankingCriticas = useMemo(() => {
@@ -232,7 +258,7 @@ function SalaSituacaoPage() {
   const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   // ---- Column defs ----
-  const colsUnidades: DataTableColumn<(typeof a.ranking)[number]>[] = [
+  const colsUnidades: DataTableColumn<(typeof a.ranking.data)[number]>[] = [
     {
       key: "u",
       header: "Unidade",
@@ -289,7 +315,7 @@ function SalaSituacaoPage() {
     },
     { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
   ];
-  const colsHe: DataTableColumn<(typeof a.ranking)[number]>[] = [
+  const colsHe: DataTableColumn<(typeof a.ranking.data)[number]>[] = [
     {
       key: "u",
       header: "Unidade",
@@ -384,7 +410,7 @@ function SalaSituacaoPage() {
 
       <SemaforoCard
         semaforo={intel.semaforo}
-        loading={intel.isLoading}
+        loading={intel.isLoading || pendCriticasQ.isLoading || movQ.isLoading || a.ranking.isLoading}
         lastUpdated={a.lastUpdated}
         onRefresh={() => a.refetch()}
       />

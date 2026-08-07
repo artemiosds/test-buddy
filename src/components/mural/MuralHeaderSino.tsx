@@ -365,7 +365,16 @@ export function MuralHeaderSino() {
             HSM GESTÃO v4.2.0
           </span>
           <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase tracking-widest">
-            Ver Arquivo Histórico
+            <button 
+              onClick={() => {
+                // Fechar o sheet e navegar para a aba de arquivo na gestão do mural
+                // Como não temos navegação direta por abas ainda, vamos apenas redirecionar
+                window.location.href = '/administracao/mural?tab=arquivo';
+              }}
+              className="w-full text-left text-xs font-bold text-primary hover:underline"
+            >
+              Ver Arquivo Histórico
+            </button>
           </Button>
         </div>
       </SheetContent>

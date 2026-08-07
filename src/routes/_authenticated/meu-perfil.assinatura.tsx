@@ -247,6 +247,49 @@ function UploadForm({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  async function processImage(file: File): Promise<{ blob: Blob; ext: string }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve({ blob: file, ext: file.name.split(".").pop()?.toLowerCase() ?? "png" });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Limiar para considerar um pixel como "branco/claro"
+        // 240/255 é um bom equilíbrio para remover fundos não perfeitamente brancos
+        const threshold = 240;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Se as 3 cores estão acima do limiar, torna o pixel transparente
+          if (r > threshold && g > threshold && b > threshold) {
+            data[i + 3] = 0;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) resolve({ blob, ext: "png" });
+          else resolve({ blob: file, ext: file.name.split(".").pop()?.toLowerCase() ?? "png" });
+        }, "image/png");
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function salvar() {
     if (!file) {
       toast.error("Selecione um arquivo PNG ou JPG");
@@ -267,12 +310,12 @@ function UploadForm({
 
     setSaving(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
+      const { blob: processedBlob, ext } = await processImage(file);
       const unidSeg = unidadeId === "__todas__" ? "todas" : unidadeId;
       const path = `pessoal/${me.id}/${unidSeg}/${crypto.randomUUID()}.${ext}`;
 
-      const up = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type,
+      const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
+        contentType: "image/png",
         upsert: false,
       });
       if (up.error) throw up.error;
@@ -283,7 +326,7 @@ function UploadForm({
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
-        mime_type: file.type,
+        mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: unidadeReal,
         secretaria_id: null,
@@ -306,7 +349,7 @@ function UploadForm({
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
       }
-      toast.success("Assinatura cadastrada com sucesso");
+      toast.success("Assinatura cadastrada (fundo removido automaticamente)");
       setFile(null);
       setTitularCargo("");
       setVigenciaFim("");

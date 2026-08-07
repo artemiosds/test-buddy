@@ -1030,6 +1030,59 @@ export type Database = {
           },
         ]
       }
+      frequencia_historico: {
+        Row: {
+          acao: string
+          created_at: string
+          executado_nome: string | null
+          executado_perfil: string | null
+          executado_por: string | null
+          frequencia_id: string
+          id: string
+          justificativa: string | null
+          status_anterior:
+            | Database["public"]["Enums"]["status_frequencia"]
+            | null
+          status_novo: Database["public"]["Enums"]["status_frequencia"]
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          executado_nome?: string | null
+          executado_perfil?: string | null
+          executado_por?: string | null
+          frequencia_id: string
+          id?: string
+          justificativa?: string | null
+          status_anterior?:
+            | Database["public"]["Enums"]["status_frequencia"]
+            | null
+          status_novo: Database["public"]["Enums"]["status_frequencia"]
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          executado_nome?: string | null
+          executado_perfil?: string | null
+          executado_por?: string | null
+          frequencia_id?: string
+          id?: string
+          justificativa?: string | null
+          status_anterior?:
+            | Database["public"]["Enums"]["status_frequencia"]
+            | null
+          status_novo?: Database["public"]["Enums"]["status_frequencia"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frequencia_historico_frequencia_id_fkey"
+            columns: ["frequencia_id"]
+            isOneToOne: false
+            referencedRelation: "frequencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       frequencia_pendencias: {
         Row: {
           aberta_por: string | null
@@ -1125,6 +1178,60 @@ export type Database = {
             columns: ["respondida_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      frequencia_pendencias_linhas: {
+        Row: {
+          aberto_em: string
+          aberto_por: string | null
+          frequencia_id: string
+          id: string
+          motivo_pendencia: string
+          profissional_id: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+          rubrica: string | null
+          status: Database["public"]["Enums"]["status_pendencia"]
+        }
+        Insert: {
+          aberto_em?: string
+          aberto_por?: string | null
+          frequencia_id: string
+          id?: string
+          motivo_pendencia: string
+          profissional_id: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rubrica?: string | null
+          status?: Database["public"]["Enums"]["status_pendencia"]
+        }
+        Update: {
+          aberto_em?: string
+          aberto_por?: string | null
+          frequencia_id?: string
+          id?: string
+          motivo_pendencia?: string
+          profissional_id?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rubrica?: string | null
+          status?: Database["public"]["Enums"]["status_pendencia"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frequencia_pendencias_linhas_frequencia_id_fkey"
+            columns: ["frequencia_id"]
+            isOneToOne: false
+            referencedRelation: "frequencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frequencia_pendencias_linhas_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
         ]
@@ -1394,6 +1501,8 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           deleted_by: string | null
+          devolvida_em: string | null
+          devolvida_por: string | null
           dias_falta: number
           dias_trabalhados: number
           enviada_em: string | null
@@ -1402,6 +1511,7 @@ export type Database = {
           he_50: number
           id: string
           incentivo: number
+          justificativa_devolucao: string | null
           observacoes: string | null
           plantoes: number
           profissional_id: string
@@ -1421,6 +1531,8 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          devolvida_em?: string | null
+          devolvida_por?: string | null
           dias_falta?: number
           dias_trabalhados?: number
           enviada_em?: string | null
@@ -1429,6 +1541,7 @@ export type Database = {
           he_50?: number
           id?: string
           incentivo?: number
+          justificativa_devolucao?: string | null
           observacoes?: string | null
           plantoes?: number
           profissional_id: string
@@ -1448,6 +1561,8 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          devolvida_em?: string | null
+          devolvida_por?: string | null
           dias_falta?: number
           dias_trabalhados?: number
           enviada_em?: string | null
@@ -1456,6 +1571,7 @@ export type Database = {
           he_50?: number
           id?: string
           incentivo?: number
+          justificativa_devolucao?: string | null
           observacoes?: string | null
           plantoes?: number
           profissional_id?: string
@@ -3582,10 +3698,13 @@ export type Database = {
       profissionais: {
         Row: {
           agencia: string | null
+          bairro: string | null
           banco: string | null
           c_h: number | null
           carga_horaria_semanal: number | null
           cargo_id: string | null
+          cep: string | null
+          cidade: string | null
           cns: string | null
           conselho_classe: string | null
           conselho_numero: string | null
@@ -3610,9 +3729,11 @@ export type Database = {
           id: string
           jorn: number | null
           jornada: string | null
+          logradouro: string | null
           matricula: string | null
           nome_completo: string
           nome_social: string | null
+          numero: string | null
           observacoes: string | null
           pis_pasep: string | null
           proj: number | null
@@ -3630,6 +3751,7 @@ export type Database = {
             | null
           status: Database["public"]["Enums"]["status_profissional"]
           telefone: string | null
+          uf: string | null
           unidade_id: string | null
           updated_at: string
           updated_by: string | null
@@ -3637,10 +3759,13 @@ export type Database = {
         }
         Insert: {
           agencia?: string | null
+          bairro?: string | null
           banco?: string | null
           c_h?: number | null
           carga_horaria_semanal?: number | null
           cargo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cns?: string | null
           conselho_classe?: string | null
           conselho_numero?: string | null
@@ -3665,9 +3790,11 @@ export type Database = {
           id?: string
           jorn?: number | null
           jornada?: string | null
+          logradouro?: string | null
           matricula?: string | null
           nome_completo: string
           nome_social?: string | null
+          numero?: string | null
           observacoes?: string | null
           pis_pasep?: string | null
           proj?: number | null
@@ -3685,6 +3812,7 @@ export type Database = {
             | null
           status?: Database["public"]["Enums"]["status_profissional"]
           telefone?: string | null
+          uf?: string | null
           unidade_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -3692,10 +3820,13 @@ export type Database = {
         }
         Update: {
           agencia?: string | null
+          bairro?: string | null
           banco?: string | null
           c_h?: number | null
           carga_horaria_semanal?: number | null
           cargo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cns?: string | null
           conselho_classe?: string | null
           conselho_numero?: string | null
@@ -3720,9 +3851,11 @@ export type Database = {
           id?: string
           jorn?: number | null
           jornada?: string | null
+          logradouro?: string | null
           matricula?: string | null
           nome_completo?: string
           nome_social?: string | null
+          numero?: string | null
           observacoes?: string | null
           pis_pasep?: string | null
           proj?: number | null
@@ -3740,6 +3873,7 @@ export type Database = {
             | null
           status?: Database["public"]["Enums"]["status_profissional"]
           telefone?: string | null
+          uf?: string | null
           unidade_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -4846,6 +4980,29 @@ export type Database = {
         }
         Relationships: []
       }
+      v_integridade_profissionais: {
+        Row: {
+          cadastros_incompletos: number | null
+          sem_cargo: number | null
+          sem_dados_bancarios: number | null
+          sem_email: number | null
+          sem_funcao: number | null
+          sem_matricula: number | null
+          sem_setor: number | null
+          sem_telefone: number | null
+          total_profissionais: number | null
+          unidade_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       ack_evento_dominio: { Args: { _id: string }; Returns: undefined }
@@ -4863,6 +5020,10 @@ export type Database = {
           unidade_nome: string
           usuario_id: string
         }[]
+      }
+      check_frequencia_duplicada: {
+        Args: { _competencia_id: string; _profissional_id: string }
+        Returns: boolean
       }
       claim_eventos_dominio: {
         Args: { _qtd?: number; _worker?: string }
@@ -4937,6 +5098,10 @@ export type Database = {
           titular_nome: string
         }[]
       }
+      get_dashboard_summary: {
+        Args: { p_competencia_id: string; p_unidade_id?: string }
+        Returns: Json
+      }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: {
         Args: never
@@ -4953,6 +5118,19 @@ export type Database = {
           perfil_nome: string
           secretaria_id: string
           status: Database["public"]["Enums"]["status_usuario"]
+        }[]
+      }
+      get_ranking_rh: {
+        Args: { p_competencia_id: string }
+        Returns: {
+          aprovadas: number
+          total_faltas: number
+          total_folhas: number
+          total_horas_extras: number
+          total_profissionais: number
+          unidade_id: string
+          unidade_nome: string
+          unidade_sigla: string
         }[]
       }
       get_user_permissions_list: {
@@ -5096,6 +5274,7 @@ export type Database = {
       }
       rls_cache_get: { Args: { _key: string }; Returns: boolean }
       rls_cache_put: { Args: { _key: string; _val: boolean }; Returns: boolean }
+      save_profissional_complete: { Args: { p_payload: Json }; Returns: Json }
       sla_pendencias_processar: {
         Args: never
         Returns: {

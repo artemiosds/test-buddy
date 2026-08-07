@@ -22,6 +22,7 @@ export const criarCompetencia = createServerFn({ method: "POST" })
     await ensurePermission(context.supabase, context.userId, ACOES.COMPETENCIA_CRIAR, {
       _secretaria_id: data.secretaria_id,
     });
+    
     const { error, data: row } = await context.supabase
       .from("competencias")
       .insert({
@@ -39,13 +40,41 @@ export const criarCompetencia = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
+    
     if (error) throw new Error(error.message);
     const id = row.id as string;
+
+    // 1. Automação no Vínculo de Unidades:
+    // Vincula automaticamente TODAS as unidades ativas da secretaria correspondente
+    const { data: unidades, error: uErr } = await context.supabase
+      .from("unidades")
+      .select("id")
+      .eq("secretaria_id", data.secretaria_id)
+      .eq("status", "ativa");
+
+    if (uErr) throw new Error(`Erro ao buscar unidades: ${uErr.message}`);
+
+    if (unidades && unidades.length > 0) {
+      const vinculos = unidades.map((u) => ({
+        competencia_id: id,
+        unidade_id: u.id,
+        status: "nao_iniciada" as const,
+        created_by: context.userId,
+      }));
+
+      const { error: vErr } = await context.supabase
+        .from("competencia_unidades")
+        .insert(vinculos);
+      
+      if (vErr) throw new Error(`Erro ao vincular unidades automaticamente: ${vErr.message}`);
+    }
+
     await emitEvento(context.supabase, EVENTOS.COMPETENCIA_CRIADA, "competencia", id, {
       ano: data.ano,
       mes: data.mes,
       secretaria_id: data.secretaria_id,
     });
+
     return { id };
   });
 

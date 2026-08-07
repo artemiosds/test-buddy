@@ -406,6 +406,15 @@ function AuthenticatedLayoutInner() {
 
   useEffect(() => {
     if (!userCtx?.id) return;
+
+    let timeoutId: number | undefined;
+    const debouncedRefetch = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        refetchUnread();
+      }, 300);
+    };
+
     const ch = supabase
       .channel(`notif-${userCtx.id}`)
       .on(
@@ -417,7 +426,7 @@ function AuthenticatedLayoutInner() {
           filter: `usuario_id=eq.${userCtx.id}`,
         },
         (payload) => {
-          refetchUnread();
+          debouncedRefetch();
           if (
             payload.eventType === "INSERT" &&
             typeof window !== "undefined" &&
@@ -444,6 +453,7 @@ function AuthenticatedLayoutInner() {
         }
       });
     return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
       console.log(`[Notifications] Cleaning up channel for user ${userCtx.id}`);
       void supabase.removeChannel(ch);
     };

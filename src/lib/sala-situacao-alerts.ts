@@ -1,13 +1,9 @@
 // Regras de alerta da Sala de Situação — lógica pura, testável.
 // Sublote 5B (Onda 5) — cobertura Vitest.
 import type { RankingRow } from "@/lib/analytics-aggregations";
+import { SLA_RULES } from "@/config/sla-rules";
 
-export const ALERT_RULES = {
-  // PENDÊNCIA CRÍTICA: aberta/respondida sem tratativa há mais de N dias.
-  pendenciaDiasCritico: 7,
-  // HORAS EXTRAS ELEVADAS: unidade excedendo N horas na competência.
-  heCriticoUnidade: 200,
-} as const;
+export const ALERT_RULES = SLA_RULES;
 
 export type PendenciaInput = {
   id: string;

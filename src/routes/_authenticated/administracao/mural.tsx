@@ -11,9 +11,13 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { useState, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy, useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/use-permissions';
 import { ClientOnly } from '@/components/shared/ClientOnly';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MuralArquivoHistorico } from '@/components/mural/MuralArquivoHistorico';
+import { useSearch } from '@tanstack/react-router';
+
 
 const LazyAvisoForm = lazy(() => import('@/components/mural/AvisoForm').then(m => ({ default: m.AvisoForm })));
 
@@ -24,6 +28,14 @@ export const Route = createFileRoute('/_authenticated/administracao/mural')({ er
 function MuralAdminPage() {
   const [open, setOpen] = useState(false);
   const { data: user } = useCurrentUser();
+  const search = useSearch({ from: '/_authenticated/administracao/mural' }) as any;
+  const [activeTab, setActiveTab] = useState(search?.tab || "ativos");
+
+  useEffect(() => {
+    if (search?.tab) {
+      setActiveTab(search.tab);
+    }
+  }, [search?.tab]);
 
   const isManagement = user?.perfil_codigo === 'MASTER' || user?.perfil_codigo === 'GESTOR' || user?.is_master;
 
@@ -35,6 +47,7 @@ function MuralAdminPage() {
       </div>
     );
   }
+
 
   return (
     <div className="p-6 space-y-6">
@@ -69,8 +82,28 @@ function MuralAdminPage() {
       </div>
 
       <div className="bg-card rounded-lg border p-6">
-        <MuralAvisosList />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="ativos" className="gap-2">
+              <Megaphone className="h-4 w-4" />
+              Avisos Ativos
+            </TabsTrigger>
+            <TabsTrigger value="arquivo" className="gap-2">
+              <Plus className="h-4 w-4 rotate-45" />
+              Arquivo Histórico
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="ativos">
+            <MuralAvisosList />
+          </TabsContent>
+          
+          <TabsContent value="arquivo">
+            <MuralArquivoHistorico />
+          </TabsContent>
+        </Tabs>
       </div>
+
     </div>
   );
 }

@@ -108,6 +108,7 @@ function AprovacoesPage() {
   const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo } | null>(null);
   const [obs, setObs] = useState("");
   const [trilhaFreqId, setTrilhaFreqId] = useState<string | null>(null);
+  const [trilhaAberta, setTrilhaAbertura] = useState(false);
   const [linhasFreqId, setLinhasFreqId] = useState<string | null>(null);
   const [modalAnexo, setModalAnexo] = useState<{
     id: string;
@@ -335,7 +336,7 @@ function AprovacoesPage() {
                         <Upload className="mr-1 h-4 w-4" />
                         Anexos
                       </OfflineButton>
-                      <OfflineButton size="sm" variant="ghost" onClick={() => setTrilhaFreqId(r.id)}>
+                      <OfflineButton size="sm" variant="ghost" onClick={() => { setTrilhaFreqId(r.id); setTrilhaAbertura(true); }}>
                         <History className="mr-1 h-4 w-4" />
                         Trilha
                       </OfflineButton>
@@ -476,7 +477,7 @@ function AprovacoesPage() {
         </DialogContent>
       </Dialog>
 
-      <TrilhaDialog freqId={trilhaFreqId} onClose={() => setTrilhaFreqId(null)} />
+      <TrilhaDialog freqId={trilhaFreqId} open={trilhaAberta} onClose={() => { setTrilhaFreqId(null); setTrilhaAbertura(false); }} />
       
       {modalAnexo && (
         <UploadAnexoModal
@@ -503,34 +504,70 @@ function AprovacoesPage() {
   );
 }
 
-function TrilhaDialog({ freqId, onClose }: { freqId: string | null; onClose: () => void }) {
+function TrilhaDialog({ freqId, open, onClose }: { freqId: string | null; open: boolean; onClose: () => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["frequencia-aprovacoes", freqId],
     enabled: !!freqId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: hist, error: hErr } = await supabase
+        .from("frequencia_historico")
+        .select(
+          "id, acao, status_anterior, status_novo, justificativa, created_at, executado_por, executado_nome, executado_perfil",
+        )
+        .eq("frequencia_id", freqId!)
+        .order("created_at", { ascending: false });
+      
+      if (hErr) throw hErr;
+
+      // Legado (opcional - compatibilidade se houver registros antigos)
+      const { data: aprov, error: aErr } = await supabase
         .from("frequencia_aprovacoes")
         .select(
           "id, acao, status_anterior, status_novo, observacoes, created_at, executado_por, usuarios:executado_por(nome_completo)",
         )
         .eq("frequencia_id", freqId!)
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+      
+      if (aErr) throw aErr;
+
+      const results = [
+        ...(hist ?? []).map(h => ({
+          id: h.id,
+          acao: h.acao,
+          status_anterior: h.status_anterior,
+          status_novo: h.status_novo,
+          observacoes: h.justificativa,
+          created_at: h.created_at,
+          autor: h.executado_nome || "Usuário HSM",
+          perfil: h.executado_perfil
+        })),
+        ...(aprov ?? []).map(a => ({
+          id: a.id,
+          acao: a.acao,
+          status_anterior: a.status_anterior,
+          status_novo: a.status_novo,
+          observacoes: a.observacoes,
+          created_at: a.created_at,
+          autor: a.usuarios?.nome_completo || "Sistema",
+          perfil: null
+        }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return results;
     },
   });
 
   return (
     <Dialog
-      open={!!freqId}
+      open={open}
       onOpenChange={(o) => {
         if (!o) onClose();
       }}
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Trilha de aprovações</DialogTitle>
-          <DialogDescription>Histórico completo de decisões desta frequência.</DialogDescription>
+          <DialogTitle>Trilha de auditoria</DialogTitle>
+          <DialogDescription>Histórico de ações, perfis e justificativas.</DialogDescription>
         </DialogHeader>
         {isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
@@ -539,23 +576,29 @@ function TrilhaDialog({ freqId, onClose }: { freqId: string | null; onClose: () 
             <EmptyState title="Nenhum registro ainda." />
           </div>
         ) : (
-          <ol className="space-y-3">
+          <ol className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {data.map((r) => (
-              <li key={r.id} className="rounded-lg border bg-card p-3">
+              <li key={r.id} className="rounded-lg border bg-card p-3 shadow-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium">{r.acao}</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-semibold text-slate-800 dark:text-slate-100">{r.acao}</div>
+                  <div className="text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     {new Date(r.created_at).toLocaleString("pt-BR")}
                   </div>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {r.status_anterior ? statusLabel("frequencia", r.status_anterior) : "—"} →{" "}
-                  {statusLabel("frequencia", r.status_novo)}
-                  {r.usuarios?.nome_completo ? ` · por ${r.usuarios.nome_completo}` : ""}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <StatusBadge domain="frequencia" value={r.status_anterior} className="h-4 text-[10px] px-1" />
+                    <span>→</span>
+                    <StatusBadge domain="frequencia" value={r.status_novo} className="h-4 text-[10px] px-1" />
+                  </div>
+                  <span className="opacity-40">|</span>
+                  <div className="font-medium text-slate-700 dark:text-slate-300">
+                    {r.autor} {r.perfil ? `(${r.perfil})` : ""}
+                  </div>
                 </div>
                 {r.observacoes && (
-                  <div className="mt-2 whitespace-pre-wrap rounded bg-muted/40 p-2 text-sm">
-                    {r.observacoes}
+                  <div className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-2.5 text-[13px] border border-slate-200 dark:border-slate-800 italic text-slate-600 dark:text-slate-400">
+                    "{r.observacoes}"
                   </div>
                 )}
               </li>

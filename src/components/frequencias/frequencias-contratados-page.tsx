@@ -385,6 +385,9 @@ export function FrequenciasContratadosPage() {
 
   const mSalvar = useMutation({
     mutationFn: async () => {
+      const { offlineGuard } = await import("@/lib/offline-guard");
+      if (offlineGuard()) throw new Error("Offline");
+
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
       if (!dirtyList.length) return { ok: true, sem_alteracoes: true };
       return salvarFn({
@@ -417,6 +420,9 @@ export function FrequenciasContratadosPage() {
 
   const mEnviar = useMutation({
     mutationFn: async () => {
+      const { offlineGuard } = await import("@/lib/offline-guard");
+      if (offlineGuard()) throw new Error("Offline");
+
       // salva antes se houver alterações
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
       if (dirtyList.length) {

@@ -274,6 +274,29 @@ async function handleCompetencia(supa: Supa, ev: EventoDominio): Promise<void> {
   }
 }
 
+async function handleDocumento(supa: Supa, ev: EventoDominio): Promise<void> {
+  if (!ev.agregado_id || ev.tipo !== "documento.assinado_total") return;
+  
+  const { data: doc } = await supa
+    .from("documentos_assinados")
+    .select("id, titulo, usuario_id, numero_protocolo")
+    .eq("id", ev.agregado_id)
+    .maybeSingle();
+    
+  if (!doc) return;
+
+  await notificar(supa, [doc.usuario_id], {
+    titulo: "Documento Totalmente Assinado",
+    mensagem: `O documento "${doc.titulo}" (Protocolo: ${doc.numero_protocolo}) recebeu todas as assinaturas.`,
+    tipo: "sucesso",
+    prioridade: "normal",
+    link: "/documentos-emitidos",
+    entidade_tipo: "documento_assinado",
+    entidade_id: doc.id,
+    evento_id: ev.id,
+  });
+}
+
 async function handleEvent(supa: Supa, ev: EventoDominio): Promise<void> {
   if (ev.tipo.startsWith("pendencia.")) {
     await handlePendencia(supa, ev);
@@ -283,7 +306,10 @@ async function handleEvent(supa: Supa, ev: EventoDominio): Promise<void> {
     await handleCompetencia(supa, ev);
     return;
   }
-  // documento.*, sistema.*, e outros: apenas ack por ora.
+  if (ev.tipo.startsWith("documento.")) {
+    await handleDocumento(supa, ev);
+    return;
+  }
   return;
 }
 

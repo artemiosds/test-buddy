@@ -198,7 +198,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const { data: comp, error: cErr } = await supabase
       .from("competencias")
-      .select("id, status")
+      .select("id, status, ano, mes")
       .eq("id", data.competencia_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -236,6 +236,15 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       if (ex && ex.status_linha === "aprovada") continue;
+
+      // Validação de segurança: limite de dias no mês
+      const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
+      const totalDias = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
+                        Number(l.atestado ?? 0) + Number(l.ferias ?? 0) + Number(l.licenca_premio ?? 0);
+      
+      if (totalDias > diasNoMes) {
+        throw new Error(`O total de dias (${totalDias}) excede os ${diasNoMes} dias do mês para o profissional.`);
+      }
 
       const payload: Record<string, unknown> = {
         frequencia_id,
@@ -281,11 +290,41 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
 
-    const { frequencia_id } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
     );
+
+    // Validação de segurança: total de dias no mês
+    const { data: comp } = await supabase
+      .from("competencias")
+      .select("ano, mes")
+      .eq("id", data.competencia_id)
+      .single();
+    
+    if (comp) {
+      const { data: linhas } = await supabase
+        .from("frequencia_profissional")
+        .select("dias_trabalhados, faltas_injustificadas, atestado, ferias, licenca_premio")
+        .eq("frequencia_id", frequencia_id)
+        .is("deleted_at", null);
+      
+      const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
+      for (const l of (linhas ?? [])) {
+        const total = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
+                     Number(l.atestado ?? 0) + Number(l.ferias ?? 0) + Number(l.licenca_premio ?? 0);
+        if (total > diasNoMes) {
+          throw new Error(`Existem profissionais com mais de ${diasNoMes} dias lançados. Corrija antes de enviar.`);
+        }
+      }
+    }
+
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("nome, codigo")
+      .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
+      .maybeSingle();
 
     const now = new Date().toISOString();
     const { error } = await supabase
@@ -316,17 +355,17 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       }
     });
 
-    await emitEvento(
-      supabase,
-      EVENTOS.FREQUENCIA_ENVIADA,
-      "frequencia",
-      `${data.competencia_id}:${data.unidade_id}:efetivos`,
-      {
-        competencia_id: data.competencia_id,
-        unidade_id: data.unidade_id,
-        folha: "efetivos",
-        linhas: count ?? 0,
-      },
-    );
+    // Registra histórico (Seção 2)
+    await supabase.from("frequencia_historico").insert({
+      frequencia_id,
+      status_anterior: frequencia_status,
+      status_novo: "enviada",
+      acao: "Envio para análise",
+      executado_por: userId,
+      executado_nome: perfil?.nome || "Usuário HSM",
+      executado_perfil: perfil?.codigo || "Indefinido",
+      detalhes: { total_linhas: count }
+    } as never);
+
     return { ok: true, enviadas: count ?? 0 };
   });

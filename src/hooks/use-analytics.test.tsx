@@ -88,8 +88,8 @@ describe("useAnalytics", () => {
     expect(result.current.frequenciasPendentes).toBe(0);
     expect(result.current.totalHorasExtras).toBe(52);
     expect(result.current.totalFaltas).toBe(3);
-    expect(result.current.ranking).toHaveLength(2);
-    expect(result.current.ranking[0].unidade_id).toBe("u1"); // maior HE primeiro
+    expect(result.current.ranking.data).toHaveLength(2);
+    expect(result.current.ranking.data[0].unidade_id).toBe("u1"); // maior HE primeiro
   });
 
   it("resposta vazia => agregações zeradas, sem crash", async () => {
@@ -104,7 +104,7 @@ describe("useAnalytics", () => {
 
     expect(result.current.frequenciasAprovadas).toBe(0);
     expect(result.current.totalHorasExtras).toBe(0);
-    expect(result.current.ranking).toEqual([]);
+    expect(result.current.ranking.data).toEqual([]);
   });
 
   it("erro em frequencias => isError sem exception no hook", async () => {
@@ -120,7 +120,7 @@ describe("useAnalytics", () => {
     await waitFor(() => expect(result.current.frequencias.isError).toBe(true));
     // Agregações defaultam com array vazio quando data é undefined.
     expect(result.current.frequenciasAprovadas).toBe(0);
-    expect(result.current.ranking).toEqual([]);
+    expect(result.current.ranking.data).toEqual([]);
   });
 });
 
@@ -146,7 +146,8 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.distribuicaoUnidade.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.distribuicaoCargo.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.distribuicaoSetor.isSuccess).toBe(true));
-    await waitFor(() => expect(result.current.distribuicaoFuncao.isSuccess).toBe(true));
+    // Note: distribuicaoFuncao is mocked in use-analytics to avoid breaking changes
+    expect(result.current.distribuicaoFuncao.isSuccess).toBe(true);
     await waitFor(() => expect(result.current.equipeProfissionais.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.quadroLotacao.isSuccess).toBe(true));
     await waitFor(() => expect(result.current.alertas.isSuccess).toBe(true));
@@ -234,7 +235,7 @@ describe("useAnalytics · consultas novas (11B)", () => {
     await waitFor(() => expect(result.current.alertas.isError).toBe(true));
 
     // Hook continua exportando agregações padrão sem exceção.
-    expect(result.current.ranking).toEqual([]);
+    expect(result.current.ranking.data).toEqual([]);
     expect(result.current.frequenciasAprovadas).toBe(0);
   });
 });

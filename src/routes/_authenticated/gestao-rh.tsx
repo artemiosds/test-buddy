@@ -60,6 +60,7 @@ function GestaoRhContent() {
   };
 
   const a = useAnalytics(filters);
+  const rankingData = a.ranking.data;
 
   const { data: competencias } = useCompetenciasLookup();
   const { data: unidades } = useUnidadesLookup({ ativasOnly: true });
@@ -88,34 +89,34 @@ function GestaoRhContent() {
     {
       label: "Frequências enviadas",
       value: a.frequenciasEnviadas,
-      loading: a.frequencias.isLoading,
+      loading: a.summary.isLoading,
       hint: "Enviadas / em análise / com pendências",
       icon: <ClipboardList className="h-4 w-4" />,
     },
     {
       label: "Frequências pendentes",
       value: a.frequenciasPendentes,
-      loading: a.frequencias.isLoading,
+      loading: a.summary.isLoading,
       hint: "Ainda em rascunho",
       icon: <Clock className="h-4 w-4" />,
     },
     {
       label: "Frequências aprovadas",
       value: a.frequenciasAprovadas,
-      loading: a.frequencias.isLoading,
+      loading: a.summary.isLoading,
       icon: <CheckCircle2 className="h-4 w-4" />,
     },
     {
       label: "Horas extras (total)",
       value: a.totalHorasExtras.toLocaleString("pt-BR"),
-      loading: a.frequencias.isLoading,
+      loading: a.summary.isLoading,
       hint: "Somatório da competência",
       icon: <Clock className="h-4 w-4" />,
     },
     {
       label: "Faltas (total)",
       value: a.totalFaltas.toLocaleString("pt-BR"),
-      loading: a.frequencias.isLoading,
+      loading: a.summary.isLoading,
       icon: <AlertCircle className="h-4 w-4" />,
     },
     {
@@ -127,7 +128,7 @@ function GestaoRhContent() {
     },
   ];
 
-  const rankingColumns: DataTableColumn<(typeof a.ranking)[number]>[] = [
+  const rankingColumns: DataTableColumn<(typeof rankingData)[number]>[] = [
     { key: "pos", header: "#", cell: (_) => "", className: "w-10 text-muted-foreground" },
     {
       key: "unidade",
@@ -162,7 +163,7 @@ function GestaoRhContent() {
   ];
 
   // Renderiza posição usando index
-  const rankingRows = a.ranking.map((r, i) => ({ ...r, _pos: i + 1 }));
+  const rankingRows = rankingData.map((r, i) => ({ ...r, _pos: i + 1 }));
   const rankingColumnsWithPos: DataTableColumn<(typeof rankingRows)[number]>[] = [
     { key: "pos", header: "#", cell: (r) => r._pos, className: "w-10 text-muted-foreground" },
     ...rankingColumns.slice(1),
@@ -265,7 +266,7 @@ function GestaoRhContent() {
           columns={rankingColumnsWithPos}
           rows={rankingRows}
           getRowKey={(r) => r.unidade_id}
-          loading={a.frequencias.isLoading}
+          loading={a.ranking.isLoading}
           emptyTitle="Sem folhas de frequência nesta competência"
           emptyDescription="Assim que as unidades iniciarem folhas na competência selecionada, o ranking aparece aqui."
         />
