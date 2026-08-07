@@ -39,7 +39,8 @@ function parseParametros(raw: unknown): MunicipioParametros {
 export function useMunicipioParametros() {
   return useQuery({
     queryKey: ["municipio-parametros"],
-    staleTime: 60_000,
+    staleTime: 10 * 60_000,
+    gcTime: 60 * 60_000,
     queryFn: async (): Promise<MunicipioParametros> => {
       const { data, error } = await supabase
         .from("municipio_config")

@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +80,7 @@ import type { LayoutCampo } from "@/lib/layout-engine";
 import { IMPORT_TEMPLATES } from "@/lib/import-templates";
 
 
-export const Route = createFileRoute("/_authenticated/layouts-importacao")({
+export const Route = createFileRoute("/_authenticated/layouts-importacao")({ errorComponent: ErrorComponent,
   head: () => ({
     meta: [
       { title: "Layouts de Importação | Motor de Layouts" },

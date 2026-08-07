@@ -27,7 +27,8 @@ export type CompetenciaAtiva = {
 export function useCompetenciaAtiva() {
   return useQuery({
     queryKey: ["competencia-ativa"],
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     queryFn: async (): Promise<CompetenciaAtiva | null> => {
       const { data, error } = await supabase
         .from("competencias")

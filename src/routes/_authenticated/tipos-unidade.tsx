@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, PowerOff, Power, Tag } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 
-export const Route = createFileRoute("/_authenticated/tipos-unidade")({
+export const Route = createFileRoute("/_authenticated/tipos-unidade")({ errorComponent: ErrorComponent,
   component: TiposUnidadePage,
 });
 

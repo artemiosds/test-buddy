@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -37,7 +38,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-export const Route = createFileRoute("/_authenticated/configuracao/perfis/$id")({
+export const Route = createFileRoute("/_authenticated/configuracao/perfis/$id")({ errorComponent: ErrorComponent,
   component: PerfilMatriz,
 });
 

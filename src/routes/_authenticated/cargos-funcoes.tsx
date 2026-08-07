@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -27,7 +28,7 @@ import { Plus, Pencil, PowerOff, Power, Briefcase, Trash2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export const Route = createFileRoute("/_authenticated/cargos-funcoes")({
+export const Route = createFileRoute("/_authenticated/cargos-funcoes")({ errorComponent: ErrorComponent,
   component: CargosFuncoesPage,
 });
 

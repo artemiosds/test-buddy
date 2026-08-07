@@ -14,11 +14,8 @@ export interface UsuarioSSO {
 export async function gerarTokenSSO(usuario: UsuarioSSO): Promise<string> {
   // 1. Tenta obter o segredo simétrico de várias fontes (Browser/Vite/Node/Deno) com fallback de contingência
   const jwtSecret =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_SSO_JWT_SECRET) ||
-    (typeof import.meta !== "undefined" && import.meta.env?.SSO_JWT_SECRET) ||
-    (typeof process !== "undefined" && process.env?.VITE_SSO_JWT_SECRET) ||
     (typeof process !== "undefined" && process.env?.SSO_JWT_SECRET) ||
-    "sms_oriximina_sso_secret_key_2026_prod"; // Fallback estático de emergência
+    (typeof process !== "undefined" && process.env?.VITE_SSO_JWT_SECRET);
 
   if (!jwtSecret) {
     throw new Error("Chave secreta SSO não configurada no servidor (SSO_JWT_SECRET ausente).");

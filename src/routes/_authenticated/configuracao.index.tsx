@@ -1,8 +1,10 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +13,7 @@ import { Save, Settings2, Upload } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 
-export const Route = createFileRoute("/_authenticated/configuracao/")({
+export const Route = createFileRoute("/_authenticated/configuracao/")({ errorComponent: ErrorComponent,
   component: ConfiguracaoPage,
 });
 
@@ -667,10 +669,10 @@ function ConfiguracaoPage() {
       </section>
 
       <div className="flex justify-end">
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+        <OfflineButton requireOnline onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {saveMutation.isPending ? "Salvando..." : "Salvar configuração"}
-        </Button>
+        </OfflineButton>
       </div>
     </div>
   );

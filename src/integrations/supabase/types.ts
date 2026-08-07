@@ -276,6 +276,7 @@ export type Database = {
           notificar_email: boolean | null
           previsao_termino: string | null
           prioridade: string
+          subtitulo: string | null
           tipo: string
           titulo: string
         }
@@ -296,6 +297,7 @@ export type Database = {
           notificar_email?: boolean | null
           previsao_termino?: string | null
           prioridade?: string
+          subtitulo?: string | null
           tipo?: string
           titulo: string
         }
@@ -316,10 +318,52 @@ export type Database = {
           notificar_email?: boolean | null
           previsao_termino?: string | null
           prioridade?: string
+          subtitulo?: string | null
           tipo?: string
           titulo?: string
         }
         Relationships: []
+      }
+      avisos_mural_anexos: {
+        Row: {
+          aviso_id: string
+          bucket: string
+          criado_em: string | null
+          id: string
+          mime: string
+          nome: string
+          path: string
+          size: number
+        }
+        Insert: {
+          aviso_id: string
+          bucket?: string
+          criado_em?: string | null
+          id?: string
+          mime: string
+          nome: string
+          path: string
+          size: number
+        }
+        Update: {
+          aviso_id?: string
+          bucket?: string
+          criado_em?: string | null
+          id?: string
+          mime?: string
+          nome?: string
+          path?: string
+          size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_mural_anexos_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "avisos_mural"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       avisos_mural_leituras: {
         Row: {
@@ -4911,6 +4955,10 @@ export type Database = {
           status: Database["public"]["Enums"]["status_usuario"]
         }[]
       }
+      get_user_permissions_list: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       has_permission: {
         Args: {
           _codigo: string
@@ -4960,6 +5008,7 @@ export type Database = {
       is_aviso_gestor: { Args: { _user_id: string }; Returns: boolean }
       is_master: { Args: { _user_id: string }; Returns: boolean }
       is_master_core: { Args: { _user_id: string }; Returns: boolean }
+      jwt_has_permission: { Args: { _perm: string }; Returns: boolean }
       log_client_action: {
         Args: {
           _acao: string

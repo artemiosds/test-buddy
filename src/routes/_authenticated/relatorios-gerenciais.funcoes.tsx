@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -11,7 +12,7 @@ import { listFuncoesGerencial, type FuncaoPreset } from "@/lib/relatorios-gerenc
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/funcoes")({
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/funcoes")({ errorComponent: ErrorComponent,
   component: FuncoesGerencial,
 });
 

@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -19,7 +20,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 
-export const Route = createFileRoute("/_authenticated/feriados")({
+export const Route = createFileRoute("/_authenticated/feriados")({ errorComponent: ErrorComponent,
   component: FeriadosPage,
 });
 

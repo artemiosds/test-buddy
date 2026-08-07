@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -58,7 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/sala-situacao")({
+export const Route = createFileRoute("/_authenticated/sala-situacao")({ errorComponent: ErrorComponent,
   validateSearch: workforceFiltersValidator,
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
@@ -73,9 +74,7 @@ export const Route = createFileRoute("/_authenticated/sala-situacao")({
       <SalaSituacaoPage />
     </PermissionGate>
   ),
-  errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
-  ),
+  
   notFoundComponent: () => <div className="p-6">Não encontrado.</div>,
 });
 

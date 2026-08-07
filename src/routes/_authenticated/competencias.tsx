@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -34,7 +35,7 @@ import { Plus, Lock, Unlock, Archive, Settings } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/competencias")({
+export const Route = createFileRoute("/_authenticated/competencias")({ errorComponent: ErrorComponent,
   component: CompetenciasPage,
 });
 

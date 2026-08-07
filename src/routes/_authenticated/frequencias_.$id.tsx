@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +70,7 @@ import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/frequencias_/$id")({
+export const Route = createFileRoute("/_authenticated/frequencias_/$id")({ errorComponent: ErrorComponent,
   component: FrequenciaDetalhe,
 });
 

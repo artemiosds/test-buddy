@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -31,7 +32,7 @@ import {
   type ExportColumn,
 } from "@/lib/relatorios-gerenciais-export";
 
-export const Route = createFileRoute("/_authenticated/relatorios-cadastro")({
+export const Route = createFileRoute("/_authenticated/relatorios-cadastro")({ errorComponent: ErrorComponent,
   component: RelatorioCadastroPage,
 });
 

@@ -169,43 +169,39 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     if (exErr) throw new Error(exErr.message);
     const byProf = new Map((existentes ?? []).map((r: any) => [r.profissional_id, r]));
 
-    const toInsert: Record<string, unknown>[] = [];
-    const toUpdate: { id: string; patch: Record<string, unknown> }[] = [];
+    const allRows: Record<string, unknown>[] = [];
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
       if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
 
-      const payload: Record<string, unknown> = {};
+      const payload: Record<string, unknown> = {
+        competencia_id: data.competencia_id,
+        unidade_id: data.unidade_id,
+        profissional_id: l.profissional_id,
+        updated_by: userId,
+        status: ex ? ex.status : "rascunho",
+      };
+
+      if (!ex) {
+        payload.created_by = userId;
+      } else {
+        payload.id = ex.id;
+      }
+
       for (const f of PAYLOAD_FIELDS)
         payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
 
-      if (ex) {
-        toUpdate.push({ id: ex.id, patch: { ...payload, updated_by: userId } });
-      } else {
-        toInsert.push({
-          competencia_id: data.competencia_id,
-          unidade_id: data.unidade_id,
-          profissional_id: l.profissional_id,
-          status: "rascunho",
-          created_by: userId,
-          ...payload,
-        });
-      }
+      allRows.push(payload);
     }
 
-    if (toInsert.length) {
+    if (allRows.length) {
+      // Upsert atômico de todas as linhas (novas e existentes)
       const { error } = await (supabase.from("frequencias_contratados") as any)
-        .upsert(toInsert, { onConflict: "competencia_id, unidade_id, profissional_id" });
-      if (error) throw new Error(error.error ? error.error.message : (error as any).message || "Erro no upsert");
-    }
-    for (const u of toUpdate) {
-      const { error } = await supabase
-        .from("frequencias_contratados")
-        .update(u.patch as never)
-        .eq("id", u.id);
-      if (error) throw new Error(error.message);
+        .upsert(allRows, { onConflict: "competencia_id, unidade_id, profissional_id" });
+      
+      if (error) throw new Error(error.message || "Erro ao salvar lote de frequências");
     }
 
     // Sincronização após salvar
@@ -218,7 +214,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       }
     });
 
-    return { ok: true, inseridas: toInsert.length, atualizadas: toUpdate.length };
+    return { ok: true, processadas: allRows.length };
   });
 
 export const enviarFolhaContratados = createServerFn({ method: "POST" })

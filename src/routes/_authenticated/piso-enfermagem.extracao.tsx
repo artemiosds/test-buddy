@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { ArrowLeft, Cpu, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -23,7 +25,7 @@ import {
 } from "@/lib/piso-extracao-config.functions";
 import { IaProvedoresManager } from "@/components/piso/ia-provedores-manager";
 
-export const Route = createFileRoute("/_authenticated/piso-enfermagem/extracao")({
+export const Route = createFileRoute("/_authenticated/piso-enfermagem/extracao")({ errorComponent: ErrorComponent,
   component: ExtracaoConfigPage,
   head: () => ({
     meta: [

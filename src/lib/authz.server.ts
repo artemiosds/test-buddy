@@ -87,6 +87,11 @@ export async function ensurePermission(
   codigo: AcaoCodigo | string,
   extra?: { _unidade_id?: string | null; _secretaria_id?: string | null },
 ) {
+  // Otimização: Tenta verificar via JWT primeiro se possível, 
+  // mas como estamos no server-side helper que recebe userId, 
+  // ainda usamos o RPC para garantir consistência total se não tivermos o token em mãos.
+  // No entanto, a nova função RPC 'has_permission' agora pode ser mapeada para usar o check de JWT 
+  // se o supabase client injetado tiver o session.
   const { data, error } = await supabase.rpc("has_permission", {
     _user_id: userId,
     _codigo: codigo,

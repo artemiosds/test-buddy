@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -55,7 +56,7 @@ const PERFIS_ELEGIVEIS_PESSOAL = [
   "COORDENADOR",
 ];
 
-export const Route = createFileRoute("/_authenticated/assinaturas")({
+export const Route = createFileRoute("/_authenticated/assinaturas")({ errorComponent: ErrorComponent,
   component: AssinaturasPage,
 });
 

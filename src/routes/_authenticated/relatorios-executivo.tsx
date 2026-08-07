@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -32,7 +33,7 @@ import {
   Legend,
 } from "recharts";
 
-export const Route = createFileRoute("/_authenticated/relatorios-executivo")({
+export const Route = createFileRoute("/_authenticated/relatorios-executivo")({ errorComponent: ErrorComponent,
   component: RelatorioExecutivoPage,
 });
 

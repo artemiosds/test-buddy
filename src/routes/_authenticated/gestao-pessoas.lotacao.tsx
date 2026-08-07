@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Building2, Users, Layers, AlertCircle, ArrowUp, ArrowDown } from "lucide-react";
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/gestao-pessoas/lotacao")({
+export const Route = createFileRoute("/_authenticated/gestao-pessoas/lotacao")({ errorComponent: ErrorComponent,
   head: () => ({
     meta: [
       { title: "Quadro de Lotação — Gestão da Saúde" },

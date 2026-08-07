@@ -27,6 +27,7 @@ export const Route = createFileRoute("/api/public/hooks/purgar-documentos")({
         }
         const supa = createClient(url, key, {
           auth: { autoRefreshToken: false, persistSession: false },
+          global: { headers: { "x-application-name": "hsm-gestao-purgar" } },
         });
 
         const agora = new Date().toISOString();

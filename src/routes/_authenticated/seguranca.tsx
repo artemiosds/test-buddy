@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -20,7 +21,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 
 
-export const Route = createFileRoute("/_authenticated/seguranca")({
+export const Route = createFileRoute("/_authenticated/seguranca")({ errorComponent: ErrorComponent,
   head: () => ({ meta: [{ title: "Segurança (MFA) — GESTÃO SAÚDE ORIXIMINÁ - SMS" }] }),
   component: SegurancaPage,
 });

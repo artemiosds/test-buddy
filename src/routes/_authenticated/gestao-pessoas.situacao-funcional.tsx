@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { UserCheck, UserMinus, Umbrella, FileText, UserX } from "lucide-react";
 
@@ -5,7 +6,7 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 
-export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-funcional")({
+export const Route = createFileRoute("/_authenticated/gestao-pessoas/situacao-funcional")({ errorComponent: ErrorComponent,
   head: () => ({
     meta: [
       { title: "Situação Funcional — Gestão da Saúde" },

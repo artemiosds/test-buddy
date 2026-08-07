@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,7 +16,7 @@ import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { useState, useMemo } from "react";
 
-export const Route = createFileRoute("/_authenticated/competencias/$id")({
+export const Route = createFileRoute("/_authenticated/competencias/$id")({ errorComponent: ErrorComponent,
   component: DetalhePage,
 });
 

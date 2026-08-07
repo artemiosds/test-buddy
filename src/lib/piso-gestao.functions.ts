@@ -12,7 +12,7 @@ import {
 
 import { calcularPiso } from "./piso-calculo";
 import { carregarReferencias, refDe } from "./piso-referencia.server";
-import { consolidarCompetencia } from "./piso-consolidacao.server";
+import { consolidarCompetencia, ResultadoConsolidacao } from "./piso-consolidacao.server";
 import { normCpf, normMatricula, normNome, STATUS_EXCLUIDOS } from "./piso-match";
 
 // ---------------------------------------------------------------------------
@@ -45,7 +45,7 @@ async function carregarElegiveis(supabase: any) {
     .select(SELECT_PROFISSIONAL_ELEGIVEL)
     .is("deleted_at", null)
     .not("status", "in", `(${STATUS_EXCLUIDOS.join(",")})`)
-    .limit(20000);
+    .limit(50000); // Hardening Fase 8: Suporte a 50k profissionais
   const q = aplicarFiltroElegivel(base, cargos);
   if (!q)
     return {
@@ -133,7 +133,7 @@ async function montarLinhas(supabase: any, competencia: string | null) {
       .from("piso_competencia_profissional")
       .select("*")
       .eq("competencia", competencia)
-      .limit(20000);
+      .limit(50000); // Sincronizado com o limite de profissionais elegíveis
     if (error) throw new Error(error.message);
     for (const r of data ?? []) consolidados.set(r.profissional_id, r);
   }
@@ -209,7 +209,8 @@ export const listPisoElegiveis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ListInput.parse(d ?? {}))
   .handler(async ({ data, context }) => {
-    await ensurePermission(context.supabase, context.userId, "piso.visualizar");
+    try {
+      await ensurePermission(context.supabase, context.userId, "piso.visualizar");
     const todas = await montarLinhas(context.supabase, data.competencia ?? null);
 
     const busca = (data.busca ?? "").trim().toLowerCase();
@@ -262,11 +263,15 @@ export const listPisoElegiveis = createServerFn({ method: "GET" })
 
 
     const from = (data.page - 1) * data.pageSize;
-    return {
-      rows: filtradas.slice(from, from + data.pageSize),
-      count: filtradas.length,
-      resumo,
-    };
+      return {
+        rows: filtradas.slice(from, from + data.pageSize),
+        count: filtradas.length,
+        resumo,
+      };
+    } catch (err) {
+      console.error("[listPisoElegiveis] Erro:", err);
+      throw err instanceof Error ? err : new Error("Erro ao listar profissionais elegíveis");
+    }
   });
 
 
@@ -321,7 +326,7 @@ export const listCompetenciasConsolidadas = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("piso_competencia_profissional")
       .select("competencia")
-      .limit(20000);
+      .limit(50000);
     if (error) throw new Error(error.message);
     const set = new Set<string>();
     for (const r of data ?? []) if (r.competencia) set.add(r.competencia);
@@ -580,16 +585,31 @@ export const consolidarLotePiso = createServerFn({ method: "POST" })
         const ex = mapEx.get(u.profissional_id);
         return ex ? { ...ex, ...u } : { ...u, created_by: context.userId };
       });
-      const { error } = await supabase
-        .from("piso_competencia_profissional")
-        .upsert(rows, { onConflict: "profissional_id,competencia" });
-      if (error) throw new Error(error.message);
+      const MAX_RETRIES = 3;
+      let lastError = null;
+      let success = false;
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        const { error } = await supabase
+          .from("piso_competencia_profissional")
+          .upsert(rows, { onConflict: "profissional_id,competencia" });
+          
+        if (!error) {
+          success = true;
+          break;
+        }
+        lastError = error;
+        await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
+      }
+      
+      if (!success) throw new Error(`Falha crítica na persistência do lote consolidado: ${lastError?.message}`);
+      
       atualizados = rows.length;
     }
 
     if (pendencias.length > 0) {
       const { error } = await supabase.from("piso_pendencias").insert(pendencias);
-      if (error) throw new Error(error.message);
+      if (error) console.error("Falha ao registrar pendências (não crítica):", error.message);
     }
 
     // Reprocessamento incremental: apenas os profissionais afetados pelo lote.

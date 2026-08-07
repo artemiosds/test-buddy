@@ -1,9 +1,10 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { PermissionGate } from "@/components/permission-gate";
 import { FolhaImportWizard } from "@/components/piso/folha-import-wizard";
 import { LAYOUT_EFETIVOS } from "@/lib/piso-layouts";
 
-export const Route = createFileRoute("/_authenticated/piso-enfermagem/importar-efetivos")({
+export const Route = createFileRoute("/_authenticated/piso-enfermagem/importar-efetivos")({ errorComponent: ErrorComponent,
   component: () => (
     <PermissionGate
       permission="piso.importar"

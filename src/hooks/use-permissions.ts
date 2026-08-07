@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withBreaker } from "@/lib/circuit-breaker";
 
@@ -20,7 +21,8 @@ export type UserContext = {
 export function useCurrentUser() {
   return useQuery({
     queryKey: ["current-user-context"],
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 15 * 60_000,
     queryFn: async (): Promise<UserContext | null> => {
       return withBreaker(
         "rpc.get_my_user_context",
@@ -39,27 +41,61 @@ export function useCurrentUser() {
 }
 
 export function usePermissions() {
-  const query = useQuery({
-    queryKey: ["my-permissions"],
-    staleTime: 60_000,
-    queryFn: async (): Promise<Set<string>> => {
-      return withBreaker(
-        "rpc.get_my_permissions",
-        async () => {
-          const { data, error } = await supabase.rpc("get_my_permissions");
-          if (error) throw error;
-          const list = (data as unknown as string[]) ?? [];
-          return new Set(list);
-        },
-        // Fallback degradado seguro: sem permissões → nega tudo (`has()` false).
-        { fallback: () => new Set<string>() },
-      );
+  // 1. Carrega o usuário para extrair permissões do app_metadata (JWT)
+  const userQuery = useQuery({
+    queryKey: ["supabase-user"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
     },
+    staleTime: 5 * 60_000,
   });
 
-  const codes = query.data ?? new Set<string>();
+  // 2. Fallback: Se o app_metadata não tiver permissões, carrega via RPC
+  const rpcFallbackQuery = useQuery({
+    queryKey: ["my-permissions-fallback"],
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase.rpc("get_my_permissions");
+      if (error) throw error;
+      return (data as unknown as string[]) ?? [];
+    },
+    // Só habilita se o usuário estiver carregado mas SEM a lista de permissões no metadata
+    enabled: !!userQuery.data && !Array.isArray(userQuery.data.app_metadata?.permissions),
+    staleTime: 5 * 60_000,
+  });
+
+  // 3. Consolidação: Prioriza JWT, faz fallback para RPC
+  const codes = useMemo(() => {
+    // Tenta JWT
+    const jwtPerms = userQuery.data?.app_metadata?.permissions;
+    if (Array.isArray(jwtPerms)) {
+      return new Set(jwtPerms as string[]);
+    }
+    // Tenta RPC Fallback
+    if (Array.isArray(rpcFallbackQuery.data)) {
+      return new Set(rpcFallbackQuery.data);
+    }
+    return new Set<string>();
+  }, [userQuery.data, rpcFallbackQuery.data]);
+
   const has = (code: string) => codes.has(code);
   const hasAny = (list: string[]) => list.some((c) => codes.has(c));
 
-  return { ...query, codes, has, hasAny };
+  // Dispara refresh automático se detectou fallback (sessão antiga)
+  const needsRefresh = !!userQuery.data && !Array.isArray(userQuery.data.app_metadata?.permissions);
+
+  return { 
+    ...userQuery,
+    isLoading: userQuery.isLoading || (needsRefresh && rpcFallbackQuery.isLoading),
+    isFallback: needsRefresh,
+    codes, 
+    has, 
+    hasAny,
+    refresh: async () => {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      return data;
+    }
+  };
 }

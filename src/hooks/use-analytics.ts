@@ -29,12 +29,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const canSee = usePermissions().has;
 
-  const staleTime = options?.staleTime ?? 60_000;
+  const staleTime = options?.staleTime ?? 300_000; // 5 minutos padrão para dashboard
+  const gcTime = 1_800_000; // 30 minutos de garbage collection
   const competenciaId = filters.competenciaId ?? competenciaAtiva?.id ?? null;
 
   const totalProfessionals = useQuery({
     queryKey: ["analytics", "totalProfessionals", filters],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const q = supabase
         .from("profissionais")
@@ -56,6 +58,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const totalUnidades = useQuery({
     queryKey: ["analytics", "totalUnidades", filters.secretariaId],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("unidades")
@@ -71,6 +74,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const totalSetores = useQuery({
     queryKey: ["analytics", "totalSetores"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("setores")
@@ -84,6 +88,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const totalCargos = useQuery({
     queryKey: ["analytics", "totalCargos"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("cargos")
@@ -97,6 +102,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const totalFuncoes = useQuery({
     queryKey: ["analytics", "totalFuncoes"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("funcoes")
@@ -110,6 +116,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const pendencias = useQuery({
     queryKey: ["analytics", "pendencias", filters],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const q = supabase
         .from("frequencia_pendencias")
@@ -143,6 +150,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.funcaoId,
     ],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -176,6 +184,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.funcaoId,
     ],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -204,6 +213,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const alertas = useQuery({
     queryKey: ["analytics", "alertas"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const headCount = async (table: "profissionais" | "unidades", col: string) => {
         const { count, error } = await supabase
@@ -274,6 +284,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const integridade = useQuery({
     queryKey: ["analytics", "integridade"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profissionais")
@@ -337,6 +348,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const previousCompetenciaId = useQuery({
     queryKey: ["analytics", "prevCompetencia", competenciaId],
     staleTime,
+    gcTime,
     enabled: !!competenciaId,
     queryFn: async () => {
       const { data: cur } = await supabase
@@ -365,6 +377,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.unidadeId ?? null,
     ],
     staleTime,
+    gcTime,
     enabled: !!previousCompetenciaId.data,
     queryFn: async () => {
       let q = supabase
@@ -391,6 +404,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.unidadeId ?? null,
     ],
     staleTime,
+    gcTime,
     enabled: !!previousCompetenciaId.data,
     queryFn: async () => {
       const q = supabase
@@ -421,6 +435,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.setorId,
     ],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -458,6 +473,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const distribuicaoCargo = useQuery({
     queryKey: ["analytics", "distribuicaoCargo", filters.unidadeId, filters.setorId],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -496,6 +512,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.unidadeId,
     ],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -535,6 +552,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.cargoId,
     ],
     staleTime,
+    gcTime,
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -579,6 +597,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       filters.status,
     ],
     staleTime,
+    gcTime,
     enabled: !!filters.cargoId || !!filters.funcaoId || !!filters.unidadeId || !!filters.setorId,
     queryFn: async () => {
       let q = supabase
@@ -615,6 +634,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const quadroLotacao = useQuery({
     queryKey: ["analytics", "quadroLotacao"],
     staleTime,
+    gcTime,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profissionais")
@@ -689,6 +709,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const frequencias = useQuery({
     queryKey: ["analytics", "frequencias", competenciaId, filters.unidadeId ?? null],
     staleTime,
+    gcTime,
     enabled: !!competenciaId,
     queryFn: async () => {
       let q = supabase

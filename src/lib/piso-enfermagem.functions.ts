@@ -29,10 +29,10 @@ export const matchProfissionaisImport = createServerFn({ method: "POST" })
     // todos os profissionais não desligados/inativos e não excluídos.
     const { data: rows, error } = await supabase
       .from("profissionais")
-      .select("id, cpf, matricula, nome_completo, nome_social")
+      .select("id, cpf, matricula, nome_completo")
       .not("status", "in", `(${STATUS_EXCLUIDOS.join(",")})`)
       .is("deleted_at", null)
-      .limit(20000);
+      .limit(50000); // Hardening Fase 8: Suporte a 50k profissionais
     if (error) throw new Error(error.message);
 
     const byCpf: Record<string, string> = {};
@@ -44,7 +44,7 @@ export const matchProfissionaisImport = createServerFn({ method: "POST" })
       if (cpf && !byCpf[cpf]) byCpf[cpf] = r.id;
       const mat = normMatricula(r.matricula);
       if (mat && !byMatricula[mat]) byMatricula[mat] = r.id;
-      const nome = (r.nome_completo ?? r.nome_social) as string | null;
+      const nome = r.nome_completo as string | null;
       if (nome) candidatos.push({ id: r.id, nome });
     }
 
@@ -118,7 +118,7 @@ const CommitInput = z.object({
   mapeamento: z.record(z.string(), z.string().nullable()).default({}),
   /** Modelo de planilha (ex.: UBS) usado como fonte de estrutura/fórmulas. */
   modelo_planilha_id: z.string().uuid().nullable().optional(),
-  linhas: z.array(LinhaSchema).max(20000),
+  linhas: z.array(LinhaSchema).max(50000),
 });
 
 // Campos que o usuário pode desmarcar na tela de importação.
@@ -409,7 +409,7 @@ export const getPisoDistribuicao = createServerFn({ method: "GET" })
       .from("piso_enfermagem")
       .select("unidade, cargo, nome, cpf, matricula, piso_complementacao, status_match")
       .eq("competencia", data.competencia)
-      .limit(20000);
+      .limit(50000);
     if (error) throw new Error(error.message);
     const uMap = new Map<string, { total: number; valor: number }>();
     const cMap = new Map<string, { total: number; valor: number }>();

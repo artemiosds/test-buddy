@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -28,7 +29,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/unidades/")({
+export const Route = createFileRoute("/_authenticated/unidades/")({ errorComponent: ErrorComponent,
   component: UnidadesPage,
 });
 

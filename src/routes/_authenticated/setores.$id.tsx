@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -39,7 +40,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export const Route = createFileRoute("/_authenticated/setores/$id")({
+export const Route = createFileRoute("/_authenticated/setores/$id")({ errorComponent: ErrorComponent,
   component: () => (
     <PermissionGate
       anyOf={["unidade.visualizar", "profissional.visualizar"]}
@@ -54,9 +55,7 @@ export const Route = createFileRoute("/_authenticated/setores/$id")({
       </AnalyticsFilterProvider>
     </PermissionGate>
   ),
-  errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
-  ),
+  
   notFoundComponent: () => <div className="p-6">Setor não encontrado.</div>,
 });
 

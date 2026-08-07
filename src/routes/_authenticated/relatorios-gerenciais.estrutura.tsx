@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -28,7 +29,7 @@ import { useUnidadesLookup } from "@/hooks/use-lookups";
 import { IntelligencePanel } from "@/components/relatorios-gerenciais/intelligence-panel";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/estrutura")({
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/estrutura")({ errorComponent: ErrorComponent,
   component: EstruturaOrganizacional,
 });
 

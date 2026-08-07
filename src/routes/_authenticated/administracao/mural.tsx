@@ -1,7 +1,8 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from '@tanstack/react-router';
 import { MuralAvisosList } from '@/components/mural/MuralAvisosList';
-import { AvisoForm } from '@/components/mural/AvisoForm';
-import { Button } from '@/components/ui/button';
+
+import { OfflineButton } from '@/components/shared/OfflineButton';
 import { Plus, Megaphone } from 'lucide-react';
 import { 
   Dialog, 
@@ -10,10 +11,13 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { useCurrentUser } from '@/hooks/use-permissions';
+import { ClientOnly } from '@/components/shared/ClientOnly';
 
-export const Route = createFileRoute('/_authenticated/administracao/mural')({
+const LazyAvisoForm = lazy(() => import('@/components/mural/AvisoForm').then(m => ({ default: m.AvisoForm })));
+
+export const Route = createFileRoute('/_authenticated/administracao/mural')({ errorComponent: ErrorComponent,
   component: MuralAdminPage,
 });
 
@@ -47,15 +51,19 @@ function MuralAdminPage() {
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <OfflineButton className="flex items-center gap-2" requireOnline>
               <Plus className="h-4 w-4" /> Novo Aviso
-            </Button>
+            </OfflineButton>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Criar Novo Aviso</DialogTitle>
             </DialogHeader>
-            <AvisoForm onSuccess={() => setOpen(false)} />
+            <ClientOnly>
+              <Suspense fallback={<div className="h-[400px] flex items-center justify-center">Carregando formulário...</div>}>
+                <LazyAvisoForm onSuccess={() => setOpen(false)} dialogOpen={open} />
+              </Suspense>
+            </ClientOnly>
           </DialogContent>
         </Dialog>
       </div>

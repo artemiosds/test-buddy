@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Users,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({ errorComponent: ErrorComponent,
   component: HubGerenciais,
 });
 

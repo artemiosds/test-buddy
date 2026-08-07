@@ -1,11 +1,14 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
+import { UploadAnexoModal } from "@/components/aprovacoes/UploadAnexoModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRetryMutation } from "@/lib/retry-mutation";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +38,7 @@ import {
   ListChecks,
   Paperclip,
   ScanSearch,
+  Upload,
   XCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -54,7 +58,7 @@ const FILTROS: { value: "pendentes" | StatusFreq | "todas"; label: string }[] = 
   { value: "todas", label: "Todas" },
 ];
 
-export const Route = createFileRoute("/_authenticated/aprovacoes")({
+export const Route = createFileRoute("/_authenticated/aprovacoes")({ errorComponent: ErrorComponent,
   component: AprovacoesGuard,
 });
 
@@ -105,6 +109,11 @@ function AprovacoesPage() {
   const [obs, setObs] = useState("");
   const [trilhaFreqId, setTrilhaFreqId] = useState<string | null>(null);
   const [linhasFreqId, setLinhasFreqId] = useState<string | null>(null);
+  const [modalAnexo, setModalAnexo] = useState<{
+    id: string;
+    subtipo: string;
+    unidadeId: string;
+  } | null>(null);
 
   const canAnalisar = has("frequencia.analisar");
   const canAprovar = has("frequencia.aprovar");
@@ -306,56 +315,77 @@ function AprovacoesPage() {
                           </Button>
                         ) : (
                           <Button asChild size="sm" variant="ghost">
-                            <Link to="/frequencias/$id" params={{ id: r.id }}>
-                              <Eye className="mr-1 h-4 w-4" />
-                              Abrir
-                            </Link>
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" onClick={() => setTrilhaFreqId(r.id)}>
-                          <History className="mr-1 h-4 w-4" />
-                          Trilha
+                          <Link to="/frequencias/$id" params={{ id: r.id }}>
+                            <Eye className="mr-1 h-4 w-4" />
+                            Abrir
+                          </Link>
                         </Button>
+                      )}
+                      <OfflineButton
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setModalAnexo({
+                            id: r.competencia_unidade_id as string,
+                            subtipo: r.tipo === "contratados" ? "contratados" : "efetivos",
+                            unidadeId: cu?.unidade_id as string,
+                          })
+                        }
+                      >
+                        <Upload className="mr-1 h-4 w-4" />
+                        Anexos
+                      </OfflineButton>
+                      <OfflineButton size="sm" variant="ghost" onClick={() => setTrilhaFreqId(r.id)}>
+                        <History className="mr-1 h-4 w-4" />
+                        Trilha
+                      </OfflineButton>
                         {(canAprovar || canRejeitar) && (
-                          <Button size="sm" variant="outline" onClick={() => setLinhasFreqId(r.id)}>
+                          <OfflineButton size="sm" variant="outline" onClick={() => setLinhasFreqId(r.id)}>
                             <ListChecks className="mr-1 h-4 w-4" />
                             Linhas
-                          </Button>
+                          </OfflineButton>
                         )}
                         {pendente && canAnalisar && r.status === "enviada" && (
-                          <Button
+                          <OfflineButton
                             size="sm"
                             variant="outline"
                             onClick={() => abrirAcao(r.id, "em_analise")}
+                            requireOnline
                           >
                             <ScanSearch className="mr-1 h-4 w-4" />
                             Analisar
-                          </Button>
+                          </OfflineButton>
                         )}
                         {pendente && canAprovar && (
-                          <Button size="sm" onClick={() => abrirAcao(r.id, "aprovar")}>
+                          <OfflineButton 
+                            size="sm" 
+                            onClick={() => abrirAcao(r.id, "aprovar")}
+                            requireOnline
+                          >
                             <CheckCircle2 className="mr-1 h-4 w-4" />
                             Aprovar
-                          </Button>
+                          </OfflineButton>
                         )}
                         {pendente && canRejeitar && (
                           <>
-                            <Button
+                            <OfflineButton
                               size="sm"
                               variant="outline"
                               onClick={() => abrirAcao(r.id, "retornar")}
+                              requireOnline
                             >
                               <ClipboardList className="mr-1 h-4 w-4" />
                               Retornar
-                            </Button>
-                            <Button
+                            </OfflineButton>
+                            <OfflineButton
                               size="sm"
                               variant="destructive"
                               onClick={() => abrirAcao(r.id, "rejeitar")}
+                              requireOnline
                             >
                               <XCircle className="mr-1 h-4 w-4" />
                               Rejeitar
-                            </Button>
+                            </OfflineButton>
                           </>
                         )}
                       </div>
@@ -415,7 +445,7 @@ function AprovacoesPage() {
             </div>
           )}
           <DialogFooter>
-            <Button
+            <OfflineButton
               variant="ghost"
               onClick={() => {
                 setAcao(null);
@@ -423,8 +453,9 @@ function AprovacoesPage() {
               }}
             >
               Cancelar
-            </Button>
-            <Button
+            </OfflineButton>
+            <OfflineButton
+              requireOnline
               disabled={
                 registraMutation.isPending ||
                 ((acao?.tipo === "retornar" || acao?.tipo === "rejeitar") && !obs.trim())
@@ -440,12 +471,23 @@ function AprovacoesPage() {
               }}
             >
               Confirmar
-            </Button>
+            </OfflineButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <TrilhaDialog freqId={trilhaFreqId} onClose={() => setTrilhaFreqId(null)} />
+      
+      {modalAnexo && (
+        <UploadAnexoModal
+          open={!!modalAnexo}
+          onOpenChange={(o) => !o && setModalAnexo(null)}
+          entidadeId={modalAnexo.id}
+          subtipo={modalAnexo.subtipo}
+          unidadeId={modalAnexo.unidadeId}
+        />
+      )}
+
       <LinhasAnaliseDialog
         freqId={linhasFreqId}
         onClose={() => {

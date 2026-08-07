@@ -17,7 +17,7 @@ export async function carregarReferencias(
     .from("piso_referencia")
     .select("competencia, categoria, valor_referencia, jornada_base")
     .order("competencia", { ascending: false })
-    .limit(1000);
+    .limit(500);
   if (error || !data) return mapa;
 
   const alvo =

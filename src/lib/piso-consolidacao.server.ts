@@ -50,15 +50,26 @@ async function nomesPor(supabase: any, tabela: string, ids: string[]) {
 /** Carrega profissionais elegíveis (opcionalmente restrito a um conjunto de ids). */
 async function carregarProfissionais(supabase: any, ids?: string[] | null) {
   const cargos = await carregarCatalogoElegivel(supabase);
-  const base = supabase
+  
+  // No modo multitenant (preparação para 100 municípios), o limite deve ser por query
+  // de forma que profissionais elegíveis nunca sejam truncados se houver muitos registros.
+  let base = supabase
     .from("profissionais")
     .select(SELECT_PROFISSIONAL_ELEGIVEL)
     .is("deleted_at", null)
-    .eq("status", "ativo")
-    .limit(20000);
+    .eq("status", "ativo");
+    
   let q = aplicarFiltroElegivel(base, cargos);
   if (!q) return { profissionais: [] as ProfBase[], cargos, lookups: null };
-  if (ids && ids.length > 0) q = q.in("id", ids);
+  
+  if (ids && ids.length > 0) {
+    q = q.in("id", ids);
+  } else {
+    // Escalonamento: Se não houver IDs específicos, limitamos para evitar estouro de memória
+    // mas aumentamos o limite para 50.000 profissionais (meta da Fase 8).
+    q = q.limit(50000);
+  }
+  
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   const profissionais = (data ?? []) as ProfBase[];
@@ -117,7 +128,7 @@ export async function consolidarCompetencia(
     .from("piso_competencia_profissional")
     .select("*")
     .eq("competencia", competencia)
-    .limit(20000);
+    .limit(50000); // Sincronizado com o limite de profissionais elegíveis
   if (escopo) qEx = qEx.in("profissional_id", escopo);
   const { data: existentes, error: errEx } = await qEx;
   if (errEx) throw new Error(errEx.message);
@@ -164,9 +175,9 @@ export async function consolidarCompetencia(
     if (ex && ex.origem_fopag && !ex.origem_piso)
       inc.push({ tipo: "importacao_parcial", detalhe: "Somente a Folha (FOPAG) foi importada." });
 
-    const salarioBase = ex?.salario_base ?? null;
-    const insalubridade = ex?.insalubridade ?? null;
-    const auxilioPiso = ex?.auxilio_financeiro ?? null;
+    const salarioBase = ex?.salario_base != null ? Number(ex.salario_base) : null;
+    const insalubridade = ex?.insalubridade != null ? Number(ex.insalubridade) : null;
+    const auxilioPiso = ex?.auxilio_financeiro != null ? Number(ex.auxilio_financeiro) : null;
 
 
     const memoria = calcularPiso({
@@ -257,11 +268,41 @@ export async function consolidarCompetencia(
     });
   }
 
+  const MAX_BATCH_RETRIES = 2;
   for (let i = 0; i < rows.length; i += LOTE) {
-    const { error } = await supabase
-      .from("piso_competencia_profissional")
-      .upsert(rows.slice(i, i + LOTE), { onConflict: "profissional_id,competencia" });
-    if (error) throw new Error(error.message);
+    const batch = rows.slice(i, i + LOTE);
+    let success = false;
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= MAX_BATCH_RETRIES; attempt++) {
+      // Hardening: Garantir que os campos numéricos sejam Number e nunca NaN
+      const cleanBatch = batch.map(row => ({
+        ...row,
+        salario_base: Math.max(0, Number(row.salario_base || 0)),
+        insalubridade: Math.max(0, Number(row.insalubridade || 0)),
+        auxilio_financeiro: Math.max(0, Number(row.auxilio_financeiro || 0)),
+        valor_referencia: Math.max(0, Number(row.valor_referencia || 0)),
+        complementacao: Math.max(0, Number(row.complementacao || 0)),
+        total_remuneracao: Math.max(0, Number(row.total_remuneracao || 0)),
+      }));
+
+      const { error } = await supabase
+        .from("piso_competencia_profissional")
+        .upsert(cleanBatch, { onConflict: "profissional_id,competencia" });
+
+      if (!error) {
+        success = true;
+        break;
+      }
+      lastError = error;
+      if (attempt < MAX_BATCH_RETRIES) {
+        await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
+      }
+    }
+
+    if (!success && lastError) {
+      throw new Error(`Falha na persistência do lote ${i / LOTE + 1}: ${lastError.message}`);
+    }
   }
 
   return resumo;

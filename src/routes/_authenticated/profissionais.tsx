@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import {
   validarFoto,
 } from "@/lib/foto-profissional";
 import { reprocessarRegistroConsolidado } from "@/lib/piso-consolidacao.functions";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,7 +80,7 @@ import {
   useVinculosLookup,
 } from "@/hooks/use-lookups";
 
-export const Route = createFileRoute("/_authenticated/profissionais")({
+export const Route = createFileRoute("/_authenticated/profissionais")({ errorComponent: ErrorComponent,
   component: ProfissionaisPage,
 });
 
@@ -443,7 +445,7 @@ function ProfissionaisPage() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id,nome_completo,nome_social,cpf,matricula,email,telefone,data_nascimento,sexo,data_admissao,carga_horaria_semanal,status,observacoes,secretaria_id,unidade_id,setor_id,cargo_id,funcao_id,vinculo_id,banco,agencia,conta_corrente,proj,h_p,c_h,jorn,conselho_classe,conselho_numero,conselho_uf,conselho_validade,gestor_imediato_id,situacao_funcional,situacao_data_inicio,situacao_data_fim,foto_url,endereco_completo,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
+          "id,nome_completo,matricula,cpf,status,unidade:unidades(nome,sigla),cargo:cargos(nome),vinculo:vinculos(nome,natureza)",
           { count: "exact" },
         )
         .is("deleted_at", null);
@@ -965,18 +967,19 @@ function ProfissionaisPage() {
             </Link>
           </Button>
           {canEdit && (
-            <Button
+            <OfflineButton
               size="icon"
               variant="ghost"
               onClick={() => openEdit(p)}
               title="Editar"
               aria-label="Editar profissional"
+              requireOnline
             >
               <Pencil className="h-4 w-4" />
-            </Button>
+            </OfflineButton>
           )}
           {canDelete && (
-            <Button
+            <OfflineButton
               size="icon"
               variant="ghost"
               onClick={() => {
@@ -992,9 +995,10 @@ function ProfissionaisPage() {
               }}
               title="Arquivar"
               aria-label="Arquivar profissional"
+              requireOnline
             >
               <Trash2 className="h-4 w-4" />
-            </Button>
+            </OfflineButton>
           )}
         </div>
       ),

@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 /**
  * Gerador Corporativo de Relatórios Gerenciais.
  * Wizard: Conteúdo → Campos → Filtros → Ordenação → Prévia → Exportar.
@@ -89,7 +90,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
+export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ errorComponent: ErrorComponent,
   component: RelatorioInteligentePage,
 });
 

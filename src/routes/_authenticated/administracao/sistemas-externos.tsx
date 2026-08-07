@@ -1,15 +1,16 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SistemasExternosGrid } from "@/components/sistemas-externos/SistemasExternosGrid";
 import { Globe, Plus, History, LayoutDashboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { SistemaExternoDialog } from "@/components/sistemas-externos/SistemaExternoDialog";
 import { GeradorChavesSSO } from "@/components/sistemas-externos/GeradorChavesSSO";
 import { AuditSSOView } from "@/components/sistemas-externos/AuditSSOView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
-export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({
+export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({ errorComponent: ErrorComponent,
   component: SistemasExternosPage,
 });
 
@@ -30,10 +31,10 @@ function SistemasExternosPage() {
         </div>
         <div className="flex items-center gap-2">
           <GeradorChavesSSO />
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <OfflineButton size="sm" onClick={() => setDialogOpen(true)} requireOnline>
             <Plus className="mr-2 h-4 w-4" />
             Novo Sistema
-          </Button>
+          </OfflineButton>
         </div>
       </div>
 

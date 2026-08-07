@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
@@ -35,7 +36,7 @@ import { downloadCsv } from "@/lib/csv-export";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
 
-export const Route = createFileRoute("/_authenticated/gestao-rh")({
+export const Route = createFileRoute("/_authenticated/gestao-rh")({ errorComponent: ErrorComponent,
   component: () => (
     <AnalyticsFilterProvider>
       <GestaoRhContent />

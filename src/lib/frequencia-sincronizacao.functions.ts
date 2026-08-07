@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 
 /**
  * Orquestrador de Sincronização de Frequências
@@ -42,37 +43,18 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof SincronizarSchema>) => SincronizarSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context;
+    try {
+      const { userId } = context;
     const { evento, tipo, competencia_id, unidade_id } = data;
 
-    // 1. Localiza (ou cria) a competencia_unidade_id — o vínculo pode não existir ainda
-    const { data: cuExistente, error: cuErr } = await supabaseAdmin
-      .from("competencia_unidades")
-      .select("id")
-      .eq("competencia_id", competencia_id)
-      .eq("unidade_id", unidade_id)
-      .maybeSingle();
-
-    if (cuErr) throw cuErr;
-
-    let cu = cuExistente;
-
-    if (!cu) {
-      const { data: cuNovo, error: cuInsErr } = await supabaseAdmin
-        .from("competencia_unidades")
-        .upsert(
-          { competencia_id, unidade_id, created_by: userId, updated_by: userId },
-          { onConflict: "competencia_id,unidade_id" },
-        )
-        .select("id")
-        .maybeSingle();
-
-      if (cuInsErr || !cuNovo) {
-        // Sincronização de metadados nunca deve quebrar o fluxo principal de salvamento
-        return { ok: false, msg: "Vínculo Competência/Unidade indisponível para sincronização." };
-      }
-      cu = cuNovo;
-    }
+    // 1. Localiza (ou cria) a competencia_unidade_id de forma segura
+    const cuId = await garantirCompetenciaUnidade({
+      competencia_id,
+      unidade_id,
+      userId
+    });
+    
+    const cu = { id: cuId };
 
     // 2. Coleta dados da fonte oficial baseado no tipo
     let statusOficial: string = "rascunho";
@@ -178,7 +160,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         aprovada_por: aprovadaPor,
         updated_by: userId,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "competencia_unidade_id, tipo" });
+      }, { onConflict: "competencia_unidade_id, tipo", ignoreDuplicates: false });
 
     if (upsertErr) throw upsertErr;
 
@@ -197,10 +179,14 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       }
     });
 
-    return { 
-      ok: true, 
-      status: statusOficial, 
-      total: totalProfissionais,
-      tipo_sincronizado: tipo
-    };
+      return { 
+        ok: true, 
+        status: statusOficial, 
+        total: totalProfissionais,
+        tipo_sincronizado: tipo
+      };
+    } catch (err) {
+      console.error("[orquestrarSincronizacao] Erro crítico:", err);
+      throw err instanceof Error ? err : new Error("Falha na orquestração de sincronização");
+    }
   });

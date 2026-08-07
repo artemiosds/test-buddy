@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { StatusBadge } from "@/components/shared";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -37,7 +39,7 @@ import {
 
 } from "@/lib/users-admin.functions";
 
-export const Route = createFileRoute("/_authenticated/usuarios")({
+export const Route = createFileRoute("/_authenticated/usuarios")({ errorComponent: ErrorComponent,
   component: UsuariosPage,
 });
 
@@ -269,9 +271,9 @@ function UsuariosList() {
             }}
           >
             <DialogTrigger asChild>
-              <Button>
+              <OfflineButton requireOnline>
                 <UserPlus className="mr-2 h-4 w-4" /> Novo usuário
-              </Button>
+              </OfflineButton>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -401,7 +403,8 @@ function UsuariosList() {
                 <Button variant="outline" onClick={() => setOpenNew(false)}>
                   Cancelar
                 </Button>
-                <Button
+                <OfflineButton
+                  requireOnline
                   disabled={
                     !form.nome_completo || !form.email || !form.perfil_id || createMut.isPending
                   }
@@ -411,7 +414,7 @@ function UsuariosList() {
                   }}
                 >
                   {createMut.isPending ? "Criando..." : "Criar"}
-                </Button>
+                </OfflineButton>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -565,7 +568,8 @@ function UsuariosList() {
                             <Settings2 className="mr-1 h-3.5 w-3.5" /> Permissões
                           </Link>
                         </Button>
-                        <Button
+                        <OfflineButton
+                          requireOnline
                           size="sm"
                           variant="outline"
                           onClick={() => {
@@ -596,9 +600,10 @@ function UsuariosList() {
                           }}
                         >
                           <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
-                        </Button>
+                        </OfflineButton>
 
-                        <Button
+                        <OfflineButton
+                          requireOnline
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive/80"
@@ -617,7 +622,7 @@ function UsuariosList() {
                           }}
                         >
                           <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
-                        </Button>
+                        </OfflineButton>
                       </div>
                     ) : (
                       <Badge variant="outline">Somente Master</Badge>
@@ -731,9 +736,9 @@ function UsuariosList() {
             <Button variant="outline" onClick={() => setEditing(null)}>
               Cancelar
             </Button>
-            <Button disabled={editMut.isPending} onClick={() => editMut.mutate()}>
+            <OfflineButton requireOnline disabled={editMut.isPending} onClick={() => editMut.mutate()}>
               {editMut.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+            </OfflineButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

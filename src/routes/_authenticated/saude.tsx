@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -39,7 +40,7 @@ import { computeSaudeAlerts, type SaudeAlert } from "@/lib/saude-alerts";
 import { useServerFn } from "@tanstack/react-start";
 import { getPerfMetrics } from "@/lib/perf-metrics.functions";
 
-export const Route = createFileRoute("/_authenticated/saude")({
+export const Route = createFileRoute("/_authenticated/saude")({ errorComponent: ErrorComponent,
   component: SaudePage,
 });
 

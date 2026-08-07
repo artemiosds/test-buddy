@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -20,7 +21,7 @@ import { useCompetenciasLookup } from "@/hooks/use-lookups";
 
 type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
 
-export const Route = createFileRoute("/_authenticated/relatorios-status")({
+export const Route = createFileRoute("/_authenticated/relatorios-status")({ errorComponent: ErrorComponent,
   component: RelatorioStatusPage,
 });
 

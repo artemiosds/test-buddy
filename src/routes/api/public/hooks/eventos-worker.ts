@@ -325,6 +325,7 @@ export const Route = createFileRoute("/api/public/hooks/eventos-worker")({
 
         const supa = createClient(url, key, {
           auth: { autoRefreshToken: false, persistSession: false },
+          global: { headers: { "x-application-name": "hsm-gestao-worker" } },
         });
 
         const workerId = `edge-${Math.random().toString(36).slice(2, 10)}`;

@@ -12,9 +12,11 @@ import { useEffect, type ReactNode, useMemo } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { installBrowserErrorHandlers, logger } from "../lib/logger";
+import { registerServiceWorker } from "../lib/pwa";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
+import { NetworkBanner } from "@/components/shared/NetworkBanner";
 import { TermoAceiteProvider } from "@/components/documentos/termo-aceite-provider";
 import { AvisoModal } from "@/components/mural/AvisoModal";
 
@@ -147,16 +149,29 @@ function RootComponent() {
 
   useEffect(() => {
     installBrowserErrorHandlers();
-    const { data } = supabase.auth.onAuthStateChange((event) => {
+    registerServiceWorker();
+    const { data } = supabase.auth.onAuthStateChange(async (event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      
+      if (event === "SIGNED_OUT") {
+        // LGPD: Purge compulsório no logout
+        queryClient.clear();
+        localStorage.clear();
+        sessionStorage.clear();
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map(name => caches.delete(name)));
+        }
+      } else {
+        void queryClient.invalidateQueries();
+      }
+      
       void router.invalidate();
-      if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
     });
 
     return () => data.subscription.unsubscribe();
   }, [queryClient, router]);
 
-  // Deve ser idêntico no servidor e no cliente (evita hydration mismatch)
   const supabaseConfigScript = useMemo(
     () =>
       `window.__SUPABASE_CONFIG__=${JSON.stringify({
@@ -171,7 +186,9 @@ function RootComponent() {
       <ConfirmProvider>
         <TermoAceiteProvider>
           <script dangerouslySetInnerHTML={{ __html: supabaseConfigScript }} />
+          <NetworkBanner />
           <Outlet />
+          <AvisoModal />
           <Toaster richColors position="top-right" />
         </TermoAceiteProvider>
       </ConfirmProvider>

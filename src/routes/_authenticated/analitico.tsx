@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -21,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PermissionGate } from "@/components/permission-gate";
 import { DashboardAvisosWidget } from "@/components/dashboard/DashboardAvisosWidget";
 
-export const Route = createFileRoute("/_authenticated/analitico")({
+export const Route = createFileRoute("/_authenticated/analitico")({ errorComponent: ErrorComponent,
   component: DashboardAnalitico,
 });
 

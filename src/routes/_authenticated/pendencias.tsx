@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
@@ -74,7 +75,7 @@ const searchSchema = z.object({
   id: z.string().uuid().optional(),
 });
 
-export const Route = createFileRoute("/_authenticated/pendencias")({
+export const Route = createFileRoute("/_authenticated/pendencias")({ errorComponent: ErrorComponent,
   validateSearch: searchSchema,
   component: PendenciasPage,
 });

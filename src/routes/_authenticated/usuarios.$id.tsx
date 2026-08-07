@@ -1,9 +1,11 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { setUsuarioPermissao } from "@/lib/users-admin.functions";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -11,7 +13,7 @@ import { AlertCircle, ArrowLeft, Check, Minus, X } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 
-export const Route = createFileRoute("/_authenticated/usuarios/$id")({
+export const Route = createFileRoute("/_authenticated/usuarios/$id")({ errorComponent: ErrorComponent,
   component: UsuarioDetail,
 });
 

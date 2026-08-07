@@ -31,6 +31,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
 
         const supa = createClient(url, key, {
           auth: { autoRefreshToken: false, persistSession: false },
+          global: { headers: { "x-application-name": "hsm-gestao-cron" } },
         });
 
         const today = new Date();

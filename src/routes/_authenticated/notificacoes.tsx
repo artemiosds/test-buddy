@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -21,7 +22,7 @@ import { useConfirm } from "@/components/shared/ConfirmDialog";
 type Tipo = Database["public"]["Enums"]["tipo_notificacao"];
 type Prioridade = Database["public"]["Enums"]["prioridade_notificacao"];
 
-export const Route = createFileRoute("/_authenticated/notificacoes")({
+export const Route = createFileRoute("/_authenticated/notificacoes")({ errorComponent: ErrorComponent,
   component: NotificacoesPage,
 });
 

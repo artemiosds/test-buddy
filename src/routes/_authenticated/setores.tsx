@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -25,7 +26,7 @@ const searchSchema = z.object({
   unidade: z.string().uuid().optional(),
 });
 
-export const Route = createFileRoute("/_authenticated/setores")({
+export const Route = createFileRoute("/_authenticated/setores")({ errorComponent: ErrorComponent,
   validateSearch: (s) => searchSchema.parse(s),
   component: SetoresPage,
 });

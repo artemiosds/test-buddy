@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, ensurePermission } from "./authz.server";
+import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 
 const Schema = z.object({
   competencia_id: z.string().uuid(),
@@ -26,24 +27,11 @@ export const obterSubmissaoFolha = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
-    const { data: cu, error } = await supabase
-      .from("competencia_unidades")
-      .select("id")
-      .eq("competencia_id", data.competencia_id)
-      .eq("unidade_id", data.unidade_id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (cu?.id) return { submissao_id: cu.id as string };
+    const cuId = await garantirCompetenciaUnidade({
+      competencia_id: data.competencia_id,
+      unidade_id: data.unidade_id,
+      userId
+    });
 
-    const { data: novo, error: iErr } = await supabase
-      .from("competencia_unidades")
-      .insert({
-        competencia_id: data.competencia_id,
-        unidade_id: data.unidade_id,
-        created_by: userId,
-      } as never)
-      .select("id")
-      .single();
-    if (iErr) throw new Error(iErr.message);
-    return { submissao_id: (novo as { id: string }).id };
+    return { submissao_id: cuId };
   });

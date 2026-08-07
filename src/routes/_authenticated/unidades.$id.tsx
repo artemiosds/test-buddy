@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -47,7 +48,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export const Route = createFileRoute("/_authenticated/unidades/$id")({
+export const Route = createFileRoute("/_authenticated/unidades/$id")({ errorComponent: ErrorComponent,
   component: () => (
     <PermissionGate
       permission="unidade.visualizar"
@@ -62,9 +63,7 @@ export const Route = createFileRoute("/_authenticated/unidades/$id")({
       </AnalyticsFilterProvider>
     </PermissionGate>
   ),
-  errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
-  ),
+  
   notFoundComponent: () => <div className="p-6">Unidade não encontrada.</div>,
 });
 

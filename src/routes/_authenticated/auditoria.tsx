@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -25,7 +26,7 @@ import { PrivacidadeLgpd } from "@/components/auditoria/privacidade-lgpd";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { nivelPrivacidade } from "@/lib/lgpd";
 
-export const Route = createFileRoute("/_authenticated/auditoria")({
+export const Route = createFileRoute("/_authenticated/auditoria")({ errorComponent: ErrorComponent,
   component: AuditoriaPage,
 });
 

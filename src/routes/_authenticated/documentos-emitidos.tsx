@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldOff, ExternalLink, Ban } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/documentos-emitidos")({
+export const Route = createFileRoute("/_authenticated/documentos-emitidos")({ errorComponent: ErrorComponent,
   component: DocumentosEmitidosPage,
 });
 

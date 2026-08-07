@@ -20,6 +20,7 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
       pageSize,
     ],
     placeholderData: keepPreviousData,
+    staleTime: 30_000,
     queryFn: async () => {
       // build base query
       let query = supabase

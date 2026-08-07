@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ function fmtPreviewCell(v: unknown, destino?: PisoDestino | (string & {}) | null
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PermissionGate } from "@/components/permission-gate";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -80,7 +82,7 @@ import {
 import { bestFuzzy } from "@/lib/piso-fuzzy";
 import { useQuery } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/_authenticated/piso-enfermagem/importar")({
+export const Route = createFileRoute("/_authenticated/piso-enfermagem/importar")({ errorComponent: ErrorComponent,
   component: () => (
     <PermissionGate
       permission="piso.importar"

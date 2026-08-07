@@ -4,6 +4,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { ANEXO_MIMES_ACEITOS, ANEXO_TAMANHO_MAX } from "./anexos-linha";
+import { logger } from "./logger";
+import { sendEmail, generateEmailTemplate } from "./email.server";
+
+
 
 const NUM = z.union([z.number(), z.string()]).default(0);
 
@@ -99,13 +103,16 @@ export const salvarLinhasFrequencia = createServerFn({ method: "POST" })
       const { error } = await supabase.from("frequencia_profissional").insert(toInsert as never);
       if (error) throw new Error(error.message);
     }
-    for (const l of toUpdate) {
-      const patch: Record<string, unknown> = { updated_by: userId };
-      for (const f of PAYLOAD_FIELDS) patch[f] = (l as any)[f];
+    if (toUpdate.length) {
+      const updates = toUpdate.map((l) => {
+        const patch: Record<string, unknown> = { id: l.id!, updated_by: userId };
+        for (const f of PAYLOAD_FIELDS) patch[f] = (l as any)[f];
+        return patch;
+      });
+
       const { error } = await supabase
         .from("frequencia_profissional")
-        .update(patch as never)
-        .eq("id", l.id!);
+        .upsert(updates as never);
       if (error) throw new Error(error.message);
     }
     if (toDelete.length) {
@@ -297,9 +304,97 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
         status_anterior: anterior,
         status_novo: data.status,
       });
+
+      // Disparo de e-mails via SMTP
+      // -----------------------------------------------------------------------
+      try {
+        const { data: details } = await supabase
+          .from("frequencias")
+          .select(`
+            tipo,
+            unidades(nome, gestor_email),
+            competencias(mes, ano),
+            perfis!frequencias_created_by_fkey(user_id, nome, user_email)
+          `)
+          .eq("id", data.frequencia_id)
+          .maybeSingle();
+
+        if (details) {
+          const det = details as any;
+          const gestorEmail = det.unidades?.gestor_email;
+          const solicitanteEmail = det.perfis?.user_email;
+          const unidadeNome = det.unidades?.nome || "Unidade não identificada";
+          const competenciaStr = `${det.competencias?.mes}/${det.competencias?.ano}`;
+          const baseUrl = process.env.VITE_APP_URL || "http://localhost:8080";
+
+          // 1. Submissão (pendente/enviada) -> Notifica Gestor
+          if (data.status === "enviada" && gestorEmail) {
+            const html = generateEmailTemplate({
+              title: "Nova Folha para Aprovação",
+              message: `Uma nova folha de frequência da unidade ${unidadeNome} foi enviada e aguarda sua análise.`,
+              ctaLabel: "Analisar Agora",
+              ctaUrl: `${baseUrl}/aprovacoes`,
+              details: [
+                { label: "Unidade", value: unidadeNome },
+                { label: "Competência", value: competenciaStr },
+                { label: "Tipo", value: det.tipo },
+              ],
+            });
+            await sendEmail({
+              to: gestorEmail,
+              subject: `[Aprovação] Nova Folha: ${unidadeNome} - ${competenciaStr}`,
+              html,
+            });
+          }
+
+          // 2. Aprovação -> Notifica Solicitante
+          if (data.status === "aprovada" && solicitanteEmail) {
+            const html = generateEmailTemplate({
+              title: "Folha Aprovada",
+              message: `A folha de frequência da unidade ${unidadeNome} foi aprovada com sucesso.`,
+              ctaLabel: "Ver Detalhes",
+              ctaUrl: `${baseUrl}/aprovacoes`,
+              details: [
+                { label: "Unidade", value: unidadeNome },
+                { label: "Competência", value: competenciaStr },
+                { label: "Status", value: "Aprovada" },
+              ],
+            });
+            await sendEmail({
+              to: solicitanteEmail,
+              subject: `[Confirmação] Folha Aprovada: ${unidadeNome} - ${competenciaStr}`,
+              html,
+            });
+          }
+
+          // 3. Devolução/Rejeição -> Notifica Solicitante com Justificativa
+          if (["rejeitada", "com_pendencias", "devolvida"].includes(data.status) && solicitanteEmail) {
+            const statusLabel = data.status === "rejeitada" ? "Rejeitada" : "Devolvida para Ajustes";
+            const html = generateEmailTemplate({
+              title: `Folha ${statusLabel}`,
+              message: `A folha de frequência da unidade ${unidadeNome} foi ${statusLabel.toLowerCase()}. Por favor, verifique a justificativa abaixo e providencie os ajustes necessários.`,
+              ctaLabel: "Ajustar Folha",
+              ctaUrl: `${baseUrl}/aprovacoes`,
+              details: [
+                { label: "Unidade", value: unidadeNome },
+                { label: "Competência", value: competenciaStr },
+                { label: "Justificativa", value: data.observacoes || "Nenhuma justificativa informada." },
+              ],
+            });
+            await sendEmail({
+              to: solicitanteEmail,
+              subject: `[Ação Necessária] Folha ${statusLabel}: ${unidadeNome} - ${competenciaStr}`,
+              html,
+            });
+          }
+        }
+      } catch (emailErr) {
+        logger.error("email.trigger.failed", { error: emailErr, frequencia_id: data.frequencia_id });
+      }
     }
     return { ok: true };
   });
+
 
 const PendenciaSchema = z.object({
   frequencia_id: z.string().uuid(),
@@ -375,14 +470,48 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
-    const rows = data.profissional_ids.map((pid) => ({
-      frequencia_id: data.frequencia_id,
-      profissional_id: pid,
-      created_by: userId,
-    }));
-    const { error } = await supabase.from("frequencia_profissional").insert(rows as never);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    // Idempotente: ignora profissionais já presentes e reativa linhas removidas
+    // (a constraint única não considera `deleted_at`).
+    const { data: existentes, error: exErr } = await supabase
+      .from("frequencia_profissional")
+      .select("id, profissional_id, deleted_at")
+      .eq("frequencia_id", data.frequencia_id)
+      .in("profissional_id", data.profissional_ids);
+    if (exErr) throw new Error(exErr.message);
+
+    const jaAtivos = new Set(
+      (existentes ?? []).filter((r: any) => !r.deleted_at).map((r: any) => r.profissional_id),
+    );
+    const paraReativar = (existentes ?? [])
+      .filter((r: any) => r.deleted_at)
+      .map((r: any) => r.id as string);
+
+    if (paraReativar.length) {
+      const { error } = await supabase
+        .from("frequencia_profissional")
+        .update({ deleted_at: null, deleted_by: null, updated_by: userId } as never)
+        .in("id", paraReativar);
+      if (error) throw new Error(error.message);
+    }
+
+    const existentesIds = new Set([
+      ...jaAtivos,
+      ...(existentes ?? []).filter((r: any) => r.deleted_at).map((r: any) => r.profissional_id),
+    ]);
+
+    const rows = data.profissional_ids
+      .filter((pid) => !existentesIds.has(pid))
+      .map((pid) => ({
+        frequencia_id: data.frequencia_id,
+        profissional_id: pid,
+        created_by: userId,
+      }));
+
+    if (rows.length) {
+      const { error } = await supabase.from("frequencia_profissional").insert(rows as never);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true, inseridos: rows.length, reativados: paraReativar.length };
   });
 
 /** Tipos e limite aceitos vêm de `@/lib/anexos-linha` (mesma regra no cliente). */

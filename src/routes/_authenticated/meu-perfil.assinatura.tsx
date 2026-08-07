@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -25,7 +26,7 @@ import {
   type SignaturePosition,
 } from "@/components/assinaturas/signature-editor";
 
-export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({
+export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({ errorComponent: ErrorComponent,
   // Módulo unificado em /assinaturas (aba "Minha assinatura").
   // Mantido apenas como redirect para não quebrar links antigos.
   beforeLoad: () => {

@@ -8,11 +8,16 @@ export const reprocessarCompetenciaConsolidada = createServerFn({ method: "POST"
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ competencia: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    await ensurePermission(context.supabase, context.userId, "piso.importar");
-    return consolidarCompetencia(context.supabase, {
-      competencia: data.competencia,
-      userId: context.userId,
-    });
+    try {
+      await ensurePermission(context.supabase, context.userId, "piso.importar");
+      return await consolidarCompetencia(context.supabase, {
+        competencia: data.competencia,
+        userId: context.userId,
+      });
+    } catch (err) {
+      console.error("[reprocessarCompetenciaConsolidada] Erro:", err);
+      throw err instanceof Error ? err : new Error("Erro ao reprocessar competência");
+    }
   });
 
 export const reprocessarRegistroConsolidado = createServerFn({ method: "POST" })
@@ -45,7 +50,7 @@ export const getResumoConsolidacao = createServerFn({ method: "GET" })
     let q = context.supabase
       .from("piso_competencia_profissional")
       .select("competencia, status_consolidacao, consolidado_em, inconsistencias")
-      .limit(20000);
+      .limit(50000);
     if (data.competencia) q = q.eq("competencia", data.competencia);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Fonte única de verdade para as consultas simples de cadastros.
  *
  * Convenções:
- *  - `staleTime: 5 min`, sem refetch em foco.
+ *  - `staleTime: 5 min` (FIVE_MIN), reduzindo pressão no banco.
  *  - Retornam apenas colunas mínimas (id/nome/sigla/…) para bundle enxuto.
  *  - `select` sempre exclui `deleted_at` quando a coluna existe.
  */

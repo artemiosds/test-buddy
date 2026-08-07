@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -7,9 +8,10 @@ import {
   reprocessarCompetenciaConsolidada,
   reprocessarRegistroConsolidado,
 } from "@/lib/piso-consolidacao.functions";
-import { STATUS_CONSOLIDACAO_LABEL } from "@/lib/piso-consolidacao";
+import { STATUS_CONSOLIDACAO_LABEL, STATUS_CONSOLIDACAO_VARIANTE } from "@/lib/piso-consolidacao";
 import { gerarPlanilhaOficialPiso } from "@/lib/piso-planilha.functions";
 import { baixarPlanilhaPiso } from "@/lib/piso-planilha-cliente";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import {
   listarModelosPlanilha,
   obterModeloPlanilha,
@@ -96,7 +98,7 @@ import {
 import { listHistoricoImportacoes } from "@/lib/piso-enfermagem.functions";
 import { PisoDetalheSheet, fmtBRL, type LinhaPiso } from "@/components/piso/piso-detalhe-sheet";
 
-export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({
+export const Route = createFileRoute("/_authenticated/piso-enfermagem/")({ errorComponent: ErrorComponent,
   component: () => (
     <PermissionGate
       permission="piso.visualizar"
@@ -765,13 +767,13 @@ function PisoIndex() {
               Piso Nacional da Enfermagem
             </h1>
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <CalendarRange className="h-4 w-4" />
-            Competência:
+            <span>Competência:</span>
             <Badge variant="outline" className="font-mono">
               {competenciaAtiva ?? "não selecionada"}
             </Badge>
-          </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select
@@ -1244,23 +1246,25 @@ function PisoIndex() {
                 </div>
                 <PermissionGate permission="piso.importar">
                   <div className="flex gap-2">
-                    <Button
+                    <OfflineButton
                       size="sm"
                       disabled={!competenciaAtiva || reprocessarComp.isPending}
                       onClick={() =>
                         competenciaAtiva && reprocessarComp.mutate(competenciaAtiva)
                       }
+                      requireOnline
                     >
                       {reprocessarComp.isPending ? "Reprocessando…" : "Reprocessar Competência"}
-                    </Button>
-                    <Button
+                    </OfflineButton>
+                    <OfflineButton
                       size="sm"
                       variant="outline"
                       disabled={selecionados.length !== 1 || reprocessarReg.isPending}
                       onClick={() => reprocessarReg.mutate(selecionados[0])}
+                      requireOnline
                     >
                       Reprocessar Registro
-                    </Button>
+                    </OfflineButton>
                   </div>
                 </PermissionGate>
               </div>
@@ -1305,14 +1309,15 @@ function PisoIndex() {
                           </td>
                           <td className="px-3 py-2 text-right">
                             <PermissionGate permission="piso.importar">
-                              <Button
+                              <OfflineButton
                                 size="sm"
                                 variant="ghost"
                                 disabled={reprocessarComp.isPending}
                                 onClick={() => reprocessarComp.mutate(c.competencia)}
+                                requireOnline
                               >
                                 Reprocessar
-                              </Button>
+                              </OfflineButton>
                             </PermissionGate>
                           </td>
                         </tr>
@@ -1324,7 +1329,7 @@ function PisoIndex() {
 
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {Object.entries(STATUS_CONSOLIDACAO_LABEL).map(([k, label]) => (
-                  <Badge key={k} variant="outline">
+                  <Badge key={k} variant={STATUS_CONSOLIDACAO_VARIANTE[k as keyof typeof STATUS_CONSOLIDACAO_VARIANTE] ?? "outline"}>
                     {label}
                   </Badge>
                 ))}

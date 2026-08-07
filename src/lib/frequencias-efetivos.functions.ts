@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
+import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 
 const NUM = z.number().nonnegative();
 
@@ -65,34 +66,16 @@ type SupabaseCtx = { supabase: any; userId: string };
 async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, unidade_id: string) {
   const { supabase, userId } = ctx;
 
-  let { data: cu, error: cuErr } = await supabase
-    .from("competencia_unidades")
-    .select("id, status")
-    .eq("competencia_id", competencia_id)
-    .eq("unidade_id", unidade_id)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (cuErr) throw new Error(cuErr.message);
-
-  if (!cu) {
-    const { data: ins, error } = await supabase
-      .from("competencia_unidades")
-      .insert({
-        competencia_id,
-        unidade_id,
-        status: "nao_iniciada",
-        created_by: userId,
-      } as never)
-      .select("id, status")
-      .single();
-    if (error) throw new Error(error.message);
-    cu = ins as any;
-  }
+  const cuId = await garantirCompetenciaUnidade({
+    competencia_id,
+    unidade_id,
+    userId
+  });
 
   let { data: freq, error: fErr } = await supabase
     .from("frequencias")
     .select("id, status")
-    .eq("competencia_unidade_id", cu!.id)
+    .eq("competencia_unidade_id", cuId)
     .eq("tipo", "efetivos")
     .is("deleted_at", null)
     .maybeSingle();
@@ -102,7 +85,7 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
     const { data: ins, error } = await supabase
       .from("frequencias")
       .insert({
-        competencia_unidade_id: cu!.id,
+        competencia_unidade_id: cuId,
         tipo: "efetivos",
         status: "rascunho",
         created_by: userId,
@@ -114,7 +97,7 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
   }
 
   return {
-    competencia_unidade_id: cu!.id,
+    competencia_unidade_id: cuId,
     frequencia_id: freq!.id,
     frequencia_status: freq!.status as string,
   };
@@ -248,38 +231,34 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     if (exErr) throw new Error(exErr.message);
     const byProf = new Map((existentes ?? []).map((r: any) => [r.profissional_id, r]));
 
-    const toInsert: Record<string, unknown>[] = [];
-    const toUpdate: { id: string; patch: Record<string, unknown> }[] = [];
+    const allRows: any[] = [];
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       if (ex && ex.status_linha === "aprovada") continue;
 
-      const payload: Record<string, unknown> = {};
+      const payload: Record<string, unknown> = {
+        frequencia_id,
+        profissional_id: l.profissional_id,
+        updated_by: userId,
+      };
+
+      if (!ex) {
+        payload.created_by = userId;
+      } else {
+        payload.id = ex.id;
+      }
+
       for (const f of PAYLOAD_FIELDS)
         payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
 
-      if (ex) {
-        toUpdate.push({ id: ex.id, patch: { ...payload, updated_by: userId } });
-      } else {
-        toInsert.push({
-          frequencia_id,
-          profissional_id: l.profissional_id,
-          created_by: userId,
-          ...payload,
-        });
-      }
+      allRows.push(payload);
     }
 
-    if (toInsert.length) {
-      const { error } = await supabase.from("frequencia_profissional").insert(toInsert as never);
-      if (error) throw new Error(error.message);
-    }
-    for (const u of toUpdate) {
+    if (allRows.length) {
       const { error } = await supabase
         .from("frequencia_profissional")
-        .update(u.patch as never)
-        .eq("id", u.id);
+        .upsert(allRows, { onConflict: "frequencia_id, profissional_id" });
       if (error) throw new Error(error.message);
     }
     // Sincronização após salvar
@@ -292,7 +271,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       }
     });
 
-    return { ok: true, inseridas: toInsert.length, atualizadas: toUpdate.length };
+    return { ok: true, processadas: allRows.length };
   });
 
 export const enviarFolhaEfetivos = createServerFn({ method: "POST" })

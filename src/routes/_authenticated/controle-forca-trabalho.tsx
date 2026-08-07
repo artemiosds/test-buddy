@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { grupoSituacao } from "@/lib/situacao-funcional";
 import { createFileRoute, useNavigate, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -39,7 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")({
+export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")({ errorComponent: ErrorComponent,
   validateSearch: workforceFiltersValidator,
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   component: () => (
@@ -54,9 +55,7 @@ export const Route = createFileRoute("/_authenticated/controle-forca-trabalho")(
       <ControleForcaTrabalhoPage />
     </PermissionGate>
   ),
-  errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-destructive">Erro: {error.message}</div>
-  ),
+  
   notFoundComponent: () => <div className="p-6">Não encontrado.</div>,
 });
 

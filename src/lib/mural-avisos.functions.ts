@@ -2,8 +2,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+const anexoSchema = z.object({
+  nome: z.string(),
+  path: z.string(),
+  mime: z.string(),
+  size: z.number(),
+  bucket: z.string().default('mural_anexos'),
+});
+
 const avisoSchema = z.object({
   titulo: z.string().min(3),
+  subtitulo: z.string().optional().nullable(),
   mensagem: z.string().min(5),
   tipo: z.enum(['informativo', 'urgente', 'manutencao']).default('informativo'),
   prioridade: z.enum(['baixa', 'normal', 'alta', 'critica']).default('normal'),
@@ -18,6 +27,8 @@ const avisoSchema = z.object({
   notificar_email: z.boolean().default(false),
   ativa_modo_manutencao: z.boolean().default(false),
   previsao_termino: z.string().optional().nullable(),
+  anexos: z.array(anexoSchema).optional().default([]),
+  status: z.enum(['rascunho', 'publicado']).default('publicado'),
 });
 
 export const criarAviso = createServerFn({ method: "POST" })
@@ -26,70 +37,88 @@ export const criarAviso = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const { data: profile } = await supabase
-      .from('usuarios')
-      .select('id, perfil:perfis(codigo)')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data: profile } = await supabase
+        .from('usuarios')
+        .select('id, perfil:perfis(codigo)')
+        .eq('id', userId)
+        .maybeSingle();
 
-    const role = (profile?.perfil as { codigo: string } | null)?.codigo ?? null;
+      const role = (profile?.perfil as { codigo: string } | null)?.codigo ?? null;
 
-    if (role !== 'MASTER' && role !== 'GESTOR') {
-      throw new Error("Apenas MASTER ou GESTOR podem criar avisos.");
-    }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: avisoInserido, error } = await supabaseAdmin
-      .from('avisos_mural')
-      .insert({
-        titulo: data.titulo,
-        mensagem: data.mensagem,
-        tipo: data.tipo,
-        prioridade: data.prioridade,
-        fixado: data.fixado,
-        destinatarios: data.destinatarios,
-        confirmacao_obrigatoria: data.confirmacao_obrigatoria,
-        data_inicio: data.data_inicio,
-        data_fim: data.data_fim,
-        notificar_email: !!data.notificar_email,
-        criado_por: userId,
-        ativo: true,
-        ativa_modo_manutencao: !!data.ativa_modo_manutencao,
-        previsao_termino: data.previsao_termino
-      })
-      .select('id')
-      .single();
-
-    if (error) throw error;
-
-    if (data.ativa_modo_manutencao && data.tipo === 'manutencao' && avisoInserido) {
-      await supabaseAdmin
-        .from('sistema_config')
-        .update({
-          modo_manutencao_ativo: true,
-          aviso_manutencao_id: avisoInserido.id,
-          ativado_por: userId,
-          ativado_em: new Date().toISOString(),
-        })
-        .eq('id', 1);
-    }
-
-    if (data.notificar_email && avisoInserido) {
-      try {
-        await supabase.functions.invoke('notificar-aviso-mural', {
-          body: { aviso_id: avisoInserido.id }
-        });
-        await supabaseAdmin
-          .from('avisos_mural')
-          .update({ email_enviado_em: new Date().toISOString() })
-          .eq('id', avisoInserido.id);
-      } catch (invokeError) {
-        console.error("Erro ao disparar notificação por e-mail:", invokeError);
+      if (role !== 'MASTER' && role !== 'GESTOR') {
+        throw new Error("Apenas MASTER ou GESTOR podem criar avisos.");
       }
-    }
 
-    return { success: true };
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const { data: avisoInserido, error } = await supabaseAdmin
+        .from('avisos_mural')
+        .insert({
+          titulo: data.titulo,
+          subtitulo: data.subtitulo,
+          mensagem: data.mensagem,
+          tipo: data.tipo,
+          prioridade: data.prioridade,
+          fixado: data.fixado,
+          destinatarios: data.destinatarios,
+          confirmacao_obrigatoria: data.confirmacao_obrigatoria,
+          data_inicio: data.data_inicio,
+          data_fim: data.data_fim,
+          notificar_email: !!data.notificar_email,
+          criado_por: userId,
+          ativo: data.status === 'publicado',
+          ativa_modo_manutencao: !!data.ativa_modo_manutencao,
+          previsao_termino: data.previsao_termino
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      if (data.anexos && data.anexos.length > 0 && avisoInserido) {
+        const anexosToInsert = data.anexos.map(a => ({
+          ...a,
+          aviso_id: avisoInserido.id
+        }));
+        const { error: anexoError } = await supabaseAdmin
+          .from('avisos_mural_anexos')
+          .insert(anexosToInsert);
+        
+        if (anexoError) {
+          console.error("Erro ao inserir anexos:", anexoError);
+        }
+      }
+
+      // Fluxo ÚNICO de manutenção: delega para o helper oficial.
+      if (data.tipo === 'manutencao' && avisoInserido) {
+        const { aplicarModoManutencao } = await import("@/lib/manutencao.server");
+        await aplicarModoManutencao(
+          data.ativa_modo_manutencao ? avisoInserido.id : null,
+          userId,
+        );
+      }
+
+
+      if (data.notificar_email && avisoInserido) {
+        try {
+          await supabase.functions.invoke('notificar-aviso-mural', {
+            body: { aviso_id: avisoInserido.id }
+          });
+          await supabaseAdmin
+            .from('avisos_mural')
+            .update({ email_enviado_em: new Date().toISOString() })
+            .eq('id', avisoInserido.id);
+        } catch (invokeError) {
+          console.error("Erro ao disparar notificação por e-mail:", invokeError);
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error("[criarAviso] Erro:", err);
+      throw err instanceof Error ? err : new Error("Erro interno ao criar aviso");
+    }
   });
 
 export const reenviarEmailAviso = createServerFn({ method: "POST" })
@@ -152,6 +181,7 @@ export const listarAvisosAtivos = createServerFn({ method: "GET" })
       .from('avisos_mural')
       .select(`
         *,
+        anexos:avisos_mural_anexos(*),
         leituras:avisos_mural_leituras(confirmado, usuario_id)
       `)
       .eq('ativo', true)
@@ -229,5 +259,16 @@ export const desativarAviso = createServerFn({ method: "POST" })
       .eq('id', data.avisoId);
 
     if (error) throw error;
+
+    // Se este aviso estava bloqueando o sistema, libera pelo fluxo oficial.
+    const { lerConfigManutencao, aplicarModoManutencao } = await import("@/lib/manutencao.server");
+    const cfg = await lerConfigManutencao();
+
+    if (cfg?.aviso_manutencao_id === data.avisoId) {
+      await aplicarModoManutencao(null, userId);
+    }
+
+
     return { success: true };
   });
+

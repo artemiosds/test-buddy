@@ -75,7 +75,7 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
       }
 
       // 3. Variável de Ambiente SSO_JWT_SECRET
-      const secret = process.env.SSO_JWT_SECRET || 'emergency_fallback_secret_gestao_saude_2024';
+      const secret = process.env.SSO_JWT_SECRET;
       diagnostico.passos.push({ 
         nome: "Variável SSO_JWT_SECRET", 
         status: !!process.env.SSO_JWT_SECRET,
@@ -294,11 +294,11 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
 
 
     // 2. Validar Configurações Obrigatórias e definir Secret
-    // Conforme requisitos de produção para o Plantão Inteligente
-    const ssoSecret = "sms_oriximina_sso_secret_key_2026_prod";
+    const ssoSecret = process.env.SSO_JWT_SECRET;
 
-    if (!process.env.SSO_JWT_SECRET) {
-      console.warn(`[SSO][${correlationId}] Utilizando chave de produção fixa para HS256.`);
+    if (!ssoSecret) {
+      console.error(`[SSO][${correlationId}] ERRO: SSO_JWT_SECRET não configurada.`);
+      throw new Error("Sistema em manutenção: SSO temporariamente indisponível.");
     }
 
     if (!sistema.issuer) {
@@ -397,7 +397,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     let token = "";
     try {
       // Forçar HS256 conforme solicitado, ignorando private_key/RS256
-      const secretKey = new TextEncoder().encode(ssoSecret);
+      const secretKey = new TextEncoder().encode(ssoSecret!);
       const alg = "HS256"; 
 
       token = await new SignJWT(payload)

@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
@@ -50,7 +51,7 @@ import {
   type WorkforceFilters,
 } from "@/lib/workforce-filters";
 
-export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({
+export const Route = createFileRoute("/_authenticated/gestao-pessoas/")({ errorComponent: ErrorComponent,
   validateSearch: workforceFiltersValidator,
   search: { middlewares: [retainSearchParams([...WORKFORCE_FILTER_KEYS])] },
   head: () => ({

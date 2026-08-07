@@ -74,20 +74,21 @@ import { ManutencaoProvider } from "@/providers/ManutencaoProvider";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    type SbUser = Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"];
     if (typeof window === "undefined") {
-      return { user: null as unknown as SbUser };
+      return { user: null };
     }
     try {
       const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) return { user: null as unknown as SbUser };
+      if (error || !data.user) return { user: null };
+      
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-        return { user: null as unknown as SbUser };
+        return { user: null };
       }
+      
       return { user: data.user };
     } catch {
-      return { user: null as unknown as SbUser };
+      return { user: null };
     }
   },
   component: AuthenticatedGuard,
@@ -376,7 +377,8 @@ function AuthenticatedLayoutInner() {
       return count ?? 0;
     },
     enabled: !!userCtx?.id,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
   });
 
   const { data: pendAbertasCount = 0 } = useQuery({
@@ -391,7 +393,8 @@ function AuthenticatedLayoutInner() {
       if (error) throw error;
       return count ?? 0;
     },
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -435,19 +438,26 @@ function AuthenticatedLayoutInner() {
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`[Notifications] Subscribed to notifications for user ${userCtx.id}`);
+        }
+      });
     return () => {
-      supabase.removeChannel(ch);
+      console.log(`[Notifications] Cleaning up channel for user ${userCtx.id}`);
+      void supabase.removeChannel(ch);
     };
   }, [userCtx?.id, refetchUnread]);
   const { data: mfaMissing } = useQuery({
     queryKey: ["mfa-status", userCtx?.id],
     queryFn: async () => {
-      const { data } = await supabase.auth.mfa.listFactors();
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) return false;
       const verified = (data?.totp ?? []).some((f) => f.status === "verified");
       return !verified;
     },
     enabled: !!userCtx?.id,
+    staleTime: 10 * 60_000,
   });
   // Flag do perfil (`admin_2fa_required`) é a fonte de verdade a partir do 5D.
   // Mantemos o fallback para perfis MASTER / ADMIN_SMS caso o backend ainda não
@@ -471,13 +481,20 @@ function AuthenticatedLayoutInner() {
   }
 
   const canSee = (item: NavItem) => {
-    const isMaster = userCtx?.is_master || has("usuario.gerenciar");
+    // Agora usando permissões do app_metadata (JWT)
+    const permissions = user?.app_metadata?.permissions as string[] | undefined;
+    const hasPermission = (p: string) => permissions?.includes(p) ?? false;
+    
+    const isMaster = user?.app_metadata?.is_master || hasPermission("usuario.gerenciar");
     if (item.masterOnly && !isMaster) return false;
+    
     const perm = item.perm;
     if (!perm) return true;
-    if (permLoading) return false;
     if (isMaster) return true;
-    return Array.isArray(perm) ? perm.some(has) : has(perm);
+    
+    return Array.isArray(perm) 
+      ? perm.some(hasPermission) 
+      : hasPermission(perm);
   };
 
   const nome = userCtx?.nome_completo ?? user?.email ?? "Usuário";

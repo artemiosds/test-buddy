@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -35,7 +36,7 @@ import { RelatoriosTabs } from "@/components/relatorios-tabs";
 type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
 
-export const Route = createFileRoute("/_authenticated/relatorios-profissional")({
+export const Route = createFileRoute("/_authenticated/relatorios-profissional")({ errorComponent: ErrorComponent,
   // Aceita ?profissionalId=... para pré-seleção vinda de outros módulos
   // (ex.: aba Relatórios da tela de detalhe do profissional).
   validateSearch: (raw: Record<string, unknown>) => ({

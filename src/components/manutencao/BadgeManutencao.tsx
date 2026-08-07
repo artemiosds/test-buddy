@@ -1,6 +1,6 @@
 'use client';
 
-import { useModoManutencao } from '@/hooks/useModoManutencao';
+import { useManutencaoContext } from '@/providers/ManutencaoProvider';
 import { Wrench, AlertTriangle, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,9 +12,9 @@ import {
 import { toast } from 'sonner';
 
 export function BadgeManutencao() {
-  const { estado, isMaster, desativar } = useModoManutencao();
+  const { isManutencao, isMaster, aviso, desativar } = useManutencaoContext();
 
-  if (!estado.ativo || !isMaster) return null;
+  if (!isManutencao || !isMaster) return null;
 
   const handleDesativar = async () => {
     try {
@@ -32,7 +32,7 @@ export function BadgeManutencao() {
         <span>Modo Manutenção Ativo</span>
         <span className="hidden sm:inline-block opacity-60 font-normal">|</span>
         <span className="hidden sm:inline-block font-medium normal-case tracking-normal">
-          {estado.aviso?.titulo || 'Sistema restrito a administradores'}
+          {aviso?.titulo || 'Sistema restrito a administradores'}
         </span>
       </div>
 

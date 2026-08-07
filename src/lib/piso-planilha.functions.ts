@@ -33,8 +33,9 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }) => {
-    const supabase = context.supabase;
-    await ensurePermission(supabase, context.userId, "piso.visualizar");
+    try {
+      const supabase = context.supabase;
+      await ensurePermission(supabase, context.userId, "piso.visualizar");
 
     // Restrição por importação específica (histórico)
     let idsDaImportacao: Set<string> | null = null;
@@ -77,7 +78,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
           .select("*")
           .eq("historico_id", data.historico_id)
           .order("nome", { ascending: true })
-          .limit(20000);
+          .limit(10000);
         if (importadasErro) throw new Error(importadasErro.message);
         linhasHistorico = importadas ?? [];
       }
@@ -87,7 +88,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
         .or(
           `historico_id_piso.eq.${data.historico_id},historico_id_fopag.eq.${data.historico_id}`,
         )
-        .limit(20000);
+        .limit(10000);
       idsDaImportacao = new Set((vinc ?? []).map((v: any) => v.profissional_id));
       if (idsDaImportacao.size === 0 && !linhasHistorico?.length) {
         throw new Error(
@@ -118,7 +119,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
       )
       .is("deleted_at", null)
       .eq("status", "ativo")
-      .limit(20000);
+      .limit(10000);
     const query = aplicarFiltroElegivel(base, catalogo);
     const profs: any[] = query ? (((await query).data ?? []) as any[]) : [];
 
@@ -162,7 +163,7 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
       .from("piso_competencia_profissional")
       .select("*")
       .eq("competencia", competencia)
-      .limit(20000);
+      .limit(10000);
     const porProf = new Map<string, any>();
     for (const c of consolidados ?? []) porProf.set(c.profissional_id, c);
 
@@ -291,5 +292,8 @@ export const gerarPlanilhaOficialPiso = createServerFn({ method: "POST" })
               : `FOPAG-${sufixo}.xlsx`,
       origem_modelo: origemModelo,
     };
-
-  });
+  } catch (err) {
+    console.error("[gerarPlanilhaOficialPiso] Erro:", err);
+    throw err instanceof Error ? err : new Error("Erro ao gerar planilha oficial");
+  }
+});

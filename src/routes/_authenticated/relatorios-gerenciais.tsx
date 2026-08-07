@@ -1,8 +1,9 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais")({
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais")({ errorComponent: ErrorComponent,
   component: RelatoriosGerenciaisLayout,
 });
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useModoManutencao } from '@/hooks/useModoManutencao';
+import { useManutencaoContext } from '@/providers/ManutencaoProvider';
 import { 
   Wrench, Clock, AlertTriangle, LogOut, 
   RefreshCw, Mail, Phone
@@ -10,12 +10,13 @@ import {
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { SafeHtml } from '@/components/shared/SafeHtml';
 
 export function TelaManutencao() {
-  const { estado } = useModoManutencao();
+  const { aviso: avisoCtx } = useManutencaoContext();
   const [tempoDecorrido, setTempoDecorrido] = useState('');
 
-  const aviso = estado.aviso;
+  const aviso = avisoCtx;
   const dataInicio = aviso?.criado_em ? parseISO(aviso.criado_em) : null;
   const previsaoTermino = aviso?.previsao_termino ? parseISO(aviso.previsao_termino) : null;
 
@@ -90,9 +91,7 @@ export function TelaManutencao() {
 
           {aviso?.mensagem && (
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 mb-8 text-left">
-              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                {aviso.mensagem}
-              </p>
+              <SafeHtml html={aviso.mensagem} className="text-gray-600 leading-relaxed" />
             </div>
           )}
 

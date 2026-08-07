@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { Network, Users } from "lucide-react";
 
@@ -5,7 +6,7 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 
-export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuicao-setor")({
+export const Route = createFileRoute("/_authenticated/gestao-pessoas/distribuicao-setor")({ errorComponent: ErrorComponent,
   head: () => ({
     meta: [
       { title: "Distribuição por Setor — Gestão da Saúde" },

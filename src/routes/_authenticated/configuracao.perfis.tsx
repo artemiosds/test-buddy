@@ -1,3 +1,4 @@
+import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,6 +12,7 @@ import {
   deletePerfil,
 } from "@/lib/profiles-admin.functions";
 import { Button } from "@/components/ui/button";
+import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +40,7 @@ import {
   Users,
 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/configuracao/perfis")({
+export const Route = createFileRoute("/_authenticated/configuracao/perfis")({ errorComponent: ErrorComponent,
   component: PerfisPage,
 });
 
