@@ -90,6 +90,14 @@ type Unidade = {
 
 const STATUS_OPTS: StatusEnt[] = ["ativa", "inativa", "suspensa", "arquivada"];
 
+const NIVEL_COMPLEXIDADE_OPTS = [
+  { value: "atencao_basica", label: "Atenção Básica" },
+  { value: "media_complexidade", label: "Média Complexidade" },
+  { value: "alta_complexidade", label: "Alta Complexidade" },
+  { value: "apoio", label: "Apoio" },
+  { value: "administrativa", label: "Administrativa" },
+] as const;
+
 
 function UnidadesPage() {
   const qc = useQueryClient();
@@ -243,6 +251,12 @@ function UnidadesPage() {
         cnes: values.cnes?.replace(/\D/g, "") || null,
         email_institucional: values.email_institucional || null,
         sigla: values.sigla || null,
+        nivel_complexidade: values.nivel_complexidade || null,
+        tipo_atendimento: values.tipo_atendimento || null,
+        tipo_unidade: values.tipo_unidade || null,
+        distrito: values.distrito || null,
+        responsavel_nome: values.responsavel_nome || null,
+        observacoes: values.observacoes || null,
       };
 
       if (editingId) {
@@ -530,9 +544,24 @@ function UnidadesPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Nível de complexidade</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Primária, Secundária..." {...field} value={field.value || ""} />
-                            </FormControl>
+                            <Select
+                              onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                              value={field.value || "__none__"}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o nível" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="__none__">— não informado —</SelectItem>
+                                {NIVEL_COMPLEXIDADE_OPTS.map((o) => (
+                                  <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
