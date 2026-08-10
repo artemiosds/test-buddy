@@ -210,13 +210,6 @@ const GROUPS: NavGroup[] = [
         section: "👥 Profissionais",
       },
       {
-        to: "/gestao-profissionais",
-        label: "Gestão dos Profissionais",
-        icon: UserCog,
-        perm: "profissional.visualizar",
-        section: "👥 Profissionais",
-      },
-      {
         to: "/gestao-pessoas/situacao-funcional",
         label: "Situação Funcional",
         icon: Activity,
@@ -239,19 +232,10 @@ const GROUPS: NavGroup[] = [
       },
       {
         to: "/cargos-funcoes",
-        label: "Cargos",
+        label: "Cargos e Funções",
         icon: Briefcase,
         perm: "configuracao.editar",
         section: "🏥 Estrutura Organizacional",
-        hash: "cargos",
-      },
-      {
-        to: "/cargos-funcoes",
-        label: "Funções",
-        icon: Tag,
-        perm: "configuracao.editar",
-        section: "🏥 Estrutura Organizacional",
-        hash: "funcoes",
       },
       // 📍 Gestão Operacional
       {

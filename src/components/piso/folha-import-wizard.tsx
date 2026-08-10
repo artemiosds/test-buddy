@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import * as XLSX from "xlsx";
+import { loadXlsxKit } from "@/lib/lazy-exports";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -215,7 +215,8 @@ type Passo = 1 | 2 | 3 | 4;
  * e devolve as regras por cabeçalho — insumo do aprendizado por modelo.
  */
 function formulasDaPlanilha(
-  ws: XLSX.WorkSheet,
+  XLSX: any,
+  ws: any,
   headers: string[],
   headerRowIndex: number,
 ): RegraFormulaColuna[] {
@@ -405,8 +406,9 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
       return;
     }
     let matrix: unknown[][];
-    let ws: XLSX.WorkSheet | null = null;
+    let ws: any = null;
     try {
+      const { XLSX } = await loadXlsxKit();
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellFormula: true });
       ws = wb.Sheets[wb.SheetNames[0]];
@@ -428,7 +430,8 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
     setHeaderRowIndex(idx);
     setHeaders(hs);
     setRawRows(rows);
-    setFormulasModelo(ws ? formulasDaPlanilha(ws, hs, idx) : []);
+    const { XLSX } = await loadXlsxKit();
+    setFormulasModelo(ws ? formulasDaPlanilha(XLSX, ws, hs, idx) : []);
     setNomeLayoutIA("");
 
     // Padrão Strategy: reconhece o modelo institucional do arquivo do RH.
@@ -1243,13 +1246,14 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
       return;
     }
     try {
+      const { XLSX } = await loadXlsxKit();
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellFormula: true });
       const nomeAba = wb.SheetNames[0];
       const ws = wb.Sheets[nomeAba];
       const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
       const idx = detectHeaderRow(matrix);
-      const cabecalho = (matrix[idx] ?? []).map((v) => String(v ?? ""));
+      const cabecalho = (matrix[idx] ?? []).map((v: unknown) => String(v ?? ""));
       let formulas = 0;
       for (const [ref, celula] of Object.entries(ws as Record<string, any>)) {
         if (!ref.startsWith("!") && celula?.f) formulas += 1;
@@ -1300,7 +1304,8 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
    * (UBS = 16 colunas; H.M.O = 14 colunas; H.M.S.D.S = 16 colunas), com as
    * fórmulas vivas.
    */
-  function baixarPlanilhaTemplate() {
+  async function baixarPlanilhaTemplate() {
+    const { XLSX } = await loadXlsxKit();
     const id = templateDet?.template.id;
     const linhasCalc = validacao.linhasValidas as unknown as Record<string, unknown>[];
     const aoaSaida =
@@ -1314,7 +1319,7 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
               ? montarPlanilhaPadraoAdm(linhasCalc)
               : montarPlanilhaUbs(linhasCalc);
 
-    const ws: XLSX.WorkSheet = {};
+    const ws: Record<string, any> = {};
     let maxCol = 0;
     aoaSaida.forEach((linha, r) => {
       linha.forEach((valor, c) => {
@@ -2174,13 +2179,14 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
 
                       // Fórmulas do MODELO por cabeçalho: é a matemática que vale
                       // ao clicar em "Validar e cruzar cadastro".
+                      const { XLSX } = await loadXlsxKit();
                       const wbX = XLSX.read(buf.slice(0), { type: "array", cellFormula: true });
                       const wsX = wbX.Sheets[wbX.SheetNames[0]];
                       const headersX: string[] = [];
                       for (let c = 1; c <= mapa.ultimaColuna; c += 1)
                         headersX.push(mapa.titulos.get(c) ?? "");
                       setFormulasDoModelo(
-                        wsX ? formulasDaPlanilha(wsX, headersX, mapa.linhaCabecalho - 1) : [],
+                        wsX ? formulasDaPlanilha(XLSX, wsX, headersX, mapa.linhaCabecalho - 1) : [],
                       );
 
                       // Salva automaticamente como modelo padrão deste vínculo.

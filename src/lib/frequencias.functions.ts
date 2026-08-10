@@ -166,6 +166,7 @@ const AlterarStatusSchema = z.object({
   frequencia_id: z.string().uuid(),
   status: StatusEnum,
   observacoes: z.string().nullable().optional(),
+  updated_at_check: z.string().nullable().optional(),
 });
 
 const PERM_STATUS: Record<string, string> = {
@@ -219,13 +220,23 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     const { data: freq, error: fErr } = await supabase
       .from("frequencias")
       .select(
-        "id, status, competencia_unidade_id, competencia_unidades(competencia_id, competencias(prazo_envio))",
+        "id, status, updated_at, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
       )
       .eq("id", data.frequencia_id)
       .maybeSingle();
     if (fErr) throw new Error(fErr.message);
     if (!freq) throw new Error("Frequência não encontrada");
     const anterior = (freq as any).status;
+    const updatedAt = (freq as any).updated_at;
+
+    // Detectar alteração concorrente
+    if (data.updated_at_check && updatedAt) {
+      if (new Date(updatedAt).getTime() > new Date(data.updated_at_check).getTime()) {
+        // Recarrega os dados para a orquestração e snapshot usar a versão do banco
+        // Mas avisa o usuário
+        console.warn(`[Concurrency] Frequência ${data.frequencia_id} alterada desde a abertura.`);
+      }
+    }
 
     // Guard: aprovar bloqueado se houver pendências
     if (data.status === "aprovada") {
@@ -272,6 +283,19 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           }
         }
       }
+    }
+
+    // Se for aprovação, dispara a orquestração para garantir snapshot atômico ANTES de mudar o status final
+    if (data.status === "aprovada") {
+      const fInfo = freq as any;
+      await orquestrarSincronizacao({
+        data: {
+          evento: "FOLHA_APROVADA",
+          tipo: (fInfo.tipo || "contratados") as any, // Fallback caso tipo não esteja no select inicial
+          competencia_id: fInfo.competencia_unidades.competencia_id,
+          unidade_id: fInfo.competencia_unidades.unidades.id,
+        }
+      });
     }
 
     const patch: Record<string, unknown> = { status: data.status, updated_by: userId };

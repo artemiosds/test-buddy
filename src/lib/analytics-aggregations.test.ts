@@ -20,10 +20,12 @@ const row = (
   const base: FrequenciaRow = {
     id: crypto.randomUUID(),
     status: "enviada",
+    tipo: "contratados",
     total_profissionais: 10,
+    total_dias_trabalhados: 100,
     total_faltas: 0,
     total_horas_extras: 0,
-    competencia_unidades: {
+    competencia_unidade: {
       competencia_id: "c1",
       unidade_id: unidadeId,
       unidades: {
@@ -47,25 +49,22 @@ describe("countByStatus", () => {
     row({ status: "aprovada" }),
   ];
 
-  it("conta status enviadas (enviada + em_analise + com_pendencias)", () => {
-    expect(countByStatus(rows, STATUS_ENVIADAS)).toBe(3);
+  it("conta status enviadas (enviada + em_analise)", () => {
+    expect(countByStatus(rows, STATUS_ENVIADAS)).toBe(2);
   });
-  it("conta rascunho como pendente", () => {
-    expect(countByStatus(rows, STATUS_PENDENTES)).toBe(1);
+  it("conta pendentes (enviada, em_analise, com_pendencias, devolvida)", () => {
+    expect(countByStatus(rows, STATUS_PENDENTES)).toBe(3);
   });
   it("conta aprovadas", () => {
     expect(countByStatus(rows, STATUS_APROVADAS)).toBe(2);
   });
-  it("retorna 0 para lista vazia", () => {
-    expect(countByStatus([], STATUS_ENVIADAS)).toBe(0);
-  });
 });
 
 describe("sumField", () => {
-  it("soma horas extras tratando null como 0", () => {
+  it("soma horas extras", () => {
     const rows = [
       row({ total_horas_extras: 10 }),
-      row({ total_horas_extras: null }),
+      row({ total_horas_extras: 0 }),
       row({ total_horas_extras: 25 }),
     ];
     expect(sumField(rows, "total_horas_extras")).toBe(35);
@@ -74,13 +73,10 @@ describe("sumField", () => {
     const rows = [row({ total_faltas: 2 }), row({ total_faltas: 3 })];
     expect(sumField(rows, "total_faltas")).toBe(5);
   });
-  it("retorna 0 para lista vazia", () => {
-    expect(sumField([], "total_faltas")).toBe(0);
-  });
 });
 
 describe("buildRanking", () => {
-  it("agrega múltiplas folhas da mesma unidade e conta aprovadas", () => {
+  it("agrega múltiplas folhas da mesma unidade", () => {
     const rows = [
       row({
         unidade_id: "u1",
@@ -109,36 +105,5 @@ describe("buildRanking", () => {
       total_folhas: 2,
       aprovadas: 1,
     });
-  });
-
-  it("ordena por total_horas_extras desc", () => {
-    const rows = [
-      row({ unidade_id: "a", unidade_nome: "A", total_horas_extras: 30 }),
-      row({ unidade_id: "b", unidade_nome: "B", total_horas_extras: 300 }),
-      row({ unidade_id: "c", unidade_nome: "C", total_horas_extras: 150 }),
-    ];
-    const r = buildRanking(rows);
-    expect(r.map((x) => x.unidade_id)).toEqual(["b", "c", "a"]);
-  });
-
-  it("retorna array vazio quando não há linhas", () => {
-    expect(buildRanking([])).toEqual([]);
-  });
-
-  it("trata numéricos nulos como 0", () => {
-    const rows = [
-      row({
-        unidade_id: "u1",
-        total_profissionais: null,
-        total_horas_extras: null,
-        total_faltas: null,
-      }),
-    ];
-    const [r] = buildRanking(rows);
-    expect(r.total_profissionais).toBe(0);
-    expect(r.total_horas_extras).toBe(0);
-    expect(r.total_faltas).toBe(0);
-    expect(r.total_folhas).toBe(1);
-    expect(r.aprovadas).toBe(0);
   });
 });

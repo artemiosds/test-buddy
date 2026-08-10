@@ -128,7 +128,8 @@ function UnidadePainelPage() {
         )
         .is("deleted_at", null)
         .order("nome_completo")
-        .limit(5000);
+        .limit(200); // Reduzido drasticamente para exibição na lista de equipe
+
       if (setorIds.length) {
         query = query.or(`unidade_id.eq.${id},setor_id.in.(${setorIds.join(",")})`);
       } else {
@@ -184,57 +185,60 @@ function UnidadePainelPage() {
   });
 
   const a = useAnalytics({ unidadeId: id });
-  const profs = profsQ.data ?? [];
+  const summaryQ = useQuery({
+    queryKey: ["unidade-painel", id, "summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_unidade_dashboard_summary", {
+        p_unidade_id: id,
+      });
+      if (error) throw error;
+      return data as {
+        total_profissionais: number;
+        ativos: number;
+        afastados: number;
+        ferias: number;
+        licencas: number;
+        cargos: number;
+        funcoes: number;
+      };
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
-  const counts = useMemo(() => {
-    const byStatus: Record<string, number> = {};
-    const cargosSet = new Set<string>();
-    const funcoesSet = new Set<string>();
-    for (const p of profs) {
-      byStatus[p.status] = (byStatus[p.status] ?? 0) + 1;
-      if (p.cargo_id) cargosSet.add(p.cargo_id);
-      if (p.funcao_id) funcoesSet.add(p.funcao_id);
-    }
-    return {
-      ativos: byStatus["ativo"] ?? 0,
-      afastados: byStatus["afastado"] ?? 0,
-      ferias: byStatus["ferias"] ?? 0,
-      licencas: byStatus["licenca"] ?? 0,
-      byStatus,
-      cargos: cargosSet.size,
-      funcoes: funcoesSet.size,
-    };
-  }, [profs]);
+  const counts = summaryQ.data ?? {
+    total_profissionais: 0,
+    ativos: 0,
+    afastados: 0,
+    ferias: 0,
+    licencas: 0,
+    cargos: 0,
+    funcoes: 0,
+  };
 
-  const distSetor = useMemo(
-    () => rankBy(profs, (p) => p.setor?.nome ?? "Sem setor").slice(0, 10),
-    [profs],
-  );
-  const distCargo = useMemo(
-    () => rankBy(profs, (p) => p.cargo?.nome ?? "Sem cargo").slice(0, 10),
-    [profs],
-  );
-  const distVinculo = useMemo(
-    () => rankBy(profs, (p) => p.vinculo?.nome ?? p.vinculo?.natureza ?? "Sem vínculo"),
-    [profs],
-  );
-  const distStatus = useMemo(() => rankBy(profs, (p) => p.status), [profs]);
+
+  const distSetor = useMemo(() => [], []);
+  const distCargo = useMemo(() => [], []);
+  const distVinculo = useMemo(() => [], []);
+  const distStatus = useMemo(() => [], []);
+
 
   const [teamSearch, setTeamSearch] = useState("");
   const teamFiltered = useMemo(() => {
     const q = teamSearch.trim().toLowerCase();
-    if (!q) return profs;
-    return profs.filter(
+    const data = (profsQ.data ?? []) as ProfRow[];
+    if (!q) return data;
+    return data.filter(
       (p) =>
         p.nome_completo.toLowerCase().includes(q) ||
         (p.matricula ?? "").toLowerCase().includes(q) ||
         (p.cargo?.nome ?? "").toLowerCase().includes(q) ||
         (p.funcao?.nome ?? "").toLowerCase().includes(q),
     );
-  }, [profs, teamSearch]);
+  }, [profsQ.data, teamSearch]);
+
 
   const u = unidadeQ.data;
-  const compAtiva = a.competenciaAtiva;
+  const compAtivaId = a.competenciaId;
   const ultimaProcessada = ultimaCompQ.data;
 
   if (unidadeQ.isLoading)
@@ -324,19 +328,22 @@ function UnidadePainelPage() {
         <KpiGrid>
           <KpiCard
             label="Profissionais"
-            value={profs.length}
-            loading={profsQ.isLoading}
+            value={counts.total_profissionais}
+            loading={summaryQ.isLoading}
+
             icon={<Users className="h-4 w-4" />}
           />
           <KpiCard
             label="Ativos"
             value={counts.ativos}
-            loading={profsQ.isLoading}
+            loading={summaryQ.isLoading}
+
             icon={<UserCheck className="h-4 w-4" />}
           />
-          <KpiCard label="Afastados" value={counts.afastados} loading={profsQ.isLoading} />
-          <KpiCard label="Férias" value={counts.ferias} loading={profsQ.isLoading} />
-          <KpiCard label="Licenças" value={counts.licencas} loading={profsQ.isLoading} />
+          <KpiCard label="Afastados" value={counts.afastados} loading={summaryQ.isLoading} />
+          <KpiCard label="Férias" value={counts.ferias} loading={summaryQ.isLoading} />
+          <KpiCard label="Licenças" value={counts.licencas} loading={summaryQ.isLoading} />
+
           <KpiCard
             label="Setores"
             value={setoresListQ.data?.length ?? 0}
@@ -346,13 +353,14 @@ function UnidadePainelPage() {
           <KpiCard
             label="Cargos"
             value={counts.cargos}
-            loading={profsQ.isLoading}
+            loading={summaryQ.isLoading}
             icon={<Briefcase className="h-4 w-4" />}
           />
           <KpiCard
             label="Funções"
             value={counts.funcoes}
-            loading={profsQ.isLoading}
+            loading={summaryQ.isLoading}
+
             icon={<Layers className="h-4 w-4" />}
           />
         </KpiGrid>
@@ -394,17 +402,17 @@ function UnidadePainelPage() {
           />
           <KpiCard
             label="Horas extras (competência)"
-            value={a.totalHorasExtras.toLocaleString("pt-BR")}
-            loading={a.frequencias.isLoading}
+            value={a.totals.horasExtras.toLocaleString("pt-BR")}
+            loading={a.loading}
             hint={
-              compAtiva ? `${String(compAtiva.mes).padStart(2, "0")}/${compAtiva.ano}` : undefined
+              compAtivaId ? `Competência selecionada` : undefined
             }
             icon={<Clock className="h-4 w-4" />}
           />
           <KpiCard
             label="Faltas (competência)"
-            value={a.totalFaltas.toLocaleString("pt-BR")}
-            loading={a.frequencias.isLoading}
+            value={a.totals.faltas.toLocaleString("pt-BR")}
+            loading={a.loading}
             icon={<ClipboardList className="h-4 w-4" />}
           />
           <KpiCard

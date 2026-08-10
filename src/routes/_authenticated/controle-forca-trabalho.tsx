@@ -83,7 +83,7 @@ function maxDate(a: string | null, b: string | null): string | null {
 function ControleForcaTrabalhoPage() {
   const navigate = useNavigate();
   const routeNavigate = useNavigate({ from: Route.fullPath });
-  const search = Route.useSearch();
+  const search = Route.useSearch() as WorkforceFilters;
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const competenciasQ = useCompetenciasLookup();
   const resolved = resolveWorkforceFilters(search, competenciaAtiva?.id ?? null);
@@ -185,7 +185,7 @@ function ControleForcaTrabalhoPage() {
     const profs = profsPorUnidadeQ.data ?? [];
     const pends = pendenciasPorUnidadeQ.data ?? [];
     const freqs = freqMetaQ.data ?? [];
-    const rankByUnit = new Map(a.ranking.data.map((r) => [r.unidade_id, r]));
+    const rankByUnit = new Map(a.ranking.map((r) => [r.unidade_id, r]));
 
     return unidades.map((u) => {
       const uProfs = profs.filter((p) => p.unidade_id === u.id);
@@ -231,7 +231,7 @@ function ControleForcaTrabalhoPage() {
     profsPorUnidadeQ.data,
     pendenciasPorUnidadeQ.data,
     freqMetaQ.data,
-    a.ranking.data,
+    a.ranking,
   ]);
 
   const totalProf = cards.reduce((s, r) => s + r.total, 0);
@@ -248,7 +248,7 @@ function ControleForcaTrabalhoPage() {
     unidadesQ.isLoading ||
     profsPorUnidadeQ.isLoading ||
     (effectiveCompId
-      ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.ranking.isLoading
+      ? pendenciasPorUnidadeQ.isLoading || freqMetaQ.isLoading || a.loading
       : false);
 
 

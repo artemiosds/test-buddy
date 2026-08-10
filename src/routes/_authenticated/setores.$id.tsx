@@ -182,7 +182,7 @@ function SetorPainelPage() {
     return <div className="p-6 text-sm text-muted-foreground">Carregando painel...</div>;
   if (!s) return <div className="p-6">Setor não encontrado.</div>;
 
-  const compAtiva = a.competenciaAtiva;
+  const compAtivaId = a.competenciaId;
 
   const teamCols: DataTableColumn<ProfRow>[] = [
     {
@@ -227,8 +227,8 @@ function SetorPainelPage() {
         description={[
           s.unidade ? `Unidade: ${s.unidade.sigla ?? s.unidade.nome}` : null,
           s.sigla ? `Sigla: ${s.sigla}` : null,
-          compAtiva
-            ? `Competência ${String(compAtiva.mes).padStart(2, "0")}/${compAtiva.ano}`
+          compAtivaId
+            ? `Competência selecionada`
             : null,
         ]
           .filter(Boolean)
@@ -319,15 +319,15 @@ function SetorPainelPage() {
           />
           <KpiCard
             label="Horas extras (competência)"
-            value={a.totalHorasExtras.toLocaleString("pt-BR")}
-            loading={a.frequencias.isLoading}
+            value={a.totals.horasExtras.toLocaleString("pt-BR")}
+            loading={a.loading}
             hint="Unidade-mãe"
             icon={<Clock className="h-4 w-4" />}
           />
           <KpiCard
             label="Faltas (competência)"
-            value={a.totalFaltas.toLocaleString("pt-BR")}
-            loading={a.frequencias.isLoading}
+            value={a.totals.faltas.toLocaleString("pt-BR")}
+            loading={a.loading}
             hint="Unidade-mãe"
             icon={<ClipboardList className="h-4 w-4" />}
           />

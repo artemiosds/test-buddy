@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import { loadXlsxKit } from "@/lib/lazy-exports";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
@@ -180,7 +180,8 @@ export function ImportProfissionaisDialog() {
 
   const preview = useMemo(() => rows.slice(0, 10), [rows]);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const { XLSX } = await loadXlsxKit();
     const ws = XLSX.utils.aoa_to_sheet([
       HEADERS,
       [
@@ -217,6 +218,7 @@ export function ImportProfissionaisDialog() {
   const handleFile = async (file: File) => {
     setResult(null);
     setFileName(file.name);
+    const { XLSX } = await loadXlsxKit();
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
     const ws = wb.Sheets[wb.SheetNames[0]];

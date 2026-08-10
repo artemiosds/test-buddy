@@ -47,6 +47,8 @@ const X_TOL_RATIO = 0.6; // fração da largura média de char para juntar em co
  */
 export async function extractPdfAoa(file: File): Promise<unknown[][]> {
   const pdfjs = await getPdfjs();
+  const { loadXlsxKit } = await import("@/lib/lazy-exports");
+  const { XLSX } = await loadXlsxKit();
   let doc: import("pdfjs-dist").PDFDocumentProxy;
   try {
     const buf = await file.arrayBuffer();

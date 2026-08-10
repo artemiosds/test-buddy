@@ -4,8 +4,9 @@ import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   STATUS_APROVADAS,
-  STATUS_ENVIADAS,
   STATUS_PENDENTES,
+  getAggregatedFrequencies,
+  buildRanking,
   type FrequenciaRow,
 } from "@/lib/analytics-aggregations";
 import { valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
@@ -19,6 +20,7 @@ export type AnalyticsFilters = {
   funcaoId?: string | null;
   vinculoId?: string | null;
   status?: string | null;
+  tipo?: "contratados" | "efetivos" | "all";
 };
 
 type IntegridadeRow = {
@@ -184,42 +186,30 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     enabled: !!competenciaId,
   });
 
-  const frequencias = useQuery({
-    queryKey: ["analytics", "frequencias", competenciaId, filters.unidadeId ?? null],
+  const frequenciasAggregated = useQuery({
+    queryKey: ["analytics", "frequencias-aggregated", competenciaId, filters.unidadeId, filters.tipo],
     staleTime,
     gcTime,
     enabled: !!competenciaId,
-    queryFn: async () => {
-      let q = supabase
-        .from("frequencias")
-        .select(
-          "status, total_profissionais, total_faltas, total_horas_extras, competencia_unidades!inner(unidade_id, unidades!inner(id, nome, sigla))",
-        )
-        .is("deleted_at", null)
-        .eq("competencia_unidades.competencia_id", competenciaId as string);
-      if (filters.unidadeId) {
-        q = q.eq("competencia_unidades.unidade_id", filters.unidadeId);
-      }
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as FrequenciaRow[];
-    },
+    queryFn: () => getAggregatedFrequencies({
+      competenciaId,
+      unidadeId: filters.unidadeId,
+      tipo: filters.tipo ?? "all"
+    }),
   });
 
-  const ranking = useQuery({
-    queryKey: ["analytics", "ranking", competenciaId],
-    staleTime,
-    gcTime,
-    enabled: !!competenciaId,
-    queryFn: async () => {
-      if (!competenciaId) return [];
-      const { data, error } = await supabase.rpc("get_ranking_rh", {
-        p_competencia_id: competenciaId,
-      });
-      if (error) throw error;
-      return (data || []) as RankingRow[];
-    },
-  });
+  const frequencias = frequenciasAggregated.data?.linhas ?? [];
+
+  const totals = {
+    profissionais: frequenciasAggregated.data?.totalProfissionais ?? 0,
+    faltas: frequenciasAggregated.data?.totalFaltas ?? 0,
+    horasExtras: frequenciasAggregated.data?.totalHorasExtras ?? 0,
+    folhasAprovadas: frequenciasAggregated.data?.totalAprovadas ?? 0,
+    folhasPendentes: frequenciasAggregated.data?.totalPendentes ?? 0,
+    totalFolhas: frequenciasAggregated.data?.totalFolhas ?? 0,
+  };
+
+  const ranking = buildRanking(frequencias);
 
   const integridade = useQuery({
     queryKey: ["analytics", "integridade", filters.unidadeId],
@@ -314,28 +304,38 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   };
 
   const statusBreakdown = {
-    data: summary.data?.status_breakdown,
+    data: summary.data?.status_breakdown ?? {
+      afastado: 0,
+      ativo: 0,
+      desligado: 0,
+      ferias: 0,
+      licenca: 0,
+    },
     isLoading: summary.isLoading,
     isSuccess: summary.isSuccess,
     isError: summary.isError,
   };
 
   const vinculoBreakdown = {
-    data: summary.data?.vinculo_breakdown,
+    data: summary.data?.vinculo_breakdown ?? {
+      efetivos: 0,
+      temporarios: 0,
+      outros: 0,
+    },
     isLoading: summary.isLoading,
     isSuccess: summary.isSuccess,
     isError: summary.isError,
   };
 
   const distribuicaoUnidade = {
-    data: summary.data?.top_unidades,
+    data: summary.data?.top_unidades ?? [],
     isLoading: summary.isLoading,
     isSuccess: summary.isSuccess,
     isError: summary.isError,
   };
 
   const distribuicaoCargo = {
-    data: summary.data?.top_cargos,
+    data: summary.data?.top_cargos ?? [],
     isLoading: summary.isLoading,
     isSuccess: summary.isSuccess,
     isError: summary.isError,
@@ -444,44 +444,98 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     staleTime,
     gcTime,
     queryFn: async () => {
-      let q = supabase
+      let qProf = supabase
         .from("profissionais")
-        .select("setor_id, setores!profissionais_setor_id_fkey(nome)")
+        .select(`
+          id, 
+          nome_completo, 
+          cpf,
+          unidade_id, 
+          setor_id, 
+          situacao_funcional,
+          unidades(id, nome, sigla), 
+          setores!profissionais_setor_id_fkey(id, nome, status),
+          cargos(id, nome),
+          funcoes(id, nome)
+        `)
         .is("deleted_at", null)
-        .not("setor_id", "is", null)
-        .limit(5000);
-      if (filters.unidadeId) q = q.eq("unidade_id", filters.unidadeId);
-      const { data, error } = await q;
-      if (error) throw error;
-      const map = new Map<string, { id: string; nome: string; total: number }>();
-      for (const r of (data ?? []) as any[]) {
-        if (!r.setor_id) continue;
-        const cur = map.get(r.setor_id) ?? { id: r.setor_id, nome: r.setores?.nome ?? "—", total: 0 };
-        cur.total += 1;
-        map.set(r.setor_id, cur);
-      }
-      return Array.from(map.values()).sort((a, b) => b.total - a.total);
-    },
-  });
+        .not("unidade_id", "is", null)
+        .limit(10000);
+      
+      if (filters.unidadeId) qProf = qProf.eq("unidade_id", filters.unidadeId);
+      
+      let qSectors = supabase
+        .from("setores")
+        .select("id, nome, status")
+        .is("deleted_at", null);
+      
+      const [profRes, sectorsRes] = await Promise.all([qProf, qSectors]);
+      
+      if (profRes.error) throw profRes.error;
+      if (sectorsRes.error) throw sectorsRes.error;
 
-  const quadroLotacao = useQuery({
-    queryKey: ["analytics", "quadroLotacao"],
-    staleTime,
-    gcTime,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profissionais")
-        .select("status, unidade_id, setor_id, cargo_id, funcao_id, unidade:unidades(nome, sigla), setor:setores!profissionais_setor_id_fkey(nome), cargo:cargos(nome), funcao:funcoes(nome)")
-        .is("deleted_at", null)
-        .limit(5000);
-      if (error) throw error;
-      return (data ?? []) as any[];
+      const professionals = profRes.data || [];
+      const sectors = sectorsRes.data || [];
+
+      const profWithSetor = professionals.filter(p => !!p.setor_id);
+      const profWithoutSetor = professionals.filter(p => !p.setor_id);
+      
+      const unidadesMap = new Map<string, {
+        id: string;
+        nome: string;
+        sigla: string | null;
+        total: number;
+        comSetor: number;
+        semSetor: number;
+        setoresUtilizados: Set<string>;
+      }>();
+
+      for (const p of professionals) {
+        const u = p.unidades as any;
+        if (!u) continue;
+        const uid = u.id;
+        if (!unidadesMap.has(uid)) {
+          unidadesMap.set(uid, {
+            id: uid,
+            nome: u.nome,
+            sigla: u.sigla,
+            total: 0,
+            comSetor: 0,
+            semSetor: 0,
+            setoresUtilizados: new Set(),
+          });
+        }
+        const stats = unidadesMap.get(uid)!;
+        stats.total++;
+        if (p.setor_id) {
+          stats.comSetor++;
+          stats.setoresUtilizados.add(p.setor_id);
+        } else {
+          stats.semSetor++;
+        }
+      }
+
+      const totalDistribuicao = {
+        totalSectors: sectors.length,
+        sectorsInUse: new Set(profWithSetor.map(p => p.setor_id)).size,
+        totalProfessionals: professionals.length,
+        withSetor: profWithSetor.length,
+        withoutSetor: profWithoutSetor.length,
+      };
+
+      return {
+        totalDistribuicao,
+        unidades: Array.from(unidadesMap.values()).map(u => ({
+          ...u,
+          setoresCount: u.setoresUtilizados.size
+        })),
+        raw: { professionals, sectors }
+      };
     },
+    enabled: !!canSee,
   });
 
   return {
-    competenciaAtiva,
-    competenciaId,
     totalProfessionals,
     totalUnidades,
     totalSetores,
@@ -490,48 +544,32 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     pendencias,
     summary,
     frequencias,
-    ranking: {
-      data: ranking.data ?? [],
-      isLoading: ranking.isLoading,
-      isSuccess: ranking.isSuccess,
-      isError: ranking.isError,
-      refetch: ranking.refetch,
-    },
+    ranking,
+    totals,
     integridade,
     alertas,
-    frequenciasEnviadas: rhKpis.enviadas,
-    frequenciasPendentes: rhKpis.pendentes,
-    frequenciasAprovadas: rhKpis.aprovadas,
-    totalHorasExtras: rhKpis.total_horas_extras,
-    totalFaltas: rhKpis.total_faltas,
+    rhKpis,
     statusBreakdown,
     vinculoBreakdown,
     distribuicaoUnidade,
     distribuicaoCargo,
-    distribuicaoSetor,
-    equipeProfissionais,
     frequenciasAnterior,
     pendenciasAnterior,
-    quadroLotacao,
-    // Add missing legacy properties as mocks to avoid breaking dependent pages
-    distribuicaoFuncao: { data: [], isLoading: false, isSuccess: true, isError: false },
-    refetch: () =>
-      Promise.all([
+    equipeProfissionais,
+    distribuicaoSetor,
+    loading:
+      totalProfessionals.isLoading ||
+      totalUnidades.isLoading ||
+      summary.isLoading ||
+      frequenciasAggregated.isLoading,
+    refetch: async () => {
+      await Promise.all([
         totalProfessionals.refetch(),
         totalUnidades.refetch(),
-        totalSetores.refetch(),
-        totalCargos.refetch(),
-        totalFuncoes.refetch(),
-        pendencias.refetch(),
         summary.refetch(),
-        frequencias.refetch(),
-        ranking.refetch(),
-        alertas.refetch(),
-        integridade.refetch(),
-        equipeProfissionais.refetch(),
-        distribuicaoSetor.refetch(),
-        quadroLotacao.refetch(),
-      ]),
-    lastUpdated: Date.now(),
+        frequenciasAggregated.refetch()
+      ]);
+    },
+    competenciaId
   };
 }

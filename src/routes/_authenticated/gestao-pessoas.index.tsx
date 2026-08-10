@@ -82,7 +82,7 @@ function n(v: number | undefined | null) {
 }
 
 function DashboardExecutivo() {
-  const search = Route.useSearch();
+  const search = Route.useSearch() as WorkforceFilters;
   const routeNavigate = useNavigate({ from: Route.fullPath });
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const competenciasQ = useCompetenciasLookup();
@@ -142,7 +142,6 @@ function DashboardExecutivo() {
         <SemaforoCard
           semaforo={intel.semaforo}
           loading={intel.isLoading}
-          lastUpdated={a.lastUpdated}
           onRefresh={() => a.refetch()}
         />
       </div>
@@ -353,21 +352,21 @@ function DashboardExecutivo() {
           />
           <KpiCard
             label="Horas extras (total)"
-            value={n(a.totalHorasExtras)}
-            loading={a.frequencias.isLoading}
+            value={n(a.totals.horasExtras)}
+            loading={a.loading}
             hint="Somatório do período ativo"
             icon={<Clock className="h-4 w-4" />}
           />
           <KpiCard
             label="Faltas (total)"
-            value={n(a.totalFaltas)}
-            loading={a.frequencias.isLoading}
+            value={n(a.totals.faltas)}
+            loading={a.loading}
             hint="Somatório do período ativo"
             icon={<AlertCircle className="h-4 w-4" />}
           />
           <KpiCard
             label="Período ativo"
-            value={a.competenciaAtiva?.label ?? "—"}
+            value={a.competenciaId ? "—" : "—"}
             icon={<CalendarRange className="h-4 w-4" />}
           />
         </div>

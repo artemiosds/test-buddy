@@ -1,6 +1,9 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { UserCheck, UserMinus, Umbrella, FileText, UserX } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
@@ -43,8 +46,56 @@ const ORDER: {
 
 function SituacaoFuncional() {
   const a = useAnalytics({});
-  const status = a.statusBreakdown.data ?? {};
-  const total = Object.values(status).reduce((s, n) => s + n, 0);
+  const { data: professionals, isLoading: isLoadingDirect } = useQuery({
+    queryKey: ["profissionais-status-direct"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("status")
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data as { status: string | null }[];
+    },
+  });
+
+  const isLoading = a.statusBreakdown.isLoading || isLoadingDirect;
+  
+  // Agregação no frontend para garantir resiliência se a RPC falhar ou retornar zeros incorretamente
+  const statusCounts = useMemo(() => {
+    // Se a RPC trouxe dados, usamos como base, mas validamos se não está tudo zerado
+    const rpcData = a.statusBreakdown.data as Record<string, number> | undefined;
+    const hasRpcData = rpcData && Object.values(rpcData).some(v => v > 0);
+    
+    if (hasRpcData) return rpcData;
+
+    // Fallback: agregamos manualmente os profissionais se a RPC falhar
+    const counts: Record<string, number> = {
+      ativo: 0,
+      afastado: 0,
+      ferias: 0,
+      licenca: 0,
+      desligado: 0,
+      inativo: 0
+    };
+
+    if (!professionals) return counts;
+
+    professionals.forEach((p) => {
+      const s = p.status?.toLowerCase();
+      if (!s) return;
+      
+      if (s === 'ativo') counts.ativo++;
+      else if (['afastado', 'afastamento_inss', 'cedido'].includes(s)) counts.afastado++;
+      else if (s === 'ferias') counts.ferias++;
+      else if (s.startsWith('licenca_')) counts.licenca++;
+      else if (['desligado', 'vacancia', 'falta_pad'].includes(s)) counts.desligado++;
+      else if (s === 'inativo') counts.inativo++;
+    });
+
+    return counts;
+  }, [a.statusBreakdown.data, professionals]);
+
+  const total = Object.values(statusCounts).reduce((s: number, n: number) => s + n, 0);
 
   return (
     <div className="p-4 md:p-6">
@@ -58,8 +109,8 @@ function SituacaoFuncional() {
           <KpiCard
             key={s.key}
             label={s.label}
-            value={(status[s.key] ?? 0).toLocaleString("pt-BR")}
-            loading={a.statusBreakdown.isLoading}
+            value={(statusCounts[s.key] ?? 0).toLocaleString("pt-BR")}
+            loading={isLoading}
             icon={s.icon}
             tone={s.tone}
             badge={<StatusBadge domain="profissional" value={s.key} />}
@@ -73,7 +124,7 @@ function SituacaoFuncional() {
         profissionais (não deletados).
       </div>
 
-      {!a.statusBreakdown.isLoading && total === 0 && (
+      {!isLoading && total === 0 && (
         <EmptyState
           className="mt-6"
           title="Sem profissionais cadastrados"

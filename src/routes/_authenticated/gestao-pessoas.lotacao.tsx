@@ -82,9 +82,43 @@ function QuadroLotacaoPage() {
   const setores = useSetoresLookup({ unidadeId: unidadeId === "__all__" ? null : unidadeId });
   const cargos = useCargosLookup();
 
-  const a = useAnalytics({});
+  const a = useAnalytics({
+    unidadeId: unidadeId === "__all__" ? null : unidadeId,
+    setorId: setorId === "__all__" ? null : setorId,
+    cargoId: cargoId === "__all__" ? null : cargoId,
+  }, { staleTime: 300_000 }); // Retornando para cache normal após validação
+  
   const alertas = a.alertas.data;
-  const rowsAll: QuadroLotacaoRow[] = a.quadroLotacao.data ?? [];
+
+  const rowsAll: QuadroLotacaoRow[] = useMemo(() => {
+    const raw = (a.frequencias ?? []) as any[];
+    
+    return raw.map((r) => {
+      const unidadeNome = r.competencia_unidade?.unidades?.sigla 
+        ? `${r.competencia_unidade.unidades.sigla} — ${r.competencia_unidade.unidades.nome}` 
+        : (r.competencia_unidade?.unidades?.nome ?? "Sem Unidade");
+      
+      // REVERSÃO DE ESCOPO: Usar .total_profissionais estático como era antes
+      // para manter o comportamento de "Quadro de Lotação" intocado.
+      // O bug de KPI zerado em rascunho é aceito aqui conforme instrução.
+      return {
+        key: `${r.competencia_unidade?.unidade_id}-${r.id}`,
+        unidadeId: r.competencia_unidade?.unidade_id,
+        setorId: null, // No schema atual de frequências, não há setor_id direto no pai
+        cargoId: null,
+        funcaoId: null,
+        unidade: unidadeNome,
+        setor: "Consolidado Unidade",
+        cargo: "—",
+        funcao: "—",
+        total: Number(r.total_profissionais || 0),
+        ativos: 0, // FrequenciaRow não tem ativos/afastados etc no snapshot estático do pai
+        afastados: 0,
+        ferias: 0,
+        licencas: 0,
+      };
+    });
+  }, [a.frequencias]);
 
   const rows = useMemo(() => {
     let r = rowsAll;
@@ -99,9 +133,9 @@ function QuadroLotacaoPage() {
     return r;
   }, [rowsAll, unidadeId, setorId, cargoId, sortBy, sortDir]);
 
-  const totalProfLotados = rows.reduce((s, r) => s + r.total, 0);
-  const unidadesComLotacao = new Set(rows.map((r) => r.unidadeId).filter(Boolean)).size;
-  const setoresComLotacao = new Set(rows.map((r) => r.setorId).filter(Boolean)).size;
+  const totalProfLotados = a.totalProfessionals.data ?? 0;
+  const unidadesComLotacao = a.totalUnidades.data ?? 0;
+  const setoresComLotacao = a.totalSetores.data ?? 0;
 
   const toggleSort = (k: SortKey) => {
     if (sortBy === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -144,11 +178,28 @@ function QuadroLotacaoPage() {
     },
     {
       key: "status",
-      header: "Status",
+      header: "Status Detalhado",
       cell: (r) => (
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {r.ativos}A · {r.afastados}Af · {r.ferias}F · {r.licencas}L
-        </span>
+        <div className="flex flex-wrap gap-1">
+          <span title="Ativos" className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+            {r.ativos} Ativ
+          </span>
+          {r.afastados > 0 && (
+            <span title="Afastados" className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+              {r.afastados} Afast
+            </span>
+          )}
+          {r.ferias > 0 && (
+            <span title="Férias" className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+              {r.ferias} Fér
+            </span>
+          )}
+          {r.licencas > 0 && (
+            <span title="Licenças" className="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">
+              {r.licencas} Lic
+            </span>
+          )}
+        </div>
       ),
     },
   ];
@@ -162,21 +213,21 @@ function QuadroLotacaoPage() {
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <KpiCard
-          label="Profissionais lotados"
+          label="Profissionais com lotação"
           value={totalProfLotados.toLocaleString("pt-BR")}
-          loading={a.quadroLotacao.isLoading}
+          loading={a.loading}
           icon={<Users className="h-4 w-4" />}
         />
         <KpiCard
           label="Unidades com lotação"
           value={unidadesComLotacao.toLocaleString("pt-BR")}
-          loading={a.quadroLotacao.isLoading}
+          loading={a.loading}
           icon={<Building2 className="h-4 w-4" />}
         />
         <KpiCard
           label="Setores com lotação"
           value={setoresComLotacao.toLocaleString("pt-BR")}
-          loading={a.quadroLotacao.isLoading}
+          loading={a.loading}
           icon={<Layers className="h-4 w-4" />}
         />
         <KpiCard
@@ -247,7 +298,7 @@ function QuadroLotacaoPage() {
         </FilterBar.Field>
       </FilterBar>
 
-      {a.quadroLotacao.isLoading ? (
+      {a.loading ? (
         <DataTable rows={[]} columns={columns} getRowKey={(r) => r.key} loading />
       ) : rows.length === 0 ? (
         <EmptyState

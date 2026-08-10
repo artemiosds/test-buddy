@@ -69,6 +69,7 @@ import {
   useSelectedErpRow,
 } from "@/components/frequencias/resumo-dias-faltas-att";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -280,7 +281,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("frequencias")
-        .select("status")
+        .select("id, status")
         .eq("tipo", "contratados")
         .eq("competencia_unidades.competencia_id", competenciaId)
         .eq("competencia_unidades.unidade_id", unidadeId)
@@ -288,6 +289,9 @@ export function FrequenciasContratadosPage() {
       return data;
     }
   });
+
+  const frequenciaId = summary?.id;
+  useFrequencyRealtime({ competenciaId, unidadeId, frequenciaId });
 
   const folhaStatusUnificado = useMemo(() => {
     // Se temos um resumo sincronizado no banco, ele é a fonte da verdade para o status global

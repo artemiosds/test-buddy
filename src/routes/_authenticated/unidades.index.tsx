@@ -1,7 +1,8 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,17 +24,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { toast } from "sonner";
 import { Search, Plus, Pencil, Trash2, Network, LayoutDashboard, Download } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { formatCNPJ, formatCNES, formatPhone } from "@/utils/formatters";
 
 export const Route = createFileRoute("/_authenticated/unidades/")({ errorComponent: ErrorComponent,
   component: UnidadesPage,
 });
 
 type StatusEnt = Database["public"]["Enums"]["status_entidade"];
+
+const unidadeSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(255),
+  sigla: z.string().max(20).nullable().optional(),
+  cnes: z.string().regex(/^\d{7}$/, "CNES deve ter exatamente 7 dígitos numéricos").nullable().optional().or(z.literal("")),
+  cnpj: z.string().regex(/^\d{14}$/, "CNPJ deve ter 14 dígitos").nullable().optional().or(z.literal("")),
+  tipo_unidade: z.string().nullable().optional(),
+  nivel_complexidade: z.string().nullable().optional(),
+  tipo_atendimento: z.string().nullable().optional(),
+  municipio: z.string().nullable().optional(),
+  distrito: z.string().nullable().optional(),
+  telefone: z.string().nullable().optional(),
+  email_institucional: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
+  responsavel_nome: z.string().nullable().optional(),
+  observacoes: z.string().nullable().optional(),
+  status: z.enum(["ativa", "inativa", "suspensa", "arquivada"]),
+  secretaria_id: z.string().uuid("Secretaria é obrigatória"),
+});
+
+type UnidadeFormValues = z.infer<typeof unidadeSchema>;
 
 type Unidade = {
   id: string;
@@ -55,44 +88,8 @@ type Unidade = {
   secretaria: { nome: string; sigla: string | null } | null;
 };
 
-type FormState = {
-  id?: string;
-  nome: string;
-  sigla: string;
-  cnes: string;
-  cnpj: string;
-  tipo_unidade: string;
-  nivel_complexidade: string;
-  tipo_atendimento: string;
-  municipio: string;
-  distrito: string;
-  telefone: string;
-  email_institucional: string;
-  responsavel_nome: string;
-  observacoes: string;
-  status: StatusEnt;
-  secretaria_id: string;
-};
-
-const EMPTY: FormState = {
-  nome: "",
-  sigla: "",
-  cnes: "",
-  cnpj: "",
-  tipo_unidade: "",
-  nivel_complexidade: "",
-  tipo_atendimento: "",
-  municipio: "",
-  distrito: "",
-  telefone: "",
-  email_institucional: "",
-  responsavel_nome: "",
-  observacoes: "",
-  status: "ativa",
-  secretaria_id: "",
-};
-
 const STATUS_OPTS: StatusEnt[] = ["ativa", "inativa", "suspensa", "arquivada"];
+
 
 function UnidadesPage() {
   const qc = useQueryClient();
@@ -106,7 +103,28 @@ function UnidadesPage() {
 
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const form = useForm<UnidadeFormValues>({
+    resolver: zodResolver(unidadeSchema),
+    defaultValues: {
+      nome: "",
+      sigla: "",
+      cnes: "",
+      cnpj: "",
+      tipo_unidade: "",
+      nivel_complexidade: "",
+      tipo_atendimento: "",
+      municipio: "Oriximiná",
+      distrito: "",
+      telefone: "",
+      email_institucional: "",
+      responsavel_nome: "",
+      observacoes: "",
+      status: "ativa",
+      secretaria_id: "",
+    },
+  });
 
   const { data: secretarias = [] } = useQuery({
     queryKey: ["secretarias"],
@@ -134,107 +152,115 @@ function UnidadesPage() {
     },
   });
 
+  // Otimização: Busca de Diretores limitada e apenas quando o modal abre
   const { data: diretores = [] } = useQuery({
-    queryKey: ["diretores-unidade", form.id ?? "novo"],
+    queryKey: ["diretores-unidade-minimo", editingId ?? "novo"],
     queryFn: async () => {
-      // 1) Profissionais cadastrados com função "Diretor de Unidade"
+      // 1) Profissionais com função "Diretor de Unidade" (limitando campos)
       let profQ = supabase
         .from("profissionais")
-        .select("id, nome_completo, unidade_id, funcao:funcoes!inner(codigo)")
+        .select("nome_completo, funcao:funcoes!inner(codigo)")
         .is("deleted_at", null)
         .eq("status", "ativo")
         .eq("funcao.codigo", "DIR-UN")
         .order("nome_completo");
-      if (form.id) profQ = profQ.eq("unidade_id", form.id);
+      
+      if (editingId) profQ = profQ.eq("unidade_id", editingId);
+      
       const { data: profs, error: pErr } = await profQ;
       if (pErr) throw pErr;
 
-      // 2) Usuários do sistema com perfil "Diretor de Unidade"
+      // 2) Usuários com perfil "Diretor de Unidade"
       const { data: users, error: uErr } = await supabase
         .from("usuarios")
-        .select(
-          "id, nome_completo, acesso_todas_unidades, perfil:perfis!inner(codigo), unidades:usuario_unidades(unidade_id)",
-        )
+        .select("nome_completo, perfil:perfis!inner(codigo)")
         .is("deleted_at", null)
         .eq("status", "ativo")
         .eq("perfil.codigo", "DIRETOR_UNIDADE")
         .order("nome_completo");
       if (uErr) throw uErr;
 
-      type U = {
-        id: string;
-        nome_completo: string;
-        acesso_todas_unidades: boolean;
-        unidades: { unidade_id: string }[];
-      };
-      const usersFiltered = ((users ?? []) as unknown as U[]).filter((u) => {
-        if (!form.id) return true;
-        if (u.acesso_todas_unidades) return true;
-        return u.unidades?.some((v) => v.unidade_id === form.id);
-      });
-
-      const merged = new Map<string, { nome_completo: string }>();
-      for (const p of (profs ?? []) as { nome_completo: string }[]) merged.set(p.nome_completo, p);
-      for (const u of usersFiltered)
-        if (!merged.has(u.nome_completo))
-          merged.set(u.nome_completo, { nome_completo: u.nome_completo });
-      return Array.from(merged.values());
+      const merged = new Set<string>();
+      (profs ?? []).forEach(p => merged.add(p.nome_completo));
+      (users ?? []).forEach(u => merged.add(u.nome_completo));
+      
+      return Array.from(merged).map(nome => ({ nome_completo: nome }));
     },
     enabled: open,
+    staleTime: 1000 * 60 * 5, // Cache de 5 minutos
   });
 
-  const { data: unidades = [], isLoading } = useQuery({
-    queryKey: ["unidades"],
-    queryFn: async (): Promise<Unidade[]> => {
-      const { data, error } = await supabase
+  const PAGE_SIZE = 20;
+
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["unidades", q],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      let query = supabase
         .from("unidades")
         .select(
           "id, nome, sigla, cnes, cnpj, tipo_unidade, nivel_complexidade, tipo_atendimento, municipio, distrito, telefone, email_institucional, responsavel_nome, observacoes, status, secretaria_id, secretaria:secretarias(nome, sigla)",
+          { count: "exact" }
         )
         .is("deleted_at", null)
-        .order("nome");
+        .order("nome")
+        .range(pageParam, pageParam + PAGE_SIZE - 1);
+
+      if (q.trim()) {
+        const searchTerm = q.trim();
+        query = query.or(`nome.ilike.%${searchTerm}%,sigla.ilike.%${searchTerm}%,cnes.ilike.%${searchTerm}%`);
+      }
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return (data as unknown as Unidade[]) ?? [];
+      return { data: (data as unknown as Unidade[]) ?? [], count };
     },
+    getNextPageParam: (lastPage, allPages) => {
+      const currentCount = allPages.flatMap(p => p.data).length;
+      if (lastPage.count && currentCount < lastPage.count) {
+        return currentCount;
+      }
+      return undefined;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
-  const upsert = useMutation({
-    mutationFn: async (f: FormState) => {
-      const payload = {
-        nome: f.nome.trim(),
-        sigla: f.sigla.trim() || null,
-        cnes: f.cnes.trim() || null,
-        cnpj: f.cnpj.trim() || null,
-        tipo_unidade: f.tipo_unidade.trim() || null,
-        nivel_complexidade: f.nivel_complexidade.trim() || null,
-        tipo_atendimento: f.tipo_atendimento.trim() || null,
-        municipio: f.municipio.trim() || null,
-        distrito: f.distrito.trim() || null,
-        telefone: f.telefone.trim() || null,
-        email_institucional: f.email_institucional.trim() || null,
-        responsavel_nome: f.responsavel_nome.trim() || null,
-        observacoes: f.observacoes.trim() || null,
-        status: f.status,
-        secretaria_id: f.secretaria_id,
-      };
-      if (!payload.nome) throw new Error("Nome é obrigatório");
-      if (!payload.secretaria_id) throw new Error("Secretaria é obrigatória");
+  const unidades = useMemo(() => infiniteData?.pages.flatMap((page) => page.data) ?? [], [infiniteData]);
 
-      if (f.id) {
-        const { error } = await supabase.from("unidades").update(payload).eq("id", f.id);
+
+  const upsert = useMutation({
+    mutationFn: async (values: UnidadeFormValues) => {
+      const cleanData = {
+        ...values,
+        cnpj: values.cnpj?.replace(/\D/g, "") || null,
+        telefone: values.telefone?.replace(/\D/g, "") || null,
+        cnes: values.cnes?.replace(/\D/g, "") || null,
+        email_institucional: values.email_institucional || null,
+        sigla: values.sigla || null,
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from("unidades").update(cleanData).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("unidades").insert(payload);
+        const { error } = await supabase.from("unidades").insert(cleanData);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["unidades"] });
       setOpen(false);
-      setForm(EMPTY);
-      toast.success("Unidade salva");
+      setEditingId(null);
+      form.reset();
+      toast.success("Unidade salva com sucesso");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(`Erro ao salvar: ${e.message}`),
   });
 
   const softDelete = useMutation({
@@ -252,15 +278,8 @@ function UnidadesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = unidades.filter((u) => {
-    const t = q.toLowerCase();
-    return (
-      !t ||
-      u.nome?.toLowerCase().includes(t) ||
-      u.sigla?.toLowerCase().includes(t) ||
-      u.cnes?.toLowerCase().includes(t)
-    );
-  });
+  const filtered = unidades;
+
 
   function exportCsv() {
     const rows = [
@@ -288,16 +307,30 @@ function UnidadesPage() {
   }
 
   function openNew() {
-    setForm({
-      ...EMPTY,
+    setEditingId(null);
+    form.reset({
+      nome: "",
+      sigla: "",
+      cnes: "",
+      cnpj: "",
+      tipo_unidade: "",
+      nivel_complexidade: "",
+      tipo_atendimento: "",
+      municipio: "Oriximiná",
+      distrito: "",
+      telefone: "",
+      email_institucional: "",
+      responsavel_nome: "",
+      observacoes: "",
+      status: "ativa",
       secretaria_id: secretarias[0]?.id ?? "",
     });
     setOpen(true);
   }
 
   function openEdit(u: Unidade) {
-    setForm({
-      id: u.id,
+    setEditingId(u.id);
+    form.reset({
       nome: u.nome,
       sigla: u.sigla ?? "",
       cnes: u.cnes ?? "",
@@ -316,6 +349,7 @@ function UnidadesPage() {
     });
     setOpen(true);
   }
+
 
   return (
     <div className="space-y-6">
@@ -355,212 +389,290 @@ function UnidadesPage() {
                   <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.25} /> Nova Unidade
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
                 <DialogHeader>
-                  <DialogTitle>{form.id ? "Editar Unidade" : "Nova Unidade"}</DialogTitle>
+                  <DialogTitle>{editingId ? "Editar Unidade" : "Nova Unidade"}</DialogTitle>
                 </DialogHeader>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <Label>Nome *</Label>
-                    <Input
-                      value={form.nome}
-                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Sigla</Label>
-                    <Input
-                      value={form.sigla}
-                      onChange={(e) => setForm({ ...form, sigla: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Secretaria *</Label>
-                    <Select
-                      value={form.secretaria_id}
-                      onValueChange={(v) => setForm({ ...form, secretaria_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {secretarias.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>CNES</Label>
-                    <Input
-                      value={form.cnes}
-                      onChange={(e) => setForm({ ...form, cnes: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>CNPJ</Label>
-                    <Input
-                      value={form.cnpj}
-                      onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Tipo</Label>
-                    <Select
-                      value={form.tipo_unidade || "__none__"}
-                      onValueChange={(v) =>
-                        setForm({ ...form, tipo_unidade: v === "__none__" ? "" : v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">— não informado —</SelectItem>
-                        {/* Mantém compatibilidade se a unidade já tem um tipo que foi inativado/removido */}
-                        {form.tipo_unidade &&
-                          !tiposUnidade.some((t) => t.nome === form.tipo_unidade) && (
-                            <SelectItem value={form.tipo_unidade}>
-                              {form.tipo_unidade} (legado)
-                            </SelectItem>
-                          )}
-                        {tiposUnidade
-                          .filter((t) => t.status === "ativa" || t.nome === form.tipo_unidade)
-                          .map((t) => (
-                            <SelectItem key={t.id} value={t.nome}>
-                              {t.nome}
-                              {t.status !== "ativa" ? " (inativo)" : ""}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Nível de complexidade</Label>
-                    <Input
-                      placeholder="Primária, Secundária, Terciária"
-                      value={form.nivel_complexidade}
-                      onChange={(e) => setForm({ ...form, nivel_complexidade: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Tipo de atendimento</Label>
-                    <Input
-                      placeholder="Ambulatorial, Hospitalar, Urgência, Domiciliar"
-                      value={form.tipo_atendimento}
-                      onChange={(e) => setForm({ ...form, tipo_atendimento: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Município</Label>
-                    <Input
-                      placeholder="Ex.: Oriximiná"
-                      value={form.municipio}
-                      onChange={(e) => setForm({ ...form, municipio: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Distrito / região</Label>
-                    <Input
-                      placeholder="Ex.: Sede, Ribeirinha, Rural"
-                      value={form.distrito}
-                      onChange={(e) => setForm({ ...form, distrito: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Telefone</Label>
-                    <Input
-                      value={form.telefone}
-                      onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>E-mail institucional</Label>
-                    <Input
-                      type="email"
-                      value={form.email_institucional}
-                      onChange={(e) => setForm({ ...form, email_institucional: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Responsável (Diretor de Unidade)</Label>
-                    <Select
-                      value={form.responsavel_nome || undefined}
-                      onValueChange={(v) => setForm({ ...form, responsavel_nome: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            diretores.length
-                              ? "Selecione o responsável"
-                              : "Nenhum Diretor de Unidade vinculado"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {diretores.map((d) => (
-                          <SelectItem key={d.nome_completo} value={d.nome_completo}>
-                            {d.nome_completo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {form.id && diretores.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Nenhum profissional com função "Diretor de Unidade" vinculado a esta
-                        unidade. Cadastre em Profissionais.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Status</Label>
-                    <Select
-                      value={form.status}
-                      onValueChange={(v) => setForm({ ...form, status: v as StatusEnt })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTS.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label>Observações</Label>
-                    <Textarea
-                      rows={3}
-                      value={form.observacoes}
-                      onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter className="justify-between">
-                  {form.id ? (
-                    <Button variant="ghost" asChild>
-                      <Link to="/setores" search={{ unidade: form.id }}>
-                        <Network className="mr-1 h-4 w-4" /> Setores desta unidade
-                      </Link>
-                    </Button>
-                  ) : (
-                    <div />
-                  )}
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button disabled={upsert.isPending} onClick={() => upsert.mutate(form)}>
-                      {form.id ? "Salvar" : "Criar"}
-                    </Button>
-                  </div>
-                </DialogFooter>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit((v) => upsert.mutate(v))} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="nome"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Nome *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome completo da unidade" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="sigla"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Sigla</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ex: UBS, HMSD..." {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="secretaria_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Secretaria *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione a secretaria" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {secretarias.map((s) => (
+                                  <SelectItem key={s.id} value={s.id}>
+                                    {s.nome}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="cnes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CNES</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="0000000" 
+                                {...field} 
+                                value={field.value || ""} 
+                                onChange={(e) => {
+                                  field.onChange(formatCNES(e.target.value));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="cnpj"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CNPJ</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="00.000.000/0000-00" 
+                                {...field} 
+                                value={field.value || ""}
+                                onChange={(e) => {
+                                  field.onChange(formatCNPJ(e.target.value));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="tipo_unidade"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo</FormLabel>
+                            <Select 
+                              onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)} 
+                              value={field.value || "__none__"}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o tipo" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="__none__">— não informado —</SelectItem>
+                                {field.value && !tiposUnidade.some(t => t.nome === field.value) && (
+                                  <SelectItem value={field.value}>{field.value} (legado)</SelectItem>
+                                )}
+                                {tiposUnidade.filter(t => t.status === "ativa" || t.nome === field.value).map((t) => (
+                                  <SelectItem key={t.id} value={t.nome}>
+                                    {t.nome}{t.status !== "ativa" ? " (inativo)" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="nivel_complexidade"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nível de complexidade</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Primária, Secundária..." {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="municipio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Município</FormLabel>
+                            <FormControl>
+                              <Input {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="telefone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="(00) 00000-0000" 
+                                {...field} 
+                                value={field.value || ""}
+                                onChange={(e) => {
+                                  field.onChange(formatPhone(e.target.value));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="email_institucional"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-mail institucional</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="email@municipio.gov.br" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="responsavel_nome"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Responsável (Diretor)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={diretores.length ? "Selecione o responsável" : "Nenhum Diretor encontrado"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {diretores.map((d) => (
+                                  <SelectItem key={d.nome_completo} value={d.nome_completo}>
+                                    {d.nome_completo}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {STATUS_OPTS.map((s) => (
+                                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="observacoes"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Observações</FormLabel>
+                            <FormControl>
+                              <Textarea rows={3} {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <DialogFooter className="pt-4">
+                      <div className="flex w-full items-center justify-between">
+                        {editingId ? (
+                          <Button variant="ghost" type="button" asChild>
+                            <Link to="/setores" search={{ unidade: editingId, page: 1 }}>
+                              <Network className="mr-1 h-4 w-4" /> Setores
+                            </Link>
+                          </Button>
+                        ) : <div />}
+                        <div className="flex gap-2">
+                          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={upsert.isPending}>
+                            {editingId ? "Salvar" : "Criar"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogFooter>
+                  </form>
+                </Form>
               </DialogContent>
+
             </Dialog>
           )}
         </div>
@@ -667,7 +779,21 @@ function UnidadesPage() {
             ))
           )}
         </div>
+        
+        {hasNextPage && (
+          <div className="flex justify-center p-6 border-t border-slate-100 bg-slate-50/30">
+            <Button 
+              variant="outline" 
+              onClick={() => fetchNextPage()} 
+              disabled={isFetchingNextPage}
+              className="rounded-xl"
+            >
+              {isFetchingNextPage ? "Carregando mais..." : "Ver mais unidades"}
+            </Button>
+          </div>
+        )}
       </div>
+
     </div>
   );
 }

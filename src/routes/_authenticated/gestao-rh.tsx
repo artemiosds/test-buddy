@@ -35,8 +35,10 @@ import {
 import { downloadCsv } from "@/lib/csv-export";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
+import type { RankingRow } from "@/lib/analytics-aggregations";
 
-export const Route = createFileRoute("/_authenticated/gestao-rh")({ errorComponent: ErrorComponent,
+export const Route = createFileRoute("/_authenticated/gestao-rh")({ 
+  errorComponent: ErrorComponent,
   component: () => (
     <AnalyticsFilterProvider>
       <GestaoRhContent />
@@ -60,7 +62,7 @@ function GestaoRhContent() {
   };
 
   const a = useAnalytics(filters);
-  const rankingData = a.ranking.data;
+  const rankingData = a.ranking;
 
   const { data: competencias } = useCompetenciasLookup();
   const { data: unidades } = useUnidadesLookup({ ativasOnly: true });
@@ -68,9 +70,9 @@ function GestaoRhContent() {
   const competenciaLabel = useMemo(() => {
     const id = filters.competenciaId ?? a.competenciaId;
     const c = competencias?.find((x) => x.id === id);
-    if (!c) return a.competenciaAtiva?.label ?? "—";
+    if (!c) return "—";
     return formatCompetencia(c.mes, c.ano, "num");
-  }, [filters.competenciaId, a.competenciaId, a.competenciaAtiva, competencias]);
+  }, [filters.competenciaId, a.competenciaId, competencias]);
 
   const kpis = [
     {
@@ -88,35 +90,35 @@ function GestaoRhContent() {
     { label: "Competência", value: competenciaLabel, icon: <CalendarRange className="h-4 w-4" /> },
     {
       label: "Frequências enviadas",
-      value: a.frequenciasEnviadas,
-      loading: a.summary.isLoading,
+      value: a.totals.totalFolhas - a.totals.folhasPendentes - a.totals.folhasAprovadas, // Aproximação de enviadas
+      loading: a.loading,
       hint: "Enviadas / em análise / com pendências",
       icon: <ClipboardList className="h-4 w-4" />,
     },
     {
       label: "Frequências pendentes",
-      value: a.frequenciasPendentes,
-      loading: a.summary.isLoading,
+      value: a.totals.folhasPendentes,
+      loading: a.loading,
       hint: "Ainda em rascunho",
       icon: <Clock className="h-4 w-4" />,
     },
     {
       label: "Frequências aprovadas",
-      value: a.frequenciasAprovadas,
-      loading: a.summary.isLoading,
+      value: a.totals.folhasAprovadas,
+      loading: a.loading,
       icon: <CheckCircle2 className="h-4 w-4" />,
     },
     {
       label: "Horas extras (total)",
-      value: a.totalHorasExtras.toLocaleString("pt-BR"),
-      loading: a.summary.isLoading,
+      value: a.totals.horasExtras.toLocaleString("pt-BR"),
+      loading: a.loading,
       hint: "Somatório da competência",
       icon: <Clock className="h-4 w-4" />,
     },
     {
       label: "Faltas (total)",
-      value: a.totalFaltas.toLocaleString("pt-BR"),
-      loading: a.summary.isLoading,
+      value: a.totals.faltas.toLocaleString("pt-BR"),
+      loading: a.loading,
       icon: <AlertCircle className="h-4 w-4" />,
     },
     {
@@ -128,7 +130,7 @@ function GestaoRhContent() {
     },
   ];
 
-  const rankingColumns: DataTableColumn<(typeof rankingData)[number]>[] = [
+  const rankingColumns: DataTableColumn<RankingRow>[] = [
     { key: "pos", header: "#", cell: (_) => "", className: "w-10 text-muted-foreground" },
     {
       key: "unidade",
@@ -162,7 +164,6 @@ function GestaoRhContent() {
     },
   ];
 
-  // Renderiza posição usando index
   const rankingRows = rankingData.map((r, i) => ({ ...r, _pos: i + 1 }));
   const rankingColumnsWithPos: DataTableColumn<(typeof rankingRows)[number]>[] = [
     { key: "pos", header: "#", cell: (r) => r._pos, className: "w-10 text-muted-foreground" },
@@ -266,7 +267,7 @@ function GestaoRhContent() {
           columns={rankingColumnsWithPos}
           rows={rankingRows}
           getRowKey={(r) => r.unidade_id}
-          loading={a.ranking.isLoading}
+          loading={a.loading}
           emptyTitle="Sem folhas de frequência nesta competência"
           emptyDescription="Assim que as unidades iniciarem folhas na competência selecionada, o ranking aparece aqui."
         />

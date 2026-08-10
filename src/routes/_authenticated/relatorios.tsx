@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getAggregatedFrequencies, type FrequenciaRow } from "@/lib/analytics-aggregations";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
@@ -22,43 +23,19 @@ import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos
 import { nivelPrivacidade } from "@/lib/lgpd";
 import { gerarCertificado, linhasCertificadoPlanilha, registrarDownload } from "@/lib/fe-publica";
 import type { Database } from "@/integrations/supabase/types";
+import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
 
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
-type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
-export const Route = createFileRoute("/_authenticated/relatorios")({ errorComponent: ErrorComponent,
+export const Route = createFileRoute("/_authenticated/relatorios")({ 
+  errorComponent: ErrorComponent,
   component: RelatoriosPage,
 });
 
 const MES_LABEL = [
-  "Jan",
-  "Fev",
-  "Mar",
-  "Abr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Set",
-  "Out",
-  "Nov",
-  "Dez",
+  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ];
-
-type FreqRow = {
-  id: string;
-  tipo: TipoFolha;
-  status: StatusFreq;
-  total_profissionais: number | null;
-  total_dias_trabalhados: number | null;
-  total_faltas: number | null;
-  total_horas_extras: number | null;
-  competencia_unidade: {
-    id: string;
-    unidade: { id: string; nome: string; sigla: string | null } | null;
-    competencia: { id: string; ano: number; mes: number; status: string } | null;
-  } | null;
-};
 
 function RelatoriosPage() {
   const { has, isLoading: permLoading } = usePermissions();
@@ -101,54 +78,28 @@ function RelatoriosPage() {
     enabled: canView,
   });
 
-  const { data: linhas, isLoading } = useQuery<FreqRow[]>({
-    queryKey: ["rel-frequencias", competenciaId, unidadeId, tipo],
-    queryFn: async () => {
-      let q = supabase
-        .from("frequencias")
-        .select(
-          `id, tipo, status, total_profissionais, total_dias_trabalhados,
-           total_faltas, total_horas_extras,
-           competencia_unidade:competencia_unidades!inner(
-             id,
-             unidade:unidades!inner(id, nome, sigla),
-             competencia:competencias!inner(id, ano, mes, status)
-           )`,
-        )
-        .is("deleted_at", null);
-
-      if (tipo !== "all") q = q.eq("tipo", tipo);
-      if (competenciaId !== "all") q = q.eq("competencia_unidade.competencia_id", competenciaId);
-      if (unidadeId !== "all") q = q.eq("competencia_unidade.unidade_id", unidadeId);
-
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as unknown as FreqRow[];
-    },
+  const { data: summary, isLoading } = useQuery({
+    queryKey: ["rel-frequencias-aggregated", competenciaId, unidadeId, tipo],
+    queryFn: () => getAggregatedFrequencies({ competenciaId, unidadeId, tipo }),
     enabled: canView,
   });
 
-  const totais = useMemo(() => {
-    const acc = {
-      folhas: linhas?.length ?? 0,
-      profissionais: 0,
-      dias: 0,
-      faltas: 0,
-      horas_extras: 0,
-      aprovadas: 0,
-      pendentes: 0,
-    };
-    for (const l of linhas ?? []) {
-      acc.profissionais += Number(l.total_profissionais ?? 0);
-      acc.dias += Number(l.total_dias_trabalhados ?? 0);
-      acc.faltas += Number(l.total_faltas ?? 0);
-      acc.horas_extras += Number(l.total_horas_extras ?? 0);
-      if (l.status === "aprovada" || l.status === "arquivada") acc.aprovadas++;
-      else if (l.status === "enviada" || l.status === "em_analise" || l.status === "com_pendencias")
-        acc.pendentes++;
-    }
-    return acc;
-  }, [linhas]);
+  useFrequencyRealtime({ 
+    competenciaId: competenciaId === "all" ? undefined : competenciaId, 
+    unidadeId: unidadeId === "all" ? undefined : unidadeId 
+  });
+
+  const linhas = summary?.linhas ?? [];
+
+  const totais = useMemo(() => ({
+    folhas: summary?.totalFolhas ?? 0,
+    profissionais: summary?.totalProfissionais ?? 0,
+    dias: summary?.totalDiasTrabalhados ?? 0,
+    faltas: summary?.totalFaltas ?? 0,
+    horas_extras: summary?.totalHorasExtras ?? 0,
+    aprovadas: summary?.totalAprovadas ?? 0,
+    pendentes: summary?.totalPendentes ?? 0,
+  }), [summary]);
 
   const filtrosAtuais = { competenciaId, unidadeId, tipo };
 
@@ -163,7 +114,7 @@ function RelatoriosPage() {
   }
 
   async function exportarCSV() {
-    if (!linhas?.length) {
+    if (!linhas.length) {
       toast.error("Nada para exportar.");
       return;
     }
@@ -180,7 +131,7 @@ function RelatoriosPage() {
     ];
     const rows = linhas.map((l) => {
       const c = l.competencia_unidade?.competencia;
-      const u = l.competencia_unidade?.unidade;
+      const u = l.competencia_unidade?.unidades;
       return [
         c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "",
         u?.nome ?? "",
@@ -215,14 +166,14 @@ function RelatoriosPage() {
   }
 
   async function exportarXLSX() {
-    if (!linhas?.length) {
+    if (!linhas.length) {
       toast.error("Nada para exportar.");
       return;
     }
     const { XLSX } = await loadXlsxKit();
     const data = linhas.map((l) => {
       const c = l.competencia_unidade?.competencia;
-      const u = l.competencia_unidade?.unidade;
+      const u = l.competencia_unidade?.unidades;
       return {
         Competência: c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "",
         Unidade: u?.nome ?? "",
@@ -239,14 +190,8 @@ function RelatoriosPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.sheet_add_aoa(ws, linhasCertificadoPlanilha(cert), { origin: -1 });
     ws["!cols"] = [
-      { wch: 12 },
-      { wch: 32 },
-      { wch: 10 },
-      { wch: 14 },
-      { wch: 16 },
-      { wch: 14 },
-      { wch: 16 },
-      { wch: 10 },
+      { wch: 12 }, { wch: 32 }, { wch: 10 }, { wch: 14 },
+      { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 10 },
       { wch: 14 },
     ];
     const wb = XLSX.utils.book_new();
@@ -290,14 +235,14 @@ function RelatoriosPage() {
             variant="outline"
             className="w-full sm:w-auto"
             onClick={() => void exportarCSV()}
-            disabled={!canExport || !linhas?.length}
+            disabled={!canExport || !linhas.length}
           >
             <Download className="mr-2 h-4 w-4" /> CSV
           </Button>
           <Button
             className="w-full sm:w-auto"
             onClick={() => void exportarXLSX()}
-            disabled={!canExport || !linhas?.length}
+            disabled={!canExport || !linhas.length}
           >
             <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (XLSX)
           </Button>
@@ -366,8 +311,6 @@ function RelatoriosPage() {
         enabled={canView}
       />
 
-
-
       <div className="grid gap-3 md:grid-cols-6">
         <Card label="Folhas" value={totais.folhas} />
         <Card label="Profissionais" value={totais.profissionais} />
@@ -399,16 +342,16 @@ function RelatoriosPage() {
                 </td>
               </tr>
             )}
-            {!isLoading && !linhas?.length && (
+            {!isLoading && !linhas.length && (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
                   Nenhum registro encontrado.
                 </td>
               </tr>
             )}
-            {linhas?.map((l) => {
+            {linhas.map((l) => {
               const c = l.competencia_unidade?.competencia;
-              const u = l.competencia_unidade?.unidade;
+              const u = l.competencia_unidade?.unidades;
               return (
                 <tr key={l.id} className="border-t">
                   <td className="px-3 py-2">

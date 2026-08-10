@@ -67,6 +67,33 @@ export function ComplianceRiscosPanel({
   });
 
   const total = (data?.duplicidades.length ?? 0) + (data?.malha_fina.length ?? 0);
+  
+  // FASE 3: Capturando o universo total de profissionais analisados
+  // Note: 'malha_fina' no RPC retorna apenas quem tem pendência.
+  // Precisamos informar ao usuário quantos profissionais foram processados no total.
+  // Usaremos uma estimativa baseada no retorno ou um count global se disponível.
+  const totalAnalisados = useQuery({
+    queryKey: ["compliance-total-base", competenciaId, unidadeId],
+    enabled,
+    queryFn: async () => {
+      // Se tivermos competência, contamos quem está em folha (vínculos reais)
+      if (competenciaId !== "all") {
+        const { count, error } = await supabase
+          .from("frequencia_profissional")
+          .select("id", { count: "exact", head: true })
+          .eq("frequencias.competencia_unidades.competencia_id" as any, competenciaId)
+          .is("deleted_at", null);
+        if (!error && count !== null) return count;
+      }
+      // Fallback para count global de profissionais ativos se for "Todas"
+      const { count } = await supabase
+        .from("profissionais")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null);
+      return count ?? 0;
+    }
+  });
+
   const severidade = useMemo(() => {
     if (isLoading || error) return "neutro";
     if ((data?.duplicidades.length ?? 0) > 0) return "critico";
@@ -107,13 +134,16 @@ export function ComplianceRiscosPanel({
                   <Badge variant="destructive">{data.duplicidades.length} duplicidade(s)</Badge>
                 )}
                 {!!data?.malha_fina.length && (
-                  <Badge variant="outline">{data.malha_fina.length} na malha fina</Badge>
+                  <Badge variant="outline">
+                    {data.malha_fina.length} pendência(s) em{" "}
+                    {totalAnalisados.isLoading ? "..." : totalAnalisados.data ?? "?"} analisados
+                  </Badge>
                 )}
               </>
             )}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Validação cruzada antes do fechamento: acúmulo de vínculos e pendência cadastral.
+            Validação cruzada: {total} apontamentos em {totalAnalisados.data ?? "---"} profissionais vinculados nesta competência.
           </p>
         </div>
         <ChevronDown
@@ -189,6 +219,15 @@ export function ComplianceRiscosPanel({
             )}
             cabecalho={["Profissional", "CPF", "Unidade", "Competência", "Inconformidades"]}
           />
+
+          <div className="mt-2 rounded-md bg-muted/30 p-3">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-amber-700">Nota de Compliance:</span> A malha fina acima processa apenas profissionais 
+              <strong> já vinculados</strong> a folhas de frequência na competência selecionada. 
+              Profissionais ativos sem alocação ou fora do escopo de pagamento atual podem possuir pendências cadastrais 
+              que não são listadas aqui por não gerarem risco imediato de glosa ou erro bancário no lote atual.
+            </p>
+          </div>
 
           {error && (
             <p className="text-xs text-muted-foreground">

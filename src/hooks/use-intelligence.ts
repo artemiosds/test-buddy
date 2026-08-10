@@ -1,7 +1,3 @@
-// Sublote 12A — Orquestração do Centro de Inteligência Gerencial.
-// Não faz novas requisições HTTP: consome o resultado de `useAnalytics` e
-// devolve derivações (semáforo, tendências, integridade, insights).
-
 import { useMemo } from "react";
 import type { useAnalytics } from "@/hooks/use-analytics";
 import {
@@ -55,9 +51,6 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
     const sb = a.statusBreakdown.data ?? {};
     const afastados = sb["afastado"] ?? 0;
     const alertas = a.alertas.data;
-    // "Sem lotação" = união aproximada de unidade/setor/cargo/função.
-    // Usamos o maior valor para evitar contagem duplicada (o mesmo profissional
-    // pode faltar mais de um campo). Reflete a regra do card.
     const semLotacao = Math.max(
       alertas?.semUnidade ?? 0,
       alertas?.semSetor ?? 0,
@@ -71,8 +64,8 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
       pendencias: a.pendencias.data ?? 0,
       semLotacao,
       unidadesSemGestor: alertas?.unidadesSemGestor ?? 0,
-      horasExtras: a.totalHorasExtras,
-      frequenciasPendentes: a.frequenciasPendentes,
+      horasExtras: a.totals.horasExtras,
+      frequenciasPendentes: a.totals.folhasPendentes,
     });
 
     const integ = a.integridade.data;
@@ -83,34 +76,34 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
       cadastrosIncompletos: integ?.cadastrosIncompletos,
     });
 
-    // Tendências: comparar competência atual vs anterior.
     const prev = a.frequenciasAnterior.data ?? [];
     const prevHoras = sumField(prev, "total_horas_extras");
     const prevFaltas = sumField(prev, "total_faltas");
     const prevAprovadas = countByStatus(prev, STATUS_APROVADAS);
     const prevPendentes = countByStatus(prev, STATUS_PENDENTES);
-    const prevEnviadas = countByStatus(prev, STATUS_ENVIADAS);
-    void prevEnviadas;
 
     const tendencias = {
-      horasExtras: computeTendencia(a.totalHorasExtras, prevHoras),
-      faltas: computeTendencia(a.totalFaltas, prevFaltas),
-      aprovadas: computeTendencia(a.frequenciasAprovadas, prevAprovadas),
-      pendentes: computeTendencia(a.frequenciasPendentes, prevPendentes),
+      horasExtras: computeTendencia(a.totals.horasExtras, prevHoras),
+      faltas: computeTendencia(a.totals.faltas, prevFaltas),
+      aprovadas: computeTendencia(a.totals.folhasAprovadas, prevAprovadas),
+      pendentes: computeTendencia(a.totals.folhasPendentes, prevPendentes),
       pendencias: computeTendencia(a.pendencias.data ?? 0, a.pendenciasAnterior.data ?? 0),
     };
 
-    const rankingHe = [...buildRanking(a.frequencias.data ?? [])]
+    const rankingHe = [...buildRanking(a.frequencias)]
       .sort((x, y) => y.total_horas_extras - x.total_horas_extras)
       .slice(0, 5);
+
+    const distribuicaoSetorRaw = a.distribuicaoSetor.data;
+    const distribuicaoSetorArray = (distribuicaoSetorRaw as any)?.unidades ?? [];
 
     const insights = generateInsights({
       totalProfessionals: total,
       distribuicaoUnidade: a.distribuicaoUnidade.data ?? [],
-      distribuicaoSetor: a.distribuicaoSetor.data ?? [],
+      distribuicaoSetor: distribuicaoSetorArray,
       distribuicaoCargo: a.distribuicaoCargo.data ?? [],
       rankingHe,
-      totalHorasExtras: a.totalHorasExtras,
+      totalHorasExtras: a.totals.horasExtras,
       afastados,
       tendenciaPendencias: tendencias.pendencias,
       tendenciaHoras: tendencias.horasExtras,
@@ -140,11 +133,8 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
     a.alertas.isLoading,
     a.pendencias.data,
     a.pendenciasAnterior.data,
-    a.totalHorasExtras,
-    a.totalFaltas,
-    a.frequenciasAprovadas,
-    a.frequenciasPendentes,
-    a.frequencias.data,
+    a.totals,
+    a.frequencias,
     a.frequenciasAnterior.data,
     a.distribuicaoUnidade.data,
     a.distribuicaoSetor.data,

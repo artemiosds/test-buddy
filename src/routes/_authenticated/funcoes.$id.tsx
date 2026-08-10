@@ -70,7 +70,8 @@ function FuncaoPainelContent() {
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data ?? { efetivos: 0, temporarios: 0, outros: 0 };
   const porUnidade = a.distribuicaoUnidade.data ?? [];
-  const porSetor = a.distribuicaoSetor.data ?? [];
+  const distribuicaoData = a.distribuicaoSetor.data;
+  const porSetor = Array.isArray(distribuicaoData) ? distribuicaoData : (distribuicaoData as any)?.unidades ?? [];
   const total = a.totalProfessionals.data ?? 0;
 
   const [q, setQ] = useState("");

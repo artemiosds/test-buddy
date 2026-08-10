@@ -95,7 +95,7 @@ import {
 import { profissionalSchema, type ProfissionalFormValues } from "@/lib/schemas/profissional.schema";
 import { saveProfissionalComplete } from "@/lib/profissionais.functions";
 
-import { downloadCsv, type CsvColumn } from "@/lib/csv-export";
+import * as XLSX from "xlsx";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
@@ -507,7 +507,6 @@ function ProfissionaisPage() {
     try {
       setIsExporting(true);
       
-      // Construir a query baseada nos mesmos filtros aplicados na tela
       let q = supabase
         .from("profissionais")
         .select(`
@@ -547,7 +546,6 @@ function ProfissionaisPage() {
         q = q.not("id", "in", `(${gestorIds.join(",")})`);
       }
 
-      // Payload optimization: limit to 5000 records to prevent browser crash
       const { data, error } = await q
         .order("nome_completo", { ascending: true })
         .limit(5000);
@@ -558,54 +556,48 @@ function ProfissionaisPage() {
         return;
       }
 
-      const columnsToExport: CsvColumn<any>[] = [
-        { header: "nome_completo", value: (r) => r.nome_completo },
-        { header: "cpf", value: (r) => r.cpf },
-        { header: "matricula", value: (r) => r.matricula },
-        { header: "email", value: (r) => r.email },
-        { header: "telefone", value: (r) => r.telefone },
-        { 
-          header: "data_nascimento", 
-          value: (r) => {
-            if (!r.data_nascimento) return "";
-            try {
-              return format(new Date(r.data_nascimento), "dd/MM/yyyy");
-            } catch {
-              return r.data_nascimento;
-            }
-          } 
-        },
-        { header: "sexo", value: (r) => r.sexo },
-        { 
-          header: "data_admissao", 
-          value: (r) => {
-            if (!r.data_admissao) return "";
-            try {
-              return format(new Date(r.data_admissao), "dd/MM/yyyy");
-            } catch {
-              return r.data_admissao;
-            }
-          } 
-        },
-        { header: "carga_semanal_horas", value: (r) => r.carga_horaria_semanal },
-        { header: "status", value: (r) => r.status },
-        { header: "unidade", value: (r) => r.unidade?.nome },
-        { header: "setor", value: (r) => r.setor?.nome },
-        { header: "cargo", value: (r) => r.cargo?.nome },
-        { header: "funcao", value: (r) => r.funcao?.nome },
-        { header: "vinculo", value: (r) => getVinculoLabel(r.vinculo) },
-        { header: "banco", value: (r) => (r as any).banco },
-        { header: "agencia", value: (r) => (r as any).agencia },
-        { header: "conta", value: (r) => (r as any).conta_corrente },
-        { header: "proj", value: (r) => (r as any).proj },
-        { header: "h_p", value: (r) => (r as any).h_p },
-        { header: "c_h", value: (r) => (r as any).c_h },
-        { header: "jorn", value: (r) => (r as any).jorn },
-        { header: "observacoes", value: (r) => r.observacoes },
-      ];
+      const formatDate = (dateStr: string | null) => {
+        if (!dateStr) return "";
+        try {
+          return format(new Date(dateStr), "dd/MM/yyyy");
+        } catch {
+          return dateStr;
+        }
+      };
 
-      const fileName = `profissionais_oriximina_${format(new Date(), "yyyy-MM-dd")}`;
-      downloadCsv(fileName, data, columnsToExport);
+      const exportData = data.map(r => ({
+        nome_completo: r.nome_completo || "",
+        cpf: r.cpf || "",
+        matricula: r.matricula || "",
+        email: r.email || "",
+        telefone: r.telefone || "",
+        data_nascimento: formatDate(r.data_nascimento),
+        sexo: r.sexo || "",
+        data_admissao: formatDate(r.data_admissao),
+        carga_semanal_horas: r.carga_horaria_semanal || "",
+        status: r.status || "",
+        unidade: r.unidade?.nome || "",
+        setor: r.setor?.nome || "",
+        cargo: r.cargo?.nome || "",
+        funcao: r.funcao?.nome || "",
+        vinculo: getVinculoLabel(r.vinculo),
+        banco: (r as any).banco || "",
+        agencia: (r as any).agencia || "",
+        conta: (r as any).conta_corrente || "",
+        proj: (r as any).proj || "",
+        h_p: (r as any).h_p || "",
+        c_h: (r as any).c_h || "",
+        jorn: (r as any).jorn || "",
+        observacoes: r.observacoes || ""
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Profissionais");
+
+      const fileName = `profissionais_oriximina_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
       toast.success(`${data.length} profissionais exportados com sucesso.`);
     } catch (error: any) {
       console.error("Erro ao exportar:", error);

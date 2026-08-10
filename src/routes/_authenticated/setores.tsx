@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,19 +16,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { FormDialog } from "@/components/shared/FormDialog";
 import { toast } from "sonner";
-import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard, Trash2 } from "lucide-react";
+import { Plus, Pencil, PowerOff, Power, Network, LayoutDashboard, Trash2, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { TIPOS_SETOR, setorFormSchema } from "@/lib/setores.validation";
+import { formatCNPJ, formatCNES } from "@/utils/formatters";
 
 const searchSchema = z.object({
-  unidade: z.string().uuid().optional(),
+  unidade: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int(), 1).default(1),
 });
 
 export const Route = createFileRoute("/_authenticated/setores")({ errorComponent: ErrorComponent,
-  validateSearch: (s) => searchSchema.parse(s),
+  validateSearch: zodValidator(searchSchema),
   component: SetoresPage,
 });
 
@@ -57,6 +70,8 @@ const emptyForm = {
   endereco: "",
 };
 
+const PAGE_SIZE = 15;
+
 function SetoresPage() {
   const qc = useQueryClient();
   const nav = useNavigate();
@@ -69,6 +84,7 @@ function SetoresPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Setor | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
   const { data: unidades = [] } = useQuery({
     queryKey: ["unidades-select"],
@@ -103,40 +119,50 @@ function SetoresPage() {
     enabled: !!unidadeId,
   });
 
-  const { data: setores = [], isLoading } = useQuery({
-    queryKey: ["setores-admin", unidadeId],
+  const { data: setoresData, isLoading } = useQuery({
+    queryKey: ["setores-admin", unidadeId, search.page],
     queryFn: async () => {
-      if (!unidadeId) return [] as Setor[];
-      const { data, error } = await supabase
+      if (!unidadeId) return { data: [] as Setor[], count: 0 };
+      const from = (search.page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabase
         .from("setores")
         .select(
           "id, unidade_id, nome, sigla, status, gestor_id, observacoes, cnes, tipo, cnpj, endereco, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
+          { count: "exact" }
         )
         .eq("unidade_id", unidadeId)
         .is("deleted_at", null)
-        .order("nome");
+        .order("nome")
+        .range(from, to);
+
       if (error) throw error;
-      return (data ?? []) as unknown as Setor[];
+      return {
+        data: (data ?? []) as unknown as Setor[],
+        count: count ?? 0,
+      };
     },
     enabled: !!unidadeId,
   });
+
+  const setores = setoresData?.data ?? [];
+  const totalCount = setoresData?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const { data: uso = {} } = useQuery({
     queryKey: ["setores-uso", unidadeId],
     queryFn: async () => {
       if (!unidadeId) return {};
       const { data, error } = await supabase
-        .from("profissionais")
-        .select("setor_id")
-        .is("deleted_at", null)
-        .eq("unidade_id", unidadeId)
-        .not("setor_id", "is", null);
+        .rpc("get_setores_uso", { p_unidade_id: unidadeId });
+      
       if (error) throw error;
+      
       const map: Record<string, number> = {};
-      for (const r of data ?? []) {
-        const k = (r as { setor_id: string | null }).setor_id;
-        if (k) map[k] = (map[k] ?? 0) + 1;
-      }
+      (data as { setor_id: string; total: number }[] ?? []).forEach((r) => {
+        map[r.setor_id] = r.total;
+      });
       return map;
     },
     enabled: !!unidadeId,
@@ -144,17 +170,25 @@ function SetoresPage() {
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const nomeT = form.nome.trim();
-      if (!nomeT) throw new Error("Informe o nome");
+      setErrors({});
+      const validation = setorFormSchema.safeParse(form);
+      
+      if (!validation.success) {
+        const fieldErrors = validation.error.flatten().fieldErrors;
+        setErrors(fieldErrors);
+        throw new Error("Verifique os campos obrigatórios");
+      }
+
       if (!unidadeId) throw new Error("Selecione uma unidade");
+      
       const payload = {
-        nome: nomeT,
+        nome: form.nome.trim(),
         sigla: form.sigla.trim() || null,
         gestor_id: form.gestor_id || null,
         observacoes: form.observacoes.trim() || null,
-        cnes: form.cnes.trim() || null,
+        cnes: form.cnes.replace(/\D/g, "") || null,
         tipo: form.tipo.trim() || null,
-        cnpj: form.cnpj.trim() || null,
+        cnpj: form.cnpj.replace(/\D/g, "") || null,
         endereco: form.endereco.trim() || null,
       };
       if (editing) {
@@ -172,6 +206,7 @@ function SetoresPage() {
       setOpen(false);
       setEditing(null);
       setForm({ ...emptyForm });
+      setErrors({});
       qc.invalidateQueries({ queryKey: ["setores-admin"] });
       qc.invalidateQueries({ queryKey: ["setores-select"] });
     },
@@ -228,10 +263,12 @@ function SetoresPage() {
   const abrirNovo = () => {
     setEditing(null);
     setForm({ ...emptyForm });
+    setErrors({});
     setOpen(true);
   };
   const abrirEdit = (s: Setor) => {
     setEditing(s);
+    setErrors({});
     setForm({
       nome: s.nome,
       sigla: s.sigla ?? "",
@@ -276,7 +313,7 @@ function SetoresPage() {
           <Label>Unidade</Label>
           <Select
             value={unidadeId || undefined}
-            onValueChange={(v) => navigate({ search: { unidade: v } })}
+            onValueChange={(v) => navigate({ search: { unidade: v, page: 1 } })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione uma unidade" />
@@ -305,49 +342,88 @@ function SetoresPage() {
             >
               <div className="grid gap-3">
                 <div>
-                  <Label>Nome *</Label>
+                  <Label className={errors.nome ? "text-destructive" : ""}>Nome *</Label>
                   <Input
                     value={form.nome}
                     onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                    className={errors.nome ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.nome && (
+                    <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.nome[0]}
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <Label>Sigla</Label>
+                    <Label className={errors.sigla ? "text-destructive" : ""}>Sigla</Label>
                     <Input
                       value={form.sigla}
                       onChange={(e) => setForm({ ...form, sigla: e.target.value })}
+                      className={errors.sigla ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {errors.sigla && (
+                      <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.sigla[0]}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label>Tipo</Label>
-                    <Input
-                      placeholder="Ex.: Administrativo, Assistencial"
+                    <Label className={errors.tipo ? "text-destructive" : ""}>Tipo *</Label>
+                    <Select
                       value={form.tipo}
-                      onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                    />
+                      onValueChange={(val) => setForm({ ...form, tipo: val })}
+                    >
+                      <SelectTrigger className={errors.tipo ? "border-destructive focus:ring-destructive" : ""}>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPOS_SETOR.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.tipo && (
+                      <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.tipo[0]}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label>CNES</Label>
+                    <Label className={errors.cnes ? "text-destructive" : ""}>CNES</Label>
                     <Input
                       inputMode="numeric"
-                      placeholder="Somente números"
+                      placeholder="7 dígitos"
                       value={form.cnes}
                       onChange={(e) =>
-                        setForm({ ...form, cnes: e.target.value.replace(/\D/g, "").slice(0, 15) })
+                        setForm({ ...form, cnes: formatCNES(e.target.value) })
                       }
+                      className={errors.cnes ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {errors.cnes && (
+                      <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.cnes[0]}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label>CNPJ</Label>
+                    <Label className={errors.cnpj ? "text-destructive" : ""}>CNPJ</Label>
                     <Input
                       inputMode="numeric"
                       placeholder="00.000.000/0000-00"
                       value={form.cnpj}
                       onChange={(e) =>
-                        setForm({ ...form, cnpj: e.target.value.replace(/\D/g, "").slice(0, 14) })
+                        setForm({ ...form, cnpj: formatCNPJ(e.target.value) })
                       }
+                      className={errors.cnpj ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {errors.cnpj && (
+                      <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.cnpj[0]}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -488,6 +564,73 @@ function SetoresPage() {
                 })}
               </tbody>
             </table>
+          )}
+          {totalPages > 1 && (
+            <div className="border-t p-4 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {setores.length} de {totalCount} setores
+              </p>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() =>
+                        search.page > 1 &&
+                        navigate({ search: { ...search, page: search.page - 1 } })
+                      }
+                      className={
+                        search.page === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    // Lógica simples para não mostrar todas as páginas se forem muitas
+                    if (
+                      totalPages > 7 &&
+                      p > 1 &&
+                      p < totalPages &&
+                      Math.abs(p - search.page) > 1
+                    ) {
+                      if (Math.abs(p - search.page) === 2) {
+                        return (
+                          <PaginationItem key={p}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    }
+
+                    return (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={search.page === p}
+                          onClick={() => navigate({ search: { ...search, page: p } })}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        search.page < totalPages &&
+                        navigate({ search: { ...search, page: search.page + 1 } })
+                      }
+                      className={
+                        search.page === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </div>
       )}

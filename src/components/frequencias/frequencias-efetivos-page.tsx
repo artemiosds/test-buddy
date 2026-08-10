@@ -53,6 +53,7 @@ import {
   useSelectedErpRow,
 } from "@/components/frequencias/resumo-dias-faltas-att";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -237,6 +238,12 @@ export function FrequenciasEfetivosPage() {
     queryKey: ["folha-efetivos", competenciaId, unidadeId],
     enabled: !!competenciaId && !!unidadeId && has("frequencia.visualizar"),
     queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId } }),
+  });
+
+  useFrequencyRealtime({ 
+    competenciaId, 
+    unidadeId, 
+    frequenciaId: folha?.frequencia_id 
   });
 
   const [linhas, setLinhas] = useState<Record<string, LinhaState>>({});

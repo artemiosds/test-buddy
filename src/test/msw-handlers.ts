@@ -9,7 +9,7 @@
 // - HEAD counts de alertas são cobertos por `analyticsHeadCounts`.
 import { HttpResponse, http, type HttpHandler } from "msw";
 
-export const BASE = "http://supabase.test/rest/v1";
+export const BASE = "https://aybbfciidtdbhieordqw.supabase.co/rest/v1";
 
 export function countResponse(total: number) {
   return new HttpResponse(null, {
@@ -165,15 +165,52 @@ export function analyticsQueriesOk(): HttpHandler[] {
   return [
     http.get(`${BASE}/profissionais`, ({ request }) => {
       const select = new URL(request.url).searchParams.get("select") ?? "";
+      
+      // New distribuicaoSetor query
+      if (select.includes("unidade_id") && select.includes("setor_id") && select.includes("cpf")) {
+        return HttpResponse.json([
+          { id: "p1", nome_completo: "P1", cpf: "123", unidade_id: "u1", setor_id: "s1", unidades: { nome: "Unidade A" }, setores: { nome: "Setor 1", status: "ativa" } },
+          { id: "p2", nome_completo: "P2", cpf: "456", unidade_id: "u1", setor_id: "s1", unidades: { nome: "Unidade A" }, setores: { nome: "Setor 1", status: "ativa" } },
+          { id: "p3", nome_completo: "P3", cpf: "789", unidade_id: "u2", setor_id: null, unidades: { nome: "Unidade B" }, setores: null },
+        ]);
+      }
+      
       return HttpResponse.json(profissionaisOkBySelect(select));
     }),
-    http.get(`${BASE}/setores`, () =>
-      HttpResponse.json([
+    http.get(`${BASE}/setores`, ({ request }) => {
+      const select = new URL(request.url).searchParams.get("select") ?? "";
+      if (select.includes("status")) {
+        return HttpResponse.json([
+          { id: "s1", nome: "Setor 1", status: "ativa" },
+          { id: "s2", nome: "Setor 2", status: "ativa" },
+          { id: "s3", nome: "Setor 3", status: "inativa" },
+        ]);
+      }
+      return HttpResponse.json([
         { id: "s1", gestor_id: "g1", responsavel_nome: null },
         { id: "s2", gestor_id: null, responsavel_nome: "João" },
         { id: "s3", gestor_id: null, responsavel_nome: null },
-      ]),
-    ),
+      ]);
+    }),
+    http.get(`${BASE}/v_integridade_profissionais`, () => HttpResponse.json([
+      { total: 4, incompleto: 1, faltantes: { cargo: 1, setor: 1 } }
+    ])),
+    http.post(`${BASE}/rpc/get_dashboard_summary`, () => HttpResponse.json({
+      status_breakdown: { ativo: 2, ferias: 1, licenca: 0, afastado: 1, desligado: 0 },
+      vinculo_breakdown: { efetivos: 2, temporarios: 1, outros: 1 },
+      top_unidades: [{ id: "u1", nome: "Unidade A", sigla: "UA", total: 2 }],
+      top_cargos: [{ id: "c1", nome: "Enfermeiro", total: 2 }],
+      rh_kpis: { enviadas: 1, pendentes: 0, aprovadas: 1, total_horas_extras: 52, total_faltas: 3 }
+    })),
+    http.post(`${BASE}/rpc/get_ranking_rh`, () => HttpResponse.json([
+      { unidade_id: "u1", unidade_nome: "Unidade A", total_horas_extras: 40 },
+      { unidade_id: "u2", unidade_nome: "Unidade B", total_horas_extras: 12 },
+    ])),
+    http.post(`${BASE}/rpc/get_quadro_lotacao`, () => HttpResponse.json([
+      { unidade_id: "u1", unidade_nome: "Unidade A", total: 2 },
+      { unidade_id: "u2", unidade_nome: "Unidade B", total: 1 },
+    ])),
+    http.get(`${BASE}/competencias`, () => HttpResponse.json([])),
   ];
 }
 
@@ -184,6 +221,11 @@ export function analyticsQueriesEmpty(): HttpHandler[] {
   return [
     http.get(`${BASE}/profissionais`, () => HttpResponse.json([])),
     http.get(`${BASE}/setores`, () => HttpResponse.json([])),
+    http.get(`${BASE}/v_integridade_profissionais`, () => HttpResponse.json([])),
+    http.post(`${BASE}/rpc/get_dashboard_summary`, () => HttpResponse.json(null)),
+    http.post(`${BASE}/rpc/get_ranking_rh`, () => HttpResponse.json([])),
+    http.post(`${BASE}/rpc/get_quadro_lotacao`, () => HttpResponse.json([])),
+    http.get(`${BASE}/competencias`, () => HttpResponse.json([])),
   ];
 }
 
@@ -196,6 +238,18 @@ export function analyticsQueriesError(): HttpHandler[] {
       HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
     ),
     http.get(`${BASE}/setores`, () =>
+      HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
+    ),
+    http.get(`${BASE}/v_integridade_profissionais`, () =>
+      HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
+    ),
+    http.post(`${BASE}/rpc/get_dashboard_summary`, () =>
+      HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
+    ),
+    http.post(`${BASE}/rpc/get_ranking_rh`, () =>
+      HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
+    ),
+    http.post(`${BASE}/rpc/get_quadro_lotacao`, () =>
       HttpResponse.json({ message: "boom", code: "500" }, { status: 500 }),
     ),
   ];

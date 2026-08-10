@@ -5098,6 +5098,7 @@ export type Database = {
           titular_nome: string
         }[]
       }
+      get_cargos_funcoes_uso: { Args: never; Returns: Json }
       get_dashboard_summary: {
         Args: { p_competencia_id: string; p_unidade_id?: string }
         Returns: Json
@@ -5120,6 +5121,29 @@ export type Database = {
           status: Database["public"]["Enums"]["status_usuario"]
         }[]
       }
+      get_quadro_lotacao: {
+        Args: {
+          p_cargo_id?: string
+          p_setor_id?: string
+          p_unidade_id?: string
+        }
+        Returns: {
+          afastados: number
+          ativos: number
+          cargo_id: string
+          cargo_nome: string
+          ferias: number
+          funcao_id: string
+          funcao_nome: string
+          licencas: number
+          setor_id: string
+          setor_nome: string
+          total: number
+          unidade_id: string
+          unidade_nome: string
+          unidade_sigla: string
+        }[]
+      }
       get_ranking_rh: {
         Args: { p_competencia_id: string }
         Returns: {
@@ -5132,6 +5156,17 @@ export type Database = {
           unidade_nome: string
           unidade_sigla: string
         }[]
+      }
+      get_setores_uso: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          setor_id: string
+          total: number
+        }[]
+      }
+      get_unidade_dashboard_summary: {
+        Args: { p_unidade_id: string }
+        Returns: Json
       }
       get_user_permissions_list: {
         Args: { _user_id: string }

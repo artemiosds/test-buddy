@@ -37,6 +37,7 @@ import {
   WORKFORCE_FILTER_KEYS,
   type WorkforceFilters,
 } from "@/lib/workforce-filters";
+import type { RankingRow } from "@/lib/analytics-aggregations";
 import {
   PageHeader,
   KpiCard,
@@ -82,7 +83,7 @@ const STATUS_LABEL = "Ativos|Afastados|Férias|Licenças".split("|");
 const STATUS_VALUE = ["ativo", "afastado", "ferias", "licenca"];
 
 function SalaSituacaoPage() {
-  const search = Route.useSearch();
+  const search = Route.useSearch() as WorkforceFilters;
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
   const { data: competenciaAtiva } = useCompetenciaAtiva();
@@ -196,15 +197,14 @@ function SalaSituacaoPage() {
   });
 
   // Rankings vindos de useAnalytics (mesma fonte usada nas demais telas).
-  const rankingUnidades = a.ranking.data.slice(0, 10);
-  const rankingSetores = (a.distribuicaoSetor.data ?? []).slice(0, 10);
+  const rankingUnidades = a.ranking.slice(0, 10);
+  const rankingSetores = (Array.isArray(a.distribuicaoSetor.data) ? a.distribuicaoSetor.data : (a.distribuicaoSetor.data as any)?.unidades ?? []).slice(0, 10);
   const rankingCargos = (a.distribuicaoCargo.data ?? []).slice(0, 10);
-  const rankingFuncoes = (a.distribuicaoFuncao.data ?? []).slice(0, 10);
-  // "Maiores HE" — o dado disponível no modelo é por unidade (limitação
-  // documentada no Módulo 05). Reordenamos o ranking por HE.
+  const rankingFuncoes = (a.distribuicaoCargo.data ?? []).slice(0, 10);
+  // "Maiores HE"
   const rankingHe = useMemo(
-    () => [...a.ranking.data].sort((x, y) => y.total_horas_extras - x.total_horas_extras).slice(0, 10),
-    [a.ranking.data],
+    () => [...a.ranking].sort((x, y) => y.total_horas_extras - x.total_horas_extras).slice(0, 10),
+    [a.ranking],
   );
   // "Unidades críticas" — mais pendências vencidas.
   const rankingCriticas = useMemo(() => {
@@ -258,7 +258,7 @@ function SalaSituacaoPage() {
   const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   // ---- Column defs ----
-  const colsUnidades: DataTableColumn<(typeof a.ranking.data)[number]>[] = [
+  const colsUnidades: DataTableColumn<RankingRow>[] = [
     {
       key: "u",
       header: "Unidade",
@@ -315,7 +315,7 @@ function SalaSituacaoPage() {
     },
     { key: "t", header: "Profissionais", cell: (r) => r.total.toLocaleString("pt-BR") },
   ];
-  const colsHe: DataTableColumn<(typeof a.ranking.data)[number]>[] = [
+  const colsHe: DataTableColumn<RankingRow>[] = [
     {
       key: "u",
       header: "Unidade",
@@ -410,8 +410,7 @@ function SalaSituacaoPage() {
 
       <SemaforoCard
         semaforo={intel.semaforo}
-        loading={intel.isLoading || pendCriticasQ.isLoading || movQ.isLoading || a.ranking.isLoading}
-        lastUpdated={a.lastUpdated}
+        loading={intel.isLoading || pendCriticasQ.isLoading || movQ.isLoading || a.loading}
         onRefresh={() => a.refetch()}
       />
 
@@ -519,9 +518,9 @@ function SalaSituacaoPage() {
         />
         <KpiCard
           label="Horas extras (comp.)"
-          value={a.totalHorasExtras.toLocaleString("pt-BR")}
+          value={a.totals.horasExtras.toLocaleString("pt-BR")}
           icon={<Clock className="h-4 w-4" />}
-          hint={`Faltas: ${a.totalFaltas.toLocaleString("pt-BR")}`}
+          hint={`Faltas: ${a.totals.faltas.toLocaleString("pt-BR")}`}
         />
         <KpiCard
           label="Período ativo"

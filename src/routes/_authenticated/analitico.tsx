@@ -21,6 +21,7 @@ import { TrendingUp, BarChart3, PieChart as PieIcon, Activity } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { PermissionGate } from "@/components/permission-gate";
 import { DashboardAvisosWidget } from "@/components/dashboard/DashboardAvisosWidget";
+import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
 
 export const Route = createFileRoute("/_authenticated/analitico")({ errorComponent: ErrorComponent,
   component: DashboardAnalitico,
@@ -40,6 +41,8 @@ const COLORS = [
 
 function DashboardAnalitico() {
   const [ano, setAno] = useState(new Date().getFullYear());
+
+  useFrequencyRealtime({}); // Contexto global (assina eventos de todas as frequências)
 
   // Evolução mensal: frequências enviadas / aprovadas por mês
   const { data: evolucao = [] } = useQuery({
