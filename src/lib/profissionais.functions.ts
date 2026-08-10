@@ -7,7 +7,7 @@ import { profissionalSchema } from "./schemas/profissional.schema";
 export const saveProfissionalComplete = createServerFn({ method: "POST" })
   .inputValidator((data) => profissionalSchema.parse(data))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     // A validação de perfil (MASTER ou permissão específica) deve ocorrer aqui
     // No entanto, para manter a simplicidade deste plano de ação, usaremos a RPC SECURITY DEFINER
     // que já foi criada no banco de dados.
@@ -16,7 +16,11 @@ export const saveProfissionalComplete = createServerFn({ method: "POST" })
       p_payload: data,
     });
 
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) {
+      console.error("[saveProfissionalComplete] RPC Error:", error);
+      throw new Error((error as any).message || "Erro ao salvar profissional no banco de dados.");
+    }
+
     return result;
   });
 
@@ -28,6 +32,10 @@ export const arquivarProfissional = createServerFn({ method: "POST" })
       _id: data.id,
     });
 
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) {
+      console.error("[arquivarProfissional] RPC Error:", error);
+      throw new Error((error as any).message || "Erro ao arquivar profissional.");
+    }
+
     return { success: true };
   });

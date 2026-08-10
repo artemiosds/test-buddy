@@ -94,6 +94,7 @@ import {
 } from "@/hooks/use-lookups";
 import { profissionalSchema, type ProfissionalFormValues } from "@/lib/schemas/profissional.schema";
 import { saveProfissionalComplete } from "@/lib/profissionais.functions";
+import { useProfessionalRealtime } from "@/lib/realtime/professional-realtime";
 
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
@@ -114,6 +115,8 @@ type Profissional = Database["public"]["Tables"]["profissionais"]["Row"] & {
 };
 
 const EMPTY_VALUES: ProfissionalFormValues = {
+  id: "",
+
   nome_completo: "",
   nome_social: "",
   cpf: "",
@@ -206,6 +209,7 @@ function getVinculoLabel(
 
 function ProfissionaisPage() {
   const qc = useQueryClient();
+  useProfessionalRealtime();
   const { has: hasPermission } = usePermissions();
   const { data: me } = useCurrentUser();
   const askConfirm = useConfirm();
