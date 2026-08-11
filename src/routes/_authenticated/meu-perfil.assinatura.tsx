@@ -330,9 +330,9 @@ function UploadForm({
         storage_path: path,
         mime_type: "image/png",
         usuario_id: me.id,
-        unidade_id: unidadeReal,
-        secretaria_id: null, // Garantindo null para evitar erro de sintaxe UUID
-        perfil_id: me.perfil_id || null,
+        unidade_id: (unidadeReal && unidadeReal !== "") ? unidadeReal : null,
+        secretaria_id: null, // Garantindo null literal para evitar erro de sintaxe UUID
+        perfil_id: (me.perfil_id && me.perfil_id !== "") ? me.perfil_id : null,
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
