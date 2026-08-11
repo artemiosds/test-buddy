@@ -532,7 +532,7 @@ function UsuariosList() {
                       ) : (
                         <Badge variant="secondary">{u.perfil?.nome ?? "—"}</Badge>
                       )}
-                      {u.acesso_todas_unidades && u.acesso_todas_secretarias && (
+                      {u.perfil?.codigo === "MASTER" && (
                         <Badge className="bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft">
                           MASTER — acesso total
                         </Badge>
