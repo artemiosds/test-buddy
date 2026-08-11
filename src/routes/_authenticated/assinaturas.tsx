@@ -784,12 +784,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? (secretariaId || null)
+            ? (secretariaId && secretariaId !== "" ? secretariaId : null)
             : escopo === "unidade"
               ? (unidades.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? (unidadeId || null) : null,
-        perfil_id: perfilId === "__institucional__" ? null : perfilId,
+        unidade_id: (escopo === "unidade" && unidadeId && unidadeId !== "") ? unidadeId : null,
+        perfil_id: (perfilId && perfilId !== "" && perfilId !== "__institucional__") ? perfilId : null,
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
@@ -1242,8 +1242,8 @@ function NovaRegraDialog({
     try {
       const { error } = await supabase.from("assinatura_documento_regras").insert({
         tipo_documento: tipoDocumento,
-        secretaria_id: alcance === "secretaria" ? (secretariaId || null) : null,
-        perfil_codigo: perfilCodigo === "__institucional__" ? null : perfilCodigo,
+        secretaria_id: (alcance === "secretaria" && secretariaId && secretariaId !== "") ? secretariaId : null,
+        perfil_codigo: (perfilCodigo && perfilCodigo !== "" && perfilCodigo !== "__institucional__") ? perfilCodigo : null,
         tipo_assinatura: tipoAssinatura,
         ordem,
         obrigatoria,

@@ -312,6 +312,8 @@ function UploadForm({
     try {
       const { blob: processedBlob, ext } = await processImage(file);
       const unidSeg = unidadeId === "__todas__" ? "todas" : unidadeId;
+      
+      // O path do storage pode conter a string "pessoal", mas o banco espera UUIDs nos campos *_id
       const path = `pessoal/${me.id}/${unidSeg}/${crypto.randomUUID()}.${ext}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
@@ -328,9 +330,9 @@ function UploadForm({
         storage_path: path,
         mime_type: "image/png",
         usuario_id: me.id,
-        unidade_id: unidadeReal,
-        secretaria_id: null, // explicit null prevents UUID cast error if empty string
-        perfil_id: me.perfil_id ?? null,
+        unidade_id: (unidadeReal && unidadeReal !== "") ? unidadeReal : null,
+        secretaria_id: null, // Garantindo null literal para evitar erro de sintaxe UUID
+        perfil_id: (me.perfil_id && me.perfil_id !== "") ? me.perfil_id : null,
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
@@ -345,6 +347,7 @@ function UploadForm({
         mostrar_nome: pos.mostrar_nome,
         mostrar_cargo: pos.mostrar_cargo,
       });
+
       if (ins.error) {
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
