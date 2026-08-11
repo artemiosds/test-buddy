@@ -327,11 +327,13 @@ function UploadForm({
       setSaving(true);
       try {
         const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-        const validateId = (id: any, fieldName: string) => {
-          if (!id) return null;
-          const s = String(id);
-          if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-            throw new Error(`BLOQUEIO DE SEGURANÇA: O campo ${fieldName} não pode conter caminhos de arquivo.`);
+        const sanitizeUUID = (id: any, fieldName: string) => {
+          if (!id || id === "__todas__") return null;
+          const s = String(id).trim();
+          // Se contiver extensão ou barra, é um path/filename vazando, bloqueamos
+          if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
+            console.error(`[FORENSIC] Bloqueio de UUID inválido em ${fieldName}:`, s);
+            return null;
           }
           return isUUID(s) ? s : null;
         };
@@ -340,9 +342,9 @@ function UploadForm({
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
         const payloadInst = {
-          usuario_id: validateId(me.id, 'usuario_id')!,
-          perfil_id: validateId(me.perfil_id, 'perfil_id'),
-          unidade_id: validateId(unidadeReal, 'unidade_id'),
+          usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
+          perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
+          unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
           secretaria_id: null,
           titular_nome: (titularNome || me.nome_completo || "").trim(),
           titular_cargo: titularCargo.trim() || null,
@@ -354,6 +356,10 @@ function UploadForm({
             cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
           }
         };
+
+        if (!payloadInst.usuario_id) {
+          throw new Error("Erro de identificação do usuário. Tente recarregar a página.");
+        }
 
         await saveInst({ data: payloadInst });
 
@@ -403,11 +409,12 @@ function UploadForm({
       if (up.error) throw up.error;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-      const validateId = (id: any, fieldName: string) => {
-        if (!id) return null;
-        const s = String(id);
-        if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-          throw new Error(`BLOQUEIO DE SEGURANÇA: O campo ${fieldName} não pode conter caminhos de arquivo.`);
+      const sanitizeUUID = (id: any, fieldName: string) => {
+        if (!id || id === "__todas__") return null;
+        const s = String(id).trim();
+        if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
+          console.error(`[FORENSIC] Bloqueio de UUID inválido em ${fieldName}:`, s);
+          return null;
         }
         return isUUID(s) ? s : null;
       };
@@ -419,10 +426,10 @@ function UploadForm({
         titular_cargo: titularCargo.trim() || null,
         storage_path: fileName,
         mime_type: "image/png",
-        usuario_id: validateId(me.id, 'usuario_id'),
-        unidade_id: validateId(unidadeReal, 'unidade_id'),
+        usuario_id: sanitizeUUID(me.id, 'usuario_id'),
+        unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
         secretaria_id: null,
-        perfil_id: validateId(me.perfil_id, 'perfil_id'),
+        perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
