@@ -37,6 +37,7 @@ export type AssinaturaResolvida = {
   mostrar_nome: boolean;
   mostrar_cargo: boolean;
   assinatura_id: string | null;
+  metadata: any;
 };
 
 /** Dimensões de referência do editor visual (A4 retrato em px) */
@@ -104,9 +105,9 @@ export async function resolverAssinaturasDocumento(
     escopo: "unidade" | "secretaria" | "global" | "ausente";
   }>;
 
-  // Busca campos de posicionamento diretamente da tabela (não estão no RPC)
+  // Busca campos de posicionamento e metadados diretamente da tabela (não estão no RPC)
   const assinIds = rows.map((r) => r.assinatura_id).filter(Boolean) as string[];
-  const posMap = new Map<
+  const extraMap = new Map<
     string,
     {
       posicao_x: number | null;
@@ -115,23 +116,25 @@ export async function resolverAssinaturasDocumento(
       alinhamento: string | null;
       mostrar_nome: boolean | null;
       mostrar_cargo: boolean | null;
+      metadata: any;
     }
   >();
   if (assinIds.length > 0) {
     const { data: posData } = await supabase
       .from("assinaturas_institucionais")
       .select(
-        "id, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo",
+        "id, posicao_x, posicao_y, tamanho_percentual, alinhamento, mostrar_nome, mostrar_cargo, metadata",
       )
       .in("id", assinIds);
     for (const p of (posData ?? []) as Array<{ id: string } & Record<string, unknown>>) {
-      posMap.set(p.id, {
+      extraMap.set(p.id, {
         posicao_x: (p.posicao_x as number | null) ?? null,
         posicao_y: (p.posicao_y as number | null) ?? null,
         tamanho_percentual: (p.tamanho_percentual as number | null) ?? null,
         alinhamento: (p.alinhamento as string | null) ?? null,
         mostrar_nome: (p.mostrar_nome as boolean | null) ?? null,
         mostrar_cargo: (p.mostrar_cargo as boolean | null) ?? null,
+        metadata: p.metadata,
       });
     }
   }
@@ -165,7 +168,7 @@ export async function resolverAssinaturasDocumento(
           imageData = await urlToDataUrl(signed.signedUrl);
         }
       }
-      const p = r.assinatura_id ? posMap.get(r.assinatura_id) : undefined;
+      const p = r.assinatura_id ? extraMap.get(r.assinatura_id) : undefined;
       const alin = (p?.alinhamento as "esquerda" | "centro" | "direita" | null) ?? "direita";
       const souEu = !!meuPerfil && r.perfil_codigo === meuPerfil;
       return {
@@ -186,6 +189,7 @@ export async function resolverAssinaturasDocumento(
         alinhamento: alin,
         mostrar_nome: p?.mostrar_nome ?? true,
         mostrar_cargo: p?.mostrar_cargo ?? true,
+        metadata: p?.metadata ?? null,
       } as AssinaturaResolvida;
     }),
   );
@@ -257,17 +261,23 @@ export function drawAssinaturasBlock(
         maxWidth: imgW,
       });
     }
+    const metadata = (a as any).metadata;
     if (a.mostrar_cargo) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(90, 90, 90);
+      
       const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
-      if (cargo) {
-        doc.text(cargo, px + imgW / 2, lineY + 6.8, {
+      const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
+      const cpf = metadata?.cpf_mascarado ? `CPF: ${metadata.cpf_mascarado}` : "";
+      
+      let extraLines = [cargo, matricula, cpf].filter(Boolean);
+      extraLines.forEach((line, idx) => {
+        doc.text(line, px + imgW / 2, lineY + 6.8 + idx * 3, {
           align: "center",
           maxWidth: imgW,
         });
-      }
+      });
     }
   }
 
@@ -323,10 +333,16 @@ export function drawAssinaturasBlock(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(90, 90, 90);
+      
       const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
-      if (cargo) {
-        doc.text(cargo, cx, lineY + 8, { align: "center", maxWidth: colW - 4 });
-      }
+      const metadata = a.metadata;
+      const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
+      const cpf = metadata?.cpf_mascarado ? `CPF: ${metadata.cpf_mascarado}` : "";
+      
+      const extraLines = [cargo, matricula, cpf].filter(Boolean);
+      extraLines.forEach((line, idx) => {
+        doc.text(line, cx, lineY + 8 + idx * 3.5, { align: "center", maxWidth: colW - 4 });
+      });
     }
 
     if (a.escopo === "ausente" && a.obrigatoria) {
