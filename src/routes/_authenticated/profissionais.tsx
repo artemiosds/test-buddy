@@ -1027,7 +1027,8 @@ function ProfissionaisPage() {
                         gestoresOpt={gestoresOpt}
                         canEditAgili={hasPermission("profissional.editar_dados_agili")}
                         canSeeBanco={hasPermission("profissional.dados_bancarios")}
-                        canSeeSalario={hasPermission("profissional.dados_salariais")}
+                        canSeeSalario={hasPermission("profissional.dados_salariais") || userCtx?.is_master === true}
+
                       />
                       <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
