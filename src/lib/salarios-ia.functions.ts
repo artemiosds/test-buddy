@@ -39,16 +39,17 @@ export const extrairSalariosPDF = createServerFn({ method: "POST" })
     // 1. Obter cadeia de provedores configurada
     let cadeia = await lerCadeiaProvedores(context.supabase as never);
 
-    if (!cadeia.provedores.length || !cadeia.provedores.some(p => p.ativo)) {
+    if (!cadeia.provedores.length) {
       throw new Error("Nenhum provedor de IA ativo. Configure no Gerenciador de Provedores.");
     }
 
     // 2. Definir lista de execução baseada no modo
-    let provedoresParaUsar = cadeia.provedores.filter(p => p.ativo);
+    // O Gerenciador já filtra inativos na chain ou devolve o status, mas aqui usamos a chain que inclui chaves.
+    let provedoresParaUsar = [...cadeia.provedores];
 
     if (data.provedorId) {
       const manual = provedoresParaUsar.find(p => p.id === data.provedorId);
-      if (!manual) throw new Error("Provedor selecionado está inativo ou não existe.");
+      if (!manual) throw new Error("Provedor selecionado não foi encontrado.");
       
       if (data.permitirFailover) {
         // Começa pelo manual, depois segue a ordem original de prioridade
