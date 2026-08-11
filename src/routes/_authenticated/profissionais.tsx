@@ -75,6 +75,8 @@ import {
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
+import { ImportSalariosPdfDialog } from "@/components/profissionais/import-salarios-ia-dialog";
+
 import {
   PageHeader,
   KpiCard,
@@ -223,6 +225,8 @@ function ProfissionaisPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [openImportSalarios, setOpenImportSalarios] = useState(false);
+
 
   const formMethods = useForm<any>({
     resolver: zodResolver(profissionalSchema),
@@ -999,8 +1003,18 @@ function ProfissionaisPage() {
         actions={
           canCreate ? (
             <>
-               <ImportProfissionaisDialog />
-               <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+                <ImportProfissionaisDialog />
+                {hasPermission("profissional.dados_salariais") && (
+                  <>
+                    <Button variant="outline" onClick={() => setOpenImportSalarios(true)}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Importar Salários PDF
+                    </Button>
+                    <ImportSalariosPdfDialog open={openImportSalarios} onOpenChange={setOpenImportSalarios} />
+                  </>
+                )}
+                <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+
                  {isExporting ? (
                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                  ) : (
