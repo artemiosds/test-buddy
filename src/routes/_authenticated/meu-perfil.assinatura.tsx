@@ -415,8 +415,11 @@ function UploadForm({
         : { blob: activeBlob, ext: "png" };
       
       const userId = me.id;
-      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const fileId = crypto.randomUUID();
+      const fileName = `${fileId}.${ext}`;
       const storagePath = `pessoal/${userId}/${fileName}`;
+
+      console.log(`[FORENSIC-UPLOAD] PREPARING UPLOAD: userId=${userId}, fileId=${fileId}, fileName=${fileName}, storagePath=${storagePath}`);
 
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, processedBlob, {
         contentType: "image/png",
@@ -442,11 +445,14 @@ function UploadForm({
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
+      
+      console.log(`[FORENSIC-PAYLOAD] BUILDING PAYLOAD: me.id=${me.id}, unidadeReal=${unidadeReal}, fileName=${fileName}`);
+
       const payloadAssinatura = {
         tipo: "assinatura" as const,
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: storagePath,
+        storage_path: fileName,
         mime_type: "image/png",
         usuario_id: sanitizeUUID(me.id, 'UPLOAD_usuario_id'),
         unidade_id: sanitizeUUID(unidadeReal, 'UPLOAD_unidade_id'),
@@ -474,6 +480,7 @@ function UploadForm({
       fieldsToCheck.forEach(field => {
         const val = payloadAssinatura[field];
         if (val && (String(val).includes('.') || String(val).includes('/'))) {
+           console.error(`[CRITICAL FAILURE] Campo ${field} contém path inválido detectado na última barreira:`, val);
            throw new Error(`CRITICAL STOP: Campo ${field} contém path inválido: ${val}`);
         }
       });
