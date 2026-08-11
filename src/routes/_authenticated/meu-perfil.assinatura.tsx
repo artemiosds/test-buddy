@@ -461,6 +461,7 @@ function AssinaturaCard({
   unidades,
   onToggle,
   onDelete,
+  userId,
 }: {
   row: Assinatura;
   unidades: Unidade[];
