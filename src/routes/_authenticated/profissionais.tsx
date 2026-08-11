@@ -352,6 +352,7 @@ function ProfissionaisPage() {
     data: profissionaisPage,
     isLoading,
     isFetching,
+    error: profissionaisPageError,
   } = useQuery({
     queryKey: [
       "profissionais",
@@ -976,6 +977,15 @@ function ProfissionaisPage() {
 
   return (
     <div className="space-y-4">
+      <div style={{ background: "#fee", border: "2px solid red", padding: "16px", marginBottom: "16px", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
+        <strong>🔍 DEBUG TEMPORÁRIO — REMOVER DEPOIS</strong>
+        <br />useCurrentUser() completo: {JSON.stringify(me, null, 2)}
+        <br />unidade_id detectado: {JSON.stringify((me as any)?.unidade_id)}
+        <br />unidades detectadas: {JSON.stringify(me?.unidades)}
+        <br />Query de profissionais - total: {profissionaisTotal}
+        <br />Query de profissionais - erro: {JSON.stringify(profissionaisPageError)}
+      </div>
+
       <PageHeader
         title="Profissionais"
         description="Cadastro dos profissionais da rede municipal de saúde."
