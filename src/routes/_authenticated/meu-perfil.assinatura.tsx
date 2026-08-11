@@ -125,9 +125,14 @@ export function MinhaAssinaturaPage() {
 
   const excluir = useMutation({
     mutationFn: async (row: Assinatura) => {
+      const { data: me } = await supabase.auth.getUser();
+      const userId = me.user?.id;
+      if (!userId) throw new Error("Usuário não autenticado");
+      
       const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
       if (error) throw error;
-      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${me!.id}/${row.storage_path}`;
+      
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${userId}/${row.storage_path}`;
       await supabase.storage.from(BUCKET).remove([fullPath]);
     },
     onSuccess: () => {
@@ -204,6 +209,7 @@ export function MinhaAssinaturaPage() {
                       key={row.id}
                       row={row}
                       unidades={unidades ?? []}
+                      userId={me?.id}
                       onToggle={(ativa) => toggleAtiva.mutate({ id: row.id, ativa })}
                       onDelete={() => {
                         if (confirm("Remover esta assinatura?")) excluir.mutate(row);
@@ -460,6 +466,7 @@ function AssinaturaCard({
   unidades: Unidade[];
   onToggle: (ativa: boolean) => void;
   onDelete: () => void;
+  userId?: string;
 }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -476,7 +483,7 @@ function AssinaturaCard({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${me!.id}/${row.storage_path}`;
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : (userId ? `${userId}/${row.storage_path}` : row.storage_path);
       const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fullPath, 600);
       if (!cancel) setSignedUrl(data?.signedUrl ?? null);
     })();
