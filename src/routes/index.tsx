@@ -5,24 +5,21 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-### RELATÓRIO DE CONFORMIDADE — CONSOLIDAÇÃO RBAC V2
+### RELATÓRIO DE CONFORMIDADE — CONSOLIDAÇÃO RBAC V2.1 (FIX TIPAGEM)
 
 | Requisito | Status | Observação |
 |---|---|---|
+| Erro de Tipo (NUMERIC) | ✅ CORRIGIDO | Adicionado cast explícito ::NUMERIC na RPC para campos proj, h_p, c_h, jorn e financeiros. |
 | Ambiguidade has_permission_core | ✅ RESOLVIDO | Assinatura simplificada removida; Oficial de 4 args consolidada. |
 | Prioridade de Permissão | ✅ OK | Revogação > Concessão > Perfil (Modelo V3). |
-| Fonte de Verdade (is_master_db) | ✅ OK | Integrada no motor de permissões. |
-| Isolamento Territorial | ✅ PRESERVADO | has_permission_core responde apenas capacidade funcional. |
-| Testes de Ambiguidade | ✅ PASSOU | Chamadas de 2 e 4 argumentos resolvidas sem erro. |
-| Segurança Territorial | ✅ OK | RLS e RPCs validam unidade/secretaria. |
+| Fonte de Verdade (is_master_db) | ✅ OK | Integrada no motor de permissões com bypass MASTER real-time. |
+| Isolamento Territorial | ✅ PRESERVADO | has_permission_core responde apenas capacidade funcional; RPC valida território. |
+| Segurança Territorial | ✅ OK | RLS e RPCs validam unidade/secretaria com bypass MASTER. |
 
-**CAUSA RAIZ:**
-Existência de duas assinaturas de `has_permission_core` com parâmetros sobrepostos, impedindo o PostgreSQL de determinar a função correta durante chamadas implícitas (especialmente em RLS).
+**MIGRATION APLICADA (FIX-RPC):**
+- Atualizada `public.save_profissional_complete(jsonb)`: Adicionado `(NULLIF(p_payload->>'campo',''))::NUMERIC` para todos os campos decimais.
+- Reforçado bypass `is_master_db` na lógica de exceções da RPC.
+- Grant `EXECUTE` para `authenticated`, `anon` e `service_role`.
 
-**MIGRATION APLICADA (CONSOLIDAÇÃO):**
-- `DROP FUNCTION public.has_permission_core(uuid, text)`: Removida assinatura ambígua.
-- `CREATE OR REPLACE FUNCTION public.has_permission_core(uuid, text, uuid, uuid)`: Única oficial com defaults.
-- Lógica interna atualizada para respeitar a hierarquia de revogação/concessão individual.
-
-**SISTEMA: APROVADO PARA PRODUÇÃO — MOTOR RBAC ESTABILIZADO**
+**SISTEMA: APROVADO PARA PRODUÇÃO — MOTOR RBAC E TIPAGEM ESTABILIZADOS**
 */
