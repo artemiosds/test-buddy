@@ -15,8 +15,7 @@ const hashSchema = z.object({
 
 export const generateInstitutionalHash = createServerFn({ method: "POST" })
   .validator((data: unknown) => hashSchema.parse(data))
-  .handler(async (args: { data: z.infer<typeof hashSchema> }) => {
-    const { data } = args;
+  .handler(async ({ data }: { data: z.infer<typeof hashSchema> }) => {
     // Gerar um hash único baseado nos dados e num salt
     const salt = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10) || "hsm-gestao-salt";
     const source = `${data.usuario_id}|${data.nome}|${data.timestamp}|${salt}`;
@@ -42,8 +41,7 @@ const saveSchema = z.object({
 
 export const saveInstitutionalSignature = createServerFn({ method: "POST" })
   .validator((data: unknown) => saveSchema.parse(data))
-  .handler(async (args: { data: z.infer<typeof saveSchema> }) => {
-    const { data } = args;
+  .handler(async ({ data }: { data: z.infer<typeof saveSchema> }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Assegurar tipo correto para o campo 'tipo'
