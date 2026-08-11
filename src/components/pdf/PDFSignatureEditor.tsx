@@ -10,10 +10,10 @@ import {
   X, 
   Plus, 
   Trash2, 
-  Type, 
+  ShieldCheck, 
   Image as ImageIcon,
   Loader2,
-  ShieldCheck
+  ShieldCheck as ShieldCheckIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPdfjs } from "@/lib/piso-pdf";
@@ -333,7 +333,7 @@ export function PDFSignatureEditor({ fileUrl, fileName }: PDFSignatureEditorProp
                   </div>
                 )}
                 <div className="absolute top-0 right-0 p-0.5 bg-primary text-white">
-                   <Type className="h-2 w-2" />
+                   <ShieldCheckIcon className="h-2 w-2" />
                 </div>
               </Rnd>
             ))}
@@ -369,7 +369,7 @@ export function PDFSignatureEditor({ fileUrl, fileName }: PDFSignatureEditorProp
                   >
                     <div className="w-16 h-12 bg-slate-50 flex items-center justify-center border rounded">
                       {sig.storage_path?.startsWith('institutional_') ? (
-                        <ShieldCheck className="h-6 w-6 text-primary" />
+                        <ShieldCheckIcon className="h-6 w-6 text-primary" />
                       ) : (
                         sig.imageUrl ? <img src={sig.imageUrl} className="max-w-full max-h-full" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       )}
