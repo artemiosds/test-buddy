@@ -127,7 +127,8 @@ export function MinhaAssinaturaPage() {
     mutationFn: async (row: Assinatura) => {
       const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
       if (error) throw error;
-      await supabase.storage.from(BUCKET).remove([row.storage_path]);
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${me!.id}/${row.storage_path}`;
+      await supabase.storage.from(BUCKET).remove([fullPath]);
     },
     onSuccess: () => {
       toast.success("Assinatura removida");
@@ -314,7 +315,8 @@ function UploadForm({
       
       // O path do storage deve ser limpo e utilizar IDs únicos
       // Evitamos strings textuais como "pessoal" no início do path se o bucket/política for restritivo
-      const path = `${me.id}/${crypto.randomUUID()}.${ext}`;
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const path = `${me.id}/${fileName}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: "image/png",
@@ -329,7 +331,7 @@ function UploadForm({
         tipo: "assinatura" as const,
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: path.split('/').pop() || path,
+        storage_path: fileName,
         mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: isUUID(unidadeReal) ? unidadeReal : null,
@@ -474,7 +476,8 @@ function AssinaturaCard({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(row.storage_path, 600);
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${me!.id}/${row.storage_path}`;
+      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fullPath, 600);
       if (!cancel) setSignedUrl(data?.signedUrl ?? null);
     })();
     return () => {

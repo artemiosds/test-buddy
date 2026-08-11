@@ -765,7 +765,8 @@ function NovaAssinaturaDialog({
       
       // O path do storage deve ser limpo e utilizar IDs únicos
       // Evitamos strings textuais como "unidade" ou "secretaria" no início do path se o bucket/política for restritivo
-      const path = `${crypto.randomUUID()}.${ext}`;
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const path = fileName;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: ext === "pdf" ? "application/pdf" : "image/png",
@@ -779,7 +780,7 @@ function NovaAssinaturaDialog({
         tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: path.split('/').pop() || path,
+        storage_path: fileName,
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
