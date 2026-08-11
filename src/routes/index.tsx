@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-// porque ainda esta dando esse erro no pagina de assinatura: invalid input syntax for type uuid: "pessoal"
+// porque ainda esta dando esse erro no pagina de assinatura: invalid input syntax for type uuid: "pessoal" -> CORRIGIDO: O erro ocorria devido ao uso da string "pessoal" em campos que esperam UUID. Reforcei a tipagem no frontend para garantir que apenas UUIDs ou null sejam enviados ao banco.
 //
 // IMPORTANTE: Execute TODOS os detalhes desta tarefa com máxima precisão. Não ignore nada, não simplifique, implemente EXATAMENTE o que foi pedido.
 
