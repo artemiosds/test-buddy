@@ -5234,6 +5234,7 @@ export type Database = {
       is_aviso_gestor: { Args: { _user_id: string }; Returns: boolean }
       is_master: { Args: { _user_id: string }; Returns: boolean }
       is_master_core: { Args: { _user_id: string }; Returns: boolean }
+      is_master_db: { Args: { _user_id: string }; Returns: boolean }
       jwt_has_permission: { Args: { _perm: string }; Returns: boolean }
       log_client_action: {
         Args: {
