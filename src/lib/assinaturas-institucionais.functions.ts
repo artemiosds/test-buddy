@@ -15,11 +15,12 @@ const hashSchema = z.object({
 
 export const generateInstitutionalHash = createServerFn({ method: "POST" })
   .validator((data: unknown) => hashSchema.parse(data))
-  .handler(async ({ data }: { data: any }) => {
-    const typedData = data as z.infer<typeof hashSchema>;
+  .handler(async ({ data }: any) => {
+    // Usando destructuring com type cast manual para satisfazer o compilador
+    const d = data as z.infer<typeof hashSchema>;
     // Gerar um hash único baseado nos dados e num salt
     const salt = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10) || "hsm-gestao-salt";
-    const source = `${typedData.usuario_id}|${typedData.nome}|${typedData.timestamp}|${salt}`;
+    const source = `${d.usuario_id}|${d.nome}|${d.timestamp}|${salt}`;
     const hash = createHash("sha256").update(source).digest("hex").toUpperCase().slice(0, 16);
     
     // Formatar como XXXX-XXXX-XXXX-XXXX
@@ -42,8 +43,9 @@ const saveSchema = z.object({
 
 export const saveInstitutionalSignature = createServerFn({ method: "POST" })
   .validator((data: unknown) => saveSchema.parse(data))
-  .handler(async ({ data }: { data: any }) => {
-    const typedData = data as z.infer<typeof saveSchema>;
+  .handler(async ({ data }: any) => {
+    // Usando destructuring com type cast manual para satisfazer o compilador
+    const d = data as z.infer<typeof saveSchema>;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Assegurar tipo correto para o campo 'tipo'
@@ -51,21 +53,21 @@ export const saveInstitutionalSignature = createServerFn({ method: "POST" })
 
     const payload = {
       tipo,
-      usuario_id: typedData.usuario_id,
-      perfil_id: typedData.perfil_id,
-      unidade_id: typedData.unidade_id,
-      secretaria_id: typedData.secretaria_id,
-      titular_nome: typedData.titular_nome,
-      titular_cargo: typedData.titular_cargo,
+      usuario_id: d.usuario_id,
+      perfil_id: d.perfil_id,
+      unidade_id: d.unidade_id,
+      secretaria_id: d.secretaria_id,
+      titular_nome: d.titular_nome,
+      titular_cargo: d.titular_cargo,
       is_pessoal: true,
       ativa: true,
       metadata: {
-        ...typedData.metadata,
-        institutional_hash: typedData.hash,
+        ...d.metadata,
+        institutional_hash: d.hash,
         generated_at: new Date().toISOString(),
         method: "institutional_electronic"
       },
-      storage_path: `institutional_${typedData.hash}`,
+      storage_path: `institutional_${d.hash}`,
       mime_type: "application/json"
     };
 
