@@ -330,11 +330,16 @@ function UploadForm({
         const sanitizeUUID = (id: any, fieldName: string) => {
           if (!id || id === "__todas__") return null;
           const s = String(id).trim();
+          console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
           if (s.includes('.') || s.includes('/')) {
-            console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+            console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
             return null;
           }
-          return isUUID(s) ? s : null;
+          const valid = isUUID(s) ? s : null;
+          if (!valid && s) {
+            console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
+          }
+          return valid;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
@@ -415,11 +420,16 @@ function UploadForm({
       const sanitizeUUID = (id: any, fieldName: string) => {
         if (!id || id === "__todas__") return null;
         const s = String(id).trim();
+        console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
         if (s.includes('.') || s.includes('/')) {
-          console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+          console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
           return null;
         }
-        return isUUID(s) ? s : null;
+        const valid = isUUID(s) ? s : null;
+        if (!valid && s) {
+          console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
+        }
+        return valid;
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
