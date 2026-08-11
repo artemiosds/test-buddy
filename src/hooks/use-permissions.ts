@@ -18,6 +18,8 @@ export type UserContext = {
   is_master: boolean;
   perfil_admin_2fa_required: boolean;
   unidades: string[];
+  cpf?: string | null;
+  matricula?: string | null;
 };
 
 export function useCurrentUser() {
