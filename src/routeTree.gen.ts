@@ -44,6 +44,7 @@ import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authent
 import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated.assinar-pdf'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
@@ -83,6 +84,7 @@ import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_a
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
+import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -279,6 +281,11 @@ const AuthenticatedAssinaturasRoute =
     path: '/assinaturas',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAssinarPdfRoute = AuthenticatedAssinarPdfRouteImport.update({
+  id: '/assinar-pdf',
+  path: '/assinar-pdf',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -506,6 +513,11 @@ const ApiPublicHooksDeadlineCheckRoute =
     path: '/api/public/hooks/deadline-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicDocumentoPdfIdRoute = ApiPublicDocumentoPdfIdRouteImport.update({
+  id: '/api/public/documento-pdf/$id',
+  path: '/api/public/documento-pdf/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedConfiguracaoPerfisIdRoute =
   AuthenticatedConfiguracaoPerfisIdRouteImport.update({
     id: '/$id',
@@ -520,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -585,6 +598,7 @@ export interface FileRoutesByFullPath {
   '/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
+  '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
@@ -596,6 +610,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -660,6 +675,7 @@ export interface FileRoutesByTo {
   '/relatorios-gerenciais': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
+  '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
@@ -673,6 +689,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/analitico': typeof AuthenticatedAnaliticoRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/_authenticated/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -738,6 +755,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios-gerenciais/': typeof AuthenticatedRelatoriosGerenciaisIndexRoute
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/_authenticated/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
+  '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
@@ -751,6 +769,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/analitico'
     | '/aprovacoes'
+    | '/assinar-pdf'
     | '/assinaturas'
     | '/auditoria'
     | '/cargos-funcoes'
@@ -816,6 +835,7 @@ export interface FileRouteTypes {
     | '/relatorios-gerenciais/'
     | '/unidades/'
     | '/configuracao/perfis/$id'
+    | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/purgar-documentos'
@@ -827,6 +847,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/analitico'
     | '/aprovacoes'
+    | '/assinar-pdf'
     | '/assinaturas'
     | '/auditoria'
     | '/cargos-funcoes'
@@ -891,6 +912,7 @@ export interface FileRouteTypes {
     | '/relatorios-gerenciais'
     | '/unidades'
     | '/configuracao/perfis/$id'
+    | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/purgar-documentos'
@@ -903,6 +925,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/analitico'
     | '/_authenticated/aprovacoes'
+    | '/_authenticated/assinar-pdf'
     | '/_authenticated/assinaturas'
     | '/_authenticated/auditoria'
     | '/_authenticated/cargos-funcoes'
@@ -968,6 +991,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios-gerenciais/'
     | '/_authenticated/unidades/'
     | '/_authenticated/configuracao/perfis/$id'
+    | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/purgar-documentos'
@@ -980,6 +1004,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ValidarIdRoute: typeof ValidarIdRoute
+  ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
   ApiPublicHooksPurgarDocumentosRoute: typeof ApiPublicHooksPurgarDocumentosRoute
@@ -1230,6 +1255,13 @@ declare module '@tanstack/react-router' {
       path: '/assinaturas'
       fullPath: '/assinaturas'
       preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assinar-pdf': {
+      id: '/_authenticated/assinar-pdf'
+      path: '/assinar-pdf'
+      fullPath: '/assinar-pdf'
+      preLoaderRoute: typeof AuthenticatedAssinarPdfRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/aprovacoes': {
@@ -1505,6 +1537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/documento-pdf/$id': {
+      id: '/api/public/documento-pdf/$id'
+      path: '/api/public/documento-pdf/$id'
+      fullPath: '/api/public/documento-pdf/$id'
+      preLoaderRoute: typeof ApiPublicDocumentoPdfIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/configuracao/perfis/$id': {
       id: '/_authenticated/configuracao/perfis/$id'
       path: '/$id'
@@ -1624,6 +1663,7 @@ const AuthenticatedConfiguracaoPerfisRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAnaliticoRoute: typeof AuthenticatedAnaliticoRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
+  AuthenticatedAssinarPdfRoute: typeof AuthenticatedAssinarPdfRoute
   AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedCargosFuncoesRoute: typeof AuthenticatedCargosFuncoesRoute
@@ -1679,6 +1719,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnaliticoRoute: AuthenticatedAnaliticoRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
+  AuthenticatedAssinarPdfRoute: AuthenticatedAssinarPdfRoute,
   AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedCargosFuncoesRoute: AuthenticatedCargosFuncoesRoute,
@@ -1757,6 +1798,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ValidarIdRoute: ValidarIdRoute,
+  ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
   ApiPublicHooksPurgarDocumentosRoute: ApiPublicHooksPurgarDocumentosRoute,

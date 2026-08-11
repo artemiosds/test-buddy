@@ -1,4 +1,4 @@
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SignatureInstance {
@@ -28,6 +28,8 @@ export async function applySignaturesToPdf(
 ): Promise<Blob> {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const pages = pdfDoc.getPages();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   for (const sig of signatures) {
     if (sig.page >= pages.length) continue;
@@ -39,7 +41,9 @@ export async function applySignaturesToPdf(
 
     if (sig.type === "image" && sig.imageData) {
       try {
-        const imageBytes = await fetch(sig.imageData).then((res) => res.arrayBuffer());
+        const base64Data = sig.imageData.split(',')[1];
+        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
         const image = sig.imageData.includes("png") 
           ? await pdfDoc.embedPng(imageBytes) 
           : await pdfDoc.embedJpg(imageBytes);
@@ -63,31 +67,32 @@ export async function applySignaturesToPdf(
         width: sig.width,
         height: sig.height,
         color: rgb(0.98, 0.98, 0.98),
-        borderColor: rgb(0.8, 0.8, 0.8),
-        borderWidth: 0.5,
+        borderColor: rgb(0.23, 0.51, 0.96), // Royal Blue border
+        borderWidth: 1,
       });
 
       const fontSizeTitle = 8;
       const fontSizeText = 7;
-      let currentY = pdfY + sig.height - 10;
+      let currentY = pdfY + sig.height - 12;
 
       page.drawText("ASSINADO ELETRONICAMENTE", {
-        x: sig.x + 5,
+        x: sig.x + 8,
         y: currentY,
         size: fontSizeTitle,
+        font: fontBold,
         color: rgb(0.1, 0.1, 0.1),
       });
 
+      currentY -= 12;
+      page.drawText(`Nome: ${nome}`, { x: sig.x + 8, y: currentY, size: fontSizeText, font });
       currentY -= 10;
-      page.drawText(`Nome: ${nome}`, { x: sig.x + 5, y: currentY, size: fontSizeText });
-      currentY -= 8;
-      page.drawText(`Cargo: ${cargo}`, { x: sig.x + 5, y: currentY, size: fontSizeText });
-      currentY -= 8;
-      page.drawText(`Matrícula: ${matricula}`, { x: sig.x + 5, y: currentY, size: fontSizeText });
-      currentY -= 8;
-      page.drawText(`Data: ${data}`, { x: sig.x + 5, y: currentY, size: fontSizeText });
-      currentY -= 8;
-      page.drawText(`Código: ${codigo}`, { x: sig.x + 5, y: currentY, size: fontSizeText });
+      page.drawText(`Cargo: ${cargo}`, { x: sig.x + 8, y: currentY, size: fontSizeText, font });
+      currentY -= 10;
+      page.drawText(`Matrícula: ${matricula}`, { x: sig.x + 8, y: currentY, size: fontSizeText, font });
+      currentY -= 10;
+      page.drawText(`Data: ${data}`, { x: sig.x + 8, y: currentY, size: fontSizeText, font });
+      currentY -= 10;
+      page.drawText(`Hash: ${codigo}`, { x: sig.x + 8, y: currentY, size: fontSizeText, font });
     }
   }
 
