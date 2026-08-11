@@ -526,15 +526,16 @@ function UploadForm({
               type="button" 
               variant="outline" 
               className="w-full"
+              disabled={saving}
               onClick={async () => {
                 const ts = new Date().toISOString();
                 const res = await genHash({
                   data: {
                     usuario_id: me.id,
-                    nome: titularNome || me.nome_completo || '',
+                    nome: (titularNome || me.nome_completo || '').trim(),
                     cargo: titularCargo,
                     matricula: me.matricula || undefined,
-                    unidade: unidades.find(u => u.id === unidadeId)?.nome,
+                    unidade: unidades.find(u => u.id === (unidadeId === "__todas__" ? null : unidadeId))?.nome,
                     timestamp: ts
                   }
                 });
@@ -543,7 +544,7 @@ function UploadForm({
               }}
             >
               <Hash className="mr-2 h-4 w-4" />
-              Gerar Assinatura Institucional
+              {instHash ? "Regerar Assinatura" : "Gerar Assinatura Eletrônica"}
             </Button>
           </TabsContent>
         </Tabs>
