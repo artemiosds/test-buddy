@@ -31,7 +31,9 @@ export function useCurrentUser() {
       return withBreaker(
         "rpc.get_my_user_context",
         async () => {
+          console.log('[useCurrentUser] Chamando RPC get_my_user_context...');
           const { data, error } = await supabase.rpc("get_my_user_context");
+          console.log('[useCurrentUser] Resultado RPC:', data, error);
           if (error) throw error;
           
           // O RPC já retorna um objeto único devido ao jsonb_build_object
