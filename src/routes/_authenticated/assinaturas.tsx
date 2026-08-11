@@ -42,10 +42,12 @@ import {
   AlertCircle,
   CheckCircle2,
   PenLine,
+  MousePointer2,
 } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { MinhaAssinaturaPage } from "@/routes/_authenticated/meu-perfil.assinatura";
+import { SignaturePad } from "@/components/assinaturas/signature-pad";
 
 const PERFIS_ELEGIVEIS_PESSOAL = [
   "MASTER",
@@ -668,6 +670,8 @@ function NovaAssinaturaDialog({
   const [vigenciaInicio, setVigenciaInicio] = useState("");
   const [vigenciaFim, setVigenciaFim] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [padBlob, setPadBlob] = useState<Blob | null>(null);
+  const [mode, setMode] = useState<"upload" | "pad">("upload");
   const [saving, setSaving] = useState(false);
   const [perfilId, setPerfilId] = useState<string>("__institucional__");
   const [obrigatoria, setObrigatoria] = useState(true);
@@ -742,12 +746,13 @@ function NovaAssinaturaDialog({
   }
 
   async function salvar() {
+    const activeBlob = mode === "upload" ? file : padBlob;
     if (!titularNome.trim()) {
       toast.error("Informe o nome do titular");
       return;
     }
-    if (!file) {
-      toast.error("Selecione o arquivo");
+    if (!activeBlob) {
+      toast.error(mode === "upload" ? "Selecione o arquivo" : "Faça a assinatura no quadro");
       return;
     }
     if (escopo === "secretaria" && !secretariaId) {
@@ -761,7 +766,9 @@ function NovaAssinaturaDialog({
 
     setSaving(true);
     try {
-      const { blob: processedBlob, ext } = await processImage(file);
+      const { blob: processedBlob, ext } = (mode === "upload" && file)
+        ? await processImage(file)
+        : { blob: activeBlob!, ext: "png" };
       
       // O path do storage deve ser limpo e utilizar IDs únicos
       // Evitamos strings textuais como "unidade" ou "secretaria" no início do path se o bucket/política for restritivo
@@ -837,7 +844,38 @@ function NovaAssinaturaDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="grid grid-cols-2 gap-3">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" /> Upload de Arquivo
+              </TabsTrigger>
+              <TabsTrigger value="pad" className="flex items-center gap-2">
+                <MousePointer2 className="h-4 w-4" /> Desenhar na Tela
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upload" className="space-y-3 pt-4">
+              <div>
+                <Label>Arquivo</Label>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,application/pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="pad" className="pt-4">
+              <SignaturePad onConfirm={(blob) => setPadBlob(blob)} />
+              {padBlob && (
+                <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Assinatura capturada!
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t">
             <div>
               <Label>Tipo</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>

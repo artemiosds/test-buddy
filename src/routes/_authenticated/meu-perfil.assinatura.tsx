@@ -18,20 +18,18 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info, MousePointer2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   SignatureEditor,
   DEFAULT_POSITION,
   type SignaturePosition,
 } from "@/components/assinaturas/signature-editor";
+import { SignaturePad } from "@/components/assinaturas/signature-pad";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({ errorComponent: ErrorComponent,
-  // Módulo unificado em /assinaturas (aba "Minha assinatura").
-  // Mantido apenas como redirect para não quebrar links antigos.
-  beforeLoad: () => {
-    throw redirect({ to: "/assinaturas" });
-  },
+  // Redirecionamento removido para permitir edição direta
 });
 
 const BUCKET = "assinaturas";
@@ -236,6 +234,8 @@ function UploadForm({
   onSaved: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [padBlob, setPadBlob] = useState<Blob | null>(null);
+  const [mode, setMode] = useState<"upload" | "pad">("upload");
   const [preview, setPreview] = useState<string | null>(null);
   const [titularNome, setTitularNome] = useState(me.nome_completo ?? "");
   const [titularCargo, setTitularCargo] = useState("");
@@ -245,14 +245,24 @@ function UploadForm({
   const [pos, setPos] = useState<SignaturePosition>(DEFAULT_POSITION);
 
   useEffect(() => {
-    if (!file) {
-      setPreview(null);
-      return;
+    if (mode === "upload") {
+      if (!file) {
+        setPreview(null);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      if (!padBlob) {
+        setPreview(null);
+        return;
+      }
+      const url = URL.createObjectURL(padBlob);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
     }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [file, padBlob, mode]);
 
   async function processImage(file: File): Promise<{ blob: Blob; ext: string }> {
     return new Promise((resolve, reject) => {
@@ -298,15 +308,16 @@ function UploadForm({
   }
 
   async function salvar() {
-    if (!file) {
-      toast.error("Selecione um arquivo PNG ou JPG");
+    const activeBlob = mode === "upload" ? file : padBlob;
+    if (!activeBlob) {
+      toast.error(mode === "upload" ? "Selecione um arquivo PNG ou JPG" : "Faça sua assinatura no quadro");
       return;
     }
-    if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+    if (mode === "upload" && file && !/^image\/(png|jpe?g)$/i.test(file.type)) {
       toast.error("Formato inválido. Use PNG ou JPG");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
+    if (activeBlob.size > 2 * 1024 * 1024) {
       toast.error("Arquivo muito grande. Máx: 2MB");
       return;
     }
@@ -317,7 +328,9 @@ function UploadForm({
 
     setSaving(true);
     try {
-      const { blob: processedBlob, ext } = await processImage(file);
+      const { blob: processedBlob, ext } = mode === "upload" && file 
+        ? await processImage(file)
+        : { blob: activeBlob, ext: "png" };
       
       // O path do storage deve ser limpo e utilizar IDs únicos
       // Evitamos strings textuais como "pessoal" no início do path se o bucket/política for restritivo
@@ -371,8 +384,9 @@ function UploadForm({
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
       }
-      toast.success("Assinatura cadastrada (fundo removido automaticamente)");
+      toast.success("Assinatura cadastrada");
       setFile(null);
+      setPadBlob(null);
       setTitularCargo("");
       setVigenciaFim("");
       setPos(DEFAULT_POSITION);
@@ -386,63 +400,83 @@ function UploadForm({
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <div className="space-y-3">
-        <div>
-          <Label htmlFor="file">Arquivo (PNG/JPG, máx 2MB)</Label>
-          <Input
-            id="file"
-            type="file"
-            accept="image/png,image/jpeg"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
+      <div className="space-y-4">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" /> Upload
+            </TabsTrigger>
+            <TabsTrigger value="pad" className="flex items-center gap-2">
+              <MousePointer2 className="h-4 w-4" /> Desenhar
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="space-y-3 pt-4">
+            <div>
+              <Label htmlFor="file">Arquivo (PNG/JPG, máx 2MB)</Label>
+              <Input
+                id="file"
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="pad" className="pt-4">
+            <SignaturePad onConfirm={(blob) => setPadBlob(blob)} />
+            {padBlob && (
+              <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Assinatura capturada com sucesso!
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="space-y-3 border-t pt-4">
+          <div>
+            <Label htmlFor="nome">Nome completo (como assina)</Label>
+            <Input id="nome" value={titularNome} onChange={(e) => setTitularNome(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="cargo">Cargo / função</Label>
+            <Input
+              id="cargo"
+              value={titularCargo}
+              onChange={(e) => setTitularCargo(e.target.value)}
+              placeholder="Ex.: Diretor da UBS Central"
+            />
+          </div>
+          <div>
+            <Label htmlFor="unidade">Unidade</Label>
+            <Select value={unidadeId} onValueChange={setUnidadeId}>
+              <SelectTrigger id="unidade">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todas__">Todas as minhas unidades</SelectItem>
+                {unidades.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="fim">Vigência até (opcional)</Label>
+            <Input
+              id="fim"
+              type="date"
+              value={vigenciaFim}
+              onChange={(e) => setVigenciaFim(e.target.value)}
+            />
+          </div>
+          <Button onClick={salvar} disabled={saving || (!file && !padBlob)} className="w-full">
+            <Upload className="mr-2 h-4 w-4" />
+            {saving ? "Enviando…" : "Cadastrar assinatura"}
+          </Button>
         </div>
-        <div>
-          <Label htmlFor="nome">Nome completo (como assina)</Label>
-          <Input id="nome" value={titularNome} onChange={(e) => setTitularNome(e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="cargo">Cargo / função</Label>
-          <Input
-            id="cargo"
-            value={titularCargo}
-            onChange={(e) => setTitularCargo(e.target.value)}
-            placeholder="Ex.: Diretor da UBS Central"
-          />
-        </div>
-        <div>
-          <Label htmlFor="unidade">Unidade</Label>
-          <Select value={unidadeId} onValueChange={setUnidadeId}>
-            <SelectTrigger id="unidade">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__todas__">Todas as minhas unidades</SelectItem>
-              {unidades.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {unidades.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">
-              Você não está vinculado a nenhuma unidade. A assinatura ficará como "todas".
-            </p>
-          )}
-        </div>
-        <div>
-          <Label htmlFor="fim">Vigência até (opcional)</Label>
-          <Input
-            id="fim"
-            type="date"
-            value={vigenciaFim}
-            onChange={(e) => setVigenciaFim(e.target.value)}
-          />
-        </div>
-        <Button onClick={salvar} disabled={saving || !file} className="w-full">
-          <Upload className="mr-2 h-4 w-4" />
-          {saving ? "Enviando…" : "Cadastrar assinatura"}
-        </Button>
       </div>
 
       <div className="space-y-2">
