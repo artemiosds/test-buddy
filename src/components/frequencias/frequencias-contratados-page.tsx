@@ -169,7 +169,7 @@ export function FrequenciasContratadosPage() {
         .from("cargos")
         .select("id, nome")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       return data ?? [];
     },
@@ -181,7 +181,7 @@ export function FrequenciasContratadosPage() {
         .from("funcoes")
         .select("id, nome")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       return data ?? [];
     },
@@ -236,7 +236,7 @@ export function FrequenciasContratadosPage() {
         .from("unidades")
         .select("id, nome, sigla, tipo_unidade")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       const { data } = await q;
       return data ?? [];

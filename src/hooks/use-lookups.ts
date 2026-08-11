@@ -29,7 +29,7 @@ export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean }) =>
         .select("id, nome, sigla")
         .is("deleted_at", null)
         .order("nome");
-      if (opts?.ativasOnly) q = q.eq("status", "ativa");
+      
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as UnidadeLookup[];
