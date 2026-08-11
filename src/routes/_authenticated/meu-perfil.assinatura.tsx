@@ -341,9 +341,9 @@ function UploadForm({
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
         const payloadInst = {
-          usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
-          perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
-          unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
+          usuario_id: sanitizeUUID(me.id, 'INST_usuario_id')!,
+          perfil_id: sanitizeUUID(me.perfil_id, 'INST_perfil_id'),
+          unidade_id: sanitizeUUID(unidadeReal, 'INST_unidade_id'),
           secretaria_id: null,
           titular_nome: (titularNome || me.nome_completo || "").trim(),
           titular_cargo: titularCargo.trim() || null,
@@ -356,6 +356,7 @@ function UploadForm({
             cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
           }
         };
+        console.log('PAYLOAD INSTITUCIONAL ANTES DO SAVE:', JSON.stringify(payloadInst, null, 2));
 
         if (!payloadInst.usuario_id) {
           throw new Error("Erro de identificação do usuário. Tente recarregar a página.");
@@ -428,10 +429,10 @@ function UploadForm({
         titular_cargo: titularCargo.trim() || null,
         storage_path: storagePath,
         mime_type: "image/png",
-        usuario_id: sanitizeUUID(me.id, 'usuario_id'),
-        unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
+        usuario_id: sanitizeUUID(me.id, 'UPLOAD_usuario_id'),
+        unidade_id: sanitizeUUID(unidadeReal, 'UPLOAD_unidade_id'),
         secretaria_id: null,
-        perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
+        perfil_id: sanitizeUUID(me.perfil_id, 'UPLOAD_perfil_id'),
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
