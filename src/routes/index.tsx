@@ -1,3 +1,10 @@
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/")({
+  component: () => <Navigate to="/analitico" replace />,
+});
+
+/**
 AUDITORIA COMPLETA — MÓDULO DE ASSINATURAS INSTITUCIONAIS
 ════════════════════════════════════════════════════════════════
 OBJETIVO
@@ -210,9 +217,4 @@ Item	Status	Observação
 [ ] Teste 2 — Cadastrar assinatura institucional	⚠️ PENDENTE	Aguardando
 [ ] Teste 3 — Configurar regra	⚠️ PENDENTE	Aguardando
 [ ] Teste 4 — Fluxo de pendentes	⚠️ PENDENTE	Aguardando
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-
-export const Route = createFileRoute("/")({
-  component: () => <Navigate to="/analitico" replace />,
-});
-
+*/
