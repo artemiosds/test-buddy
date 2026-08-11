@@ -776,8 +776,8 @@ function NovaAssinaturaDialog({
       });
       if (up.error) throw up.error;
 
-      const insert = await supabase.from("assinaturas_institucionais").insert({
-        tipo,
+      const payloadAssinatura = {
+        tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
@@ -797,7 +797,11 @@ function NovaAssinaturaDialog({
         vigencia_fim: vigenciaFim || null,
         ativa: true,
         created_by: userId,
-      });
+      };
+
+      console.log('DEBUG PAYLOAD ASSINATURA (INSTITUCIONAL):', JSON.stringify(payloadAssinatura, null, 2));
+
+      const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
       if (insert.error) {
         console.error("Erro ao inserir assinatura:", insert.error);
         await supabase.storage.from(BUCKET).remove([path]);

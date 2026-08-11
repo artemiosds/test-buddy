@@ -323,15 +323,15 @@ function UploadForm({
       if (up.error) throw up.error;
 
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
-      const ins = await supabase.from("assinaturas_institucionais").insert({
-        tipo: "assinatura",
+      const payloadAssinatura = {
+        tipo: "assinatura" as const,
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
         mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: (unidadeReal && unidadeReal !== "") ? unidadeReal : null,
-        secretaria_id: null, // Garantindo null literal para evitar erro de sintaxe UUID
+        secretaria_id: null,
         perfil_id: (me.perfil_id && me.perfil_id !== "") ? me.perfil_id : null,
         is_pessoal: true,
         ativa: true,
@@ -346,7 +346,11 @@ function UploadForm({
         alinhamento: pos.alinhamento,
         mostrar_nome: pos.mostrar_nome,
         mostrar_cargo: pos.mostrar_cargo,
-      });
+      };
+
+      console.log('DEBUG PAYLOAD ASSINATURA (MEU PERFIL):', JSON.stringify(payloadAssinatura, null, 2));
+
+      const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
         await supabase.storage.from(BUCKET).remove([path]);
