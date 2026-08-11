@@ -82,6 +82,7 @@ const REGISTRY: Registry = {
       "enviada",
       "em_analise",
       "com_pendencias",
+      "devolvida",
       "aprovada",
       "rejeitada",
       "arquivada",
@@ -120,6 +121,14 @@ const REGISTRY: Registry = {
         icon: AlertTriangle,
         colorToken: "warning",
         description: "Devolvida à unidade com pendências para correção.",
+      },
+      devolvida: {
+        label: "Devolvida",
+        variant: "secondary",
+        className: "bg-amber-100 text-amber-800 border-amber-200",
+        icon: RotateCcw,
+        colorToken: "warning",
+        description: "Devolvida para correção pelo gestor.",
       },
       aprovada: {
         label: "Aprovada",

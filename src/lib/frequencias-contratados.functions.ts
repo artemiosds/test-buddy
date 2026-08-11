@@ -249,7 +249,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       } as never)
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
-      .in("status", ["rascunho", "rejeitada", "devolvida" as any])
+      .in("status", ["rascunho", "rejeitada", "devolvida"])
       .is("deleted_at", null)
       .select("id");
     if (error) throw new Error(error.message);

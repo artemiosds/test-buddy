@@ -2779,6 +2779,7 @@ export type Database = {
           concedida: boolean
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           perfil_id: string
           permissao_id: string
           updated_at: string
@@ -2788,6 +2789,7 @@ export type Database = {
           concedida?: boolean
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           perfil_id: string
           permissao_id: string
           updated_at?: string
@@ -2797,6 +2799,7 @@ export type Database = {
           concedida?: boolean
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           perfil_id?: string
           permissao_id?: string
           updated_at?: string
@@ -2824,6 +2827,7 @@ export type Database = {
           concedida: boolean
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           perfil_id: string
           permissao_id: string
           unidade_id: string
@@ -2834,6 +2838,7 @@ export type Database = {
           concedida: boolean
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           perfil_id: string
           permissao_id: string
           unidade_id: string
@@ -2844,6 +2849,7 @@ export type Database = {
           concedida?: boolean
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           perfil_id?: string
           permissao_id?: string
           unidade_id?: string
@@ -5447,6 +5453,7 @@ export type Database = {
         | "enviada"
         | "em_analise"
         | "com_pendencias"
+        | "devolvida"
         | "aprovada"
         | "rejeitada"
         | "arquivada"
@@ -5761,6 +5768,7 @@ export const Constants = {
         "enviada",
         "em_analise",
         "com_pendencias",
+        "devolvida",
         "aprovada",
         "rejeitada",
         "arquivada",
