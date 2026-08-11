@@ -225,9 +225,10 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
                       </TableCell>
                       <TableCell>
                         {item.status === 'pronto' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                        {item.status === 'ambiguo' && <AlertCircle className="h-4 w-4 text-yellow-600" title="Múltiplos matches" />}
-                        {item.status === 'nao_encontrado' && <X className="h-4 w-4 text-red-600" title="Não encontrado" />}
+                        {item.status === 'ambiguo' && <AlertCircle className="h-4 w-4 text-yellow-600" />}
+                        {item.status === 'nao_encontrado' && <X className="h-4 w-4 text-red-600" />}
                       </TableCell>
+
                       <TableCell className="text-xs font-mono">{item.identificador}</TableCell>
                       <TableCell className="text-xs max-w-[150px] truncate">
                         {item.profissionalNome || <span className="text-red-500 italic">Não identificado</span>}

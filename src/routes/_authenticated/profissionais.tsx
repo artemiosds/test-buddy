@@ -72,7 +72,9 @@ import {
   Loader2,
   MapPin,
   Download,
+  FileText,
 } from "lucide-react";
+
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
 import { ImportSalariosPdfDialog } from "@/components/profissionais/import-salarios-ia-dialog";
