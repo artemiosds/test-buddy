@@ -121,19 +121,19 @@ function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             <Button variant="secondary" className="w-full justify-start gap-2" asChild>
-              <Link href="/profissionais">
+              <Link to="/profissionais">
                 <Users className="h-4 w-4" />
                 Gerenciar Profissionais
               </Link>
             </Button>
             <Button variant="secondary" className="w-full justify-start gap-2" asChild>
-              <Link href="/assinaturas">
+              <Link to="/assinaturas">
                 <FileCheck className="h-4 w-4" />
                 Minhas Assinaturas
               </Link>
             </Button>
             <Button variant="secondary" className="w-full justify-start gap-2" asChild>
-              <Link href="/piso-enfermagem">
+              <Link to="/piso-enfermagem">
                 <Building2 className="h-4 w-4" />
                 Piso da Enfermagem
               </Link>
