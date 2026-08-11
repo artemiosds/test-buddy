@@ -256,7 +256,7 @@ function UsuariosList() {
   return (
     <div className="space-y-4">
       {/* 🔍 DEBUG TEMPORÁRIO — REMOVER DEPOIS */}
-      <div style={{ background: "#fee", border: "2px solid red", padding: "16px", marginBottom: "16px", fontFamily: "monospace", white-space: "pre-wrap" }}>
+      <div style={{ background: "#fee", border: "2px solid red", padding: "16px", marginBottom: "16px", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
         <strong>🔍 DEBUG TEMPORÁRIO — REMOVER DEPOIS</strong>
         <br/>Usuário logado (auth.uid): {JSON.stringify(userCtx?.id)}
         <br/>Perfil detectado no contexto: {JSON.stringify(userCtx?.perfil)}
