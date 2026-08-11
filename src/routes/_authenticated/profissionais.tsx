@@ -1374,6 +1374,7 @@ function ProfissionalFormBody({
   canSeeSalario: boolean;
 }) {
   const { control, setValue, getValues, watch } = useFormContext<ProfissionalFormValues>();
+  const { data: me } = useCurrentUser();
   const vinculoId = watch("vinculo_id");
   const nat = vinculos?.find((v) => v.id === vinculoId)?.natureza;
   const isEfetivo = nat === "efetivo" || nat === "comissionado";
