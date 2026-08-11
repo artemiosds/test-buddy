@@ -142,9 +142,12 @@ export async function resolverAssinaturasDocumento(
   let meuNome: string | null = null;
   try {
     const { data: ctx } = await supabase.rpc("get_my_user_context");
-    const me = Array.isArray(ctx) ? ctx[0] : ctx;
-    meuPerfil = (me?.perfil_codigo as string | null) ?? null;
-    meuNome = (me?.nome_completo as string | null) ?? null;
+    const me = (Array.isArray(ctx) ? ctx[0] : ctx) as {
+      perfil_codigo?: string | null;
+      nome_completo?: string | null;
+    } | null;
+    meuPerfil = me?.perfil_codigo ?? null;
+    meuNome = me?.nome_completo ?? null;
   } catch {
     /* sem contexto — segue com os dados cadastrados */
   }

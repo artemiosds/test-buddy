@@ -16,6 +16,7 @@ export type UserContext = {
   acesso_todas_secretarias: boolean;
   is_master: boolean;
   perfil_admin_2fa_required: boolean;
+  unidades: string[];
 };
 
 export function useCurrentUser() {

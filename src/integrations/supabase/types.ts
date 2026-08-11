@@ -5106,20 +5106,7 @@ export type Database = {
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: {
         Args: never
-        Returns: {
-          acesso_todas_secretarias: boolean
-          acesso_todas_unidades: boolean
-          email: string
-          id: string
-          is_master: boolean
-          nome_completo: string
-          perfil_admin_2fa_required: boolean
-          perfil_codigo: string
-          perfil_id: string
-          perfil_nome: string
-          secretaria_id: string
-          status: Database["public"]["Enums"]["status_usuario"]
-        }[]
+        Returns: Json
       }
       get_quadro_lotacao: {
         Args: {
