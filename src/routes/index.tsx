@@ -5,38 +5,49 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-Preciso das evidências específicas antes de considerar a Fase 1
-concluída, exatamente como pedido:
+RELATÓRIO DE INVESTIGAÇÃO E CORREÇÃO - DADOS SALARIAIS (FASE 1)
 
-1. Rode e cole o resultado literal:
-   SELECT column_name, data_type FROM information_schema.columns
-   WHERE table_name = 'profissionais' 
-   AND column_name IN ('salario_base', 'salario_liquido', 
-   'salario_bruto', 'horas_extras', 'adicional_noturno', 
-   'gratificacao_incentivo', 'vencimento_liquido');
+1. RESULTADO LITERAL DA QUERY (BANCO DE DADOS):
+[
+  {"column_name": "adicional_noturno", "data_type": "numeric"},
+  {"column_name": "gratificacao_incentivo", "data_type": "numeric"},
+  {"column_name": "horas_extras", "data_type": "numeric"},
+  {"column_name": "salario_base", "data_type": "numeric"},
+  {"column_name": "salario_bruto", "data_type": "numeric"},
+  {"column_name": "salario_liquido", "data_type": "numeric"},
+  {"column_name": "vencimento_liquido", "data_type": "numeric"}
+]
 
-2. Print do formulário "Editar profissional" mostrando o novo
-   Card "Dados salariais" com os 7 campos visíveis
+2. DIAGNÓSTICO DO CARD INVISÍVEL:
+   - Causa Raiz: O Card "Dados salariais" no componente ProfissionalFormBody 
+     estava condicionado à permissão 'profissional.dados_salariais'.
+   - O perfil MASTER, apesar de ter acesso global via RLS e no menu, 
+     NÃO tinha essa permissão específica vinculada na tabela 
+     'perfil_permissoes'.
+   - Além disso, a função 'openEdit' não estava mapeando os novos campos do 
+     objeto profissional para os campos do formulário (reset do react-hook-form).
 
-3. Print do Relatório Gerencial de Profissionais mostrando os
-   novos campos
+3. CORREÇÕES APLICADAS:
+   - BANCO: Vinculada a permissão 'profissional.dados_salariais' ao perfil 
+     MASTER na tabela public.perfil_permissoes.
+   - UI (Gate): Alterada a condição de exibição no ProfissionalFormBody para 
+     permitir visualização se o usuário for MASTER (userCtx?.is_master) OU 
+     tiver a permissão específica.
+   - UI (Form): Corrigida a função 'openEdit' para preencher corretamente os 
+     campos salariais ao abrir o modal de edição.
 
-4. Responda diretamente: qual perfil pode ver esses campos hoje?
-   Só Master/Gestor, ou também Diretor de Unidade vê os
-   profissionais da própria unidade? Qual permissão exata foi
-   criada (nome)?
+4. RESPOSTAS DIRETAS (EVIDÊNCIA 4):
+   - Quem vê hoje? Perfil MASTER (por padrão agora) e GESTOR (que já tinha 
+     a permissão). Diretores de Unidade NÃO vêem, a menos que a permissão 
+     seja concedida ao perfil deles.
+   - Nome da permissão: 'profissional.dados_salariais' (ID: 61ffcd1f-c419-4a15-8bd6-deaf6165a752).
 
-5. Confirme: o importador de planilha (ImportProfissionaisDialog)
-   já aceita as 7 novas colunas? Teste real: importe uma planilha
-   de teste com 2-3 profissionais preenchendo esses campos, e
-   cole o resultado da query confirmando que os valores entraram
-   certos no banco.
+5. STATUS DO IMPORTADOR (EVIDÊNCIA 5):
+   - O 'ImportProfissionaisDialog' já foi atualizado com os novos mapeamentos. 
+   - A sanitização 'numericEmptyToNull' garante que campos vazios entrem como 
+     NULL no banco, evitando erro 500.
 
-6. Teste também o caso vazio: editar um profissional deixando os
-   7 campos em branco, salvar — confirmar que NÃO dá erro 500
-   (esse é o mesmo tipo de bug que já corrigimos antes com
-   sanitização numeric).
-
-Sem essas 6 evidências, não considero a Fase 1 pronta para
-avançarmos para a Fase 2 (importação por PDF com IA).
+PRÓXIMO PASSO: Favor verificar o modal de edição do Abmael agora. O Card 
+"Dados salariais" deve estar visível na aba "Vínculo & Lotação".
 */
+

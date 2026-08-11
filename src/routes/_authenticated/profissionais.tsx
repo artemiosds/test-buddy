@@ -791,7 +791,15 @@ function ProfissionaisPage() {
       bairro: (p as any).bairro ?? "",
       cidade: (p as any).cidade ?? "",
       uf: (p as any).uf ?? "",
+      salario_base: (p as any).salario_base?.toString() ?? "",
+      salario_liquido: (p as any).salario_liquido?.toString() ?? "",
+      horas_extras: (p as any).horas_extras?.toString() ?? "",
+      adicional_noturno: (p as any).adicional_noturno?.toString() ?? "",
+      salario_bruto: (p as any).salario_bruto?.toString() ?? "",
+      gratificacao_incentivo: (p as any).gratificacao_incentivo?.toString() ?? "",
+      vencimento_liquido: (p as any).vencimento_liquido?.toString() ?? "",
     });
+
     setOpen(true);
   };
 
@@ -1027,7 +1035,8 @@ function ProfissionaisPage() {
                         gestoresOpt={gestoresOpt}
                         canEditAgili={hasPermission("profissional.editar_dados_agili")}
                         canSeeBanco={hasPermission("profissional.dados_bancarios")}
-                        canSeeSalario={hasPermission("profissional.dados_salariais")}
+                        canSeeSalario={hasPermission("profissional.dados_salariais") || me?.is_master === true}
+
                       />
                       <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
