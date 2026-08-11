@@ -773,12 +773,7 @@ function NovaAssinaturaDialog({
       });
       if (up.error) throw up.error;
 
-      const payloadAssinatura = {
-        tipo: tipo as "assinatura" | "carimbo" | "logo",
-        titular_nome: titularNome.trim(),
-        titular_cargo: titularCargo.trim() || null,
-        storage_path: path,
-        mime_type: ext === "pdf" ? "application/pdf" : "image/png",
+      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
       const payloadAssinatura = {
