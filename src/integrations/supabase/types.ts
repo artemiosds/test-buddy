@@ -3703,6 +3703,7 @@ export type Database = {
       }
       profissionais: {
         Row: {
+          adicional_noturno: number | null
           agencia: string | null
           bairro: string | null
           banco: string | null
@@ -3730,7 +3731,9 @@ export type Database = {
           foto_url: string | null
           funcao_id: string | null
           gestor_imediato_id: string | null
+          gratificacao_incentivo: number | null
           h_p: number | null
+          horas_extras: number | null
           horas_previstas: number | null
           id: string
           jorn: number | null
@@ -3747,6 +3750,9 @@ export type Database = {
           rg: string | null
           rg_orgao: string | null
           rg_uf: string | null
+          salario_base: number | null
+          salario_bruto: number | null
+          salario_liquido: number | null
           secretaria_id: string
           setor_id: string | null
           sexo: string | null
@@ -3761,9 +3767,11 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           updated_by: string | null
+          vencimento_liquido: number | null
           vinculo_id: string | null
         }
         Insert: {
+          adicional_noturno?: number | null
           agencia?: string | null
           bairro?: string | null
           banco?: string | null
@@ -3791,7 +3799,9 @@ export type Database = {
           foto_url?: string | null
           funcao_id?: string | null
           gestor_imediato_id?: string | null
+          gratificacao_incentivo?: number | null
           h_p?: number | null
+          horas_extras?: number | null
           horas_previstas?: number | null
           id?: string
           jorn?: number | null
@@ -3808,6 +3818,9 @@ export type Database = {
           rg?: string | null
           rg_orgao?: string | null
           rg_uf?: string | null
+          salario_base?: number | null
+          salario_bruto?: number | null
+          salario_liquido?: number | null
           secretaria_id: string
           setor_id?: string | null
           sexo?: string | null
@@ -3822,9 +3835,11 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          vencimento_liquido?: number | null
           vinculo_id?: string | null
         }
         Update: {
+          adicional_noturno?: number | null
           agencia?: string | null
           bairro?: string | null
           banco?: string | null
@@ -3852,7 +3867,9 @@ export type Database = {
           foto_url?: string | null
           funcao_id?: string | null
           gestor_imediato_id?: string | null
+          gratificacao_incentivo?: number | null
           h_p?: number | null
+          horas_extras?: number | null
           horas_previstas?: number | null
           id?: string
           jorn?: number | null
@@ -3869,6 +3886,9 @@ export type Database = {
           rg?: string | null
           rg_orgao?: string | null
           rg_uf?: string | null
+          salario_base?: number | null
+          salario_bruto?: number | null
+          salario_liquido?: number | null
           secretaria_id?: string
           setor_id?: string | null
           sexo?: string | null
@@ -3883,6 +3903,7 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          vencimento_liquido?: number | null
           vinculo_id?: string | null
         }
         Relationships: [
