@@ -231,13 +231,26 @@ export function FrequenciasContratadosPage() {
     [me]
   );
 
+  const { data: unidades } = useQuery({
+    queryKey: ["unidades-contratados-lista", me?.id],
+    enabled: !!me,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unidades")
+        .select("id, nome, sigla, tipo_unidade")
+        .is("deleted_at", null)
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   const unidadesVisiveis = useMemo(() => {
-    if (!me) return [];
-    if (isGestor) return unidades ?? [];
+    if (!me || !unidades) return [];
+    if (isGestor) return unidades;
     
     // Para Diretores, filtra as unidades globais baseando-se no array de unidades do contexto
     const permitidas = new Set(me.unidades || []);
-    return (unidades ?? []).filter(u => permitidas.has(u.id));
+    return unidades.filter(u => permitidas.has(u.id));
   }, [me, unidades, isGestor]);
 
   useEffect(() => {
