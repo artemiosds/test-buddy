@@ -225,46 +225,32 @@ export function FrequenciasContratadosPage() {
   const compSel = competencias?.find((c) => c.id === competenciaId);
   const compFechada = compSel?.status === "encerrada" || compSel?.status === "arquivada";
 
-  // Unidades visíveis
-  const isGestor = !!me?.is_master || !!me?.acesso_todas_unidades;
+  // Unidades visíveis - Prioriza o que vem do contexto do usuário
+  const isGestor = useMemo(() => 
+    !!me?.is_master || !!me?.acesso_todas_unidades, 
+    [me]
+  );
 
-  const { data: unidades } = useQuery({
-    queryKey: ["unidades-contratados", me?.id],
-    enabled: !!me,
-    queryFn: async () => {
-      const q = supabase
-        .from("unidades")
-        .select("id, nome, sigla, tipo_unidade")
-        .is("deleted_at", null)
-        
-        .order("nome");
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
-
-  // Se Diretor/Administrativo, força a unidade vinculada
-  const { data: minhasUnidades } = useQuery({
-    queryKey: ["minhas-unidades", me?.id],
-    enabled: !!me && !isGestor,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("usuario_unidades")
-        .select("unidade_id, unidades(id, nome, sigla, tipo_unidade)")
-        .eq("usuario_id", me!.id)
-        .is("deleted_at", null);
-      return (data ?? []).map((r: any) => r.unidades).filter(Boolean);
-    },
-  });
+  const unidadesVisiveis = useMemo(() => {
+    if (!me) return [];
+    if (isGestor) return unidades ?? [];
+    
+    // Para Diretores, filtra as unidades globais baseando-se no array de unidades do contexto
+    const permitidas = new Set(me.unidades || []);
+    return (unidades ?? []).filter(u => permitidas.has(u.id));
+  }, [me, unidades, isGestor]);
 
   useEffect(() => {
     if (unidadeId) return;
-    if (!isGestor && minhasUnidades?.length) setUnidadeId(minhasUnidades[0].id);
-    else if (isGestor && unidades?.length) setUnidadeId(unidades[0].id);
-  }, [isGestor, unidades, minhasUnidades, unidadeId]);
+    if (unidadesVisiveis.length > 0) {
+      setUnidadeId(unidadesVisiveis[0].id);
+    }
+  }, [unidadesVisiveis, unidadeId]);
 
-  const unidadesVisiveis = isGestor ? (unidades ?? []) : (minhasUnidades ?? []);
-  const unidadeSel = (unidadesVisiveis as any[]).find((u) => u.id === unidadeId);
+  const unidadeSel = useMemo(() => 
+    unidadesVisiveis.find((u: any) => u.id === unidadeId),
+    [unidadesVisiveis, unidadeId]
+  );
 
   // Folha
   const carregar = useServerFn(listarFolhaContratados);
