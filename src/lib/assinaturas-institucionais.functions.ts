@@ -14,7 +14,7 @@ const hashSchema = z.object({
 });
 
 export const generateInstitutionalHash = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => hashSchema.parse(data))
+  .validator(hashSchema)
   .handler(async ({ data }) => {
     // Gerar um hash único baseado nos dados e num salt
     const salt = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10) || "hsm-gestao-salt";
@@ -40,7 +40,7 @@ const saveSchema = z.object({
 });
 
 export const saveInstitutionalSignature = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => saveSchema.parse(data))
+  .validator(saveSchema)
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
