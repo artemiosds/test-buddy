@@ -836,6 +836,7 @@ function NovaAssinaturaDialog({
         created_by: userId,
       };
 
+      console.log('PAYLOAD ADMIN FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
       const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
       if (insert.error) {
         await supabase.storage.from(BUCKET).remove([path]);
