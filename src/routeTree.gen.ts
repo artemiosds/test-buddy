@@ -84,7 +84,7 @@ import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_a
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
-import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api.public.documento-pdf.$id'
+import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -1806,3 +1806,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
