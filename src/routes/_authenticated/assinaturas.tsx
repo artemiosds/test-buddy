@@ -821,12 +821,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? sanitizeUUID(secretariaId, 'secretaria_id')
+            ? sanitizeUUID(secretariaId, 'ADMIN_secretaria_id')
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'unidade_id') : null,
-        perfil_id: sanitizeUUID(perfilId, 'perfil_id'),
+        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'ADMIN_unidade_id') : null,
+        perfil_id: sanitizeUUID(perfilId, 'ADMIN_perfil_id'),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
@@ -836,6 +836,7 @@ function NovaAssinaturaDialog({
         created_by: userId,
       };
 
+      console.log('PAYLOAD ADMIN FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
       const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
       if (insert.error) {
         await supabase.storage.from(BUCKET).remove([path]);

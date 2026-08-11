@@ -330,20 +330,25 @@ function UploadForm({
         const sanitizeUUID = (id: any, fieldName: string) => {
           if (!id || id === "__todas__") return null;
           const s = String(id).trim();
+          console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
           if (s.includes('.') || s.includes('/')) {
-            console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+            console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
             return null;
           }
-          return isUUID(s) ? s : null;
+          const valid = isUUID(s) ? s : null;
+          if (!valid && s) {
+            console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
+          }
+          return valid;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
         const payloadInst = {
-          usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
-          perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
-          unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
+          usuario_id: sanitizeUUID(me.id, 'INST_usuario_id')!,
+          perfil_id: sanitizeUUID(me.perfil_id, 'INST_perfil_id'),
+          unidade_id: sanitizeUUID(unidadeReal, 'INST_unidade_id'),
           secretaria_id: null,
           titular_nome: (titularNome || me.nome_completo || "").trim(),
           titular_cargo: titularCargo.trim() || null,
@@ -356,6 +361,16 @@ function UploadForm({
             cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
           }
         };
+        console.log('PAYLOAD INSTITUCIONAL ANTES DO SAVE:', JSON.stringify(payloadInst, null, 2));
+
+        // Validação final de emergência antes do saveInst
+        const instFieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
+        instFieldsToCheck.forEach(field => {
+          const val = payloadInst[field];
+          if (val && (String(val).includes('.') || String(val).includes('/'))) {
+             throw new Error(`CRITICAL STOP: Campo ${field} institucional contém path inválido: ${val}`);
+          }
+        });
 
         if (!payloadInst.usuario_id) {
           throw new Error("Erro de identificação do usuário. Tente recarregar a página.");
@@ -400,8 +415,11 @@ function UploadForm({
         : { blob: activeBlob, ext: "png" };
       
       const userId = me.id;
-      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const fileId = crypto.randomUUID();
+      const fileName = `${fileId}.${ext}`;
       const storagePath = `pessoal/${userId}/${fileName}`;
+
+      console.log(`[FORENSIC-UPLOAD] PREPARING UPLOAD: userId=${userId}, fileId=${fileId}, fileName=${fileName}, storagePath=${storagePath}`);
 
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, processedBlob, {
         contentType: "image/png",
@@ -414,24 +432,32 @@ function UploadForm({
       const sanitizeUUID = (id: any, fieldName: string) => {
         if (!id || id === "__todas__") return null;
         const s = String(id).trim();
+        console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
         if (s.includes('.') || s.includes('/')) {
-          console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+          console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
           return null;
         }
-        return isUUID(s) ? s : null;
+        const valid = isUUID(s) ? s : null;
+        if (!valid && s) {
+          console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
+        }
+        return valid;
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
+      
+      console.log(`[FORENSIC-PAYLOAD] BUILDING PAYLOAD: me.id=${me.id}, unidadeReal=${unidadeReal}, fileName=${fileName}`);
+
       const payloadAssinatura = {
         tipo: "assinatura" as const,
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: storagePath,
+        storage_path: fileName,
         mime_type: "image/png",
-        usuario_id: sanitizeUUID(me.id, 'usuario_id'),
-        unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
+        usuario_id: sanitizeUUID(me.id, 'UPLOAD_usuario_id'),
+        unidade_id: sanitizeUUID(unidadeReal, 'UPLOAD_unidade_id'),
         secretaria_id: null,
-        perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
+        perfil_id: sanitizeUUID(me.perfil_id, 'UPLOAD_perfil_id'),
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
@@ -447,6 +473,17 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
+      console.log('PAYLOAD FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
+      
+      // Validação final de emergência antes do insert
+      const fieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
+      fieldsToCheck.forEach(field => {
+        const val = payloadAssinatura[field];
+        if (val && (String(val).includes('.') || String(val).includes('/'))) {
+           console.error(`[CRITICAL FAILURE] Campo ${field} contém path inválido detectado na última barreira:`, val);
+           throw new Error(`CRITICAL STOP: Campo ${field} contém path inválido: ${val}`);
+        }
+      });
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
