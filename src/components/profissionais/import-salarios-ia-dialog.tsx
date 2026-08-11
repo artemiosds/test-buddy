@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Loader2, AlertCircle, CheckCircle2, Search, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Loader2, AlertCircle, CheckCircle2, Search, X, Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { extractPdfAoa } from "@/lib/piso-pdf";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairSalariosPDF, salvarSalariosImportados, type SalarioExtraido } from "@/lib/salarios-ia.functions";
+import { listarProvedoresIA } from "@/lib/piso-ia-provedores.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface PreviewItem extends SalarioExtraido {
   status: "pronto" | "ambiguo" | "nao_encontrado";
@@ -28,8 +34,24 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState({ total: 0, atualizados: 0 });
+  const [summary, setSummary] = useState({ total: 0, atualizados: 0, modelo: "" });
   
+  // Configuração da IA
+  const [modoIA, setModoIA] = useState<"automatico" | "manual">("automatico");
+  const [provedorSelecionado, setProvedorSelecionado] = useState<string | null>(null);
+  const [permitirFailover, setPermitirFailover] = useState(true);
+
+  const { data: provedoresData } = useQuery({
+    queryKey: ["piso-ia-provedores"],
+    queryFn: () => listarProvedoresIA(),
+    enabled: open
+  });
+
+  const provedoresAtivos = useMemo(() => 
+    (provedoresData?.provedores || []).filter(p => p.ativo), 
+    [provedoresData]
+  );
+
   const processarIA = useServerFn(extrairSalariosPDF);
   const salvarImport = useServerFn(salvarSalariosImportados);
 
