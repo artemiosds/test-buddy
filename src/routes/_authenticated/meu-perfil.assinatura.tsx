@@ -329,7 +329,7 @@ function UploadForm({
         mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: unidadeReal,
-        secretaria_id: null,
+        secretaria_id: null, // explicit null prevents UUID cast error if empty string
         perfil_id: me.perfil_id ?? null,
         is_pessoal: true,
         ativa: true,
