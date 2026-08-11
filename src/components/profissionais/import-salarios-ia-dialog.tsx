@@ -81,8 +81,19 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
       const aoa = await extractPdfAoa(file);
       const texto = aoa.map(row => row.join(" | ")).join("\n");
 
-      // 2. IA para estruturar os dados
-      const { dados } = await processarIA({ data: { texto } });
+      // 2. IA para estruturar os dados (utilizando as configurações de provedor)
+      const { dados, modelo, tentativas_falhas } = await processarIA({ 
+        data: { 
+          texto,
+          provedorId: modoIA === "manual" ? provedorSelecionado : null,
+          permitirFailover
+        } 
+      });
+
+      if (tentativas_falhas?.length > 0) {
+        const resumo = tentativas_falhas.map(f => `${f.provedor}`).join(", ");
+        toast.info(`Nota: Provedores falharam (${resumo}), failover utilizado com sucesso.`);
+      }
 
       // 3. Casamento com banco de dados
       const processados: PreviewItem[] = [];
@@ -117,6 +128,7 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
       }
 
       setPreviewData(processados);
+      setSummary(prev => ({ ...prev, modelo }));
       setStep("preview");
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar PDF");
@@ -148,7 +160,7 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
     setLoading(true);
     try {
       const res = await salvarImport({ data: paraSalvar });
-      setSummary({ total: previewData.length, atualizados: res.sucesso });
+      setSummary(prev => ({ ...prev, total: previewData.length, atualizados: res.sucesso }));
       setStep("summary");
       toast.success("Importação concluída com sucesso!");
     } catch (err: any) {
@@ -170,6 +182,53 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
 
         {step === "upload" && (
           <div className="space-y-4 py-4">
+            <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="ia-auto" className="text-sm font-medium">Modo Automático</Label>
+                </div>
+                <Switch 
+                  id="ia-auto" 
+                  checked={modoIA === "automatico"} 
+                  onCheckedChange={(v) => setModoIA(v ? "automatico" : "manual")} 
+                />
+              </div>
+
+              {modoIA === "manual" && (
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Escolher Provedor</Label>
+                    <Select 
+                      value={provedorSelecionado || ""} 
+                      onValueChange={setProvedorSelecionado}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione uma IA ativa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {provedoresAtivos.map(p => (
+                          <SelectItem key={p.id} value={p.id} className="text-xs">
+                            {p.nome} ({p.modelo})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ia-failover" className="text-xs">Failover automático se falhar</Label>
+                    <Switch 
+                      id="ia-failover" 
+                      className="scale-75"
+                      checked={permitirFailover} 
+                      onCheckedChange={setPermitirFailover} 
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center space-y-2">
               <input
                 type="file"
