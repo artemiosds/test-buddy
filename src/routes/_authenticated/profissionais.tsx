@@ -352,6 +352,7 @@ function ProfissionaisPage() {
     data: profissionaisPage,
     isLoading,
     isFetching,
+    error: profissionaisPageError,
   } = useQuery({
     queryKey: [
       "profissionais",
