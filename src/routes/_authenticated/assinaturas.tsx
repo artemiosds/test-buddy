@@ -815,21 +815,17 @@ function NovaAssinaturaDialog({
         created_by: userId,
       };
 
-      console.group("[DEBUG ASSINATURA INSTITUCIONAL (ADMIN)]");
-      console.log("Payload completo:", payloadAssinatura);
-      console.log("usuario_id:", (payloadAssinatura as any).usuario_id);
-      console.log("unidade_id:", payloadAssinatura.unidade_id);
-      console.log("secretaria_id:", payloadAssinatura.secretaria_id);
-      console.log("perfil_id:", payloadAssinatura.perfil_id);
-      console.log("storage_path:", payloadAssinatura.storage_path);
-      console.groupEnd();
-
+      console.log("[ASSINATURA FINAL PAYLOAD ADMIN]", JSON.stringify(payloadAssinatura, null, 2));
       Object.entries(payloadAssinatura).forEach(([key, value]) => {
+        console.log("[ASSINATURA FIELD ADMIN]", key, value, typeof value);
         if (
           typeof value === "string" &&
           (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
         ) {
-          console.error("[ERRO FORENSE ADMIN] Possível caminho de arquivo em payload:", { campo: key, valor: value });
+          const uuidFields = ["usuario_id", "unidade_id", "secretaria_id", "perfil_id", "id"];
+          if (uuidFields.includes(key)) {
+            console.error("[ERRO FORENSE ADMIN] Caminho de arquivo contaminando campo UUID:", { campo: key, valor: value });
+          }
         }
       });
 

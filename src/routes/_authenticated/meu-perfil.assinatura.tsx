@@ -442,15 +442,20 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
-      console.group("[DEBUG ASSINATURA INSTITUCIONAL]");
-      console.log("Payload completo:", payloadAssinatura);
-      console.log("usuario_id:", payloadAssinatura.usuario_id);
-      console.log("unidade_id:", payloadAssinatura.unidade_id);
-      console.log("perfil_id:", payloadAssinatura.perfil_id);
-      console.log("storage_path:", payloadAssinatura.storage_path);
-      console.log("arquivo selecionado:", file);
-      console.log("nome do arquivo:", file?.name);
-      console.groupEnd();
+      console.log("[ASSINATURA FINAL PAYLOAD]", JSON.stringify(payloadAssinatura, null, 2));
+      Object.entries(payloadAssinatura).forEach(([key, value]) => {
+        console.log("[ASSINATURA FIELD]", key, value, typeof value);
+        if (
+          typeof value === "string" &&
+          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
+        ) {
+          // Flagging only fields that are strictly UUID in the database schema
+          const uuidFields = ["usuario_id", "unidade_id", "secretaria_id", "perfil_id", "id"];
+          if (uuidFields.includes(key)) {
+            console.error("[ERRO FORENSE] Caminho de arquivo contaminando campo UUID:", { campo: key, valor: value });
+          }
+        }
+      });
 
       Object.entries(payloadAssinatura).forEach(([key, value]) => {
         console.log(`[ASSINATURA PAYLOAD] ${key}`, value, typeof value);
