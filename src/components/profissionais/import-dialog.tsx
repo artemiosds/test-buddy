@@ -51,6 +51,13 @@ type Parsed = {
   h_p: number | null;
   c_h: number | null;
   jorn: number | null;
+  salario_base: number | null;
+  salario_liquido: number | null;
+  horas_extras: number | null;
+  adicional_noturno: number | null;
+  salario_bruto: number | null;
+  gratificacao_incentivo: number | null;
+  vencimento_liquido: number | null;
   erro?: string;
 };
 
@@ -77,6 +84,13 @@ const HEADERS = [
   "h_p",
   "c_h",
   "jorn",
+  "salario_base",
+  "salario_liquido",
+  "horas_extras",
+  "adicional_noturno",
+  "salario_bruto",
+  "gratificacao_incentivo",
+  "vencimento_liquido",
   "observacoes",
 ];
 

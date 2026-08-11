@@ -1361,6 +1361,7 @@ function ProfissionalFormBody({
   gestoresOpt: GestorOpt[] | undefined;
   canEditAgili: boolean;
   canSeeBanco: boolean;
+  canSeeSalario: boolean;
 }) {
   const { control, setValue, getValues, watch } = useFormContext<ProfissionalFormValues>();
   const vinculoId = watch("vinculo_id");
