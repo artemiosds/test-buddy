@@ -140,7 +140,7 @@ export function FrequenciasEfetivosPage() {
         .from("cargos")
         .select("id, nome")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       return data ?? [];
     },
@@ -152,7 +152,7 @@ export function FrequenciasEfetivosPage() {
         .from("funcoes")
         .select("id, nome")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       return data ?? [];
     },
@@ -206,7 +206,7 @@ export function FrequenciasEfetivosPage() {
         .from("unidades")
         .select("id, nome, sigla")
         .is("deleted_at", null)
-        .eq("status", "ativa")
+        
         .order("nome");
       return data ?? [];
     },
