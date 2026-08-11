@@ -15,12 +15,11 @@ const hashSchema = z.object({
 
 export const generateInstitutionalHash = createServerFn({ method: "POST" })
   .validator((data: unknown) => hashSchema.parse(data))
-  .handler(async ({ data }: any) => {
-    // Usando destructuring com type cast manual para satisfazer o compilador
-    const d = data as z.infer<typeof hashSchema>;
+  .handler(async (ctx: any) => {
+    const data = ctx.data as z.infer<typeof hashSchema>;
     // Gerar um hash único baseado nos dados e num salt
     const salt = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10) || "hsm-gestao-salt";
-    const source = `${d.usuario_id}|${d.nome}|${d.timestamp}|${salt}`;
+    const source = `${data.usuario_id}|${data.nome}|${data.timestamp}|${salt}`;
     const hash = createHash("sha256").update(source).digest("hex").toUpperCase().slice(0, 16);
     
     // Formatar como XXXX-XXXX-XXXX-XXXX
@@ -43,9 +42,8 @@ const saveSchema = z.object({
 
 export const saveInstitutionalSignature = createServerFn({ method: "POST" })
   .validator((data: unknown) => saveSchema.parse(data))
-  .handler(async ({ data }: any) => {
-    // Usando destructuring com type cast manual para satisfazer o compilador
-    const d = data as z.infer<typeof saveSchema>;
+  .handler(async (ctx: any) => {
+    const data = ctx.data as z.infer<typeof saveSchema>;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Assegurar tipo correto para o campo 'tipo'
@@ -53,21 +51,21 @@ export const saveInstitutionalSignature = createServerFn({ method: "POST" })
 
     const payload = {
       tipo,
-      usuario_id: d.usuario_id,
-      perfil_id: d.perfil_id,
-      unidade_id: d.unidade_id,
-      secretaria_id: d.secretaria_id,
-      titular_nome: d.titular_nome,
-      titular_cargo: d.titular_cargo,
+      usuario_id: data.usuario_id,
+      perfil_id: data.perfil_id,
+      unidade_id: data.unidade_id,
+      secretaria_id: data.secretaria_id,
+      titular_nome: data.titular_nome,
+      titular_cargo: data.titular_cargo,
       is_pessoal: true,
       ativa: true,
       metadata: {
-        ...d.metadata,
-        institutional_hash: d.hash,
+        ...data.metadata,
+        institutional_hash: data.hash,
         generated_at: new Date().toISOString(),
         method: "institutional_electronic"
       },
-      storage_path: `institutional_${d.hash}`,
+      storage_path: `institutional_${data.hash}`,
       mime_type: "application/json"
     };
 
