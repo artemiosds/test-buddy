@@ -6,80 +6,69 @@ export const Route = createFileRoute("/")({
 
 /**
  * ════════════════════════════════════════════════════════════
- * RELATÓRIO DE AUDITORIA — DIAGNÓSTICO DE ACESSO MASTER
- * ════════════════════════════════════════════════════════════
+ * TESTE DEFINITIVO — DIRETOR DE UNIDADE VÊ SUA PRÓPRIA UNIDADE?
+ * (Pós-correção da recursão infinita em `usuarios`)
  * 
- * AUDITORIA REALIZADA EM: 11/08/2026 05:25 UTC
- * STATUS DO PROBLEMA: IDENTIFICADO (CAUSA RAIZ ENCONTRADA)
- * 
- * ════════════════════════════════════════════════════════════
- * 
- * PASSO 1 — DADOS REAIS NO BANCO (LITERAL)
- * 
- * Query: SELECT COUNT(*) FROM usuarios;
- * Resultado: [{"count": 14}]
- * 
- * Query: SELECT id, nome_completo, email, perfil_id, status FROM usuarios LIMIT 3;
- * Resultado: 
- * [
- *   {
- *     "id": "cec0cbbf-eb2f-4985-a5d3-df79334dc32a",
- *     "nome_completo": "Artemio Silva de Souza",
- *     "email": "artemiosouza99@gmail.com",
- *     "perfil_id": "a66d38b5-978e-4fad-8d50-d3980b427cbd",
- *     "status": "ativo"
- *   },
- *   {
- *     "id": "e2b3a6b7-e732-46e3-98c1-8615e40288a5",
- *     "nome_completo": "Marcos Tavares Rocha",
- *     "email": "enfmarcostavares1@gmail.com",
- *     "perfil_id": "b49cb66d-d3a5-499a-80d5-200f8b031757",
- *     "status": "ativo"
- *   }
- * ]
+ * CONTEXTO:
+ * Acabamos de corrigir a recursão infinita (42P17) na tabela
+ * `usuarios`. Antes dessa correção, Diretores de Unidade (testado
+ * com Marcos Tavares Rocha) não conseguiam ver sua própria unidade
+ * em nenhuma tela, mesmo com vínculo confirmado no banco. Preciso
+ * saber se essa correção TAMBÉM resolveu esse problema, ou se ainda
+ * existe um bug separado.
  * 
  * ════════════════════════════════════════════════════════════
  * 
- * PASSO 2 — DIAGNÓSTICO DE RLS E PERMISSÕES (LITERAL)
+ * TESTE 1 — LOGIN REAL COMO DIRETOR
  * 
- * Query: SELECT policyname, cmd, qual FROM pg_policies WHERE tablename = 'usuarios';
- * Resultado:
- * [
- *   {"policyname": "Permitir leitura universal", "cmd": "SELECT", "qual": "true"},
- *   {"policyname": "pol_usuarios_master_manage", "cmd": "ALL", "qual": "is_master(auth.uid())"},
- *   {"policyname": "pol_usuarios_select", "cmd": "SELECT", "qual": "((id = auth.uid()) OR is_master(auth.uid()) OR (has_permission(auth.uid(), 'usuario.gerenciar'::text) AND (secretaria_id IS NOT NULL) AND user_has_secretaria(auth.uid(), secretaria_id)))"}
- * ]
+ * Fazer login de verdade (logout completo antes) como Marcos
+ * Tavares Rocha (enfmarcostavares1@gmail.com) — mesmo usuário que
+ * já testamos antes.
  * 
- * ANÁLISE DE SEGURANÇA:
- * A função `is_master` falhou ao ser executada via API (Permission Denied). 
- * Isso indica que as políticas que dependem de `is_master(auth.uid())` estão 
- * falhando silenciosamente no banco de dados para o usuário autenticado, 
- * mesmo que a política "Permitir leitura universal" esteja ativa.
+ * [ ] Nome e perfil aparecem corretamente no header?
+ * [ ] Ir em Cadastro de Profissionais: a unidade dele (Hospital
+ *     Maternidade São Domingos Sávio) aparece? Quantos profissionais
+ *     aparecem (esperado: 85, conforme confirmado antes)?
+ * [ ] Ir em Frequência (Contratados ou Efetivos): o campo "Unidade"
+ *     mostra o nome da unidade, ou ainda aparece "Nenhuma unidade
+ *     vinculada"?
  * 
- * ════════════════════════════════════════════════════════════
- * 
- * PASSO 3 — CAUSA RAIZ IDENTIFICADA
- * 
- * A função `public.is_master` não possui permissão de execução (GRANT EXECUTE) 
- * para a role `authenticated`. 
- * 
- * Quando o Supabase processa as políticas de RLS:
- * 1. Ele tenta avaliar `is_master(auth.uid())`.
- * 2. A execução falha por falta de privilégio na função.
- * 3. O Postgres interrompe a avaliação da query ou retorna conjunto vazio 
- *    para evitar vazamento de dados em caso de erro de segurança.
- * 
- * EVIDÊNCIA TÉCNICA:
- * A tentativa de rodar `SELECT is_master(...)` retornou:
- * "ERROR: 42501: permission denied for function is_master"
+ * Print de cada tela testada.
  * 
  * ════════════════════════════════════════════════════════════
  * 
- * RECOMENDAÇÃO DE CORREÇÃO (MIGRATION):
+ * TESTE 2 — SE AINDA FALHAR, USAR A MESMA TÉCNICA DE DEBUG QUE
+ * FUNCIONOU
  * 
- * GRANT EXECUTE ON FUNCTION public.is_master(uuid) TO authenticated;
- * GRANT EXECUTE ON FUNCTION public.is_master(uuid) TO service_role;
+ * Se qualquer uma das telas do Teste 1 ainda não mostrar a unidade
+ * corretamente, adicione TEMPORARIAMENTE o mesmo tipo de bloco
+ * vermelho de debug usado antes (igual fizemos em usuarios.tsx),
+ * desta vez na tela que estiver falhando, mostrando:
+ *   - unidade_id detectado no contexto do usuário logado
+ *   - erro da query que busca a unidade (se houver)
+ *   - resultado bruto da query
+ * 
+ * NÃO escreva conclusão nenhuma até esse bloco aparecer numa tela
+ * real e eu confirmar com print.
  * 
  * ════════════════════════════════════════════════════════════
- * FIM DO DIAGNÓSTICO — NENHUM CÓDIGO FOI ALTERADO.
+ * 
+ * TESTE 3 — CONFIRMAR MAIS 2 DIRETORES REAIS (não só o Marcos)
+ * 
+ * Repetir o Teste 1 (login real) com pelo menos mais 2 Diretores
+ * diferentes, escolhidos por você entre os 13 já mapeados (ex:
+ * Ana Carina Diniz Calderaro e Fabiano Deoclecio):
+ * 
+ * [ ] Cada um vê a própria unidade corretamente?
+ * [ ] Print de cada um
+ * 
+ * ════════════════════════════════════════════════════════════
+ * 
+ * ENTREGA
+ * 1. Prints reais do Teste 1 (Marcos)
+ * 2. Se precisou do Teste 2 (bloco de debug), print dele também
+ * 3. Prints do Teste 3 (mais 2 Diretores)
+ * 4. Se tudo funcionar: remova qualquer bloco de debug adicionado
+ * 5. Se algo AINDA falhar: não tente corrigir sozinho — reporte
+ *    com a evidência do bloco de debug e aguarde instrução
  */
