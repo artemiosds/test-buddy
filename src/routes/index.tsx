@@ -1,7 +1,36 @@
 /**
- * quero que que verefica se o Assinaturas institucionais esta funcioando corretamente se ao cadastra alguma assinatura ela entra no fluxo e se noa dar erro, se ela identica atraves do perfil
+ * Teste 1 — Cadastrar Assinatura Pessoal
+ * Acesse Assinaturas → Minha assinatura
  * 
- * IMPORTANTE: Execute TODOS os detalhes desta tarefa com máxima precisão. Não ignore nada, não simplifique, implemente EXATAMENTE o que foi pedido.
+ * Preencha os campos:
+ * 
+ * Nome completo: Artemio Silva de Souza
+ * 
+ * Cargo / função: ENFERMEIRO
+ * 
+ * Faça upload da imagem
+ * 
+ * Clique em Cadastrar assinatura
+ * 
+ * ✅ Deve cadastrar sem erro de UUID
+ * 
+ * Teste 2 — Cadastrar Assinatura Institucional
+ * Acesse Assinaturas → Institucionais
+ * 
+ * Clique em Novo assinatura
+ * 
+ * Preencha os dados
+ * 
+ * ✅ Deve cadastrar sem erro de UUID
+ * 
+ * 📋 VERIFICAÇÃO FINAL
+ * Após os testes, verifique:
+ * 
+ * □ Assinatura pessoal cadastrada
+ * □ Assinatura institucional cadastrada
+ * □ Nenhum erro de UUID aparece
+ * □ As imagens são salvas corretamente
+ * □ As assinaturas aparecem nas listas
  */
 
 import { createFileRoute } from '@tanstack/react-router';
@@ -16,22 +45,40 @@ export const Route = createFileRoute('/')({
         </p>
         
         <div className="bg-white border rounded p-4">
-          <h2 className="font-semibold mb-2">Instruções para Teste:</h2>
-          <ol className="list-decimal ml-5 space-y-2">
-            <li>Navegue até <strong>Assinaturas</strong> no menu lateral.</li>
-            <li><strong>Teste 1 (Pessoal):</strong> Na aba "Minha assinatura", envie uma imagem. Verifique se aparece erro de UUID "pessoal".</li>
-            <li><strong>Teste 2 (Institucional):</strong> Na aba "Institucionais", clique em "Nova assinatura", escolha um perfil (ex: Diretor) e salve.</li>
-            <li>Verifique se as assinaturas aparecem na lista e se os filtros por Perfil funcionam.</li>
-          </ol>
+          <h2 className="font-semibold mb-2 text-primary border-b pb-1">🚀 Teste 1 — Cadastrar Assinatura Pessoal</h2>
+          <div className="space-y-2 text-slate-700">
+            <p>Acesse <strong>Assinaturas → Minha assinatura</strong></p>
+            <p>Preencha os campos:</p>
+            <ul className="list-disc ml-6">
+              <li><strong>Nome completo:</strong> Artemio Silva de Souza</li>
+              <li><strong>Cargo / função:</strong> ENFERMEIRO</li>
+            </ul>
+            <p>Faça upload da imagem e clique em <strong>Cadastrar assinatura</strong></p>
+            <p className="text-emerald-600 font-medium">✅ Deve cadastrar sem erro de UUID</p>
+          </div>
         </div>
 
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-          <p className="text-sm font-medium text-blue-800 mb-1">Status da Investigação:</p>
-          <p className="text-sm text-blue-700">
-            A causa provável do erro "invalid input syntax for type uuid: 'pessoal'" era o envio da string literal 
-            em vez de um UUID ou NULL nos campos <code>secretaria_id</code>, <code>unidade_id</code> ou <code>perfil_id</code>.
-            O código já foi reforçado com verificações estritas de <code>null</code>.
-          </p>
+        <div className="bg-white border rounded p-4">
+          <h2 className="font-semibold mb-2 text-primary border-b pb-1">🚀 Teste 2 — Cadastrar Assinatura Institucional</h2>
+          <div className="space-y-2 text-slate-700">
+            <p>Acesse <strong>Assinaturas → Institucionais</strong></p>
+            <p>Clique em <strong>Novo assinatura</strong> e preencha os dados</p>
+            <p className="text-emerald-600 font-medium">✅ Deve cadastrar sem erro de UUID</p>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded p-4">
+          <h2 className="font-semibold mb-2 text-blue-900 flex items-center gap-2">
+            📋 VERIFICAÇÃO FINAL
+          </h2>
+          <p className="text-sm text-blue-800 mb-2">Após os testes, verifique:</p>
+          <ul className="space-y-1 text-sm text-blue-700">
+            <li className="flex items-center gap-2">□ Assinatura pessoal cadastrada</li>
+            <li className="flex items-center gap-2">□ Assinatura institucional cadastrada</li>
+            <li className="flex items-center gap-2">□ Nenhum erro de UUID aparece</li>
+            <li className="flex items-center gap-2">□ As imagens são salvas corretamente</li>
+            <li className="flex items-center gap-2">□ As assinaturas aparecem nas listas</li>
+          </ul>
         </div>
       </div>
     </div>
