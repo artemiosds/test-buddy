@@ -132,7 +132,10 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
         );
       default:
         return (
-          <BarChart data={data} margin={{ top: 8, right: 16, bottom: 40, left: 8 }}>
+          <BarChart 
+            data={data} 
+            margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="name"
@@ -140,9 +143,13 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               interval={0}
               angle={-35}
               textAnchor="end"
-              height={100}
+              height={80}
             />
-            <YAxis fontSize={10} width={36} />
+            <YAxis 
+              fontSize={10} 
+              width={50} 
+              tickFormatter={(v) => (typeof v === 'number' && v > 1000 ? `${(v / 1000).toFixed(1)}k` : v)}
+            />
             <Tooltip
               formatter={(v: unknown) =>
                 typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")

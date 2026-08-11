@@ -197,41 +197,43 @@ export function FrequenciasEfetivosPage() {
   const compSel = competencias?.find((c) => c.id === competenciaId);
   const compFechada = compSel?.status === "encerrada" || compSel?.status === "arquivada";
 
-  const isGestor = !!me?.is_master || !!me?.acesso_todas_unidades;
+  const isGestor = useMemo(() => 
+    !!me?.is_master || !!me?.acesso_todas_unidades, 
+    [me]
+  );
+
   const { data: unidades } = useQuery({
-    queryKey: ["unidades-efetivos", me?.id],
+    queryKey: ["unidades-efetivos-lista", me?.id],
     enabled: !!me,
     queryFn: async () => {
       const { data } = await supabase
         .from("unidades")
         .select("id, nome, sigla")
         .is("deleted_at", null)
-        
         .order("nome");
       return data ?? [];
     },
   });
 
-  const { data: minhasUnidades } = useQuery({
-    queryKey: ["minhas-unidades", me?.id],
-    enabled: !!me && !isGestor,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("usuario_unidades")
-        .select("unidade_id, unidades(id, nome, sigla)")
-        .eq("usuario_id", me!.id)
-        .is("deleted_at", null);
-      return (data ?? []).map((r: any) => r.unidades).filter(Boolean);
-    },
-  });
+  const unidadesVisiveis = useMemo(() => {
+    if (!me || !unidades) return [];
+    if (isGestor) return unidades;
+    
+    const permitidas = new Set(me.unidades || []);
+    return unidades.filter(u => permitidas.has(u.id));
+  }, [me, unidades, isGestor]);
 
   useEffect(() => {
     if (unidadeId) return;
-    if (!isGestor && minhasUnidades?.length) setUnidadeId(minhasUnidades[0].id);
-    else if (isGestor && unidades?.length) setUnidadeId(unidades[0].id);
-  }, [isGestor, unidades, minhasUnidades, unidadeId]);
+    if (unidadesVisiveis.length > 0) {
+      setUnidadeId(unidadesVisiveis[0].id);
+    }
+  }, [unidadesVisiveis, unidadeId]);
 
-  const unidadesVisiveis = isGestor ? (unidades ?? []) : (minhasUnidades ?? []);
+  const unidadeSel = useMemo(() => 
+    unidadesVisiveis.find((u: any) => u.id === unidadeId),
+    [unidadesVisiveis, unidadeId]
+  );
 
   const carregar = useServerFn(listarFolhaEfetivos);
   const { data: folha, isFetching } = useQuery({

@@ -471,21 +471,21 @@ export function BarChartH({
       <BarChart
         data={itens}
         layout="vertical"
-        margin={{ top: 4, right: 44, bottom: 4, left: 4 }}
+        margin={{ top: 10, right: 60, bottom: 40, left: 10 }}
         barCategoryGap="18%"
       >
         <CartesianGrid horizontal={false} strokeOpacity={0.25} />
         <XAxis
           type="number"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 10, angle: -35, textAnchor: "end" }}
           allowDecimals={false}
           tickFormatter={(v) => nf(v as number)}
         />
         <YAxis
           type="category"
           dataKey={nameKey}
-          width={168}
-          tick={{ fontSize: 11 }}
+          width={220}
+          tick={{ fontSize: 10, angle: -35, textAnchor: "end" }}
           interval={0}
           tickLine={false}
           axisLine={false}
@@ -542,7 +542,7 @@ export function BarChartV({
         <CartesianGrid vertical={false} strokeOpacity={0.25} />
         <XAxis
           dataKey={nameKey}
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 10, angle: -35, textAnchor: "end" }}
           interval={0}
           angle={precisaInclinar ? -35 : 0}
           textAnchor={precisaInclinar ? "end" : "middle"}
@@ -551,7 +551,7 @@ export function BarChartV({
           tickFormatter={(v) => truncar(v as string, 18)}
         />
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 10, angle: -35, textAnchor: "end" }}
           width={44}
           allowDecimals={false}
           tickFormatter={(v) => nf(v as number)}
@@ -676,7 +676,7 @@ export function LineChartCard({
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 10, angle: -35, textAnchor: "end" }}
           width={44}
           allowDecimals={false}
           tickFormatter={(v) => nf(v as number)}
@@ -709,7 +709,7 @@ export function RadarQuality({ q }: { q: GerencialAggregate["qualidade"] }) {
     <ResponsiveContainer width="100%" height={240}>
       <RadarChart data={data} outerRadius="70%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
         <PolarGrid strokeOpacity={0.35} />
-        <PolarAngleAxis dataKey="area" tick={{ fontSize: 11 }} />
+        <PolarAngleAxis dataKey="area" tick={{ fontSize: 10, angle: -35, textAnchor: "end" }} />
         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} tickCount={5} />
         <Radar
           name="Qualidade"

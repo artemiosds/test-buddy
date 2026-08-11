@@ -19,9 +19,9 @@ export type LookupOption = { id: string; nome: string; sigla?: string | null };
 
 export type UnidadeLookup = { id: string; nome: string; sigla: string | null };
 
-export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean }) =>
+export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean; unidadesPermitidas?: string[] }) =>
   queryOptions({
-    queryKey: ["lookup", "unidades", { ativas: !!opts?.ativasOnly }],
+    queryKey: ["lookup", "unidades", { ativas: !!opts?.ativasOnly, permitidas: opts?.unidadesPermitidas }],
     staleTime: FIVE_MIN,
     queryFn: async () => {
       let q = supabase
@@ -30,13 +30,17 @@ export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean }) =>
         .is("deleted_at", null)
         .order("nome");
       
+      if (opts?.unidadesPermitidas && opts.unidadesPermitidas.length > 0) {
+        q = q.in("id", opts.unidadesPermitidas);
+      }
+      
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as UnidadeLookup[];
     },
   });
 
-export function useUnidadesLookup(opts?: { ativasOnly?: boolean }) {
+export function useUnidadesLookup(opts?: { ativasOnly?: boolean; unidadesPermitidas?: string[] }) {
   return useQuery(unidadesLookupOptions(opts));
 }
 
