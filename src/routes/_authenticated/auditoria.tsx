@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PermissionGate } from "@/components/permission-gate";
-import { Download, Eye, RefreshCw, ShieldCheck } from "lucide-react";
+import { Download, Eye, FileText, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { Pagination } from "@/components/shared/Pagination";
@@ -25,6 +25,7 @@ import { DownloadsLog } from "@/components/auditoria/downloads-log";
 import { PrivacidadeLgpd } from "@/components/auditoria/privacidade-lgpd";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { nivelPrivacidade } from "@/lib/lgpd";
+import { gerarPdfAuditoriaFolha } from "@/lib/pdf-auditoria-folha";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({ errorComponent: ErrorComponent,
   component: AuditoriaPage,
@@ -208,6 +209,10 @@ function AuditoriaPage() {
               Atualizar
             </Button>
             <PermissionGate permission="auditoria.exportar" fallback={null}>
+              <Button variant="outline" size="sm" onClick={() => void gerarPdfAuditoriaFolha()}>
+                <FileText className="h-4 w-4 mr-1" />
+                Auditoria Forense (PDF)
+              </Button>
               <Button size="sm" onClick={() => void exportarCsv()}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar CSV
