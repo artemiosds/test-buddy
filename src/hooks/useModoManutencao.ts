@@ -29,13 +29,9 @@ export function useModoManutencao() {
 
   const isFetchingRef = useRef(false);
 
-  // Somente MASTER confirmado escapa do bloqueio (fail-safe).
-  const isMaster = !!userCtx && (
-    userCtx.is_master || 
-    userCtx.perfil_codigo === 'MASTER' ||
-    userCtx.perfil_codigo === 'ADMINISTRADOR_MASTER' ||
-    (Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0 && userCtx.acesso_todas_secretarias)
-  );
+  // Somente MASTER confirmado (vinda do RPC get_my_user_context) escapa do bloqueio.
+  // A flag is_master do contexto já valida: (acesso_unidades AND acesso_secretarias) + MFA.
+  const isMaster = !!userCtx?.is_master;
 
   const verificarEstado = useCallback(async () => {
     if (isFetchingRef.current) return;

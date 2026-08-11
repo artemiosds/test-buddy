@@ -38,9 +38,14 @@ export function isDiretorUnidade(perfil?: string | null): boolean {
 
 /**
  * Verifica se o perfil possui acesso a todas as unidades (Master ou Gestor).
+ * IMPORTANTE: No Sublote 5D+, a fonte de verdade para privilégios elevados
+ * é o claim 'is_master' (backend), que já valida flags de acesso + MFA.
  */
 export function temAcessoGlobal(perfil?: string | null, isMasterClaim?: boolean): boolean {
-  if (isMasterClaim) return true;
+  // Se o claim de master estiver ativo, o acesso é global por definição.
+  if (isMasterClaim === true) return true;
+
   const p = normalizarPerfil(perfil);
-  return p === PERFIS.MASTER || p === PERFIS.ADMINISTRADOR_MASTER || p === PERFIS.GESTOR;
+  // Gestor e Administrador Master (legado) também possuem acesso global.
+  return p === PERFIS.ADMINISTRADOR_MASTER || p === PERFIS.GESTOR;
 }
