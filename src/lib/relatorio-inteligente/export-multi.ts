@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import type { Row } from "./tipos";
 import type { GroupNode } from "./agrupamento";
 
@@ -23,9 +24,15 @@ export async function exportarPdfMulti(opts: {
   subtitulo?: string;
   resumo?: string[];
   blocos: BlocoExport[];
+  secretariaId?: string | null;
+  unidadeId?: string | null;
 }) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
+  const assinaturas = await resolverAssinaturasDocumento("relatorio", {
+    secretariaId: opts.secretariaId,
+    unidadeId: opts.unidadeId,
+  });
   let y = drawInstitutionalHeader(doc, info, opts.titulo);
 
   if (opts.subtitulo) {
@@ -88,6 +95,18 @@ export async function exportarPdfMulti(opts: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     y = (doc as any).lastAutoTable?.finalY ?? y + 20;
   });
+  
+  if (assinaturas.length > 0) {
+    const pageH = doc.internal.pageSize.getHeight();
+    const finalY = (doc as any).lastAutoTable?.finalY ?? y;
+    if (finalY + 40 > pageH - 20) {
+      doc.addPage();
+      drawInstitutionalHeader(doc, info, opts.titulo);
+      drawAssinaturasBlock(doc, assinaturas, { startY: 52 });
+    } else {
+      drawAssinaturasBlock(doc, assinaturas, { startY: finalY + 15 });
+    }
+  }
 
   doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
 }
