@@ -231,7 +231,7 @@ function DocumentosEmitidosPage() {
                     <div className="inline-flex gap-1">
                       <Button asChild size="sm" variant="ghost">
                         <Link
-                          to="/_authenticated/assinar-pdf"
+                          to="/assinar-pdf"
                           search={{
                             fileUrl: `${window.location.origin}/api/public/documento-pdf/${d.id}`,
                             fileName: `${d.descricao.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`,

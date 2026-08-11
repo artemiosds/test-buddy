@@ -44,7 +44,7 @@ import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authent
 import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
-import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated.assinar-pdf'
+import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated/assinar-pdf'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
