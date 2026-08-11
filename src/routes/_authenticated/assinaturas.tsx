@@ -774,7 +774,12 @@ function NovaAssinaturaDialog({
       });
       if (up.error) throw up.error;
 
-      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
+      const sanitizeId = (id: any) => {
+        if (!id) return null;
+        const s = String(id).replace(/\.[^/.]+$/, "");
+        return isUUID(s) ? s : null;
+      };
 
       const payloadAssinatura = {
         tipo: tipo as "assinatura" | "carimbo" | "logo",
@@ -784,12 +789,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? (isUUID(secretariaId) ? secretariaId : null)
+            ? sanitizeId(secretariaId)
             : escopo === "unidade"
-              ? (unidades.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
+              ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: (escopo === "unidade" && isUUID(unidadeId)) ? unidadeId : null,
-        perfil_id: isUUID(perfilId) ? perfilId : null,
+        unidade_id: escopo === "unidade" ? sanitizeId(unidadeId) : null,
+        perfil_id: sanitizeId(perfilId),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),

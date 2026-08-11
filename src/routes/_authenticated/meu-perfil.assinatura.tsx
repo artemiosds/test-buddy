@@ -330,7 +330,12 @@ function UploadForm({
       });
       if (up.error) throw up.error;
 
-      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
+      const sanitizeId = (id: any) => {
+        if (!id) return null;
+        const s = String(id).replace(/\.[^/.]+$/, "");
+        return isUUID(s) ? s : null;
+      };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       const payloadAssinatura = {
@@ -340,9 +345,9 @@ function UploadForm({
         storage_path: fileName,
         mime_type: "image/png",
         usuario_id: me.id,
-        unidade_id: isUUID(unidadeReal) ? unidadeReal : null,
+        unidade_id: sanitizeId(unidadeReal),
         secretaria_id: null,
-        perfil_id: isUUID(me.perfil_id) ? me.perfil_id : null,
+        perfil_id: sanitizeId(me.perfil_id),
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,
