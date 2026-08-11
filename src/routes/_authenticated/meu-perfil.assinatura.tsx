@@ -363,6 +363,15 @@ function UploadForm({
         };
         console.log('PAYLOAD INSTITUCIONAL ANTES DO SAVE:', JSON.stringify(payloadInst, null, 2));
 
+        // Validação final de emergência antes do saveInst
+        const instFieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
+        instFieldsToCheck.forEach(field => {
+          const val = payloadInst[field];
+          if (val && (String(val).includes('.') || String(val).includes('/'))) {
+             throw new Error(`CRITICAL STOP: Campo ${field} institucional contém path inválido: ${val}`);
+          }
+        });
+
         if (!payloadInst.usuario_id) {
           throw new Error("Erro de identificação do usuário. Tente recarregar a página.");
         }
