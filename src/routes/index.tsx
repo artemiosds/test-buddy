@@ -1,4 +1,27 @@
-// ENTAO QUAL CORRECAO CERTA PARA ESSA SITUACAO?
+[EMERGÊNCIA FRONTEND — BLOQUEIO FANTASMA NO CADASTRO]
+
+A RPC `save_profissional_complete` já foi corrigida e testada diretamente no banco de dados com bypass absoluto para o MASTER. No entanto, o usuário continua recebendo o erro de "Acesso negado..." ao tentar salvar na interface.
+
+Isso indica claramente que o frontend está chamando a rota errada (ex: fazendo um insert/update direto na tabela e batendo na RLS) em vez de usar a RPC que já tem a validação correta.
+
+Execute os seguintes passos OBRIGATÓRIOS:
+
+1. CORREÇÃO DA CHAMADA NO FRONTEND:
+   - Localize o arquivo do formulário onde o profissional é salvo (ex: na mutação de submit no hook ou componente correspondente).
+   - Substitua qualquer tentativa de `supabase.from('profissionais').insert(...)` ou `.update(...)`.
+   - OBRIGUE o sistema a fazer a chamada exclusivamente pela RPC: 
+     `await supabase.rpc('save_profissional_complete', { p_payload: payloadData })`
+
+2. TRATAMENTO DE RETORNO:
+   - Garanta que o objeto `payloadData` enviado para a RPC contenha todos os UUIDs corretamente formatados (incluindo `id`, se for edição, `secretaria_id` e `unidade_id`).
+
+3. RASTREAMENTO VISUAL (TRACE):
+   - Adicione logs provisórios no `onSubmit`:
+     `console.log("Enviando payload para RPC:", payloadData);`
+   - Se falhar, capture e exiba o erro exato:
+     `console.error("Falha ao salvar:", error);`
+
+Aplique essa modificação no frontend imediatamente para que a interface passe a utilizar a RPC corrigida do Supabase, e publique a atualização.
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
