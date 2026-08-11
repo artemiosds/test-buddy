@@ -762,13 +762,10 @@ function NovaAssinaturaDialog({
     setSaving(true);
     try {
       const { blob: processedBlob, ext } = await processImage(file);
-      const scopeSeg =
-        escopo === "unidade"
-          ? `unidade/${unidadeId}`
-          : escopo === "secretaria"
-            ? `secretaria/${secretariaId}`
-            : "global";
-      const path = `${scopeSeg}/${tipo}/${crypto.randomUUID()}.${ext}`;
+      
+      // O path do storage deve ser limpo e utilizar IDs únicos
+      // Evitamos strings textuais como "unidade" ou "secretaria" no início do path se o bucket/política for restritivo
+      const path = `${crypto.randomUUID()}.${ext}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: ext === "pdf" ? "application/pdf" : "image/png",
