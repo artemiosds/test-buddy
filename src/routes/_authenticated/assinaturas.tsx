@@ -774,7 +774,6 @@ function NovaAssinaturaDialog({
       if (up.error) throw up.error;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
       const payloadAssinatura = {
         tipo: tipo as "assinatura" | "carimbo" | "logo",
