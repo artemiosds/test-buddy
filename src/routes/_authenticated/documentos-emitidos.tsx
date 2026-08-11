@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldOff, ExternalLink, Ban } from "lucide-react";
+import { ShieldCheck, ShieldOff, ExternalLink, Ban, Signature } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/documentos-emitidos")({ errorComponent: ErrorComponent,
   component: DocumentosEmitidosPage,
@@ -229,6 +229,18 @@ function DocumentosEmitidosPage() {
                   </td>
                   <td className="px-3 py-2 text-right">
                     <div className="inline-flex gap-1">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link
+                          to="/_authenticated/assinar-pdf"
+                          search={{
+                            fileUrl: `${window.location.origin}/api/public/documento-pdf/${d.id}`,
+                            fileName: `${d.descricao.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`,
+                          }}
+                          title="Assinar este documento novamente com posicionamento livre"
+                        >
+                          <Signature className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
                       <Button asChild size="sm" variant="ghost">
                         <Link to="/validar/$id" params={{ id: d.id }} target="_blank">
                           <ExternalLink className="h-3.5 w-3.5" />
