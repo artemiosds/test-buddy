@@ -786,7 +786,7 @@ function NovaAssinaturaDialog({
           escopo === "secretaria"
             ? secretariaId
             : escopo === "unidade"
-              ? (unidades.find((u) => u.id === unidadeId)?.secretaria_id ?? null)
+              ? (unidades.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
         unidade_id: escopo === "unidade" ? unidadeId : null,
         perfil_id: perfilId === "__institucional__" ? null : perfilId,
@@ -799,6 +799,7 @@ function NovaAssinaturaDialog({
         created_by: userId,
       });
       if (insert.error) {
+        console.error("Erro ao inserir assinatura:", insert.error);
         await supabase.storage.from(BUCKET).remove([path]);
         throw insert.error;
       }

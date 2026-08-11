@@ -1,3 +1,4 @@
+// AO CADASTRAR ASSINATURA ESTA DANDO ISSO: invalid input syntax for type uuid: "assinatura" (RESOLVIDO: Cast manual omitido no frontend corrigido)
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
