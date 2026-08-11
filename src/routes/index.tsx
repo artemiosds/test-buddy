@@ -36,12 +36,6 @@ PRÓXIMOS PASSOS:
 - Realizar teste de homologação final pelo Master.
 */
 
-IMPORTANTE:
-Este comando NÃO autoriza refatoração geral do RBAC.
-NÃO alterar permissões globais, JWT, RLS ou RPCs que não estejam diretamente relacionados aos problemas comprovados abaixo.
-
-O objetivo é corrigir o fluxo de FREQUÊNCIA/FOLHA com base na auditoria já realizada.
-
 ============================================================
 1. REGRA PRINCIPAL
 ============================================================
