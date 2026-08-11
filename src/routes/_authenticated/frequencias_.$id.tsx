@@ -408,7 +408,7 @@ function FrequenciaDetalhe() {
 
   const temDadosParaExportar = isEfetivo ? linhasEfetivosExportacao.length > 0 : linhas.length > 0;
 
-  const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || (frequencia?.status as string) === "devolvida";
+  const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || frequencia?.status === "devolvida";
   const canEditar = has("frequencia.editar");
 
   // Contagem de pendências abertas/respondidas por linha (frequencia_profissional_id)

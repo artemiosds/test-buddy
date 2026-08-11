@@ -300,7 +300,7 @@ export function FrequenciasContratadosPage() {
     const statuses = new Set(folha.map((it: any) => it.linha?.status ?? "rascunho"));
     
     if (statuses.has("rejeitada")) return "rejeitada";
-    if (statuses.has("devolvida" as any)) return "devolvida";
+    if (statuses.has("devolvida")) return "devolvida";
     if (statuses.has("com_pendencias")) return "com_pendencias";
     if (statuses.has("em_analise")) return "em_analise";
     if (statuses.has("enviada")) return "enviada";
@@ -312,7 +312,7 @@ export function FrequenciasContratadosPage() {
   // Carrega última justificativa se devolvida
   const { data: ultimaAcao } = useQuery({
     queryKey: ["frequencia-ultima-acao", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId && (folhaStatusUnificado as string) === "devolvida",
+    enabled: !!competenciaId && !!unidadeId && folhaStatusUnificado === "devolvida",
     queryFn: async () => {
       const { data: res } = await supabase
         .from("frequencias")
@@ -328,7 +328,7 @@ export function FrequenciasContratadosPage() {
         .from("frequencia_aprovacoes")
         .select("observacoes, executado_por, created_at")
         .eq("frequencia_id", res.id)
-        .eq("status_novo", "devolvida" as any)
+        .eq("status_novo", "devolvida")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -367,7 +367,7 @@ export function FrequenciasContratadosPage() {
     if (!l) return true;
     if (!canEdit) return true;
     // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada" || (l.status as string) === "devolvida");
+    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
   }
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
