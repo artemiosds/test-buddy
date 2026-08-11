@@ -5,335 +5,533 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-Corrigir somente os problemas comprovados pela Auditoria Forense do fluxo da Folha , preservando o RBAC, permissões, unida
+CORREÇÃO FORENSE E CONTROLADA — FLUXO DE ENVIO DA FOLHA PARA ANÁLISE
 
-NÃO reescreva o sistema.
-NÃO crie uma nova arquitetura de permissões.
-NÃO alterar regras de MASTER, GESTOR ou DIRETOR sem evidência direta.
-N / D
+IMPORTANTE:
+Este comando NÃO autoriza refatoração geral do RBAC.
+NÃO alterar permissões globais, JWT, RLS ou RPCs que não estejam diretamente relacionados aos problemas comprovados abaixo.
 
-A correção deve ser feita de forma incremental, rastreável e reversível .
+O objetivo é corrigir o fluxo de FREQUÊNCIA/FOLHA com base na auditoria já realizada.
 
-🔴 PROBLEMA 1 — STATUS devolvida× `com_p_com_pendencias
+============================================================
+1. REGRA PRINCIPAL
+============================================================
 
-Os auditórios firmados uma inconsistência crítica:
+Antes de alterar qualquer código:
 
-O frontend/ba
+- Ler o roteiro de auditoria existente em:
+  src/routes/index.tsx
 
-devolvida
+- Ler:
+  src/lib/frequencias.functions.ts
+  src/lib/frequencia-sincronizacao.functions.ts
+  hooks relacionados à frequência/permissões
+  Server Functions de frequência
+  migrations relacionadas às tabelas:
+    frequencias
+    frequencia_profissional
+    frequencias_contratados
+    competencia_unidades
+    audit_log
 
-porém o banco utiliza:
+- NÃO assumir que o relatório está correto sem confirmar no código/banco.
+- Identificar primeiro o estado REAL atual.
+- Não criar uma nova arquitetura.
+- Não substituir tabelas existentes.
+- Não duplicar regras de autorização.
 
-com_pendencias
+============================================================
+2. CORRIGIR PRIMEIRO O STATUS "DEVOLVIDA"
+============================================================
 
-nenhum enum:
+A auditoria identificou:
+
+FRONTEND/BACKEND:
+  status = "devolvida"
+
+BANCO:
+  status_frequencia aparentemente utiliza:
+  "com_pendencias"
+
+CONFIRMAR PRIMEIRO qual é o ENUM REAL atualmente existente:
 
 public.status_frequencia
 
-Isso pode quebrar o fluxo:
+E localizar TODAS as referências a:
+
+"devolvida"
+"com_pendencias"
+
+Depois decidir de forma controlada:
+
+SE o fluxo funcional original do sistema utiliza "devolvida":
+
+→ adicionar "devolvida" ao ENUM existente através de migration segura.
+
+NÃO remover "com_pendencias" sem comprovar que não é utilizado.
+
+SE "com_pendencias" for o status oficial original:
+
+→ adaptar o código para utilizar o status oficial,
+sem criar dois estados equivalentes.
+
+REGRA:
+Deve existir UMA única representação para:
+"folha/frequência devolvida para correção".
+
+Não deixar frontend usando um status e banco outro.
+
+============================================================
+3. FLUXO OBRIGATÓRIO DA FREQUÊNCIA
+============================================================
+
+Validar e corrigir o fluxo:
 
 DIRETOR
-   ↓
-envia frequência
-   ↓
-GESTOR/MASTER analisa
-   ↓
-REPROVA / DEVOLVE
-   ↓
-DIRETOR CORRIGE
-   ↓
-REENVIA
-CORREÇÃO OBRIGATÓRIA
-
-Antes de alterar qualquer coisa, descubra qual nomenclatura representa o comportamento funcional original do sistema .
-
-Pesquisar:
-
-status_frequencia
-devolvida
-com_pendencias
-alterarStatusFrequencia
-PERM_STATUS
-
-Pesquise também todas as referências:
-
-grep/rg "devolvida"
-grep/rg "com_pendencias"
-
-Mapear:
-
-migrações;
-RPCs;
-Funções do servidor;
-ganchos;
-ninhada;
-';
-painéis de controle;
-celular;
-notificações;
-histórico;
-SRS.
-REGRA
-
-Não simplesmente adicionardevolvida ao enum.
-
-Primeiro determine se:
-
-5 A
-
-com_pendenciasé o status oficial original e o código deve voltar a utilizá-lo.
-
-OU:
-
-B
-
-devolvidaé realmente o status funcional correto e o banco precisa ser compatibilizado.
-
-A decisão deve ser baseada no código/migrações existentes, não em suposição .
-
-🔴 PROBLEMA 2 — FLUXO COMPLETO DA FOLHA
-
-Validar o fluxo real:
-
+↓
 RASCUNHO
-   ↓
-ENVIO PARA ANÁLISE
-   ↓
+↓
+Lançamento das frequências
+↓
+SALVAR
+↓
+ENVIAR PARA ANÁLISE
+↓
 EM ANÁLISE
-   ↓
+↓
+GESTOR/MASTER ANALISA
+↓
 APROVADA
-
-E principalmente:
-
-RASCUNHO
-   ↓
-ENVIO
-   ↓
-EM ANÁLISE
-   ↓
-DEVOLVIDA / COM PENDÊNCIAS
-   ↓
+OU
+DEVOLVIDA PARA CORREÇÃO
+↓
 DIRETOR CORRIGE
-   ↓
-REENVIA
-   ↓
-EM ANÁLISE
-   ↓
-APROVADA
+↓
+REENVIA PARA ANÁLISE
+↓
+NOVA ANÁLISE
+↓
+APROVAÇÃO/HOMOLOGAÇÃO
 
-Não considero o fluxo corrigido apenas porque a função retornasuccess .
+Cada transição precisa:
 
-Cada transição precisa ser realmente persistente no banco.
+1. validar permissão;
+2. validar unidade/secretaria;
+3. alterar o status correto;
+4. registrar auditoria;
+5. manter os dados da frequência;
+6. atualizar os totais;
+7. atualizar a interface;
+8. permitir o próximo passo correto.
 
-🔴 PROBLEMA 3
+============================================================
+4. DIRETOR DE UNIDADE
+============================================================
 
-Preservar exatamente esta matriz funcional, salvo evidência encontrada no código de que o comportamento original era diferente:
+O Diretor deve:
 
-MESTRE
+- visualizar somente sua unidade vinculada;
+- ter a unidade principal selecionada automaticamente;
+- visualizar os profissionais daquela unidade;
+- lançar frequência;
+- salvar rascunho;
+- enviar para análise;
+- visualizar frequência devolvida;
+- corrigir frequência devolvida;
+- reenviar para análise;
+- NÃO visualizar outras unidades;
+- NÃO aprovar sua própria frequência;
+- NÃO homologar folha.
 
-Pode:
+IMPORTANTE:
 
-igual todas as unidades;
-todas
-analisar;
-devolver;
-aprovação;
-homólogo;
-acompanhar todo o fluxo.
-GESTOR
+Não alterar a regra global de permissões para conseguir isso.
 
-Pode:
+Usar o vínculo existente:
 
-visualizar as unidades/secretarias dentro do seu escopo;
-receber folhas enviadas para análise;
-analisar;
-devolver para correção;
-aprovar conforme sua permissão.
-DIRETOR DE UNIDADE
+usuario_unidades
+e/ou
+unidade_principal_id
 
-Pode:
+conforme a arquitetura já existente.
 
-visualizar somente sua unidade vinculada;
-visualizar profissionais da unidade;
-¾ frequência;
-editar rascunho;
-enviar frequência para análise;
-visualizar frequência devolvida;
-corrigir frequência devolvida;
-reenviar para análise.
-OPERACIONAL
+============================================================
+5. GESTOR
+============================================================
+
+O Gestor deve:
+
+- visualizar as unidades/secretarias permitidas pelo seu escopo;
+- receber frequências enviadas para análise;
+- abrir a frequência;
+- analisar;
+- reprovar/devolver para correção;
+- aprovar quando sua regra de negócio permitir;
+- NÃO ganhar acesso global indevido;
+- NÃO perder acesso às unidades que já possuía.
+
+Não alterar a definição geral de MASTER/GESTOR.
+
+============================================================
+6. MASTER
+============================================================
+
+MASTER deve continuar com:
+
+- acesso global;
+- visualização de todas as unidades;
+- visualização das frequências;
+- análise;
+- aprovação;
+- homologação;
+- auditoria.
+
+NÃO aplicar filtro de unidade ao MASTER.
+
+NÃO modificar sua lógica de bypass existente.
+
+============================================================
+7. OPERACIONAL / DEMAIS PERFIS
+============================================================
 
 Preservar exatamente as permissões existentes.
 
-NÃO permissões adicionais.
+Não conceder:
 
-🔴 PROBLEMA 4 — UNIDADE DO DIRETOR
+- aprovação;
+- homologação;
+- administração de usuários;
+- acesso global.
 
-Validar especialmente:
+Não alterar perfis que não estejam relacionados ao bug.
 
-usuario.unidade_principal_id
-usuario_unidades
-competencia_unidades
-frequencias.unidade_id
+============================================================
+8. SINCRONIZAÇÃO DOS DADOS
+============================================================
 
-Quando o Diretor entra:
-
-unidade vinculada
-       ↓
-contexto do usuário
-       ↓
-filtros da Folha
-       ↓
-frequência
-       ↓
-profissionais
-
-A hora deve ser selecionada automaticamente .
-
-O Diretor não precisa selecionar manualmente sua unidade.
-
-Porém:
-
-IMPORTANTE
-
-Não permita que o Diretor altere o filtro para uma unidade que não esteja autorizada.
-
-🔴 PROBLEMA 5 — RLS COMdeleted_at
-
-Os auditórios encontraram referências a:
-
-deleted_at
-
-em políticas/RPCs relacionadas a tabelas onde essa coluna não existe mais.
-
-Pesquise TODOS os usos relacionados ao fluxo:
-
-frequencias
-frequencia_profissional
-frequencias_contratados
-competencia_unidades
-usuarios
-usuario_unidades
-profissionais
-setores
-
-Para cada pena:
-
-Se a tabela possuideleted_at
-
-Manter o filtro.
-
-Se a aldeia não possuideleted_at
-
-Remover apenas uma referência inválida.
-
-NÃO adicionar deleted_atartificialmente apenas para fazer a consulta funcionar.
-
-Isso é extremamente importante.
-
-🔴 PROBLEMA 6 —orquestrarSincronizacao
-
-Auditor:
+Investigar:
 
 src/lib/frequencia-sincronizacao.functions.ts
 
-Verificador:
+e:
 
-quem pode chamar;
-até parâmetros recebem;
-se valida frequencia_id;
-se valida unidade_id;
-se valida competente;
-se valida usuário;
-se usa supabaseAdmin;
-se pode alterar dados de
-pode ser realizado por um Diretor independentemente.
+orquestrarSincronizacao
 
-Como utilização supabaseAdmin, garanta que todas as validações de autorização sejam feitas antes do bypass do RLS .
+Confirmar:
 
-Não remova o supabaseAdminautomaticamente.
+- quantidade de profissionais;
+- totais;
+- valores;
+- frequência principal;
+- linhas da frequência.
 
-Primeiro confirme a validação.
+Garantir que:
 
-🔴 PROBLEMA 7 — INTEGRIDADE DOS TOTAIS
-
-Quando uma frequência for enviada ou aprovada, verifique:
-
-frequencias
-       ↕
 frequencia_profissional
-       ↕
+e
 frequencias_contratados
 
-Validar:
+sejam corretamente refletidas na entidade consolidada utilizada pelo workflow.
 
-Abrindo de garrafa;
-dias de inserções;
-faltas;
-mentos;
-carregar separado;
-valores;
-totais consolidados.
+NÃO mover a lógica para trigger neste momento.
 
-Não permita que:
+A auditoria recomendou isso como possível melhoria futura, mas NÃO faz parte desta correção.
 
-total_profissionais
+Primeiro corrigir o fluxo atual.
 
-fique diferente da quantidade real dos itens.
+============================================================
+9. SNAPSHOT
+============================================================
 
-🔴 PROBLEMA 8 — INSTANTÂNEO
+Na aprovação/homologação:
 
-Identificar quando
+- confirmar que o snapshot é criado;
+- confirmar que os dados pertencem à competência correta;
+- confirmar unidade correta;
+- confirmar profissional correto;
+- impedir que uma alteração posterior no cadastro destrua o histórico aprovado.
 
-Deve existir um ponto claro:
+Não alterar o modelo de snapshot se ele já estiver funcionando.
 
-APROVAÇÃO
-      ↓
-SNAPSHOT
-      ↓
-HOMOLOGAÇÃO
+============================================================
+10. RLS
+============================================================
 
-Garantir que a aprovação não gere
+Investigar especificamente erros relacionados a:
 
-Se/etapa falha:
+deleted_at
 
-ROLLBACK
+Não adicionar deleted_at artificialmente em tabelas apenas para fazer uma policy funcionar.
 
-e a frequência não deve ficar aparentemente determinada com dados incompletos.
+Para cada ocorrência:
 
-🔴 PROBLEMA 9 — AUDITÓRIO
+1. identificar a tabela;
+2. confirmar se a coluna existe;
+3. identificar a policy/RPC que referencia;
+4. corrigir a referência para o modelo atual.
 
-Toda alteração de status deve registrar:
+NÃO modificar RLS globalmente.
 
-usuario_id
-frequencia_id
-status_anterior
-status_novo
-data/hora
-observação
+NÃO substituir policies funcionais.
 
-Exemplo:
+NÃO remover segurança para "fazer aparecer os dados".
 
-DIRETOR
-RASCUNHO → ENVIADA_ANALISE
+============================================================
+11. SECURITY DEFINER / SUPABASE ADMIN
+============================================================
 
-Depois:
+Auditar:
 
-GESTOR
-ENVIADA_ANALISE → EM_ANALISE
+supabaseAdmin
 
-Depois:
+e todas as Server Functions que usam bypass de RLS.
 
-GESTOR
-EM_ANALISE → COM_PENDENCIAS
+Confirmar que:
 
-Depois:
+- usuário autenticado é validado;
+- unidade é validada;
+- competência é validada;
+- frequência pertence ao escopo permitido;
+- IDs enviados pelo frontend não são suficientes para escapar do escopo.
 
-DIRETOR
-COM_PENDENCIAS → ENVIADA_ANALISE
+Não remover SECURITY DEFINER se ele for necessário.
 
-E finalmente:
+Apenas garantir validação correta antes do bypass.
 
-GESTOR/MASTER
-EM_ANALISE → APROVADA
+============================================================
+12. AUDIT LOG
+============================================================
+
+Confirmar registro de:
+
+CRIADA
+SALVA
+ENVIADA_PARA_ANALISE
+EM_ANALISE
+DEVOLVIDA
+REENVIADA
+APROVADA
+HOMOLOGADA
+
+Cada evento deve registrar, quando o modelo atual permitir:
+
+- usuário;
+- data/hora;
+- frequência;
+- status anterior;
+- novo status;
+- unidade;
+- competência.
+
+Não criar outro sistema paralelo de auditoria.
+
+============================================================
+13. NÃO TOCAR NO RBAC GLOBAL
+============================================================
+
+NÃO alterar neste comando:
+
+- get_my_user_context
+- get_my_permissions
+- is_master_core
+- has_permission_core
+- sync_user_permissions_to_jwt
+- sync_user_units_to_jwt
+- matriz global de permissões
+- regras gerais de MASTER
+- regras gerais de GESTOR
+
+EXCETO se uma dessas funções tiver uma falha DIRETAMENTE comprovada pelo fluxo da folha.
+
+Se encontrar problema, primeiro documentar:
+
+ARQUIVO
+↓
+FUNÇÃO
+↓
+REGRA ATUAL
+↓
+ERRO
+↓
+IMPACTO
+↓
+CORREÇÃO MÍNIMA
+
+============================================================
+14. TESTES OBRIGATÓRIOS
+============================================================
+
+Depois da correção, executar testes.
+
+TESTE 1 — MASTER
+
+MASTER deve:
+
+✓ visualizar todas as unidades
+✓ visualizar frequências
+✓ analisar
+✓ aprovar
+✓ homologar
+
+TESTE 2 — DIRETOR
+
+Diretor Unidade A:
+
+✓ entra automaticamente na Unidade A
+✓ vê profissionais da Unidade A
+✓ cria frequência
+✓ salva
+✓ envia para análise
+✓ não vê Unidade B
+✓ não aprova a própria frequência
+
+TESTE 3 — DEVOLUÇÃO
+
+Gestor/Master:
+
+✓ recebe frequência
+✓ devolve para correção
+
+Diretor:
+
+✓ recebe devolução
+✓ abre frequência
+✓ corrige
+✓ salva
+✓ reenvia
+
+TESTE 4 — NOVA ANÁLISE
+
+Gestor/Master:
+
+✓ recebe novamente
+✓ visualiza alterações
+✓ aprova
+
+TESTE 5 — ISOLAMENTO
+
+Diretor Unidade A:
+
+NÃO pode acessar:
+
+Unidade B
+Profissionais B
+Frequência B
+Folha B
+
+mesmo tentando alterar URL ou IDs.
+
+TESTE 6 — TOTAIS
+
+Comparar:
+
+itens da frequência
+×
+totais consolidados
+
+Não pode existir divergência.
+
+TESTE 7 — COMPETÊNCIA
+
+Garantir que frequência de:
+
+07/2026
+
+não apareça em:
+
+08/2026
+
+ou outra competência.
+
+TESTE 8 — AUDIT LOG
+
+Confirmar que cada transição gera registro.
+
+============================================================
+15. TESTE DE REGRESSÃO
+============================================================
+
+Depois de corrigir:
+
+Executar:
+
+npm run build
+
+e testes disponíveis no projeto.
+
+Também fazer busca por:
+
+"devolvida"
+"com_pendencias"
+"deleted_at"
+"alterarStatusFrequencia"
+"orquestrarSincronizacao"
+"salvarLinhasFrequencia"
+
+para confirmar que não ficaram referências conflitantes.
+
+============================================================
+16. REGRA ABSOLUTA
+============================================================
+
+NÃO declarar "corrigido" apenas porque o TypeScript compilou.
+
+Uma correção somente pode ser considerada concluída quando:
+
+✓ banco aceita os status;
+✓ Diretor consegue lançar;
+✓ Diretor consegue enviar;
+✓ Gestor/Master recebem;
+✓ Gestor/Master conseguem devolver;
+✓ Diretor consegue corrigir;
+✓ Diretor consegue reenviar;
+✓ Gestor/Master conseguem aprovar;
+✓ Master consegue homologar;
+✓ RLS mantém isolamento;
+✓ totais permanecem íntegros;
+✓ audit_log registra as transições;
+✓ nenhuma outra função de perfil foi quebrada.
+
+============================================================
+17. RELATÓRIO FINAL OBRIGATÓRIO
+============================================================
+
+Ao terminar, NÃO responder apenas "corrigido".
+
+Entregar:
+
+1. CAUSA RAIZ
+2. ARQUIVOS ALTERADOS
+3. MIGRATIONS ALTERADAS
+4. RPCs ALTERADAS (se houver)
+5. RLS ALTERADO (se houver)
+6. STATUS DO ENUM
+7. FLUXO TESTADO
+8. TESTE POR PERFIL
+9. TESTE DE ISOLAMENTO
+10. TESTE DE DEVOLUÇÃO
+11. TESTE DE REENVIO
+12. TESTE DE APROVAÇÃO
+13. TESTE DE HOMOLOGAÇÃO
+14. TESTE DE AUDIT LOG
+15. BUILD
+16. TESTES AUTOMATIZADOS
+17. PROBLEMAS QUE PERMANECERAM
+18. RISCOS NÃO VALIDÁVEIS EM RUNTIME
+
+Se algum teste não puder ser executado por falta de sessão autenticada, banco externo ou credencial:
+
+NÃO inventar resultado.
+
+Marcar explicitamente:
+
+⚠️ NÃO VALIDADO EM RUNTIME
+
+e explicar exatamente o que precisa ser testado manualmente.
+
+OBJETIVO FINAL:
+
+RESTABELECER O FLUXO ORIGINAL DA FOLHA SEM BAGUNÇAR O RBAC GLOBAL.
+
+A correção deve ser mínima, rastreável, reversível e baseada exclusivamente nos problemas comprovados pela auditoria.
 */
