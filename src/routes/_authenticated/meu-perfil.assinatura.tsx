@@ -459,6 +459,15 @@ function UploadForm({
       };
 
       console.log('PAYLOAD FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
+      
+      // Validação final de emergência antes do insert
+      const fieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
+      fieldsToCheck.forEach(field => {
+        const val = payloadAssinatura[field];
+        if (val && (String(val).includes('.') || String(val).includes('/'))) {
+           throw new Error(`CRITICAL STOP: Campo ${field} contém path inválido: ${val}`);
+        }
+      });
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
