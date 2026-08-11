@@ -447,6 +447,7 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
+      console.log('PAYLOAD FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
