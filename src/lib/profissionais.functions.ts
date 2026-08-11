@@ -1,18 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { profissionalSchema } from "./schemas/profissional.schema";
 
 export const saveProfissionalComplete = createServerFn({ method: "POST" })
   .inputValidator((data) => profissionalSchema.parse(data))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data }) => {
-    // A validação de perfil (MASTER ou permissão específica) deve ocorrer aqui
-    // No entanto, para manter a simplicidade deste plano de ação, usaremos a RPC SECURITY DEFINER
-    // que já foi criada no banco de dados.
-
-    const { data: result, error } = await supabaseAdmin.rpc("save_profissional_complete", {
+  .handler(async ({ data, context }) => {
+    // A RPC é SECURITY DEFINER e valida permissões via auth.uid();
+    // por isso deve ser chamada com o client do usuário autenticado,
+    // nunca com o client admin (onde auth.uid() é NULL).
+    const { data: result, error } = await context.supabase.rpc("save_profissional_complete", {
       p_payload: data,
     });
 
@@ -27,8 +25,8 @@ export const saveProfissionalComplete = createServerFn({ method: "POST" })
 export const arquivarProfissional = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data }) => {
-    const { error } = await supabaseAdmin.rpc("arquivar_profissional", {
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("arquivar_profissional", {
       _id: data.id,
     });
 
