@@ -785,10 +785,13 @@ function NovaAssinaturaDialog({
       const validateId = (id: any, fieldName: string) => {
         if (!id) return null;
         const s = String(id);
-        if (s.includes('.') || s.includes('/')) {
-          throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+        if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
+          throw new Error(`BLOQUEIO FORENSE ADMIN: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
         }
-        if (!isUUID(s)) return null;
+        if (!isUUID(s)) {
+          console.warn(`[ASSINATURA ADMIN] Campo ${fieldName} não é um UUID válido:`, s);
+          return null;
+        }
         return s;
       };
 
