@@ -340,23 +340,31 @@ function UploadForm({
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
-        await saveInst({
-          data: {
-            usuario_id: validateId(me.id, 'usuario_id')!,
-            perfil_id: validateId(me.perfil_id, 'perfil_id'),
-            unidade_id: validateId(unidadeReal, 'unidade_id'),
-            secretaria_id: null,
-            titular_nome: titularNome.trim(),
-            titular_cargo: titularCargo.trim() || null,
-            hash: instHash,
-            metadata: {
-              matricula: me.matricula,
-              unidade_nome: unidadeNome,
-              timestamp: instTimestamp,
-              cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
-            }
+        const payloadInst = {
+          usuario_id: validateId(me.id, 'usuario_id')!,
+          perfil_id: validateId(me.perfil_id, 'perfil_id'),
+          unidade_id: validateId(unidadeReal, 'unidade_id'),
+          secretaria_id: null,
+          titular_nome: titularNome.trim(),
+          titular_cargo: titularCargo.trim() || null,
+          hash: instHash,
+          metadata: {
+            matricula: me.matricula,
+            unidade_nome: unidadeNome,
+            timestamp: instTimestamp,
+            cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
+          }
+        };
+
+        console.log("[ASSINATURA FINAL PAYLOAD INSTITUCIONAL]", JSON.stringify(payloadInst, null, 2));
+        Object.entries(payloadInst).forEach(([key, value]) => {
+          console.log("[ASSINATURA FIELD INSTITUCIONAL]", key, value, typeof value);
+          if (typeof value === "string" && (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))) {
+            console.error("[ERRO FORENSE INSTITUCIONAL] Possível caminho de arquivo em campo UUID:", { campo: key, valor: value });
           }
         });
+
+        await saveInst({ data: payloadInst });
 
         toast.success("Assinatura institucional cadastrada");
         setInstHash(null);
