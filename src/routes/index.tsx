@@ -5,49 +5,32 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-RELATÓRIO DE INVESTIGAÇÃO E CORREÇÃO - DADOS SALARIAIS (FASE 1)
+# FASE 2 — IMPORTAÇÃO DE DADOS SALARIAIS VIA PDF COM IA
 
-1. RESULTADO LITERAL DA QUERY (BANCO DE DADOS):
-[
-  {"column_name": "adicional_noturno", "data_type": "numeric"},
-  {"column_name": "gratificacao_incentivo", "data_type": "numeric"},
-  {"column_name": "horas_extras", "data_type": "numeric"},
-  {"column_name": "salario_base", "data_type": "numeric"},
-  {"column_name": "salario_bruto", "data_type": "numeric"},
-  {"column_name": "salario_liquido", "data_type": "numeric"},
-  {"column_name": "vencimento_liquido", "data_type": "numeric"}
-]
+ESTADO DA FASE 1:
+- [x] Campos salariais no banco (numeric)
+- [x] Formulário de edição com os 7 campos
+- [x] Lógica de permissão master/gestor corrigida
+- [x] Importador Excel atualizado
 
-2. DIAGNÓSTICO DO CARD INVISÍVEL:
-   - Causa Raiz: O Card "Dados salariais" no componente ProfissionalFormBody 
-     estava condicionado à permissão 'profissional.dados_salariais'.
-   - O perfil MASTER, apesar de ter acesso global via RLS e no menu, 
-     NÃO tinha essa permissão específica vinculada na tabela 
-     'perfil_permissoes'.
-   - Além disso, a função 'openEdit' não estava mapeando os novos campos do 
-     objeto profissional para os campos do formulário (reset do react-hook-form).
+PLANO DE EXECUÇÃO FASE 2:
 
-3. CORREÇÕES APLICADAS:
-   - BANCO: Vinculada a permissão 'profissional.dados_salariais' ao perfil 
-     MASTER na tabela public.perfil_permissoes.
-   - UI (Gate): Alterada a condição de exibição no ProfissionalFormBody para 
-     permitir visualização se o usuário for MASTER (userCtx?.is_master) OU 
-     tiver a permissão específica.
-   - UI (Form): Corrigida a função 'openEdit' para preencher corretamente os 
-     campos salariais ao abrir o modal de edição.
+1. INVESTIGAÇÃO (ETAPA 1):
+   - Verificar se usamos Lovable AI Gateway para extração.
+   - Identificar biblioteca de parsing de PDF compatível com TanStack Start/Edge.
 
-4. RESPOSTAS DIRETAS (EVIDÊNCIA 4):
-   - Quem vê hoje? Perfil MASTER (por padrão agora) e GESTOR (que já tinha 
-     a permissão). Diretores de Unidade NÃO vêem, a menos que a permissão 
-     seja concedida ao perfil deles.
-   - Nome da permissão: 'profissional.dados_salariais' (ID: 61ffcd1f-c419-4a15-8bd6-deaf6165a752).
+2. UI (ETAPA 2):
+   - Adicionar botão "Importar salários via PDF" em `profissionais.tsx`.
+   - Criar `ImportSalariosPdfDialog.tsx`.
 
-5. STATUS DO IMPORTADOR (EVIDÊNCIA 5):
-   - O 'ImportProfissionaisDialog' já foi atualizado com os novos mapeamentos. 
-   - A sanitização 'numericEmptyToNull' garante que campos vazios entrem como 
-     NULL no banco, evitando erro 500.
+3. BACKEND (EXTRAÇÃO IA):
+   - Criar `src/lib/salarios-ia.functions.ts`.
+   - Prompt estruturado para extração de tabelas salariais.
+   - Lógica de fuzzy match para identificação de profissionais.
 
-PRÓXIMO PASSO: Favor verificar o modal de edição do Abmael agora. O Card 
-"Dados salariais" deve estar visível na aba "Vínculo & Lotação".
+4. PRÉVIA E CONFIRMAÇÃO (ETAPA 4):
+   - Tabela editável com status (Sucesso, Ambíguo, Não Encontrado).
+   - Validação antes do salvamento em lote.
+
+PRÓXIMOS PASSOS: Iniciando Etapa 1 e Etapa 2 agora.
 */
-
