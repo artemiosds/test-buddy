@@ -1,4 +1,3 @@
-O roteiro de auditoria em src/routes/index.tsx foi atualizado conforme solicitado.
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
