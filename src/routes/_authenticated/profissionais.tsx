@@ -720,7 +720,14 @@ function ProfissionaisPage() {
 
   const upsert = useMutation({
     mutationFn: async (values: ProfissionalFormValues) => {
-      return saveProfissionalComplete({ data: values });
+      console.log("Enviando payload para RPC:", values);
+      try {
+        const result = await saveProfissionalComplete({ data: values });
+        return result;
+      } catch (error) {
+        console.error("Falha ao salvar:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success(formMethods.getValues("id") ? "Profissional atualizado" : "Profissional criado");
@@ -728,7 +735,10 @@ function ProfissionaisPage() {
       reset(EMPTY_VALUES);
       qc.invalidateQueries({ queryKey: ["profissionais"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const message = e?.message || "Erro desconhecido ao salvar";
+      toast.error(message);
+    },
   });
 
   const archive = useMutation({
