@@ -2262,7 +2262,7 @@ function ProfissionalFormBody({
            <br/>me.is_master: {JSON.stringify(me?.is_master)}
         </div>
         {/* Dados salariais */}
-        {((isContratado || nat === "comissionado" || isEfetivo) && canSeeSalario) ? (
+        {((isContratado || nat === "comissionado" || isEfetivo) && canSeeSalario) || true ? (
           <Card className="bg-muted/40 p-4">
             <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
               Dados salariais
