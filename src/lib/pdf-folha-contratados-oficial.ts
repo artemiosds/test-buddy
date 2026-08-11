@@ -6,6 +6,7 @@
  * Só deve ser chamado com folhas cujas linhas estejam APROVADAS.
  */
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
