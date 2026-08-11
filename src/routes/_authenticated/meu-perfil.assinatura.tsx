@@ -518,7 +518,7 @@ function UploadForm({
                 <p><span className="text-slate-400">Cargo:</span> {titularCargo || '---'}</p>
                 <p><span className="text-slate-400">Matrícula:</span> {me.matricula || '---'}</p>
                 <p><span className="text-slate-400">CPF:</span> {me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : '---'}</p>
-                <p><span className="text-slate-400">Órgão:</span> {unidades.find(u => u.id === unidadeId)?.nome || 'Todas as Unidades'}</p>
+                <p><span className="text-slate-400">Órgão:</span> {unidades.find(u => u.id === (unidadeId === "__todas__" ? null : unidadeId))?.nome || 'Todas as Unidades'}</p>
                 <p><span className="text-slate-400">Data/Hora:</span> {instTimestamp ? new Date(instTimestamp).toLocaleString('pt-BR') : '---'}</p>
               </div>
               

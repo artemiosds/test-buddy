@@ -143,14 +143,20 @@ export async function resolverAssinaturasDocumento(
   // da assinatura cujo perfil corresponde a quem está emitindo o documento.
   let meuPerfil: string | null = null;
   let meuNome: string | null = null;
+  let minhaMatricula: string | null = null;
+  let meuCpf: string | null = null;
   try {
     const { data: ctx } = await supabase.rpc("get_my_user_context");
     const me = (Array.isArray(ctx) ? ctx[0] : ctx) as {
       perfil_codigo?: string | null;
       nome_completo?: string | null;
+      matricula?: string | null;
+      cpf?: string | null;
     } | null;
     meuPerfil = me?.perfil_codigo ?? null;
     meuNome = me?.nome_completo ?? null;
+    minhaMatricula = me?.matricula ?? null;
+    meuCpf = me?.cpf ?? null;
   } catch {
     /* sem contexto — segue com os dados cadastrados */
   }
@@ -171,6 +177,14 @@ export async function resolverAssinaturasDocumento(
       const p = r.assinatura_id ? extraMap.get(r.assinatura_id) : undefined;
       const alin = (p?.alinhamento as "esquerda" | "centro" | "direita" | null) ?? "direita";
       const souEu = !!meuPerfil && r.perfil_codigo === meuPerfil;
+      
+      // Metadados dinâmicos para a assinatura "sou eu" se não houver metadados salvos
+      const dynamicMetadata = p?.metadata || (souEu ? {
+        matricula: minhaMatricula,
+        cpf: meuCpf,
+        cpf_mascarado: meuCpf ? `${meuCpf.slice(0, 3)}.***.***-${meuCpf.slice(-2)}` : null
+      } : null);
+
       return {
         regra_id: r.regra_id,
         perfil_codigo: r.perfil_codigo,
@@ -189,7 +203,7 @@ export async function resolverAssinaturasDocumento(
         alinhamento: alin,
         mostrar_nome: p?.mostrar_nome ?? true,
         mostrar_cargo: p?.mostrar_cargo ?? true,
-        metadata: p?.metadata ?? null,
+        metadata: dynamicMetadata,
       } as AssinaturaResolvida;
     }),
   );
