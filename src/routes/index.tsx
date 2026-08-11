@@ -1,10 +1,8 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   beforeLoad: () => {
-    throw redirect({
-      to: '/analitico',
-      replace: true,
-    });
+    throw redirect({ to: "/analitico" });
   },
+  component: () => null,
 });
