@@ -49,8 +49,6 @@ type UsuarioRow = {
   email: string;
   status: string;
   perfil_id: string | null;
-  acesso_todas_unidades: boolean;
-  acesso_todas_secretarias: boolean;
   perfil: { nome: string; codigo: string } | null;
 };
 
@@ -107,7 +105,7 @@ function UsuariosList() {
       const { data, error } = await supabase
         .from("usuarios")
         .select(
-          "id, nome_completo, email, status, perfil_id, acesso_todas_unidades, acesso_todas_secretarias, perfil:perfis(nome, codigo)",
+          "id, nome_completo, email, status, perfil_id, perfil:perfis(nome, codigo)",
         )
         .is("deleted_at", null)
         .order("nome_completo");
