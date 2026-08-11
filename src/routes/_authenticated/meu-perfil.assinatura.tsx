@@ -125,9 +125,15 @@ export function MinhaAssinaturaPage() {
 
   const excluir = useMutation({
     mutationFn: async (row: Assinatura) => {
+      const { data: me } = await supabase.auth.getUser();
+      const userId = me.user?.id;
+      if (!userId) throw new Error("Usuário não autenticado");
+      
       const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
       if (error) throw error;
-      await supabase.storage.from(BUCKET).remove([row.storage_path]);
+      
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${userId}/${row.storage_path}`;
+      await supabase.storage.from(BUCKET).remove([fullPath]);
     },
     onSuccess: () => {
       toast.success("Assinatura removida");
@@ -203,6 +209,7 @@ export function MinhaAssinaturaPage() {
                       key={row.id}
                       row={row}
                       unidades={unidades ?? []}
+                      userId={me?.id}
                       onToggle={(ativa) => toggleAtiva.mutate({ id: row.id, ativa })}
                       onDelete={() => {
                         if (confirm("Remover esta assinatura?")) excluir.mutate(row);
@@ -314,7 +321,8 @@ function UploadForm({
       
       // O path do storage deve ser limpo e utilizar IDs únicos
       // Evitamos strings textuais como "pessoal" no início do path se o bucket/política for restritivo
-      const path = `${me.id}/${crypto.randomUUID()}.${ext}`;
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const path = `${me.id}/${fileName}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: "image/png",
@@ -329,7 +337,7 @@ function UploadForm({
         tipo: "assinatura" as const,
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: path,
+        storage_path: fileName,
         mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: isUUID(unidadeReal) ? unidadeReal : null,
@@ -453,11 +461,13 @@ function AssinaturaCard({
   unidades,
   onToggle,
   onDelete,
+  userId,
 }: {
   row: Assinatura;
   unidades: Unidade[];
   onToggle: (ativa: boolean) => void;
   onDelete: () => void;
+  userId?: string;
 }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -474,13 +484,14 @@ function AssinaturaCard({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(row.storage_path, 600);
+      const fullPath = row.storage_path.includes('/') ? row.storage_path : (userId ? `${userId}/${row.storage_path}` : row.storage_path);
+      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fullPath, 600);
       if (!cancel) setSignedUrl(data?.signedUrl ?? null);
     })();
     return () => {
       cancel = true;
     };
-  }, [row.storage_path]);
+  }, [row.storage_path, userId]);
 
   const unidadeNome = row.unidade_id
     ? (unidades.find((u) => u.id === row.unidade_id)?.nome ?? "Unidade removida")
