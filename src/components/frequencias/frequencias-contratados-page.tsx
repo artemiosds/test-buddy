@@ -825,7 +825,7 @@ export function FrequenciasContratadosPage() {
           </Button>
           <Button
             onClick={() => setEnviarAberto(true)}
-            disabled={!canEdit || !has("frequencia.enviar") || mEnviar.isPending || !folha?.length || folhaStatusUnificado !== "rascunho"}
+            disabled={!podeEnviar || mEnviar.isPending}
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para análise
           </Button>
