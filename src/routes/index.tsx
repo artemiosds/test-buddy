@@ -1,4 +1,6 @@
-// INVESTIGAÇÃO EM CURSO: Erro de sintaxe UUID "pessoal" no módulo de assinaturas.
+quero que que verefica se o Assinaturas institucionais esta funcioando corretamente se ao cadastra alguma assinatura ela entra no fluxo e se noa dar erro, se ela identica atraves do perfil
+
+IMPORTANTE: Execute TODOS os detalhes desta tarefa com máxima precisão. Não ignore nada, não simplifique, implemente EXATAMENTE o que foi pedido.
 
 /**
  * PASSO 1 — LOCALIZAÇÃO DO INSERT
