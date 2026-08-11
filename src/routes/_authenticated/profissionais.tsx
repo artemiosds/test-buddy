@@ -2252,8 +2252,16 @@ function ProfissionalFormBody({
           </Card>
         ) : null}
 
-        {/* DEBUG: isContratado={JSON.stringify(isContratado)}, nat={JSON.stringify(nat)}, isEfetivo={JSON.stringify(isEfetivo)}, canSeeSalario={JSON.stringify(canSeeSalario)} */}
-        {((isContratado || nat === "comissionado" || isEfetivo) && canSeeSalario) || true ? (
+        <div style={{ background: '#fee', border: '2px solid red', padding: '8px', marginBottom: '10px', fontFamily: 'monospace', fontSize: '12px' }}>
+           DEBUG SALARIAL:
+           <br/>isContratado: {JSON.stringify(isContratado)}
+           <br/>nat: {JSON.stringify(nat)}
+           <br/>isEfetivo: {JSON.stringify(isEfetivo)}
+           <br/>canSeeSalario: {JSON.stringify(canSeeSalario)}
+           <br/>me.is_master: {JSON.stringify(me?.is_master)}
+        </div>
+        {/* Dados salariais */}
+        {((isContratado || nat === "comissionado" || isEfetivo) && canSeeSalario) ? (
           <Card className="bg-muted/40 p-4">
             <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
               Dados salariais
