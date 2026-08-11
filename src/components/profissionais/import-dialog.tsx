@@ -410,17 +410,12 @@ export function ImportProfissionaisDialog() {
       // Invalida a listagem, os KPIs (Total/Ativos/Efetivos) e lookups
       // relacionados para que os cards e contagens reflitam a importação
       // imediatamente, sem depender de refocus/refresh manual.
-      qc.invalidateQueries({
-        predicate: (q) => {
-          const k = q.queryKey?.[0];
-          return (
-            k === "profissionais" ||
-            k === "profissionais-kpi" ||
-            k === "profissionais-count" ||
-            k === "gestores-ids"
-          );
-        },
-      });
+      qc.invalidateQueries({ queryKey: ["profissionais"] });
+      qc.invalidateQueries({ queryKey: ["profissionais-kpi"] });
+      qc.invalidateQueries({ queryKey: ["profissionais-count"] });
+      qc.invalidateQueries({ queryKey: ["gestores-ids"] });
+      qc.invalidateQueries({ queryKey: ["lookup"] });
+      qc.invalidateQueries({ queryKey: ["current-user-context"] }); // Atualiza contexto se o admin importou ele mesmo
     }
     if (fail === 0) toast.success(`${ok} profissionais importados`);
     else toast.warning(`${ok} importados, ${fail} com erro`);
