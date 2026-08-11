@@ -104,12 +104,24 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       if (err) throw err;
       
       totalProfissionais = elegiveis.length;
-      // Status da folha de contratados é derivado do primeiro registro ou passado via payload
-      statusOficial = contratados?.[0]?.status ?? "rascunho";
-      dataEnvio = contratados?.[0]?.enviada_em ?? null;
-      enviadaPor = contratados?.[0]?.enviada_por ?? null;
-      dataAprovacao = contratados?.[0]?.aprovada_em ?? null;
-      aprovadaPor = contratados?.[0]?.aprovada_por ?? null;
+      // O status oficial da folha é 'rascunho' se houver qualquer rascunho, devolvida ou rejeitada.
+      // Caso contrário, se houver enviada, é 'enviada'.
+      if (contratados && contratados.length > 0) {
+        const statuses = contratados.map(c => c.status);
+        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada"].includes(s))) {
+          statusOficial = "rascunho";
+        } else if (statuses.every(s => s === "aprovada")) {
+          statusOficial = "aprovada";
+        } else if (statuses.some(s => s === "enviada")) {
+          statusOficial = "enviada";
+        }
+
+        const ref = contratados.find(c => c.status === statusOficial) || contratados[0];
+        dataEnvio = ref.enviada_em ?? null;
+        enviadaPor = ref.enviada_por ?? null;
+        dataAprovacao = ref.aprovada_em ?? null;
+        aprovadaPor = ref.aprovada_por ?? null;
+      }
 
       totalDias = contratados?.reduce((acc, curr) => acc + (Number(curr.dias_trabalhados) || 0), 0) ?? 0;
       totalFaltas = contratados?.reduce((acc, curr) => acc + (Number(curr.dias_falta) || 0), 0) ?? 0;
