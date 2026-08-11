@@ -282,6 +282,13 @@ export function ImportProfissionaisDialog() {
         h_p: numOrNull(get("h_p") ?? get("h.p") ?? get("hp")),
         c_h: numOrNull(get("c_h") ?? get("c.h") ?? get("ch")),
         jorn: numOrNull(get("jorn") ?? get("jornada")),
+        salario_base: numOrNull(get("salario_base")),
+        salario_liquido: numOrNull(get("salario_liquido")),
+        horas_extras: numOrNull(get("horas_extras")),
+        adicional_noturno: numOrNull(get("adicional_noturno")),
+        salario_bruto: numOrNull(get("salario_bruto")),
+        gratificacao_incentivo: numOrNull(get("gratificacao_incentivo")),
+        vencimento_liquido: numOrNull(get("vencimento_liquido")),
       };
       if (!row.nome_completo) row.erro = "Nome vazio";
       // CPF ausente ou fora do padrão de 11 dígitos não bloqueia a importação
