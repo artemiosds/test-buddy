@@ -269,9 +269,10 @@ export function drawAssinaturasBlock(
       
       const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
       const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
-      const cpf = metadata?.cpf_mascarado ? `CPF: ${metadata.cpf_mascarado}` : "";
+      const cpf = metadata?.cpf_mascarado || (metadata?.cpf ? `${metadata.cpf.slice(0, 3)}.***.***-${metadata.cpf.slice(-2)}` : "");
+      const cpfLabel = cpf ? `CPF: ${cpf}` : "";
       
-      let extraLines = [cargo, matricula, cpf].filter(Boolean);
+      let extraLines = [cargo, matricula, cpfLabel].filter(Boolean);
       extraLines.forEach((line, idx) => {
         doc.text(line, px + imgW / 2, lineY + 6.8 + idx * 3, {
           align: "center",
@@ -337,9 +338,10 @@ export function drawAssinaturasBlock(
       const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
       const metadata = a.metadata;
       const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
-      const cpf = metadata?.cpf_mascarado ? `CPF: ${metadata.cpf_mascarado}` : "";
+      const cpf = metadata?.cpf_mascarado || (metadata?.cpf ? `${metadata.cpf.slice(0, 3)}.***.***-${metadata.cpf.slice(-2)}` : "");
+      const cpfLabel = cpf ? `CPF: ${cpf}` : "";
       
-      const extraLines = [cargo, matricula, cpf].filter(Boolean);
+      const extraLines = [cargo, matricula, cpfLabel].filter(Boolean);
       extraLines.forEach((line, idx) => {
         doc.text(line, cx, lineY + 8 + idx * 3.5, { align: "center", maxWidth: colW - 4 });
       });
