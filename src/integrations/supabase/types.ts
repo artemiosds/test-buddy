@@ -5106,7 +5106,21 @@ export type Database = {
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: {
         Args: never
-        Returns: Json
+        Returns: {
+          acesso_todas_secretarias: boolean
+          acesso_todas_unidades: boolean
+          email: string
+          id: string
+          is_master: boolean
+          nome_completo: string
+          perfil_admin_2fa_required: boolean
+          perfil_codigo: string
+          perfil_id: string
+          perfil_nome: string
+          secretaria_id: string
+          status: string
+          unidades: string[]
+        }[]
       }
       get_quadro_lotacao: {
         Args: {
@@ -5168,15 +5182,17 @@ export type Database = {
         }
         Returns: boolean
       }
-      has_permission_core: {
-        Args: {
-          _codigo: string
-          _secretaria_id?: string
-          _unidade_id?: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_permission_core:
+        | {
+            Args: {
+              _codigo: string
+              _secretaria_id?: string
+              _unidade_id?: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _perm_codigo: string; _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5304,6 +5320,10 @@ export type Database = {
           proximas: number
           vencidas: number
         }[]
+      }
+      sync_user_units_to_jwt_manual: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       track_uso: {
         Args: { _contexto?: Json; _evento: string; _rota?: string }
