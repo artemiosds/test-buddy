@@ -786,13 +786,9 @@ function NovaAssinaturaDialog({
         if (!id) return null;
         const s = String(id);
         if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-          throw new Error(`BLOQUEIO FORENSE ADMIN: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
+          throw new Error(`BLOQUEIO DE SEGURANÇA ADMIN: O campo ${fieldName} não pode conter caminhos de arquivo.`);
         }
-        if (!isUUID(s)) {
-          console.warn(`[ASSINATURA ADMIN] Campo ${fieldName} não é um UUID válido:`, s);
-          return null;
-        }
-        return s;
+        return isUUID(s) ? s : null;
       };
 
       const payloadAssinatura = {
@@ -818,41 +814,15 @@ function NovaAssinaturaDialog({
         created_by: userId,
       };
 
-      console.log("[ASSINATURA FINAL PAYLOAD ADMIN]", JSON.stringify(payloadAssinatura, null, 2));
-      Object.entries(payloadAssinatura).forEach(([key, value]) => {
-        console.log("[ASSINATURA FIELD ADMIN]", key, value, typeof value);
-        if (
-          typeof value === "string" &&
-          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
-        ) {
-          const uuidFields = ["usuario_id", "unidade_id", "secretaria_id", "perfil_id", "id"];
-          if (uuidFields.includes(key)) {
-            console.error("[ERRO FORENSE ADMIN] Caminho de arquivo contaminando campo UUID:", { campo: key, valor: value });
-          }
-        }
-      });
-
       const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
       if (insert.error) {
-        console.error("[ASSINATURA ADMIN] ERRO COMPLETO:", insert.error);
-        console.error("[ASSINATURA ADMIN] MESSAGE:", insert.error.message);
-        console.error("[ASSINATURA ADMIN] DETAILS:", insert.error.details);
-        console.error("[ASSINATURA ADMIN] HINT:", insert.error.hint);
-        console.error("[ASSINATURA ADMIN] CODE:", insert.error.code);
-
         await supabase.storage.from(BUCKET).remove([path]);
         throw insert.error;
       }
       toast.success("Assinatura cadastrada");
       onSaved();
     } catch (e: any) {
-      toast.error(
-        <div>
-          <p className="font-bold">Erro de Sintaxe UUID Detectado (Admin)</p>
-          <p className="text-xs mt-1">Mensagem: {e.message || "Erro desconhecido"}</p>
-          <p className="text-xs">Código: {e.code}</p>
-        </div>
-      );
+      toast.error(e.message || "Erro ao salvar assinatura");
       console.error(e);
     } finally {
       setSaving(false);

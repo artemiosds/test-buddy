@@ -67,14 +67,8 @@ export const saveInstitutionalSignature = createServerFn({ method: "POST" })
       mime_type: "application/json"
     };
 
-    console.group("[DEBUG SERVER FUNCTION ASSINATURA]");
-    console.log("Payload server-side:", payload);
-    Object.entries(payload).forEach(([key, value]) => {
-      if (typeof value === "string" && (value.endsWith(".png") || value.includes("/"))) {
-        console.error("[ERRO SERVER FORENSE] Valor suspeito detectado:", { campo: key, valor: value });
-      }
-    });
-    console.groupEnd();
+    // Processamento concluído: persistindo assinatura institucional segura
+
 
     const { error } = await supabaseAdmin
       .from("assinaturas_institucionais")

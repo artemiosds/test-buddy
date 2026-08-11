@@ -330,15 +330,10 @@ function UploadForm({
         const validateId = (id: any, fieldName: string) => {
           if (!id) return null;
           const s = String(id);
-          // BLOQUEIO CRÍTICO: Se contiver extensão de arquivo, não é um UUID válido
           if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-            throw new Error(`BLOQUEIO FORENSE: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
+            throw new Error(`BLOQUEIO DE SEGURANÇA: O campo ${fieldName} não pode conter caminhos de arquivo.`);
           }
-          if (!isUUID(s)) {
-            console.warn(`[ASSINATURA] Campo ${fieldName} não é um UUID válido:`, s);
-            return null;
-          }
-          return s;
+          return isUUID(s) ? s : null;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
@@ -349,7 +344,7 @@ function UploadForm({
           perfil_id: validateId(me.perfil_id, 'perfil_id'),
           unidade_id: validateId(unidadeReal, 'unidade_id'),
           secretaria_id: null,
-          titular_nome: titularNome.trim(),
+          titular_nome: (titularNome || me.nome_completo || "").trim(),
           titular_cargo: titularCargo.trim() || null,
           hash: instHash,
           metadata: {
@@ -360,17 +355,9 @@ function UploadForm({
           }
         };
 
-        console.log("[ASSINATURA FINAL PAYLOAD INSTITUCIONAL]", JSON.stringify(payloadInst, null, 2));
-        Object.entries(payloadInst).forEach(([key, value]) => {
-          console.log("[ASSINATURA FIELD INSTITUCIONAL]", key, value, typeof value);
-          if (typeof value === "string" && (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))) {
-            console.error("[ERRO FORENSE INSTITUCIONAL] Possível caminho de arquivo em campo UUID:", { campo: key, valor: value });
-          }
-        });
-
         await saveInst({ data: payloadInst });
 
-        toast.success("Assinatura institucional cadastrada");
+        toast.success("Assinatura institucional cadastrada com sucesso");
         setInstHash(null);
         setInstTimestamp(null);
         onSaved();
@@ -395,7 +382,7 @@ function UploadForm({
       toast.error("Arquivo muito grande. Máx: 2MB");
       return;
     }
-    if (!titularNome.trim()) {
+    if (!titularNome.trim() && !me.nome_completo) {
       toast.error("Informe seu nome completo");
       return;
     }
@@ -406,8 +393,6 @@ function UploadForm({
         ? await processImage(file)
         : { blob: activeBlob, ext: "png" };
       
-      // O path do storage deve ser limpo e utilizar IDs únicos
-      // Evitamos strings textuais como "pessoal" no início do path se o bucket/política for restritivo
       const fileName = `${crypto.randomUUID()}.${ext}`;
       const path = `${me.id}/${fileName}`;
 
@@ -422,19 +407,15 @@ function UploadForm({
         if (!id) return null;
         const s = String(id);
         if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-          throw new Error(`BLOQUEIO FORENSE: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
+          throw new Error(`BLOQUEIO DE SEGURANÇA: O campo ${fieldName} não pode conter caminhos de arquivo.`);
         }
-        if (!isUUID(s)) {
-          console.warn(`[ASSINATURA] Campo ${fieldName} não é um UUID válido:`, s);
-          return null;
-        }
-        return s;
+        return isUUID(s) ? s : null;
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       const payloadAssinatura = {
         tipo: "assinatura" as const,
-        titular_nome: titularNome.trim(),
+        titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: fileName,
         mime_type: "image/png",
@@ -457,44 +438,13 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
-      console.log("[ASSINATURA FINAL PAYLOAD]", JSON.stringify(payloadAssinatura, null, 2));
-      Object.entries(payloadAssinatura).forEach(([key, value]) => {
-        console.log("[ASSINATURA FIELD]", key, value, typeof value);
-        if (
-          typeof value === "string" &&
-          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
-        ) {
-          // Flagging only fields that are strictly UUID in the database schema
-          const uuidFields = ["usuario_id", "unidade_id", "secretaria_id", "perfil_id", "id"];
-          if (uuidFields.includes(key)) {
-            console.error("[ERRO FORENSE] Caminho de arquivo contaminando campo UUID:", { campo: key, valor: value });
-          }
-        }
-      });
-
-      Object.entries(payloadAssinatura).forEach(([key, value]) => {
-        console.log(`[ASSINATURA PAYLOAD] ${key}`, value, typeof value);
-        if (
-          typeof value === "string" &&
-          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
-        ) {
-          console.error("[ERRO FORENSE] Possível caminho de arquivo em payload:", { campo: key, valor: value });
-        }
-      });
-
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
-        console.error("[ASSINATURA] ERRO COMPLETO:", ins.error);
-        console.error("[ASSINATURA] MESSAGE:", ins.error.message);
-        console.error("[ASSINATURA] DETAILS:", ins.error.details);
-        console.error("[ASSINATURA] HINT:", ins.error.hint);
-        console.error("[ASSINATURA] CODE:", ins.error.code);
-        
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
       }
-      toast.success("Assinatura cadastrada");
+      toast.success("Assinatura cadastrada com sucesso");
       setFile(null);
       setPadBlob(null);
       setTitularCargo("");
@@ -502,15 +452,7 @@ function UploadForm({
       setPos(DEFAULT_POSITION);
       onSaved();
     } catch (e: any) {
-      toast.error(
-        <div>
-          <p className="font-bold">Erro de Sintaxe UUID Detectado</p>
-          <p className="text-xs mt-1">Mensagem: {e.message || "Erro desconhecido"}</p>
-          <p className="text-xs">Código: {e.code}</p>
-          <p className="text-[10px] mt-2 text-muted-foreground italic">Verifique o console para o payload completo.</p>
-        </div>
-      );
-      console.error(e);
+      toast.error(e.message || "Erro ao salvar assinatura");
     } finally {
       setSaving(false);
     }
@@ -584,15 +526,16 @@ function UploadForm({
               type="button" 
               variant="outline" 
               className="w-full"
+              disabled={saving}
               onClick={async () => {
                 const ts = new Date().toISOString();
                 const res = await genHash({
                   data: {
                     usuario_id: me.id,
-                    nome: titularNome || me.nome_completo || '',
+                    nome: (titularNome || me.nome_completo || '').trim(),
                     cargo: titularCargo,
                     matricula: me.matricula || undefined,
-                    unidade: unidades.find(u => u.id === unidadeId)?.nome,
+                    unidade: unidades.find(u => u.id === (unidadeId === "__todas__" ? null : unidadeId))?.nome,
                     timestamp: ts
                   }
                 });
@@ -601,7 +544,7 @@ function UploadForm({
               }}
             >
               <Hash className="mr-2 h-4 w-4" />
-              Gerar Assinatura Institucional
+              {instHash ? "Regerar Assinatura" : "Gerar Assinatura Eletrônica"}
             </Button>
           </TabsContent>
         </Tabs>
@@ -645,7 +588,7 @@ function UploadForm({
               onChange={(e) => setVigenciaFim(e.target.value)}
             />
           </div>
-          <Button onClick={salvar} disabled={saving || (mode !== "institutional" && !file && !padBlob) || (mode === "institutional" && !instHash)} className="w-full">
+          <Button onClick={salvar} disabled={saving || (mode === "institutional" && !instHash)} className="w-full">
             {mode === "institutional" ? <ShieldCheck className="mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />}
             {saving ? "Processando…" : mode === "institutional" ? "Confirmar Assinatura Institucional" : "Cadastrar assinatura"}
           </Button>
