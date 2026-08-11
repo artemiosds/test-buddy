@@ -7,12 +7,15 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { LOGO_PREFEITURA, LOGO_SAUDE, LOGO_BRASAO } from "@/lib/pdf-logos-base64";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 
 export type PdfContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
   unidadeNome: string;
   itens: ItemContratado[];
   emitidoPor: string;
+  secretariaId?: string | null;
+  unidadeId?: string | null;
 };
 
 const MESES = [
@@ -52,6 +55,11 @@ export async function gerarFolhaContratadosModeloCer(
   const mesNome = MESES[(input.competencia.mes - 1 + 12) % 12];
   const compStr = `${mesNome}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
+  
+  const assinaturas = await resolverAssinaturasDocumento("folha_contratados", {
+    secretariaId: input.secretariaId ?? null,
+    unidadeId: input.unidadeId ?? null,
+  });
 
   const drawHeader = () => {
     const logoSize = 18;
@@ -202,6 +210,20 @@ export async function gerarFolhaContratadosModeloCer(
       doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
     },
   });
+
+  if (assinaturas.length > 0) {
+    const lastY = (doc as any).lastAutoTable?.finalY || 52;
+    let signY = lastY + 10;
+    if (signY + 35 > pageH - 12) {
+      doc.addPage();
+      drawHeader();
+      signY = 52 + 5;
+    }
+    drawAssinaturasBlock(doc, assinaturas, {
+      startY: signY,
+      marginX: MARGEM,
+    });
+  }
 
   const compFile = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
   doc.save(`folha-contratados-gestao-sms-${compFile}.pdf`);
