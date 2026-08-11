@@ -322,6 +322,8 @@ function UploadForm({
       });
       if (up.error) throw up.error;
 
+      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       const payloadAssinatura = {
         tipo: "assinatura" as const,
@@ -330,9 +332,9 @@ function UploadForm({
         storage_path: path,
         mime_type: "image/png",
         usuario_id: me.id,
-        unidade_id: (unidadeReal && unidadeReal !== "") ? unidadeReal : null,
+        unidade_id: isUUID(unidadeReal) ? unidadeReal : null,
         secretaria_id: null,
-        perfil_id: (me.perfil_id && me.perfil_id !== "") ? me.perfil_id : null,
+        perfil_id: isUUID(me.perfil_id) ? me.perfil_id : null,
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,

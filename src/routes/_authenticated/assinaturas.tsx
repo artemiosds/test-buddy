@@ -773,6 +773,8 @@ function NovaAssinaturaDialog({
       });
       if (up.error) throw up.error;
 
+      const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
       const payloadAssinatura = {
         tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
@@ -781,12 +783,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? (secretariaId && secretariaId !== "" ? secretariaId : null)
+            ? (isUUID(secretariaId) ? secretariaId : null)
             : escopo === "unidade"
               ? (unidades.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: (escopo === "unidade" && unidadeId && unidadeId !== "") ? unidadeId : null,
-        perfil_id: (perfilId && perfilId !== "" && perfilId !== "__institucional__") ? perfilId : null,
+        unidade_id: (escopo === "unidade" && isUUID(unidadeId)) ? unidadeId : null,
+        perfil_id: isUUID(perfilId) ? perfilId : null,
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
