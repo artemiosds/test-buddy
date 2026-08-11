@@ -388,9 +388,12 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
             </div>
             <div>
               <h3 className="text-lg font-semibold">Importação Concluída</h3>
-              <p className="text-sm text-muted-foreground">
-                Foram atualizados {summary.atualizados} profissionais de um total de {summary.total} extraídos do documento.
-              </p>
+              <div className="text-sm text-muted-foreground space-y-2 mt-2">
+                <p>Foram atualizados {summary.atualizados} profissionais de um total de {summary.total} extraídos.</p>
+                <div className="p-2 bg-muted rounded-md text-[10px] font-mono">
+                  IA: {summary.modelo}
+                </div>
+              </div>
             </div>
             <Button className="w-full" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
