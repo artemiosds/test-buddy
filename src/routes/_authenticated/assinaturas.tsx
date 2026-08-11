@@ -821,7 +821,7 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? sanitizeUUID(secretariaId, 'secretaria_id')
+            ? sanitizeUUID(secretariaId, 'ADMIN_secretaria_id')
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
