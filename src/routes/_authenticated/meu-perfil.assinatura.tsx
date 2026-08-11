@@ -330,33 +330,45 @@ function UploadForm({
         const validateId = (id: any, fieldName: string) => {
           if (!id) return null;
           const s = String(id);
-          if (s.includes('.') || s.includes('/')) {
-            throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+          // BLOQUEIO CRÍTICO: Se contiver extensão de arquivo, não é um UUID válido
+          if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
+            throw new Error(`BLOQUEIO FORENSE: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
           }
-          if (!isUUID(s)) return null;
+          if (!isUUID(s)) {
+            console.warn(`[ASSINATURA] Campo ${fieldName} não é um UUID válido:`, s);
+            return null;
+          }
           return s;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
-        await saveInst({
-          data: {
-            usuario_id: validateId(me.id, 'usuario_id')!,
-            perfil_id: validateId(me.perfil_id, 'perfil_id'),
-            unidade_id: validateId(unidadeReal, 'unidade_id'),
-            secretaria_id: null,
-            titular_nome: titularNome.trim(),
-            titular_cargo: titularCargo.trim() || null,
-            hash: instHash,
-            metadata: {
-              matricula: me.matricula,
-              unidade_nome: unidadeNome,
-              timestamp: instTimestamp,
-              cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
-            }
+        const payloadInst = {
+          usuario_id: validateId(me.id, 'usuario_id')!,
+          perfil_id: validateId(me.perfil_id, 'perfil_id'),
+          unidade_id: validateId(unidadeReal, 'unidade_id'),
+          secretaria_id: null,
+          titular_nome: titularNome.trim(),
+          titular_cargo: titularCargo.trim() || null,
+          hash: instHash,
+          metadata: {
+            matricula: me.matricula,
+            unidade_nome: unidadeNome,
+            timestamp: instTimestamp,
+            cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
+          }
+        };
+
+        console.log("[ASSINATURA FINAL PAYLOAD INSTITUCIONAL]", JSON.stringify(payloadInst, null, 2));
+        Object.entries(payloadInst).forEach(([key, value]) => {
+          console.log("[ASSINATURA FIELD INSTITUCIONAL]", key, value, typeof value);
+          if (typeof value === "string" && (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))) {
+            console.error("[ERRO FORENSE INSTITUCIONAL] Possível caminho de arquivo em campo UUID:", { campo: key, valor: value });
           }
         });
+
+        await saveInst({ data: payloadInst });
 
         toast.success("Assinatura institucional cadastrada");
         setInstHash(null);
@@ -409,10 +421,13 @@ function UploadForm({
       const validateId = (id: any, fieldName: string) => {
         if (!id) return null;
         const s = String(id);
-        if (s.includes('.') || s.includes('/')) {
-          throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+        if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
+          throw new Error(`BLOQUEIO FORENSE: O campo ${fieldName} está tentando receber um nome de arquivo ("${s}") em uma coluna UUID.`);
         }
-        if (!isUUID(s)) return null;
+        if (!isUUID(s)) {
+          console.warn(`[ASSINATURA] Campo ${fieldName} não é um UUID válido:`, s);
+          return null;
+        }
         return s;
       };
       
@@ -442,15 +457,20 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
-      console.group("[DEBUG ASSINATURA INSTITUCIONAL]");
-      console.log("Payload completo:", payloadAssinatura);
-      console.log("usuario_id:", payloadAssinatura.usuario_id);
-      console.log("unidade_id:", payloadAssinatura.unidade_id);
-      console.log("perfil_id:", payloadAssinatura.perfil_id);
-      console.log("storage_path:", payloadAssinatura.storage_path);
-      console.log("arquivo selecionado:", file);
-      console.log("nome do arquivo:", file?.name);
-      console.groupEnd();
+      console.log("[ASSINATURA FINAL PAYLOAD]", JSON.stringify(payloadAssinatura, null, 2));
+      Object.entries(payloadAssinatura).forEach(([key, value]) => {
+        console.log("[ASSINATURA FIELD]", key, value, typeof value);
+        if (
+          typeof value === "string" &&
+          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
+        ) {
+          // Flagging only fields that are strictly UUID in the database schema
+          const uuidFields = ["usuario_id", "unidade_id", "secretaria_id", "perfil_id", "id"];
+          if (uuidFields.includes(key)) {
+            console.error("[ERRO FORENSE] Caminho de arquivo contaminando campo UUID:", { campo: key, valor: value });
+          }
+        }
+      });
 
       Object.entries(payloadAssinatura).forEach(([key, value]) => {
         console.log(`[ASSINATURA PAYLOAD] ${key}`, value, typeof value);
