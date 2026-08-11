@@ -1,3 +1,10 @@
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/")({
+  component: () => <Navigate to="/analitico" replace />,
+});
+
+/**
 [EMERGÊNCIA FRONTEND — BLOQUEIO FANTASMA NO CADASTRO]
 
 A RPC `save_profissional_complete` já foi corrigida e testada diretamente no banco de dados com bypass absoluto para o MASTER. No entanto, o usuário continua recebendo o erro de "Acesso negado..." ao tentar salvar na interface.
@@ -22,13 +29,9 @@ Execute os seguintes passos OBRIGATÓRIOS:
      `console.error("Falha ao salvar:", error);`
 
 Aplique essa modificação no frontend imediatamente para que a interface passe a utilizar a RPC corrigida do Supabase, e publique a atualização.
-import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/")({
-  component: () => <Navigate to="/analitico" replace />,
-});
+---
 
-/**
 VALIDAÇÃO FINAL REAL — NÃO ALTERAR NADA
 
 A auditoria técnica informou que o RBAC e a função save_profissional_complete() estão corrigidos.
