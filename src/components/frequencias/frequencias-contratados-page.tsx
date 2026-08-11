@@ -463,6 +463,19 @@ export function FrequenciasContratadosPage() {
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
   
   const folhaAprovada = folhaStatusUnificado === "aprovada";
+  const podeEnviar = useMemo(() => {
+    if (!folha?.length) return false;
+    // Se a folha já está em análise ou aprovada, não pode enviar de novo (a menos que seja devolvida)
+    if (folhaStatusUnificado === "em_analise" || folhaStatusUnificado === "enviada" || folhaStatusUnificado === "aprovada") return false;
+    
+    // Critério: Deve haver pelo menos uma linha em rascunho/devolvida/rejeitada
+    return folha.some((it: any) => 
+      !it.linha || 
+      it.linha.status === "rascunho" || 
+      it.linha.status === "devolvida" || 
+      it.linha.status === "rejeitada"
+    );
+  }, [folha, folhaStatusUnificado]);
 
   function mapExportItens(): ItemContratado[] {
     // Respeita os filtros aplicados na tela (competência já vem embutida

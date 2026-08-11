@@ -85,8 +85,11 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
         
         // Critério: Não estatutários (Efetivos/Estatutários vão para a outra folha)
-        const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut") || nomeVinculo.includes("contrato");
-        return !ehEstatutario;
+        // Refinado para garantir que Prestadores de Serviços (temporario) e outros vínculos precários entrem aqui.
+        const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
+        const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
+        
+        return !ehEstatutario && !ehComissionado;
       });
 
       totalProfissionais = elegiveis.length;
