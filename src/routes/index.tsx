@@ -5,19 +5,19 @@ export const Route = createFileRoute("/")({
 });
 
 /**
- * # DIAGNÓSTICO E CORREÇÃO: USUÁRIOS NÃO APARECEM PARA ADMINISTRADOR MASTER
+ * # DIAGNÓSTICO E CORREÇÃO: ERRO DE SERVICE ROLE KEY NA MANUTENÇÃO
  * 
- * O Administrador Master estava vendo "Nenhum usuário encontrado", apesar de haver dados.
+ * O usuário MASTER encontrava um erro ao tentar desativar o modo manutenção:
+ * "Missing Supabase environment variable(s): SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY"
  * 
  * 🔍 CAUSA RAIZ:
- * 1. O hook useModoManutencao.ts bloqueava o acesso mesmo para Master devido a falha na identificação do perfil.
- * 2. RLS da tabela 'usuarios' não permitia leitura total mesmo para o papel de serviço/master em alguns contextos.
+ * A variável de ambiente SERVICE_ROLE_KEY, necessária para operações administrativas
+ * que ignoram o RLS (via supabaseAdmin), não estava configurada nos segredos do projeto.
  * 
  * 🔥 SOLUÇÃO APLICADA:
- * 1. [SQL] Desativado Modo Manutenção global e garantida política de SELECT para MASTER.
- * 2. [Hook] useModoManutencao.ts agora reconhece explicitamente 'MASTER' e 'ADMINISTRADOR_MASTER'.
- * 3. [RPC] get_my_user_context corrigida para retornar claims completas.
+ * 1. [Segredos] Configuramos a `SERVICE_ROLE_KEY` nos segredos do projeto usando o token fornecido pelo usuário.
+ * 2. [Infra] O `supabaseAdmin` em `src/integrations/supabase/client.server.ts` agora tem acesso à chave para executar comandos privilegiados.
  * 
  * ✅ RESULTADO:
- * O Administrador Master (Artémio Silva) agora visualiza a listagem completa de 50+ usuários.
+ * O modo manutenção agora pode ser desativado normalmente por usuários MASTER através da interface.
  */
