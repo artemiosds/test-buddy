@@ -715,7 +715,14 @@ function AssinaturaCard({
       </div>
 
       <div className="border rounded bg-muted/30 h-[100px] flex items-center justify-center overflow-hidden">
-        {signedUrl ? (
+        {row.storage_path?.startsWith("institutional_") ? (
+          <div className="flex flex-col items-center justify-center text-primary font-mono scale-50">
+            <ShieldCheck className="h-10 w-10 mb-1" />
+            <div className="text-[10px] font-bold border border-primary px-2 py-1 rounded">
+              {row.storage_path.replace("institutional_", "")}
+            </div>
+          </div>
+        ) : signedUrl ? (
           <img src={signedUrl} alt="Assinatura" className="max-h-full object-contain" />
         ) : (
           <span className="text-xs text-muted-foreground">Carregando…</span>
