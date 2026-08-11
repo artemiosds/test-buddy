@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Campos numéricos/data: "" precisa virar null (Postgres rejeita string vazia). */
-const emptyToNull = z
+const numericEmptyToNull = z
   .union([z.string(), z.number(), z.null()])
   .optional()
   .transform((val) => {
@@ -10,6 +10,9 @@ const emptyToNull = z
     const trimmed = val.trim();
     return trimmed === "" ? null : trimmed;
   });
+
+/** Alias para compatibilidade ou uso genérico */
+const emptyToNull = numericEmptyToNull;
 
 /** Campos ENUM opcionais: "" precisa virar null (Postgres rejeita "" em enum). */
 const enumEmptyToNull = z
@@ -70,6 +73,13 @@ export const profissionalSchema = z.object({
   situacao_data_inicio: emptyToNull,
   situacao_data_fim: emptyToNull,
   foto_url: z.string().nullish().default(""),
+  salario_base: numericEmptyToNull,
+  salario_liquido: numericEmptyToNull,
+  horas_extras: numericEmptyToNull,
+  adicional_noturno: numericEmptyToNull,
+  salario_bruto: numericEmptyToNull,
+  gratificacao_incentivo: numericEmptyToNull,
+  vencimento_liquido: numericEmptyToNull,
 });
 
 export type ProfissionalFormValues = z.infer<typeof profissionalSchema>;

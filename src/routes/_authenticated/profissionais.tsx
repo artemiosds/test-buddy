@@ -157,6 +157,13 @@ const EMPTY_VALUES: ProfissionalFormValues = {
   situacao_data_inicio: "",
   situacao_data_fim: "",
   foto_url: "",
+  salario_base: "",
+  salario_liquido: "",
+  horas_extras: "",
+  adicional_noturno: "",
+  salario_bruto: "",
+  gratificacao_incentivo: "",
+  vencimento_liquido: "",
 };
 
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
