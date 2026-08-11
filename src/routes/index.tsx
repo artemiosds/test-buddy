@@ -5,684 +5,670 @@ export const Route = createFileRoute("/")({
 });
 
 /**
- * # HSM GESTÃO — AUDITORIA FORENSE
- * # FLUXO DE ENVIO DA FOLHA PARA ANÁLISE
- * # FREQUÊNCIA → FOLHA → ANÁLISE → APROVAÇÃO/HOMOLOGAÇÃO
+ * # HSM GESTÃO — AUDITORIA FORENSE DO FLUXO DE ENVIO DA FOLHA PARA ANÁLISE
  *
- * OBJETIVO
+ * ## OBJETIVO
  *
- * Realizar uma auditoria completa, real e rastreável do fluxo de envio
- * da folha para análise.
+ * Realizar uma AUDITORIA TÉCNICA E FUNCIONAL COMPLETA do fluxo de envio da folha para análise.
  *
- * NÃO alterar código inicialmente.
+ * ATENÇÃO:
  *
- * NÃO alterar banco.
+ * ESTA ETAPA É SOMENTE AUDITORIA.
  *
- * NÃO alterar RLS.
+ * NÃO ALTERAR CÓDIGO.
+ * NÃO ALTERAR BANCO.
+ * NÃO CRIAR MIGRATIONS.
+ * NÃO ALTERAR RLS.
+ * NÃO ALTERAR RPC.
+ * NÃO ALTERAR JWT.
+ * NÃO ALTERAR PERFIS.
+ * NÃO ALTERAR PERMISSÕES.
+ * NÃO ALTERAR OUTROS MÓDULOS.
  *
- * NÃO alterar permissões.
+ * Primeiro identificar exatamente onde o fluxo está funcionando, onde está quebrado e qual é a causa raiz.
  *
- * NÃO alterar RBAC.
- *
- * NÃO alterar unidades.
- *
- * NÃO alterar JWT.
- *
- * Primeiro INVESTIGAR e apresentar as causas encontradas.
- *
- * Somente depois de identificar problemas concretos, apresentar a
- * correção necessária.
+ * Somente depois da apresentação do relatório será autorizada uma correção.
  *
  * ============================================================
- * 1. MAPEAR O FLUXO COMPLETO
+ * 1. FLUXO FUNCIONAL QUE DEVE SER AUDITADO
  * ============================================================
  *
- * Mapear exatamente o fluxo atual:
+ * Auditar o fluxo completo:
  *
- * LANÇAMENTO DE FREQUÊNCIA
+ * DIRETOR DE UNIDADE
  *         ↓
- * FECHAMENTO DA FREQUÊNCIA
+ * Lança frequência
  *         ↓
- * GERAÇÃO/ATUALIZAÇÃO DA FOLHA
+ * Fecha competência
  *         ↓
- * ENVIO PARA ANÁLISE
+ * Gera/consolida folha
  *         ↓
- * FOLHA EM ANÁLISE
+ * Envia para análise
  *         ↓
- * GESTOR/MASTER ANALISA
+ * GESTOR / MASTER
  *         ↓
- * APROVAÇÃO OU REPROVAÇÃO
+ * Analisa
  *         ↓
- * RETORNO PARA CORREÇÃO, SE NECESSÁRIO
+ * Aprova ou reprova
  *         ↓
- * REENVIO
+ * Se reprovada
  *         ↓
- * HOMOLOGAÇÃO
+ * DIRETOR corrige
  *         ↓
- * STATUS FINAL
+ * Reenvia para análise
+ *         ↓
+ * GESTOR / MASTER analisa novamente
+ *         ↓
+ * Aprovação/Homologação
+ *         ↓
+ * Folha final
  *
- * Identificar:
+ * Não assumir que esse fluxo está correct.
  *
- * - componentes React
- * - hooks
+ * PROVAR cada etapa através do código, banco, RPCs, Server Functions e componentes envolvidos.
+ *
+ * ============================================================
+ * 2. PERFIS OBRIGATÓRIOS
+ * ============================================================
+ *
+ * Auditar individualmente:
+ *
+ * MASTER
+ *
+ * GESTOR
+ *
+ * DIRETOR DE UNIDADE
+ *
+ * ADMINISTRATIVO/OPERACIONAL
+ *
+ * Para cada perfil informar:
+ *
+ * - O que pode visualizar
+ * - O que pode criar
+ * - O que pode editar
+ * - O que pode enviar para análise
+ * - O que pode analisar
+ * - O que pode reprovar
+ * - O que pode aprovar
+ * - O que pode homologar
+ * - O que pode reenviar
+ * - Qual unidade/secretaria consegue enxergar
+ * - Qual RLS controla o acesso
+ * - Qual RPC controla a permissão
+ * - Qual Server Function executa a ação
+ * - Qual componente frontend executa a ação
+ *
+ * ============================================================
+ * 3. AUDITAR LANÇAMENTO DA FREQUÊNCIA
+ * ============================================================
+ *
+ * Localizar:
+ *
+ * - tabelas de frequência
+ * - tabela de competência
+ * - registros diários/mensais
  * - Server Functions
  * - RPCs
- * - tabelas
- * - relacionamentos
- * - RLS
- * - políticas
- * - status
- * - transições de status
- * - logs/auditoria
- * - unidade responsável
- * - competência
- * - tipo da folha
- *
- * Não assumir como o fluxo funciona.
- * Descobrir pelo código e banco.
- *
- * ============================================================
- * 2. FREQUÊNCIA
- * ============================================================
- *
- * Verificar se os lançamentos de frequência utilizados na folha são
- * exatamente os lançamentos realizados pelo Diretor/usuário responsável.
- *
- * Validar:
- *
- * - profissional
- * - unidade
- * - competência
- * - mês
- * - ano
- * - carga horária
- * - dias trabalhados
- * - faltas
- * - afastamentos
- * - plantões, se aplicável
- * - horas
- * - situação
- * - usuário responsável
- * - data de lançamento
- *
- * Verificar se existe algum ponto onde a folha utiliza dados antigos,
- * cacheados ou de outra competência.
- *
- * IMPORTANTE:
- *
- * Identificar se o envio para análise cria uma fotografia/snapshot
- * dos dados ou se a folha continua lendo dados mutáveis da frequência.
- *
- * Reportar qual comportamento existe atualmente.
- *
- * ============================================================
- * 3. FOLHA DE CONTRATADOS
- * ============================================================
- *
- * Auditar separadamente a folha de CONTRATADOS.
+ * - hooks
+ * - componentes responsáveis pelo lançamento
  *
  * Verificar:
  *
- * - criação
- * - competência
- * - unidade
- * - profissionais
- * - frequência utilizada
- * - valores calculados
- * - status
- * - envio para análise
- * - usuário que enviou
- * - data do envio
- * - destinatário da análise
+ * 1. O Diretor consegue lançar frequência somente da unidade dele?
+ * 2. O Master consegue lançar/visualizar globalmente?
+ * 3. O Gestor possui o escopo correto?
+ * 4. A frequência realmente fica vinculada à unidade correta?
+ * 5. Existe risco de frequência de uma unidade aparecer em outra?
+ * 6. Existe filtro por deleted_at?
+ * 7. Existe validação de competência?
+ * 8. Existe validação de usuário responsável pelo lançamento?
  *
- * Confirmar se:
- *
- * Diretor da Unidade
- *         ↓
- * envia sua folha
- *         ↓
- * folha fica disponível para análise
- *         ↓
- * Gestor/MASTER consegue visualizar
+ * NÃO modificar nada.
  *
  * ============================================================
- * 4. FOLHA DE EFETIVOS
+ * 4. AUDITAR FECHAMENTO DA COMPETÊNCIA
  * ============================================================
  *
- * Auditar separadamente a folha de EFETIVOS.
+ * Identificar exatamente:
  *
- * Não assumir que utiliza o mesmo fluxo de contratados.
+ * - quem pode fechar
+ * - quem pode reabrir
+ * - qual tabela armazena o status
+ * - quais estados existem
+ * - qual função muda o status
  *
- * Verificar:
+ * Mapear todos os estados encontrados.
  *
- * - criação
- * - competência
- * - unidade
- * - profissionais
- * - frequência
- * - cálculos
- * - status
- * - envio
- * - análise
- * - aprovação
- * - homologação
+ * Exemplo:
  *
- * Confirmar que os dois fluxos são independentes.
+ * RASCUNHO
+ * ABERTA
+ * FECHADA
+ * ENVIADA_ANALISE
+ * EM_ANALISE
+ * REPROVADA
+ * APROVADA
+ * HOMOLOGADA
+ *
+ * NÃO assumir que esses são os estados reais.
+ *
+ * Utilizar os estados encontrados no código/banco.
+ *
+ * Verificar se existe inconsistência entre frontend e banco.
  *
  * ============================================================
- * 5. ENVIO PARA ANÁLISE
+ * 5. AUDITAR ENVIO PARA ANÁLISE
  * ============================================================
  *
- * Encontrar exatamente a função responsável pelo botão:
+ * Localizar a função EXATA responsável pelo botão:
  *
  * "Enviar para análise"
  *
  * Identificar:
  *
- * - componente
- * - handler
- * - hook
- * - Server Function
- * - RPC
- * - UPDATE/INSERT executado
- * - mudança de status
- * - usuário responsável
- * - timestamp
- * - unidade
- * - competência
- *
- * Verificar se o botão realmente persiste o envio no banco.
- *
- * NÃO considerar apenas a mudança visual da interface.
- *
- * Confirmar através do fluxo de dados real.
- *
- * ============================================================
- * 6. STATUS
- * ============================================================
- *
- * Mapear TODOS os status existentes da folha.
- *
- * Exemplo:
- *
- * RASCUNHO
- * ↓
- * ENVIADA_ANALISE
- * ↓
- * EM_ANALISE
- * ↓
- * APROVADA
- * ↓
- * HOMOLOGADA
- *
- * ou qualquer nomenclatura REAL encontrada.
- *
- * Não inventar status.
- *
- * Criar uma matriz:
- *
- * STATUS ATUAL → AÇÃO → PRÓXIMO STATUS → PERFIL AUTORIZADO
- *
- * Verificar se existem transições impossíveis.
- *
- * Exemplo:
- *
- * Diretor NÃO deve conseguir:
- *
- * ENVIADA → HOMOLOGADA
- *
- * se essa etapa pertence ao MASTER/Gestor.
- *
- * ============================================================
- * 7. PERFIL DIRETOR DE UNIDADE
- * ============================================================
- *
- * Testar especificamente:
- *
- * Diretor de Unidade
- *
- * O Diretor deve:
- *
- * - visualizar sua unidade
- * - visualizar sua competência
- * - visualizar suas folhas
- * - lançar/consultar frequência conforme regra existente
- * - enviar folha para análise
- * - acompanhar status
- * - receber retorno de reprovação
- * - corrigir
- * - reenviar para análise
- *
- * O Diretor NÃO deve:
- *
- * - visualizar folhas de outras unidades
- * - aprovar sua própria folha
- * - homologar sua própria folha
- * - acessar dados globais de outras unidades
- *
- * NÃO alterar essas regras.
- *
- * Apenas verificar se estão funcionando.
- *
- * ============================================================
- * 8. PERFIL GESTOR
- * ============================================================
- *
- * Verificar exatamente o que o Gestor pode fazer.
- *
- * Confirmar:
- *
- * - recebe folhas enviadas
- * - consegue visualizar os dados
- * - consegue analisar
- * - consegue aprovar/reprovar conforme regra atual
- * - consegue devolver para correção
- * - consegue acompanhar pendências
- *
- * Verificar escopo:
- *
- * Secretaria
- * Unidade
- * Global
- *
- * Não assumir.
- *
- * Descobrir no código.
- *
- * ============================================================
- * 9. PERFIL MASTER
- * ============================================================
- *
- * Confirmar acesso global.
- *
- * MASTER deve conseguir:
- *
- * - visualizar folhas
- * - visualizar todas as unidades
- * - visualizar todas as competências autorizadas
- * - analisar
- * - aprovar
- * - homologar
- * - acompanhar histórico
- *
- * Verificar se alguma RLS ou filtro de frontend está impedindo isso.
- *
- * ============================================================
- * 10. PERFIL OPERACIONAL
- * ============================================================
- *
- * Auditar o perfil operacional existente.
- *
- * Descobrir exatamente:
- *
- * - o que ele pode visualizar
- * - o que pode lançar
- * - se pode editar frequência
- * - se pode enviar folha
- * - se pode apenas preparar dados
- * - se pode analisar
- *
- * Não modificar permissões.
- *
- * Apenas documentar o comportamento REAL.
- *
- * ============================================================
- * 11. RLS
- * ============================================================
- *
- * Auditar as tabelas diretamente envolvidas no fluxo.
- *
- * Especialmente:
- *
- * - folhas
- * - frequencias
- * - profissionais
- * - unidades
- * - usuarios
- * - tabelas de análise
- * - tabelas de homologação
- * - tabelas de histórico
- *
- * Para cada tabela informar:
- *
- * RLS ativo?
- *
- * Policies existentes?
- *
- * SELECT?
- *
- * INSERT?
- *
- * UPDATE?
- *
- * DELETE?
- *
- * Quem pode executar?
- *
- * Qual condição de unidade?
- *
- * Qual condição de competência?
- *
- * Qual condição de perfil?
- *
- * Verificar se a RLS está bloqueando dados que deveriam aparecer.
- *
- * ============================================================
- * 12. SERVER FUNCTIONS / RPC
- * ============================================================
- *
- * Localizar todas as funções relacionadas:
- *
- * - criar folha
- * - atualizar folha
- * - enviar análise
- * - aprovar
- * - reprovar
- * - homologar
- * - devolver
- * - reenviar
+ * Arquivo:
+ * Função:
+ * Server Function:
+ * RPC:
+ * Tabela:
+ * Status anterior:
+ * Status posterior:
  *
  * Verificar:
  *
- * - validação de perfil
- * - validação de unidade
- * - validação de competência
- * - validação de status
- * - transação
- * - tratamento de erro
- * - retorno da função
+ * - Quem pode executar?
+ * - Existe validação no backend?
+ * - Existe validação somente no frontend?
+ * - O Diretor consegue enviar?
+ * - O Gestor consegue enviar?
+ * - O Master consegue?
+ * - O envio altera realmente o status no banco?
+ * - A competência correta é enviada?
+ * - A unidade correta é enviada?
+ * - Os profissionais corretos são enviados?
+ * - Os valores da folha permanecem íntegros?
  *
- * Procurar especialmente por:
+ * IMPORTANTE:
  *
- * supabase.rpc(...)
- * createServerFn(...)
- * UPDATE folhas
- * INSERT INTO folhas
+ * Não aceitar como prova apenas o botão aparecer na tela.
  *
- * ============================================================
- * 13. DUPLICIDADE E INCONSISTÊNCIA
- * ============================================================
- *
- * Verificar se existem múltiplas funções fazendo a mesma coisa.
- *
- * Exemplo:
- *
- * enviarFolhaParaAnalise()
- * enviarParaAnalise()
- * submitFolha()
- * aprovarFolha()
- * homologarFolha()
- *
- * Se existirem implementações duplicadas, NÃO corrigir ainda.
- *
- * Listar.
+ * A permissão deve ser validada no backend.
  *
  * ============================================================
- * 14. PROBLEMA CRÍTICO — DADOS ENVIADOS
+ * 6. AUDITAR DADOS ENVIADOS
  * ============================================================
  *
- * Verificar se ao enviar para análise a folha realmente contém os
- * mesmos dados visualizados pelo Diretor.
- *
- * Comparar:
- *
- * ANTES DO ENVIO
- *
- * vs.
- *
- * DEPOIS DO ENVIO
- *
- * Verificar:
- *
- * profissionais
- * frequência
- * valores
- * unidade
- * competência
- * status
- *
- * Identificar qualquer divergência.
- *
- * ============================================================
- * 15. REPROVAÇÃO
- * ============================================================
- *
- * Auditar o fluxo:
- *
- * MASTER/GESTOR reprova
- *         ↓
- * Diretor recebe retorno
- *         ↓
- * folha volta para correção
- *         ↓
- * Diretor altera
- *         ↓
- * reenviar para análise
- *
- * Verificar se:
- *
- * - status muda corretamente
- * - motivo da reprovação é salvo
- * - usuário que reprovou é registrado
- * - data/hora é registrada
- * - Diretor consegue identificar o motivo
- * - Diretor consegue corrigir
- * - reenvio funciona
- *
- * ============================================================
- * 16. APROVAÇÃO
- * ============================================================
+ * Depois do envio para análise, verificar se os dados permanecem vinculados corretamente.
  *
  * Auditar:
  *
- * Gestor/MASTER aprova
- *         ↓
- * status atualizado
- *         ↓
- * folha deixa de aparecer como pendente
- *         ↓
- * próxima etapa fica disponível
+ * - competência
+ * - unidade
+ * - secretaria
+ * - profissional
+ * - tipo de folha
+ * - frequência
+ * - salário
+ * - adicionais
+ * - descontos
+ * - valor final
+ * - status
  *
- * Verificar se existe possibilidade de:
+ * Verificar se existe algum processo que:
  *
- * - aprovar duas vezes
- * - aprovar folha errada
- * - aprovar folha de outra unidade
- * - aprovar competência diferente
- * - aprovar folha ainda incompleta
+ * - recria os dados
+ * - duplica registros
+ * - perde registros
+ * - altera valores
+ * - troca unidade
+ * - remove frequência
+ * - sobrescreve a folha
+ *
+ * Identificar se existe SNAPSHOT da folha no momento do envio.
+ *
+ * Se não existir, informar explicitamente.
+ *
+ * NÃO criar snapshot durante a auditoria.
  *
  * ============================================================
- * 17. HOMOLOGAÇÃO
+ * 7. AUDITAR FOLHA DE CONTRATADOS
  * ============================================================
  *
- * Mapear exatamente quem pode homologar.
+ * Auditar separadamente.
  *
  * Verificar:
  *
- * - regra de perfil
- * - unidade
- * - secretaria
- * - competência
- * - status anterior
- * - bloqueio após homologação
- * - histórico
+ * DIRETOR:
  *
- * Confirmar se homologação é realmente uma etapa separada
- * da aprovação ou se atualmente são a mesma operação.
+ * - consegue visualizar sua unidade?
+ * - consegue lançar frequência?
+ * - consegue gerar folha?
+ * - consegue enviar para análise?
+ * - consegue visualizar folha reprovada?
+ * - consegue corrigir?
+ * - consegue reenviar?
  *
- * ============================================================
- * 18. AUDITORIA E HISTÓRICO
- * ============================================================
+ * GESTOR:
  *
- * Verificar se o sistema registra:
+ * - consegue visualizar as folhas corretas?
+ * - consegue analisar?
+ * - consegue reprovar?
+ * - consegue aprovar?
  *
- * - quem enviou
- * - quando enviou
- * - quem analisou
- * - quando analisou
- * - quem aprovou
- * - quando aprovou
- * - quem reprovou
- * - motivo
- * - quem homologou
- * - quando homologou
- * - alterações realizadas
+ * MASTER:
  *
- * Não criar histórico novo sem necessidade.
- *
- * Primeiro identificar o que já existe.
+ * - consegue visualizar todas as unidades?
+ * - consegue homologar?
  *
  * ============================================================
- * 19. CACHE / REACT QUERY
+ * 8. AUDITAR FOLHA DE EFETIVOS
  * ============================================================
  *
- * Verificar se depois de:
+ * Repetir exatamente a auditoria anterior para:
  *
- * Enviar
- * Aprovar
- * Reprovar
- * Homologar
+ * FOLHA DOS EFETIVOS.
  *
- * a interface atualiza corretamente.
+ * IMPORTANTE:
  *
- * Procurar:
+ * Contratados e Efetivos possuem fluxos independentes.
  *
- * invalidateQueries
- * refetch
- * queryClient
- * cache
+ * Não assumir que uma implementação serve para os dois.
  *
- * Verificar se existe situação onde:
- *
- * BANCO = ENVIADA
- *
- * mas
- *
- * TELA = RASCUNHO
- *
- * ou:
- *
- * BANCO = APROVADA
- *
- * mas:
- *
- * TELA = EM ANÁLISE
+ * Comparar as duas implementações e identificar divergências.
  *
  * ============================================================
- * 20. TESTE DE REGRESSÃO
+ * 9. AUDITAR REPROVAÇÃO
  * ============================================================
  *
- * Executar testes disponíveis.
+ * Localizar exatamente a função de:
  *
- * No mínimo:
+ * "Reprovar"
  *
- * MASTER
- * GESTOR
- * DIRETOR
- * OPERACIONAL
+ * Verificar:
  *
- * E testar:
+ * - quem pode reprovar
+ * - motivo obrigatório ou não
+ * - onde o motivo é salvo
+ * - qual status é aplicado
+ * - se o Diretor recebe a informação
+ * - se a folha volta para edição
+ * - se a frequência pode ser corrigida
+ * - se o Diretor consegue reenviar
  *
- * Folha Contratados
- * Folha Efetivos
+ * Mapear:
  *
- * Para cada combinação registrar:
+ * STATUS ANTERIOR
+ * ↓
+ * AÇÃO
+ * ↓
+ * STATUS POSTERIOR
  *
- * VISUALIZA
- * ENVIA
- * ANALISA
- * APROVA
- * REPROVA
+ * ============================================================
+ * 10. AUDITAR REENVIO
+ * ============================================================
+ *
+ * Verificar o fluxo:
+ *
+ * REPROVADA
+ * ↓
+ * DIRETOR CORRIGE
+ * ↓
  * REENVIA
- * HOMOLOGA
+ * ↓
+ * EM ANÁLISE
+ *
+ * Confirmar se:
+ *
+ * - os dados antigos permanecem íntegros
+ * - a nova versão substitui corretamente a anterior
+ * - existe histórico
+ * - existe auditoria
+ * - o motivo da reprovação permanece
+ * - o usuário que corrigiu é registrado
+ * - data/hora são registradas
  *
  * ============================================================
- * 21. RESULTADO FINAL
+ * 11. AUDITAR APROVAÇÃO
  * ============================================================
  *
- * NÃO alterar nada durante a auditoria.
+ * Localizar a implementação real da aprovação.
  *
- * Entregar relatório:
+ * Verificar:
  *
- * ### FLUXO REAL ENCONTRADO
+ * - quem pode aprovar
+ * - qual status é aplicado
+ * - quais validações existem
+ * - se existe Server Function
+ * - se existe RPC
+ * - se a aprovação é apenas frontend
+ * - se existe auditoria
+ * - se o usuário aprovador é registrado
  *
- * Mostrar o fluxo real do sistema.
+ * ============================================================
+ * 12. AUDITAR HOMOLOGAÇÃO
+ * ============================================================
  *
- * ### TABELA DE PERFIS
+ * Identificar se existe uma etapa distinta de:
  *
- * | Perfil | Visualiza | Envia | Analisa | Aprova | Reprova | Reenvia | Homologa |
- * |---|---|---|---|---|---|---|---|
+ * APROVAÇÃO
  *
- * ### CONTRATADOS
+ * e
  *
- * Informar se o fluxo está correto.
+ * HOMOLOGAÇÃO.
  *
- * ### EFETIVOS
+ * Não assumir que são a mesma coisa.
  *
- * Informar se o fluxo está correto.
+ * Informar:
  *
- * ### FREQUÊNCIA
+ * - quem homologa
+ * - qual status representa homologação
+ * - qual função executa
+ * - quais permissões são exigidas
+ * - se o Master possui bypass
+ * - se a homologação bloqueia alterações posteriores
  *
- * Informar se os dados chegam corretamente.
+ * ============================================================
+ * 13. AUDITAR RLS
+ * ============================================================
  *
- * ### RLS
+ * Somente AUDITAR.
  *
- * Listar problemas encontrados.
+ * NÃO modificar policies.
  *
- * ### RPC/SERVER FUNCTIONS
+ * Mapear as policies das tabelas envolvidas em:
  *
- * Listar problemas encontrados.
+ * - frequência
+ * - competências
+ * - folhas
+ * - profissionais
+ * - unidades
+ * - usuários
+ * - vínculos
  *
- * ### STATUS
+ * Para cada policy informar:
  *
- * Listar a máquina de estados encontrada.
+ * Tabela:
+ * Nome da policy:
+ * Operação:
+ * SELECT/INSERT/UPDATE/DELETE:
+ * Condição USING:
+ * Condição WITH CHECK:
+ * Perfil/role:
+ * Escopo:
  *
- * ### CACHE
+ * Identificar qualquer policy conflitante.
  *
- * Listar problemas encontrados.
+ * ============================================================
+ * 14. AUDITAR RPCs
+ * ============================================================
  *
- * ### CRITICAL FINDINGS
+ * Localizar todas as RPCs utilizadas no fluxo.
  *
- * Classificar:
+ * Especialmente:
+ *
+ * - permissões
+ * - unidade
+ * - frequência
+ * - folha
+ * - envio
+ * - análise
+ * - aprovação
+ * - reprovação
+ * - homologação
+ *
+ * Para cada uma:
+ *
+ * Nome:
+ * RETURNS:
+ * SECURITY DEFINER/INVOKER:
+ * search_path:
+ * Parâmetros:
+ * Quem pode executar:
+ * Tabelas acessadas:
+ * Validação de permissão:
+ *
+ * Identificar RPCs duplicadas ou com regras conflitantes.
+ *
+ * ============================================================
+ * 15. AUDITAR SERVER FUNCTIONS
+ * ============================================================
+ *
+ * Localizar todas as Server Functions envolvidas.
+ *
+ * Verificar se a segurança está realmente no backend.
+ *
+ * IMPORTANTE:
+ *
+ * Não considerar seguro simplesmente porque o botão está escondido.
+ *
+ * Testar logicamente se uma chamada direta à Server Function poderia:
+ *
+ * - acessar outra unidade
+ * - alterar folha
+ * - aprovar indevidamente
+ * - reprovar indevidamente
+ * - enviar folha de outra unidade
+ *
+ * ============================================================
+ * 16. AUDITAR JWT E PERMISSÕES
+ * ============================================================
+ *
+ * Como o sistema sofreu regressões recentes, verificar cuidadosamente:
+ *
+ * - app_metadata
+ * - permissions
+ * - is_master
+ * - perfil_codigo
+ * - unidade_principal_id
+ * - authorized_units
+ * - acesso_todas_unidades
+ * - acesso_todas_secretarias
+ *
+ * Identificar se frontend e backend usam a mesma fonte de verdade.
+ *
+ * NÃO ALTERAR JWT.
+ *
+ * Somente informar divergências.
+ *
+ * ============================================================
+ * 17. AUDITAR FRONTEND
+ * ============================================================
+ *
+ * Localizar:
+ *
+ * - páginas de folha
+ * - componentes de frequência
+ * - botões de envio
+ * - botões de aprovação
+ * - botões de reprovação
+ * - filtros de unidade
+ * - seleção de competência
+ *
+ * Verificar se o frontend:
+ *
+ * - usa contexto correto
+ * - usa unidade correta
+ * - respeita perfil
+ * - possui filtros artificiais
+ * - depende exclusivamente de permissões frontend
+ * - possui estados inconsistentes
+ *
+ * ============================================================
+ * 18. AUDITORIA DE DUPLICIDADE
+ * ============================================================
+ *
+ * Pesquisar por:
+ *
+ * - funções duplicadas
+ * - RPCs duplicadas
+ * - Server Functions duplicadas
+ * - regras de permissão duplicadas
+ * - múltiplas definições de is_master
+ * - múltiplas definições de unidade autorizada
+ * - múltiplos fluxos de envio
+ * - múltiplos status para a mesma finalidade
+ *
+ * Especial atenção para migrations recentes.
+ *
+ * ============================================================
+ * 19. AUDITORIA DE MIGRATIONS
+ * ============================================================
+ *
+ * Mapear as migrations relacionadas ao módulo de folha.
+ *
+ * Identificar:
+ *
+ * - alterações recentes
+ * - RPCs substituídas
+ * - policies alteradas
+ * - colunas removidas
+ * - colunas adicionadas
+ * - funções recriadas
+ * - mudanças de enum/status
+ *
+ * Não aplicar nenhuma migration.
+ *
+ * Apenas informar o histórico encontrado.
+ *
+ * ============================================================
+ * 20. MATRIZ FINAL
+ * ============================================================
+ *
+ * Gerar uma tabela real:
+ *
+ * | Funcionalidade | MASTER | GESTOR | DIRETOR | OPERACIONAL |
+ * |---|---|---|---|---|
+ * | Visualizar folha | | | | |
+ * | Lançar frequência | | | | |
+ * | Editar frequência | | | | |
+ * | Fechar competência | | | | |
+ * | Gerar folha | | | | |
+ * | Enviar análise | | | | |
+ * | Analisar | | | | |
+ * | Reprovar | | | | |
+ * | Corrigir reprovação | | | | |
+ * | Reenviar | | | | |
+ * | Aprovar | | | | |
+ * | Homologar | | | | |
+ *
+ * Preencher SOMENTE com comportamento comprovado no código/banco.
+ *
+ * Não inventar.
+ *
+ * ============================================================
+ * 21. CLASSIFICAÇÃO DOS ACHADOS
+ * ============================================================
+ *
+ * Classificar cada problema:
  *
  * 🔴 CRÍTICO
+ * Impede funcionamento ou permite acesso indevido.
+ *
  * 🟠 ALTO
+ * Pode causar perda, inconsistência ou bloqueio de dados.
+ *
  * 🟡 MÉDIO
- * 🟢 NORMAL
+ * Problema funcional ou de arquitetura sem impacto imediato.
  *
- * ### CORREÇÕES RECOMENDADAS
- *
- * Para cada problema:
- *
- * Arquivo:
- * Função:
- * Causa:
- * Impacto:
- * Correção recomendada:
- *
- * NÃO aplicar essas correções automaticamente.
+ * 🔵 BAIXO
+ * Melhoria técnica.
  *
  * ============================================================
- * REGRA ABSOLUTA
+ * 22. REGRA ABSOLUTA
  * ============================================================
  *
- * ESTA É UMA AUDITORIA.
+ * NÃO CORRIGIR NADA NESTA ETAPA.
  *
- * NÃO MODIFICAR CÓDIGO.
+ * NÃO criar arquivos.
  *
- * NÃO CRIAR MIGRATION.
+ * NÃO editar arquivos.
  *
- * NÃO ALTERAR RLS.
+ * NÃO criar migration.
  *
- * NÃO ALTERAR RPC.
+ * NÃO alterar banco.
  *
- * NÃO ALTERAR PERMISSÕES.
+ * NÃO alterar RLS.
  *
- * NÃO ALTERAR DADOS.
+ * NÃO alterar RPC.
  *
- * NÃO ALTERAR STATUS EXISTENTES.
+ * NÃO alterar permissões.
  *
- * Somente depois que o relatório estiver concluído iremos criar
- * um segundo prompt exclusivamente para corrigir os problemas
- * confirmados.
+ * NÃO alterar JWT.
+ *
+ * NÃO alterar fluxo.
+ *
+ * Somente AUDITAR.
+ *
+ * ============================================================
+ * 23. RELATÓRIO FINAL OBRIGATÓRIO
+ * ============================================================
+ *
+ * Entregar:
+ *
+ * 1. Fluxo real encontrado
+ * 2. Fluxo esperado
+ * 3. Diferenças
+ * 4. Arquivos envolvidos
+ * 5. RPCs envolvidas
+ * 6. Server Functions envolvidas
+ * 7. Tabelas envolvidas
+ * 8. RLS envolvidas
+ * 9. Estados da folha encontrados
+ * 10. Matriz de permissões
+ * 11. Problemas por perfil
+ * 12. Problemas Contratados
+ * 13. Problemas Efetivos
+ * 14. Problemas de Frequência
+ * 15. Problemas de Envio
+ * 16. Problemas de Aprovação
+ * 17. Problemas de Homologação
+ * 18. Problemas de Reprovação
+ * 19. Problemas de RLS
+ * 20. Problemas de JWT/RBAC
+ * 21. Problemas de frontend
+ * 22. Problemas de backend
+ * 23. Migrations suspeitas
+ * 24. Causa raiz de cada problema
+ * 25. Classificação de severidade
+ * 26. Plano de correção recomendado
+ *
+ * IMPORTANTE:
+ *
+ * Não dizer "funciona" apenas porque o código aparenta correto.
+ *
+ * Diferenciar:
+ *
+ * ✅ Comprovado no código
+ * ⚠️ Inferido
+ * ❌ Comprovadamente quebrado
+ * ❓ Não foi possível validar
+ *
+ * Ao final, NÃO fazer nenhuma alteração.
+ *
+ * Apenas apresentar o relatório técnico completo.
+ *
+ * ============================================================
+ * 24. PDF DA AUDITORIA
+ * ============================================================
+ *
+ * Depois de concluir a auditoria, gerar o PDF institucional:
+ *
+ * AUDITORIA FORENSE — FLUXO DE ENVIO DA FOLHA
+ *
+ * O PDF deve conter:
+ *
+ * - objetivo
+ * - fluxo real
+ * - fluxo esperado
+ * - matriz de perfis
+ * - achados
+ * - evidências
+ * - riscos
+ * - causa raiz
+ * - plano de correção
+ * - data/hora da auditoria
+ *
+ * Não colocar como "aprovado" se houver problemas.
+ *
+ * O PDF deve refletir EXATAMENTE os resultados encontrados.
  */
