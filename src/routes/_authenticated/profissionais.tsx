@@ -372,6 +372,7 @@ function ProfissionaisPage() {
       fGestor !== "todos" ? (gestorIds?.length ?? 0) : 0,
       page,
       pageSize,
+      me?.unidades, // Adicionado para reagir a mudanças no contexto de unidades
     ],
     placeholderData: keepPreviousData,
     enabled:
@@ -491,7 +492,9 @@ function ProfissionaisPage() {
   });
 
   // Opções para os filtros de listagem — hooks compartilhados (use-lookups)
-  const { data: unidadesFiltro } = useUnidadesLookup();
+  const { data: unidadesFiltro } = useUnidadesLookup({ 
+    unidadesPermitidas: me?.acesso_todas_unidades ? undefined : me?.unidades 
+  });
   const cargosFiltro = cargosLookup;
   const funcoesFiltro = funcoesLookup;
   const { data: vinculosFiltro } = useVinculosLookup();

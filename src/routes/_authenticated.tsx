@@ -343,7 +343,7 @@ function AuthenticatedLayoutInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: userCtx } = useCurrentUser();
-  const { has, isLoading: permLoading } = usePermissions();
+  const { has, hasAny, isLoading: permLoading } = usePermissions();
   const { data: competencia } = useCompetenciaAtiva();
   const { data: parametros } = useMunicipioParametros();
   const { theme, toggle: toggleTheme } = useTheme();
