@@ -60,6 +60,7 @@ export const ACOES = {
   ASSINATURA_APLICAR: "assinatura.aplicar",
   AUDITORIA_VISUALIZAR: "auditoria.visualizar",
   CONFIGURACAO_EDITAR: "configuracao.editar",
+  PROFISSIONAL_DADOS_SALARIAIS: "profissional.dados_salariais",
 } as const;
 
 export type AcaoCodigo = (typeof ACOES)[keyof typeof ACOES];

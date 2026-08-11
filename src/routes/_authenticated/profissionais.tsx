@@ -157,6 +157,13 @@ const EMPTY_VALUES: ProfissionalFormValues = {
   situacao_data_inicio: "",
   situacao_data_fim: "",
   foto_url: "",
+  salario_base: "",
+  salario_liquido: "",
+  horas_extras: "",
+  adicional_noturno: "",
+  salario_bruto: "",
+  gratificacao_incentivo: "",
+  vencimento_liquido: "",
 };
 
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
@@ -1020,6 +1027,7 @@ function ProfissionaisPage() {
                         gestoresOpt={gestoresOpt}
                         canEditAgili={hasPermission("profissional.editar_dados_agili")}
                         canSeeBanco={hasPermission("profissional.dados_bancarios")}
+                        canSeeSalario={hasPermission("profissional.dados_salariais")}
                       />
                       <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -1343,6 +1351,7 @@ function ProfissionalFormBody({
   gestoresOpt,
   canEditAgili,
   canSeeBanco,
+  canSeeSalario,
 }: {
   secretarias: LookupItem[] | undefined;
   unidades: LookupItem[] | undefined;
@@ -1353,6 +1362,7 @@ function ProfissionalFormBody({
   gestoresOpt: GestorOpt[] | undefined;
   canEditAgili: boolean;
   canSeeBanco: boolean;
+  canSeeSalario: boolean;
 }) {
   const { control, setValue, getValues, watch } = useFormContext<ProfissionalFormValues>();
   const vinculoId = watch("vinculo_id");
@@ -2222,6 +2232,171 @@ function ProfissionalFormBody({
                           placeholder="Ex.: 640272-0"
                           readOnly={!canEditAgili}
                           disabled={!canEditAgili}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
+        {/* Dados salariais */}
+        {(isContratado || nat === "comissionado" || isEfetivo) && canSeeSalario ? (
+          <Card className="bg-muted/40 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+              Dados salariais
+            </h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              <div>
+                <FormField
+                  control={control}
+                  name="salario_base"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salário Base</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="salario_bruto"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salário Bruto</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="salario_liquido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salário Líquido</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="horas_extras"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horas Extras</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="adicional_noturno"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Adicional Noturno</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="gratificacao_incentivo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gratificação Incentivo</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div>
+                <FormField
+                  control={control}
+                  name="vencimento_liquido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vencimento Líquido</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="0,00"
                         />
                       </FormControl>
                       <FormMessage />

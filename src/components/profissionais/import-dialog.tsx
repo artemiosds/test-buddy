@@ -51,6 +51,13 @@ type Parsed = {
   h_p: number | null;
   c_h: number | null;
   jorn: number | null;
+  salario_base: number | null;
+  salario_liquido: number | null;
+  horas_extras: number | null;
+  adicional_noturno: number | null;
+  salario_bruto: number | null;
+  gratificacao_incentivo: number | null;
+  vencimento_liquido: number | null;
   erro?: string;
 };
 
@@ -77,6 +84,13 @@ const HEADERS = [
   "h_p",
   "c_h",
   "jorn",
+  "salario_base",
+  "salario_liquido",
+  "horas_extras",
+  "adicional_noturno",
+  "salario_bruto",
+  "gratificacao_incentivo",
+  "vencimento_liquido",
   "observacoes",
 ];
 
@@ -268,6 +282,13 @@ export function ImportProfissionaisDialog() {
         h_p: numOrNull(get("h_p") ?? get("h.p") ?? get("hp")),
         c_h: numOrNull(get("c_h") ?? get("c.h") ?? get("ch")),
         jorn: numOrNull(get("jorn") ?? get("jornada")),
+        salario_base: numOrNull(get("salario_base")),
+        salario_liquido: numOrNull(get("salario_liquido")),
+        horas_extras: numOrNull(get("horas_extras")),
+        adicional_noturno: numOrNull(get("adicional_noturno")),
+        salario_bruto: numOrNull(get("salario_bruto")),
+        gratificacao_incentivo: numOrNull(get("gratificacao_incentivo")),
+        vencimento_liquido: numOrNull(get("vencimento_liquido")),
       };
       if (!row.nome_completo) row.erro = "Nome vazio";
       // CPF ausente ou fora do padrão de 11 dígitos não bloqueia a importação
@@ -367,6 +388,13 @@ export function ImportProfissionaisDialog() {
         h_p: isEfetivo ? r.h_p : null,
         c_h: isEfetivo ? r.c_h : null,
         jorn: isEfetivo ? r.jorn : null,
+        salario_base: r.salario_base,
+        salario_liquido: r.salario_liquido,
+        horas_extras: r.horas_extras,
+        adicional_noturno: r.adicional_noturno,
+        salario_bruto: r.salario_bruto,
+        gratificacao_incentivo: r.gratificacao_incentivo,
+        vencimento_liquido: r.vencimento_liquido,
       };
 
       // upsert por CPF via lookup manual (o índice único de cpf é parcial:
