@@ -5,21 +5,18 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-# RESOLUÇÃO DE ERRO DE ACESSO — CADASTRO DE PROFISSIONAIS
+# RESOLUÇÃO DEFINITIVA DE ERRO DE ACESSO — CADASTRO DE PROFISSIONAIS
 
 ESTADO DA CORREÇÃO:
-- [x] Identificado erro de permissão na função `save_profissional_complete`.
-- [x] Corrigida lógica SQL para permitir que MASTER e GESTOR salvem registros.
-- [x] Garantido que GESTORES possam salvar em qualquer unidade da sua secretaria.
-- [x] Garantido que MASTER tenha bypass total (acesso irrestrito).
+- [x] Identificado que o erro "Acesso negado... nesta secretaria" ocorria por falta de permissão explícita de EXECUTE para os papéis `authenticated` e `anon` nas funções de segurança.
+- [x] Concedida permissão de execução (GRANT EXECUTE) para `is_master`, `user_has_secretaria` e `user_has_unit`.
+- [x] Refatorada a função `save_profissional_complete` para ser mais resiliente, tratando casos onde apenas a Secretaria é informada.
+- [x] Garantido bypass total e irrestrito para o perfil MASTER (incluindo o email artemiosouza99@gmail.com).
 
 DETALHES TÉCNICOS:
-A função `save_profissional_complete` possuía uma trava de segurança que exigia vínculo direto 
-com a unidade (`public.user_has_unit`), ignorando que perfis MASTER e GESTOR possuem 
-autoridade sobre múltiplas unidades por hierarquia. A migração SQL atualizou a função 
-para respeitar `public.is_master` e `public.user_has_secretaria`.
+O erro 42501 (Permission Denied) no PostgreSQL pode ocorrer não apenas por lógica de IF/ELSE, mas porque o usuário do banco (PostgREST) não tem permissão para sequer "chamar" a função que faz a checagem. Isso foi corrigido com GRANTs explícitos.
 
 PRÓXIMOS PASSOS:
 1. O usuário MASTER (Artemio) deve testar o cadastro novamente.
-2. Validado para produção.
+2. O sistema agora ignora travas de unidade se o usuário for GESTOR da secretaria pai ou MASTER.
 */
