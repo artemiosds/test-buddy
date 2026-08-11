@@ -777,7 +777,7 @@ function NovaAssinaturaDialog({
       if (up.error) throw up.error;
 
       const payloadAssinatura = {
-        tipo,
+        tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,

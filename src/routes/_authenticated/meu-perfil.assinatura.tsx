@@ -324,7 +324,7 @@ function UploadForm({
 
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       const payloadAssinatura = {
-        tipo: "assinatura",
+        tipo: "assinatura" as const,
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: path,
