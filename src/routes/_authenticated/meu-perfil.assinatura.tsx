@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info, MousePointer2 } from "lucide-react";
+import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info, MousePointer2, ShieldCheck, Hash } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   SignatureEditor,
@@ -27,6 +27,8 @@ import {
 } from "@/components/assinaturas/signature-editor";
 import { SignaturePad } from "@/components/assinaturas/signature-pad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { generateInstitutionalHash, saveInstitutionalSignature } from "@/lib/assinaturas-institucionais.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({ errorComponent: ErrorComponent,
   // Redirecionamento removido para permitir edição direta
@@ -229,13 +231,13 @@ function UploadForm({
   unidades,
   onSaved,
 }: {
-  me: { id: string; nome_completo?: string | null; perfil_id?: string | null };
+  me: { id: string; nome_completo?: string | null; perfil_id?: string | null; matricula?: string | null; cpf?: string | null };
   unidades: Unidade[];
   onSaved: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [padBlob, setPadBlob] = useState<Blob | null>(null);
-  const [mode, setMode] = useState<"upload" | "pad">("upload");
+  const [mode, setMode] = useState<"upload" | "pad" | "institutional">("upload");
   const [preview, setPreview] = useState<string | null>(null);
   const [titularNome, setTitularNome] = useState(me.nome_completo ?? "");
   const [titularCargo, setTitularCargo] = useState("");
@@ -243,6 +245,12 @@ function UploadForm({
   const [vigenciaFim, setVigenciaFim] = useState("");
   const [saving, setSaving] = useState(false);
   const [pos, setPos] = useState<SignaturePosition>(DEFAULT_POSITION);
+
+  // Estados para assinatura institucional
+  const [instHash, setInstHash] = useState<string | null>(null);
+  const [instTimestamp, setInstTimestamp] = useState<string | null>(null);
+  const genHash = useServerFn(generateInstitutionalHash);
+  const saveInst = useServerFn(saveInstitutionalSignature);
 
   useEffect(() => {
     if (mode === "upload") {
@@ -253,7 +261,7 @@ function UploadForm({
       const url = URL.createObjectURL(file);
       setPreview(url);
       return () => URL.revokeObjectURL(url);
-    } else {
+    } else if (mode === "pad") {
       if (!padBlob) {
         setPreview(null);
         return;
@@ -261,6 +269,8 @@ function UploadForm({
       const url = URL.createObjectURL(padBlob);
       setPreview(url);
       return () => URL.revokeObjectURL(url);
+    } else if (mode === "institutional") {
+      setPreview(null);
     }
   }, [file, padBlob, mode]);
 
@@ -308,6 +318,54 @@ function UploadForm({
   }
 
   async function salvar() {
+    if (mode === "institutional") {
+      if (!instHash) {
+        toast.error("Gere a assinatura institucional antes de salvar");
+        return;
+      }
+      
+      setSaving(true);
+      try {
+        const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
+        const sanitizeId = (id: any) => {
+          if (!id) return null;
+          const s = String(id).replace(/\.[^/.]+$/, "");
+          return isUUID(s) ? s : null;
+        };
+
+        const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
+        const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
+
+        await saveInst({
+          data: {
+            usuario_id: me.id,
+            perfil_id: sanitizeId(me.perfil_id),
+            unidade_id: sanitizeId(unidadeReal),
+            secretaria_id: null,
+            titular_nome: titularNome.trim(),
+            titular_cargo: titularCargo.trim() || null,
+            hash: instHash,
+            metadata: {
+              matricula: me.matricula,
+              unidade_nome: unidadeNome,
+              timestamp: instTimestamp,
+              cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
+            }
+          }
+        });
+
+        toast.success("Assinatura institucional cadastrada");
+        setInstHash(null);
+        setInstTimestamp(null);
+        onSaved();
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao salvar assinatura institucional");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const activeBlob = mode === "upload" ? file : padBlob;
     if (!activeBlob) {
       toast.error(mode === "upload" ? "Selecione um arquivo PNG ou JPG" : "Faça sua assinatura no quadro");
@@ -402,12 +460,15 @@ function UploadForm({
     <div className="grid gap-4 md:grid-cols-2">
       <div className="space-y-4">
         <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="h-4 w-4" /> Upload
             </TabsTrigger>
             <TabsTrigger value="pad" className="flex items-center gap-2">
               <MousePointer2 className="h-4 w-4" /> Desenhar
+            </TabsTrigger>
+            <TabsTrigger value="institutional" className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Institucional
             </TabsTrigger>
           </TabsList>
           
@@ -430,6 +491,58 @@ function UploadForm({
                 <CheckCircle2 className="h-3 w-3" /> Assinatura capturada com sucesso!
               </p>
             )}
+          </TabsContent>
+
+          <TabsContent value="institutional" className="pt-4 space-y-4">
+            <div className="bg-slate-50 border rounded-lg p-6 space-y-4 font-mono text-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-5">
+                <ShieldCheck className="h-24 w-24" />
+              </div>
+              
+              <div className="text-center border-b border-slate-200 pb-2 mb-4">
+                <h3 className="font-bold text-slate-900 uppercase tracking-tighter">Assinatura Eletrônica Institucional</h3>
+              </div>
+              
+              <div className="space-y-2 text-slate-700">
+                <p><span className="text-slate-400">Nome:</span> {titularNome || me.nome_completo || '---'}</p>
+                <p><span className="text-slate-400">Cargo:</span> {titularCargo || '---'}</p>
+                <p><span className="text-slate-400">Matrícula:</span> {me.matricula || '---'}</p>
+                <p><span className="text-slate-400">CPF:</span> {me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : '---'}</p>
+                <p><span className="text-slate-400">Órgão:</span> {unidades.find(u => u.id === unidadeId)?.nome || 'Todas as Unidades'}</p>
+                <p><span className="text-slate-400">Data/Hora:</span> {instTimestamp ? new Date(instTimestamp).toLocaleString('pt-BR') : '---'}</p>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-dashed border-slate-300">
+                <p className="text-[10px] text-slate-400 mb-1">Código de validação:</p>
+                <div className="bg-white border border-slate-200 rounded p-2 text-center font-bold text-primary tracking-widest">
+                  {instHash || '---- ---- ---- ----'}
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full"
+              onClick={async () => {
+                const ts = new Date().toISOString();
+                const res = await genHash({
+                  data: {
+                    usuario_id: me.id,
+                    nome: titularNome || me.nome_completo || '',
+                    cargo: titularCargo,
+                    matricula: me.matricula || undefined,
+                    unidade: unidades.find(u => u.id === unidadeId)?.nome,
+                    timestamp: ts
+                  }
+                });
+                setInstHash(res.hash);
+                setInstTimestamp(ts);
+              }}
+            >
+              <Hash className="mr-2 h-4 w-4" />
+              Gerar Assinatura Institucional
+            </Button>
           </TabsContent>
         </Tabs>
 
@@ -472,9 +585,9 @@ function UploadForm({
               onChange={(e) => setVigenciaFim(e.target.value)}
             />
           </div>
-          <Button onClick={salvar} disabled={saving || (!file && !padBlob)} className="w-full">
-            <Upload className="mr-2 h-4 w-4" />
-            {saving ? "Enviando…" : "Cadastrar assinatura"}
+          <Button onClick={salvar} disabled={saving || (mode !== "institutional" && !file && !padBlob) || (mode === "institutional" && !instHash)} className="w-full">
+            {mode === "institutional" ? <ShieldCheck className="mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />}
+            {saving ? "Processando…" : mode === "institutional" ? "Confirmar Assinatura Institucional" : "Cadastrar assinatura"}
           </Button>
         </div>
       </div>
