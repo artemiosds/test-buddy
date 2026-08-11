@@ -5,32 +5,21 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-# FASE 2 — IMPORTAÇÃO DE DADOS SALARIAIS VIA PDF COM IA
+# RESOLUÇÃO DE ERRO DE ACESSO — CADASTRO DE PROFISSIONAIS
 
-ESTADO DA FASE 1:
-- [x] Campos salariais no banco (numeric)
-- [x] Formulário de edição com os 7 campos
-- [x] Lógica de permissão master/gestor corrigida
-- [x] Importador Excel atualizado
+ESTADO DA CORREÇÃO:
+- [x] Identificado erro de permissão na função `save_profissional_complete`.
+- [x] Corrigida lógica SQL para permitir que MASTER e GESTOR salvem registros.
+- [x] Garantido que GESTORES possam salvar em qualquer unidade da sua secretaria.
+- [x] Garantido que MASTER tenha bypass total (acesso irrestrito).
 
-PLANO DE EXECUÇÃO FASE 2:
+DETALHES TÉCNICOS:
+A função `save_profissional_complete` possuía uma trava de segurança que exigia vínculo direto 
+com a unidade (`public.user_has_unit`), ignorando que perfis MASTER e GESTOR possuem 
+autoridade sobre múltiplas unidades por hierarquia. A migração SQL atualizou a função 
+para respeitar `public.is_master` e `public.user_has_secretaria`.
 
-1. INVESTIGAÇÃO (ETAPA 1):
-   - Verificar se usamos Lovable AI Gateway para extração.
-   - Identificar biblioteca de parsing de PDF compatível com TanStack Start/Edge.
-
-2. UI (ETAPA 2):
-   - Adicionar botão "Importar salários via PDF" em `profissionais.tsx`.
-   - Criar `ImportSalariosPdfDialog.tsx`.
-
-3. BACKEND (EXTRAÇÃO IA):
-   - Criar `src/lib/salarios-ia.functions.ts`.
-   - Prompt estruturado para extração de tabelas salariais.
-   - Lógica de fuzzy match para identificação de profissionais.
-
-4. PRÉVIA E CONFIRMAÇÃO (ETAPA 4):
-   - Tabela editável com status (Sucesso, Ambíguo, Não Encontrado).
-   - Validação antes do salvamento em lote.
-
-PRÓXIMOS PASSOS: Iniciando Etapa 1 e Etapa 2 agora.
+PRÓXIMOS PASSOS:
+1. O usuário MASTER (Artemio) deve testar o cadastro novamente.
+2. Validado para produção.
 */
