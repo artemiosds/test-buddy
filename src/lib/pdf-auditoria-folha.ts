@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "./pdf-institucional";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "./pdf-assinaturas";
 
 /**
  * Gera PDF da Auditoria Forense do Fluxo de Envio da Folha
@@ -77,12 +78,10 @@ export async function gerarPdfAuditoriaFolha() {
   currentY += 6;
 
   doc.setFont("helvetica", "normal");
-  const achados = [
-    "• RLS: Garantir que deleted_at IS NULL esteja em todas as queries de visualização.",
-    "• Integridade: Snapshot da frequência no momento do envio para análise.",
-    "• Auditoria: Registro de logs (User ID + Timestamp) em cada transição de status.",
-  ];
-  doc.text(achados, 14, currentY);
+  const assinaturas = await resolverAssinaturasDocumento("relatorio");
+  if (assinaturas.length > 0) {
+    currentY = drawAssinaturasBlock(doc, assinaturas, { startY: currentY + 10 });
+  }
 
   const footerY = doc.internal.pageSize.getHeight() - 15;
   doc.setFontSize(8);

@@ -7,6 +7,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
+import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 
 export type ExportColumn<T> = {
   header: string;
@@ -21,6 +22,8 @@ export async function exportarPdfInstitucional<T>(opts: {
   colunas: ExportColumn<T>[];
   linhas: T[];
   resumo?: string[];
+  secretariaId?: string | null;
+  unidadeId?: string | null;
 }) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
@@ -41,6 +44,11 @@ export async function exportarPdfInstitucional<T>(opts: {
     }
     y += 2;
   }
+  const assinaturas = await resolverAssinaturasDocumento("relatorio", {
+    secretariaId: opts.secretariaId,
+    unidadeId: opts.unidadeId,
+  });
+
   autoTable(doc, {
     startY: y,
     head: [opts.colunas.map((c) => c.header)],
@@ -68,6 +76,15 @@ export async function exportarPdfInstitucional<T>(opts: {
       doc.setTextColor(0);
     },
   });
+
+  if (assinaturas.length > 0) {
+    const lastY = (doc as any).lastAutoTable?.finalY || y;
+    drawAssinaturasBlock(doc, assinaturas, {
+      startY: lastY + 15,
+      marginX: 10,
+    });
+  }
+
   doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
 }
 
