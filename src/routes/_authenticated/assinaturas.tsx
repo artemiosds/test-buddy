@@ -782,11 +782,12 @@ function NovaAssinaturaDialog({
       if (up.error) throw up.error;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-      const validateId = (id: any, fieldName: string) => {
-        if (!id) return null;
-        const s = String(id);
-        if (/\.(png|jpg|jpeg|pdf)$/i.test(s) || s.includes('/')) {
-          throw new Error(`BLOQUEIO DE SEGURANÇA ADMIN: O campo ${fieldName} não pode conter caminhos de arquivo.`);
+      const sanitizeUUID = (id: any, fieldName: string) => {
+        if (!id || id === "__todas__") return null;
+        const s = String(id).trim();
+        if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
+          console.error(`[FORENSIC-ADMIN] Bloqueio de UUID inválido em ${fieldName}:`, s);
+          return null;
         }
         return isUUID(s) ? s : null;
       };
@@ -799,12 +800,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? validateId(secretariaId, 'secretaria_id')
+            ? sanitizeUUID(secretariaId, 'secretaria_id')
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? validateId(unidadeId, 'unidade_id') : null,
-        perfil_id: validateId(perfilId, 'perfil_id'),
+        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'unidade_id') : null,
+        perfil_id: sanitizeUUID(perfilId, 'perfil_id'),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
