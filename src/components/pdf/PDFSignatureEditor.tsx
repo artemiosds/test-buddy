@@ -2,7 +2,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PenLine, Upload, Trash2, AlertCircle, CheckCircle2, Info, MousePointer2, ShieldCheck, Hash, ChevronLeft, ChevronRight, Save, X, Plus, ImageIcon, Loader2 } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Download, 
+  Save, 
+  X, 
+  Plus, 
+  Trash2, 
+  Type, 
+  Image as ImageIcon,
+  Loader2,
+  ShieldCheck
+} from "lucide-react";
 import { toast } from "sonner";
 import { getPdfjs } from "@/lib/piso-pdf";
 import { applySignaturesToPdf, type SignatureInstance } from "@/lib/pdf-editor";
