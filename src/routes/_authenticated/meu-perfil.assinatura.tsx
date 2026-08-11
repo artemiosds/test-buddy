@@ -330,9 +330,8 @@ function UploadForm({
         const sanitizeUUID = (id: any, fieldName: string) => {
           if (!id || id === "__todas__") return null;
           const s = String(id).trim();
-          // Se contiver extensão ou barra, é um path/filename vazando, bloqueamos
-          if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
-            console.error(`[FORENSIC] Bloqueio de UUID inválido em ${fieldName}:`, s);
+          if (s.includes('.') || s.includes('/')) {
+            console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
             return null;
           }
           return isUUID(s) ? s : null;
@@ -400,21 +399,23 @@ function UploadForm({
         ? await processImage(file)
         : { blob: activeBlob, ext: "png" };
       
+      const userId = me.id;
       const fileName = `${crypto.randomUUID()}.${ext}`;
-      const path = `${me.id}/${fileName}`;
+      const storagePath = `pessoal/${userId}/${fileName}`;
 
-      const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
+      const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, processedBlob, {
         contentType: "image/png",
         upsert: false,
       });
-      if (up.error) throw up.error;
+      
+      if (upErr) throw upErr;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
       const sanitizeUUID = (id: any, fieldName: string) => {
         if (!id || id === "__todas__") return null;
         const s = String(id).trim();
-        if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
-          console.error(`[FORENSIC] Bloqueio de UUID inválido em ${fieldName}:`, s);
+        if (s.includes('.') || s.includes('/')) {
+          console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
           return null;
         }
         return isUUID(s) ? s : null;
@@ -425,7 +426,7 @@ function UploadForm({
         tipo: "assinatura" as const,
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: fileName,
+        storage_path: storagePath,
         mime_type: "image/png",
         usuario_id: sanitizeUUID(me.id, 'usuario_id'),
         unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
@@ -449,7 +450,7 @@ function UploadForm({
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
-        await supabase.storage.from(BUCKET).remove([path]);
+        await supabase.storage.from(BUCKET).remove([storagePath]);
         throw ins.error;
       }
       toast.success("Assinatura cadastrada com sucesso");
