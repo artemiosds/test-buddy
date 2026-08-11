@@ -1,4 +1,4 @@
-ENTAO QUAL CORRECAO CERTA PARA ESSA SITUACAO?
+// ENTAO QUAL CORRECAO CERTA PARA ESSA SITUACAO?
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
