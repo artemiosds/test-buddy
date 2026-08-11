@@ -442,11 +442,35 @@ function UploadForm({
         mostrar_cargo: pos.mostrar_cargo,
       };
 
-      console.log('DEBUG PAYLOAD ASSINATURA (MEU PERFIL):', JSON.stringify(payloadAssinatura, null, 2));
+      console.group("[DEBUG ASSINATURA INSTITUCIONAL]");
+      console.log("Payload completo:", payloadAssinatura);
+      console.log("usuario_id:", payloadAssinatura.usuario_id);
+      console.log("unidade_id:", payloadAssinatura.unidade_id);
+      console.log("perfil_id:", payloadAssinatura.perfil_id);
+      console.log("storage_path:", payloadAssinatura.storage_path);
+      console.log("arquivo selecionado:", file);
+      console.log("nome do arquivo:", file?.name);
+      console.groupEnd();
+
+      Object.entries(payloadAssinatura).forEach(([key, value]) => {
+        console.log(`[ASSINATURA PAYLOAD] ${key}`, value, typeof value);
+        if (
+          typeof value === "string" &&
+          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
+        ) {
+          console.error("[ERRO FORENSE] Possível caminho de arquivo em payload:", { campo: key, valor: value });
+        }
+      });
 
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
+        console.error("[ASSINATURA] ERRO COMPLETO:", ins.error);
+        console.error("[ASSINATURA] MESSAGE:", ins.error.message);
+        console.error("[ASSINATURA] DETAILS:", ins.error.details);
+        console.error("[ASSINATURA] HINT:", ins.error.hint);
+        console.error("[ASSINATURA] CODE:", ins.error.code);
+        
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
       }
@@ -457,8 +481,16 @@ function UploadForm({
       setVigenciaFim("");
       setPos(DEFAULT_POSITION);
       onSaved();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } catch (e: any) {
+      toast.error(
+        <div>
+          <p className="font-bold">Erro de Sintaxe UUID Detectado</p>
+          <p className="text-xs mt-1">Mensagem: {e.message || "Erro desconhecido"}</p>
+          <p className="text-xs">Código: {e.code}</p>
+          <p className="text-[10px] mt-2 text-muted-foreground italic">Verifique o console para o payload completo.</p>
+        </div>
+      );
+      console.error(e);
     } finally {
       setSaving(false);
     }
