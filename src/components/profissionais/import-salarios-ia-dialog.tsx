@@ -270,9 +270,12 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
 
         {step === "preview" && (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-700 flex gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              Revisão Obrigatória: Os valores abaixo foram lidos por IA. Confira se os identificadores batem com os profissionais do sistema antes de salvar.
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-[10px] text-blue-700 space-y-1">
+              <div className="flex gap-2 font-medium">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                Revisão Obrigatória: Os valores abaixo foram lidos por IA.
+              </div>
+              <p>Processado por: <span className="font-mono font-bold">{summary.modelo || "Automático"}</span></p>
             </div>
 
             <div className="max-h-[50vh] overflow-y-auto border rounded">
