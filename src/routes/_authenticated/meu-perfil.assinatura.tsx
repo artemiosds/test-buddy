@@ -311,10 +311,10 @@ function UploadForm({
     setSaving(true);
     try {
       const { blob: processedBlob, ext } = await processImage(file);
-      const unidSeg = unidadeId === "__todas__" ? "todas" : unidadeId;
       
-      // O path do storage pode conter a string "pessoal", mas o banco espera UUIDs nos campos *_id
-      const path = `pessoal/${me.id}/${unidSeg}/${crypto.randomUUID()}.${ext}`;
+      // O path do storage deve ser limpo e utilizar IDs únicos
+      // Evitamos strings textuais como "pessoal" no início do path se o bucket/política for restritivo
+      const path = `${me.id}/${crypto.randomUUID()}.${ext}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: "image/png",
