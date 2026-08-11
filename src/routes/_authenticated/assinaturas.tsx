@@ -815,18 +815,46 @@ function NovaAssinaturaDialog({
         created_by: userId,
       };
 
-      console.log('DEBUG PAYLOAD ASSINATURA (INSTITUCIONAL):', JSON.stringify(payloadAssinatura, null, 2));
+      console.group("[DEBUG ASSINATURA INSTITUCIONAL (ADMIN)]");
+      console.log("Payload completo:", payloadAssinatura);
+      console.log("usuario_id:", (payloadAssinatura as any).usuario_id);
+      console.log("unidade_id:", payloadAssinatura.unidade_id);
+      console.log("secretaria_id:", payloadAssinatura.secretaria_id);
+      console.log("perfil_id:", payloadAssinatura.perfil_id);
+      console.log("storage_path:", payloadAssinatura.storage_path);
+      console.groupEnd();
+
+      Object.entries(payloadAssinatura).forEach(([key, value]) => {
+        if (
+          typeof value === "string" &&
+          (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.includes("/"))
+        ) {
+          console.error("[ERRO FORENSE ADMIN] Possível caminho de arquivo em payload:", { campo: key, valor: value });
+        }
+      });
 
       const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
       if (insert.error) {
-        console.error("Erro ao inserir assinatura:", insert.error);
+        console.error("[ASSINATURA ADMIN] ERRO COMPLETO:", insert.error);
+        console.error("[ASSINATURA ADMIN] MESSAGE:", insert.error.message);
+        console.error("[ASSINATURA ADMIN] DETAILS:", insert.error.details);
+        console.error("[ASSINATURA ADMIN] HINT:", insert.error.hint);
+        console.error("[ASSINATURA ADMIN] CODE:", insert.error.code);
+
         await supabase.storage.from(BUCKET).remove([path]);
         throw insert.error;
       }
       toast.success("Assinatura cadastrada");
       onSaved();
-    } catch (e) {
-      toast.error((e as Error).message);
+    } catch (e: any) {
+      toast.error(
+        <div>
+          <p className="font-bold">Erro de Sintaxe UUID Detectado (Admin)</p>
+          <p className="text-xs mt-1">Mensagem: {e.message || "Erro desconhecido"}</p>
+          <p className="text-xs">Código: {e.code}</p>
+        </div>
+      );
+      console.error(e);
     } finally {
       setSaving(false);
     }
