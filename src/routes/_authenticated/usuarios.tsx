@@ -259,7 +259,7 @@ function UsuariosList() {
       <div style={{ background: "#fee", border: "2px solid red", padding: "16px", marginBottom: "16px", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
         <strong>🔍 DEBUG TEMPORÁRIO — REMOVER DEPOIS</strong>
         <br/>Usuário logado (auth.uid): {JSON.stringify(userCtx?.id)}
-        <br/>Perfil detectado no contexto: {JSON.stringify(userCtx?.perfil)}
+        <br/>Perfil detectado no contexto: {JSON.stringify(userCtx?.perfil_codigo)}
         <br/>is_master (contexto): {JSON.stringify(isMaster)}
         <br/>Query executada: "usuarios" (via SDK Supabase)
         <br/>Erro da query (se houver): {JSON.stringify(usersError)}
