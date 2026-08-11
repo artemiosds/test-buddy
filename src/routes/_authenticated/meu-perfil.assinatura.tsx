@@ -330,9 +330,8 @@ function UploadForm({
         const sanitizeUUID = (id: any, fieldName: string) => {
           if (!id || id === "__todas__") return null;
           const s = String(id).trim();
-          // Se contiver extensão ou barra, é um path/filename vazando, bloqueamos
-          if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
-            console.error(`[FORENSIC] Bloqueio de UUID inválido em ${fieldName}:`, s);
+          if (s.includes('.') || s.includes('/')) {
+            console.error(`[CRITICAL] Tentativa de salvar path no campo UUID ${fieldName}:`, s);
             return null;
           }
           return isUUID(s) ? s : null;
