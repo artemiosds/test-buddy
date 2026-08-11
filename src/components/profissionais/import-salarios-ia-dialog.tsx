@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Loader2, AlertCircle, CheckCircle2, Search, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Loader2, AlertCircle, CheckCircle2, Search, X, Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { extractPdfAoa } from "@/lib/piso-pdf";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairSalariosPDF, salvarSalariosImportados, type SalarioExtraido } from "@/lib/salarios-ia.functions";
+import { listarProvedoresIA } from "@/lib/piso-ia-provedores.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface PreviewItem extends SalarioExtraido {
   status: "pronto" | "ambiguo" | "nao_encontrado";
@@ -28,8 +34,24 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState({ total: 0, atualizados: 0 });
+  const [summary, setSummary] = useState({ total: 0, atualizados: 0, modelo: "" });
   
+  // Configuração da IA
+  const [modoIA, setModoIA] = useState<"automatico" | "manual">("automatico");
+  const [provedorSelecionado, setProvedorSelecionado] = useState<string | null>(null);
+  const [permitirFailover, setPermitirFailover] = useState(true);
+
+  const { data: provedoresData } = useQuery({
+    queryKey: ["piso-ia-provedores"],
+    queryFn: () => listarProvedoresIA(),
+    enabled: open
+  });
+
+  const provedoresAtivos = useMemo(() => 
+    (provedoresData?.provedores || []).filter(p => p.ativo), 
+    [provedoresData]
+  );
+
   const processarIA = useServerFn(extrairSalariosPDF);
   const salvarImport = useServerFn(salvarSalariosImportados);
 
@@ -59,8 +81,19 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
       const aoa = await extractPdfAoa(file);
       const texto = aoa.map(row => row.join(" | ")).join("\n");
 
-      // 2. IA para estruturar os dados
-      const { dados } = await processarIA({ data: { texto } });
+      // 2. IA para estruturar os dados (utilizando as configurações de provedor)
+      const { dados, modelo, tentativas_falhas } = await processarIA({ 
+        data: { 
+          texto,
+          provedorId: modoIA === "manual" ? provedorSelecionado : null,
+          permitirFailover
+        } 
+      });
+
+      if (tentativas_falhas?.length > 0) {
+        const resumo = tentativas_falhas.map(f => `${f.provedor}`).join(", ");
+        toast.info(`Nota: Provedores falharam (${resumo}), failover utilizado com sucesso.`);
+      }
 
       // 3. Casamento com banco de dados
       const processados: PreviewItem[] = [];
@@ -95,6 +128,7 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
       }
 
       setPreviewData(processados);
+      setSummary(prev => ({ ...prev, modelo }));
       setStep("preview");
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar PDF");
@@ -126,7 +160,7 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
     setLoading(true);
     try {
       const res = await salvarImport({ data: paraSalvar });
-      setSummary({ total: previewData.length, atualizados: res.sucesso });
+      setSummary(prev => ({ ...prev, total: previewData.length, atualizados: res.sucesso }));
       setStep("summary");
       toast.success("Importação concluída com sucesso!");
     } catch (err: any) {
@@ -148,6 +182,53 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
 
         {step === "upload" && (
           <div className="space-y-4 py-4">
+            <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="ia-auto" className="text-sm font-medium">Modo Automático</Label>
+                </div>
+                <Switch 
+                  id="ia-auto" 
+                  checked={modoIA === "automatico"} 
+                  onCheckedChange={(v) => setModoIA(v ? "automatico" : "manual")} 
+                />
+              </div>
+
+              {modoIA === "manual" && (
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Escolher Provedor</Label>
+                    <Select 
+                      value={provedorSelecionado || ""} 
+                      onValueChange={setProvedorSelecionado}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione uma IA ativa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {provedoresAtivos.map(p => (
+                          <SelectItem key={p.id} value={p.id} className="text-xs">
+                            {p.nome} ({p.modelo})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ia-failover" className="text-xs">Failover automático se falhar</Label>
+                    <Switch 
+                      id="ia-failover" 
+                      className="scale-75"
+                      checked={permitirFailover} 
+                      onCheckedChange={setPermitirFailover} 
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center space-y-2">
               <input
                 type="file"
@@ -189,9 +270,12 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
 
         {step === "preview" && (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-700 flex gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              Revisão Obrigatória: Os valores abaixo foram lidos por IA. Confira se os identificadores batem com os profissionais do sistema antes de salvar.
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-[10px] text-blue-700 space-y-1">
+              <div className="flex gap-2 font-medium">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                Revisão Obrigatória: Os valores abaixo foram lidos por IA.
+              </div>
+              <p>Processado por: <span className="font-mono font-bold">{summary.modelo || "Automático"}</span></p>
             </div>
 
             <div className="max-h-[50vh] overflow-y-auto border rounded">
@@ -304,9 +388,12 @@ export function ImportSalariosPdfDialog({ open, onOpenChange }: { open: boolean,
             </div>
             <div>
               <h3 className="text-lg font-semibold">Importação Concluída</h3>
-              <p className="text-sm text-muted-foreground">
-                Foram atualizados {summary.atualizados} profissionais de um total de {summary.total} extraídos do documento.
-              </p>
+              <div className="text-sm text-muted-foreground space-y-2 mt-2">
+                <p>Foram atualizados {summary.atualizados} profissionais de um total de {summary.total} extraídos.</p>
+                <div className="p-2 bg-muted rounded-md text-[10px] font-mono">
+                  IA: {summary.modelo}
+                </div>
+              </div>
             </div>
             <Button className="w-full" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
