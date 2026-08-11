@@ -825,8 +825,8 @@ function NovaAssinaturaDialog({
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'unidade_id') : null,
-        perfil_id: sanitizeUUID(perfilId, 'perfil_id'),
+        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'ADMIN_unidade_id') : null,
+        perfil_id: sanitizeUUID(perfilId, 'ADMIN_perfil_id'),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
