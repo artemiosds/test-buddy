@@ -29,13 +29,13 @@ export const generateInstitutionalHash = createServerFn({ method: "POST" })
 
 // Schema for signature saving
 const saveSchema = z.object({
-  usuario_id: z.string().uuid(),
-  perfil_id: z.string().uuid().nullable(),
-  unidade_id: z.string().uuid().nullable(),
-  secretaria_id: z.string().uuid().nullable(),
-  titular_nome: z.string(),
+  usuario_id: z.string().uuid({ message: "O ID do usuário deve ser um UUID válido." }),
+  perfil_id: z.string().uuid({ message: "O ID do perfil deve ser um UUID válido." }).nullable(),
+  unidade_id: z.string().uuid({ message: "O ID da unidade deve ser um UUID válido." }).nullable(),
+  secretaria_id: z.string().uuid({ message: "O ID da secretaria deve ser um UUID válido." }).nullable(),
+  titular_nome: z.string().min(1, "Nome do titular é obrigatório"),
   titular_cargo: z.string().nullable(),
-  hash: z.string(),
+  hash: z.string().min(1, "Hash é obrigatório"),
   metadata: z.record(z.string(), z.any()),
 });
 

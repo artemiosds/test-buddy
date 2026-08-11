@@ -327,10 +327,14 @@ function UploadForm({
       setSaving(true);
       try {
         const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-        const sanitizeId = (id: any) => {
+        const validateId = (id: any, fieldName: string) => {
           if (!id) return null;
-          const s = String(id).replace(/\.[^/.]+$/, "");
-          return isUUID(s) ? s : null;
+          const s = String(id);
+          if (s.includes('.') || s.includes('/')) {
+            throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+          }
+          if (!isUUID(s)) return null;
+          return s;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
@@ -338,9 +342,9 @@ function UploadForm({
 
         await saveInst({
           data: {
-            usuario_id: me.id,
-            perfil_id: sanitizeId(me.perfil_id),
-            unidade_id: sanitizeId(unidadeReal),
+            usuario_id: validateId(me.id, 'usuario_id')!,
+            perfil_id: validateId(me.perfil_id, 'perfil_id'),
+            unidade_id: validateId(unidadeReal, 'unidade_id'),
             secretaria_id: null,
             titular_nome: titularNome.trim(),
             titular_cargo: titularCargo.trim() || null,
@@ -402,10 +406,14 @@ function UploadForm({
       if (up.error) throw up.error;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-      const sanitizeId = (id: any) => {
+      const validateId = (id: any, fieldName: string) => {
         if (!id) return null;
-        const s = String(id).replace(/\.[^/.]+$/, "");
-        return isUUID(s) ? s : null;
+        const s = String(id);
+        if (s.includes('.') || s.includes('/')) {
+          throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+        }
+        if (!isUUID(s)) return null;
+        return s;
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
@@ -415,10 +423,10 @@ function UploadForm({
         titular_cargo: titularCargo.trim() || null,
         storage_path: fileName,
         mime_type: "image/png",
-        usuario_id: me.id,
-        unidade_id: sanitizeId(unidadeReal),
+        usuario_id: validateId(me.id, 'usuario_id'),
+        unidade_id: validateId(unidadeReal, 'unidade_id'),
         secretaria_id: null,
-        perfil_id: sanitizeId(me.perfil_id),
+        perfil_id: validateId(me.perfil_id, 'perfil_id'),
         is_pessoal: true,
         ativa: true,
         obrigatoria: false,

@@ -782,10 +782,14 @@ function NovaAssinaturaDialog({
       if (up.error) throw up.error;
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
-      const sanitizeId = (id: any) => {
+      const validateId = (id: any, fieldName: string) => {
         if (!id) return null;
-        const s = String(id).replace(/\.[^/.]+$/, "");
-        return isUUID(s) ? s : null;
+        const s = String(id);
+        if (s.includes('.') || s.includes('/')) {
+          throw new Error(`O campo ${fieldName} recebeu um valor de arquivo inválido como UUID: ${s}`);
+        }
+        if (!isUUID(s)) return null;
+        return s;
       };
 
       const payloadAssinatura = {
@@ -796,12 +800,12 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? sanitizeId(secretariaId)
+            ? validateId(secretariaId, 'secretaria_id')
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? sanitizeId(unidadeId) : null,
-        perfil_id: sanitizeId(perfilId),
+        unidade_id: escopo === "unidade" ? validateId(unidadeId, 'unidade_id') : null,
+        perfil_id: validateId(perfilId, 'perfil_id'),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
