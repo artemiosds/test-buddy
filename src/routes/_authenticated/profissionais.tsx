@@ -1351,6 +1351,7 @@ function ProfissionalFormBody({
   gestoresOpt,
   canEditAgili,
   canSeeBanco,
+  canSeeSalario,
 }: {
   secretarias: LookupItem[] | undefined;
   unidades: LookupItem[] | undefined;
