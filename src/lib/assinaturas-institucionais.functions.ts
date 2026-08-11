@@ -36,7 +36,7 @@ const saveSchema = z.object({
   titular_nome: z.string(),
   titular_cargo: z.string().nullable(),
   hash: z.string(),
-  metadata: z.record(z.any()),
+  metadata: z.record(z.string(), z.any()),
 });
 
 export const saveInstitutionalSignature = createServerFn({ method: "POST" })
