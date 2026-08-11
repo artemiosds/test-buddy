@@ -46,6 +46,6 @@ export function temAcessoGlobal(perfil?: string | null, isMasterClaim?: boolean)
   if (isMasterClaim === true) return true;
 
   const p = normalizarPerfil(perfil);
-  // Gestor e Administrador Master (legado) também possuem acesso global.
-  return p === PERFIS.ADMINISTRADOR_MASTER || p === PERFIS.GESTOR;
+  // Master, Gestor e Administrador Master (legado) possuem acesso global.
+  return p === PERFIS.MASTER || p === PERFIS.ADMINISTRADOR_MASTER || p === PERFIS.GESTOR;
 }
