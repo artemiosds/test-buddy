@@ -171,7 +171,7 @@ function drawRow(doc: jsPDF, y: number, idx: number, item: ItemContratado): numb
     cpf: fmtCPF(p.cpf),
     cargo: p.cargo ?? "-",
     lot: p.setor ?? "-",
-    dias: "-",
+    dias: n(l.dias_trabalhados as number),
     falta: n(l.dias_falta as number),
     att: n(l.atestado as number),
     he50: n(l.he_50 as number),
