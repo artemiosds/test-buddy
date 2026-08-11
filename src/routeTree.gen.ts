@@ -44,6 +44,7 @@ import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authent
 import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated.assinar-pdf'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
@@ -279,6 +280,11 @@ const AuthenticatedAssinaturasRoute =
     path: '/assinaturas',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAssinarPdfRoute = AuthenticatedAssinarPdfRouteImport.update({
+  id: '/assinar-pdf',
+  path: '/assinar-pdf',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -520,6 +526,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -673,6 +681,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/analitico': typeof AuthenticatedAnaliticoRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/_authenticated/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
   '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/cargos-funcoes': typeof AuthenticatedCargosFuncoesRoute
@@ -751,6 +760,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/analitico'
     | '/aprovacoes'
+    | '/assinar-pdf'
     | '/assinaturas'
     | '/auditoria'
     | '/cargos-funcoes'
@@ -827,6 +837,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/analitico'
     | '/aprovacoes'
+    | '/assinar-pdf'
     | '/assinaturas'
     | '/auditoria'
     | '/cargos-funcoes'
@@ -903,6 +914,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/analitico'
     | '/_authenticated/aprovacoes'
+    | '/_authenticated/assinar-pdf'
     | '/_authenticated/assinaturas'
     | '/_authenticated/auditoria'
     | '/_authenticated/cargos-funcoes'
@@ -1230,6 +1242,13 @@ declare module '@tanstack/react-router' {
       path: '/assinaturas'
       fullPath: '/assinaturas'
       preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assinar-pdf': {
+      id: '/_authenticated/assinar-pdf'
+      path: '/assinar-pdf'
+      fullPath: '/assinar-pdf'
+      preLoaderRoute: typeof AuthenticatedAssinarPdfRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/aprovacoes': {
@@ -1624,6 +1643,7 @@ const AuthenticatedConfiguracaoPerfisRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAnaliticoRoute: typeof AuthenticatedAnaliticoRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
+  AuthenticatedAssinarPdfRoute: typeof AuthenticatedAssinarPdfRoute
   AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedCargosFuncoesRoute: typeof AuthenticatedCargosFuncoesRoute
@@ -1679,6 +1699,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnaliticoRoute: AuthenticatedAnaliticoRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
+  AuthenticatedAssinarPdfRoute: AuthenticatedAssinarPdfRoute,
   AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedCargosFuncoesRoute: AuthenticatedCargosFuncoesRoute,
@@ -1764,3 +1785,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
