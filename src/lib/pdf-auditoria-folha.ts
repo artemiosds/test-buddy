@@ -45,7 +45,7 @@ export async function gerarPdfAuditoriaFolha() {
     head: [["Etapa", "Descrição Detalhada"]],
     body: fluxoData,
     theme: "grid",
-    headStyles: { fillGray: 200, textColor: 0, fontStyle: "bold" },
+    headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
     styles: { fontSize: 9, cellPadding: 3 },
   });
 
@@ -66,7 +66,7 @@ export async function gerarPdfAuditoriaFolha() {
     head: [["Perfil", "Escopo", "Ações Principais", "Responsabilidade"]],
     body: matrizData,
     theme: "striped",
-    headStyles: { fillGray: 200, textColor: 0, fontStyle: "bold" },
+    headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
     styles: { fontSize: 9 },
   });
 
