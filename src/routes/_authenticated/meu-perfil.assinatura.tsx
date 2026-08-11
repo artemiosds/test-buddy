@@ -491,7 +491,7 @@ function AssinaturaCard({
     return () => {
       cancel = true;
     };
-  }, [row.storage_path]);
+  }, [row.storage_path, userId]);
 
   const unidadeNome = row.unidade_id
     ? (unidades.find((u) => u.id === row.unidade_id)?.nome ?? "Unidade removida")
