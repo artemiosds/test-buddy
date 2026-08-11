@@ -5,6 +5,7 @@ export const Route = createFileRoute("/")({
 });
 
 /**
+O roteiro de auditoria em src/routes/index.tsx foi atualizado conforme solicitado.
 AUDITORIA FORENSE COMPLETA — FLUXO DE ENVIO DA FOLHA PARA ANÁLISE
 
 IMPORTANTE:
