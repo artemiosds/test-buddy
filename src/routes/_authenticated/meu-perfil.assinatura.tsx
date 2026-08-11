@@ -353,6 +353,7 @@ function UploadForm({
             matricula: me.matricula,
             unidade_nome: unidadeNome,
             timestamp: instTimestamp,
+            cpf: me.cpf,
             cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
           }
         };
