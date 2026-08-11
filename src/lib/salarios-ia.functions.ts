@@ -19,7 +19,7 @@ export interface SalarioExtraido {
 
 /**
  * Função de servidor para processar o texto do PDF via IA.
- * Utiliza o Lovable AI Gateway para extração estruturada.
+ * Reutiliza o Gerenciador de Provedores de IA para failover e seleção manual.
  */
 export const extrairSalariosPDF = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -27,59 +27,99 @@ export const extrairSalariosPDF = createServerFn({ method: "POST" })
     z
       .object({
         texto: z.string().min(10),
+        provedorId: z.string().uuid().nullable().optional(),
+        permitirFailover: z.boolean().default(true),
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) {
-      throw new Error("Lovable AI Gateway não configurado (LOVABLE_API_KEY ausente).");
+  .handler(async ({ data, context }) => {
+    const { criarProvider, ProviderError } = await import("./ai-providers/runtime.server");
+    const { lerCadeiaProvedores } = await import("./piso-ia-provedores.functions");
+
+    // 1. Obter cadeia de provedores configurada
+    let cadeia = await lerCadeiaProvedores(context.supabase as never);
+
+    if (!cadeia.provedores.length || !cadeia.provedores.some(p => p.ativo)) {
+      throw new Error("Nenhum provedor de IA ativo. Configure no Gerenciador de Provedores.");
     }
 
-    const prompt = `
-Você é um especialista em processamento de documentos de folha de pagamento.
-Abaixo está o texto extraído de um PDF que contém uma tabela de salários.
+    // 2. Definir lista de execução baseada no modo
+    let provedoresParaUsar = cadeia.provedores.filter(p => p.ativo);
+
+    if (data.provedorId) {
+      const manual = provedoresParaUsar.find(p => p.id === data.provedorId);
+      if (!manual) throw new Error("Provedor selecionado está inativo ou não existe.");
+      
+      if (data.permitirFailover) {
+        // Começa pelo manual, depois segue a ordem original de prioridade
+        const outros = provedoresParaUsar.filter(p => p.id !== data.provedorId);
+        provedoresParaUsar = [manual, ...outros];
+      } else {
+        provedoresParaUsar = [manual];
+      }
+    }
+
+    const prompt = `Você é um especialista em processamento de folha de pagamento.
 Extraia os dados de CADA profissional na tabela e retorne um objeto JSON estrito.
 
 REGRAS:
 1. Retorne APENAS o JSON no formato: {"dados": [ { "identificador": "...", "nome": "...", "salario_base": 0.0, ... } ]}
-2. O campo "identificador" deve conter a Matrícula ou o CPF (o que estiver disponível).
+2. O campo "identificador" deve conter a Matrícula ou o CPF.
 3. Converta valores monetários para números (ex: "1.234,56" -> 1234.56). Use null se não encontrar.
-4. Campos obrigatórios no objeto: identificador, nome, salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido.
-5. Se o texto estiver truncado ou ilegível em uma linha, tente o seu melhor ou use null.
+4. NUNCA invente valores. Se não existir no texto, use null.
+5. Campos: identificador, nome, salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido.
 
 TEXTO DO PDF:
-${data.texto}
-`;
+${data.texto}`;
+
+    const registrarMetrica = async (id: string, ok: boolean, ms: number, status: number, erro: string | null) => {
+      try {
+        await (context.supabase as any).rpc("piso_ia_provedor_metrica", {
+          _id: id, _ok: ok, _ms: ms, _status: status, _erro: erro, _confianca: null, _pdfs: ok ? 1 : 0
+        });
+      } catch (e) { /* ignore telemetry errors */ }
+    };
+
+    let textoFinal = "";
+    let provedorUsado = "";
+    const falhas: any[] = [];
+
+    // 3. Execução com failover
+    for (const cfg of provedoresParaUsar) {
+      const provider = criarProvider(cfg as any);
+      const inicio = Date.now();
+      try {
+        const r = await provider.processarPDF({ 
+          prompt, 
+          instrucao: "Extraia os salários do texto fornecido conforme as regras do sistema.", 
+          paginas: [] // Usando apenas texto bruto extraído anteriormente
+        });
+        textoFinal = r.texto;
+        provedorUsado = `${cfg.nome} (${cfg.modelo})`;
+        await registrarMetrica(cfg.id, true, r.ms, 200, null);
+        break;
+      } catch (e: any) {
+        const status = e instanceof ProviderError ? e.status : 0;
+        const msg = e.message || String(e);
+        falhas.push({ provedor: cfg.nome, status, erro: msg });
+        await registrarMetrica(cfg.id, false, Date.now() - inicio, status, msg);
+      }
+    }
+
+    if (!textoFinal) {
+      const resumo = falhas.map(f => `${f.provedor} [${f.status}]`).join(" > ");
+      throw new Error(`Falha na extração IA: ${resumo}`);
+    }
 
     try {
-      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Lovable-API-Key": key,
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-5.6-luna", // Mantendo o padrão de alta capacidade já usado no projeto
-          messages: [{ role: "user", content: prompt }],
-          response_format: { type: "json_object" },
-        }),
-      });
-
-      if (!resp.ok) {
-        throw new Error(`Erro na API de IA: ${resp.status}`);
-      }
-
-      const result = await resp.json();
-      const content = JSON.parse(result.choices[0].message.content);
-      
-      return { 
+      const content = JSON.parse(textoFinal.match(/\{[\s\S]*\}/)?.[0] || textoFinal);
+      return {
         dados: (content.dados || []) as SalarioExtraido[],
-        raw: result.choices[0].message.content 
+        modelo: provedorUsado,
+        tentativas_falhas: falhas
       };
     } catch (error) {
-      console.error("[extrairSalariosPDF]", error);
-      throw new Error("Falha ao processar o PDF com IA. Verifique se o formato é suportado.");
+      throw new Error("A IA retornou um formato de dados inválido. Tente outro provedor.");
     }
   });
 
