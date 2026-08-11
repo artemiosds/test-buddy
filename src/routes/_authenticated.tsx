@@ -475,11 +475,8 @@ function AuthenticatedLayoutInner() {
   }
 
   const canSee = (item: NavItem) => {
-    // Agora usando permissões do app_metadata (JWT)
-    const permissions = user?.app_metadata?.permissions as string[] | undefined;
-    const hasPermission = (p: string) => permissions?.includes(p) ?? false;
-    
-    const isMaster = user?.app_metadata?.is_master || hasPermission("usuario.gerenciar");
+    // A fonte de verdade para permissões é o hook usePermissions que já consolida JWT + RPC
+    const isMaster = !!userCtx?.is_master;
     if (item.masterOnly && !isMaster) return false;
     
     const perm = item.perm;
@@ -487,8 +484,8 @@ function AuthenticatedLayoutInner() {
     if (isMaster) return true;
     
     return Array.isArray(perm) 
-      ? perm.some(hasPermission) 
-      : hasPermission(perm);
+      ? hasAny(perm) 
+      : has(perm);
   };
 
   const nome = userCtx?.nome_completo ?? user?.email ?? "Usuário";
