@@ -5192,17 +5192,15 @@ export type Database = {
         }
         Returns: boolean
       }
-      has_permission_core:
-        | {
-            Args: {
-              _codigo: string
-              _secretaria_id?: string
-              _unidade_id?: string
-              _user_id: string
-            }
-            Returns: boolean
-          }
-        | { Args: { _perm_codigo: string; _user_id: string }; Returns: boolean }
+      has_permission_core: {
+        Args: {
+          _codigo: string
+          _secretaria_id?: string
+          _unidade_id?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
