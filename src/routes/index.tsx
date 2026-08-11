@@ -32,7 +32,7 @@ function Dashboard() {
         <h2 className="text-3xl font-bold tracking-tight text-[#0f172a]">Gestão da Saúde</h2>
         <div className="flex items-center space-x-2">
           <Button asChild>
-            <Link href="/relatorio-inteligente">Gerar Relatórios</Link>
+            <Link to="/relatorio-inteligente">Gerar Relatórios</Link>
           </Button>
         </div>
       </div>
