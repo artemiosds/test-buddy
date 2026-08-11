@@ -92,6 +92,5 @@ export async function applySignaturesToPdf(
   }
 
   const pdfBytes = await pdfDoc.save();
-  // Ensure we use a compatible buffer type for the Blob
-  return new Blob([pdfBytes.buffer], { type: "application/pdf" });
+  return new Blob([pdfBytes], { type: "application/pdf" });
 }
