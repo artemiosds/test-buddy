@@ -451,7 +451,7 @@ function UploadForm({
       const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
 
       if (ins.error) {
-        await supabase.storage.from(BUCKET).remove([path]);
+        await supabase.storage.from(BUCKET).remove([storagePath]);
         throw ins.error;
       }
       toast.success("Assinatura cadastrada com sucesso");
