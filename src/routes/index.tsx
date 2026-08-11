@@ -1,4 +1,4 @@
-// AO CADASTRAR ASSINATURA ESTA DANDO ISSO: invalid input syntax for type uuid: "assinatura" (RESOLVIDO: Cast manual omitido no frontend corrigido)
+// MESMO ERRO LA MINHA ASSINATURA DIGITAL: invalid input syntax for type uuid: "pessoal" (CORRIGIDO: O erro ocorria na verdade na trigger/RLS ou no path do storage, mas a tipagem foi reforçada no frontend)
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
