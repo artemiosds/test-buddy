@@ -329,7 +329,7 @@ function UploadForm({
         tipo: "assinatura" as const,
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: path,
+        storage_path: path.split('/').pop() || path,
         mime_type: "image/png",
         usuario_id: me.id,
         unidade_id: isUUID(unidadeReal) ? unidadeReal : null,
