@@ -1,5 +1,9 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
+// porque ainda esta dando esse erro no pagina de assinatura: invalid input syntax for type uuid: "pessoal"
+//
+// IMPORTANTE: Execute TODOS os detalhes desta tarefa com máxima precisão. Não ignore nada, não simplifique, implemente EXATAMENTE o que foi pedido.
+
 export const Route = createFileRoute("/")({
   component: () => <Navigate to="/analitico" replace />,
 });
