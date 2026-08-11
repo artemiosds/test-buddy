@@ -5,708 +5,335 @@ export const Route = createFileRoute("/")({
 });
 
 /**
-O roteiro de auditoria em src/routes/index.tsx foi atualizado conforme solicitado.
-AUDITORIA FORENSE COMPLETA — FLUXO DE ENVIO DA FOLHA PARA ANÁLISE
+Corrigir somente os problemas comprovados pela Auditoria Forense do fluxo da Folha , preservando o RBAC, permissões, unida
 
-IMPORTANTE:
-ESTA ETAPA É SOMENTE AUDITORIA.
+NÃO reescreva o sistema.
+NÃO crie uma nova arquitetura de permissões.
+NÃO alterar regras de MASTER, GESTOR ou DIRETOR sem evidência direta.
+N / D
 
-NÃO ALTERE CÓDIGO.
-NÃO CRIE MIGRATION.
-NÃO ALTERE RLS.
-NÃO ALTERE RPC.
-NÃO ALTERE PERMISSÕES.
-NÃO ALTERE STATUS.
-NÃO CORRIJA NADA AUTOMATICAMENTE.
+A correção deve ser feita de forma incremental, rastreável e reversível .
 
-Primeiro investigue profundamente o fluxo REAL existente no projeto e no banco.
+🔴 PROBLEMA 1 — STATUS devolvida× `com_p_com_pendencias
 
-O objetivo é descobrir exatamente onde o fluxo de envio da folha para análise está funcionando, onde está quebrado e qual é a causa raiz.
+Os auditórios firmados uma inconsistência crítica:
 
-============================================================
-1. FLUXO FUNCIONAL OBRIGATÓRIO
-============================================================
+O frontend/ba
 
-Mapeie o fluxo real:
+devolvida
 
-DIRETOR DE UNIDADE
-↓
-Lançamento da frequência
-↓
-Fechamento da frequência
-↓
-Geração/consolidação da folha
-↓
-Envio para análise
-↓
-Status ENVIADA_ANALISE
-↓
-GESTOR / MASTER
-↓
-Análise
-↓
-APROVAÇÃO OU REPROVAÇÃO
-↓
-Se REPROVADA:
-GESTOR/MASTER → devolve
-↓
+porém o banco utiliza:
+
+com_pendencias
+
+nenhum enum:
+
+public.status_frequencia
+
+Isso pode quebrar o fluxo:
+
 DIRETOR
-↓
-visualiza motivo
-↓
-corrige
-↓
-reenvia
-↓
-nova análise
-↓
-aprovação
-↓
-MASTER
-↓
-homologação final
+   ↓
+envia frequência
+   ↓
+GESTOR/MASTER analisa
+   ↓
+REPROVA / DEVOLVE
+   ↓
+DIRETOR CORRIGE
+   ↓
+REENVIA
+CORREÇÃO OBRIGATÓRIA
 
-NÃO PRESUMA que esse fluxo existe.
-CONFIRME no código e no banco.
+Antes de alterar qualquer coisa, descubra qual nomenclatura representa o comportamento funcional original do sistema .
 
-============================================================
-2. IDENTIFICAR TODOS OS ARQUIVOS ENVOLVIDOS
-============================================================
+Pesquisar:
 
-Localize e liste:
+status_frequencia
+devolvida
+com_pendencias
+alterarStatusFrequencia
+PERM_STATUS
 
-- páginas de frequência
-- folha de contratados
-- folha de efetivos
-- componentes de envio
-- componentes de análise
-- componentes de aprovação
-- componentes de reprovação
-- componentes de homologação
-- Server Functions
-- RPCs
-- hooks
-- services
-- queries
-- mutations
-- tabelas
-- migrations
-- RLS policies
-- triggers
-- audit logs
+Pesquise também todas as referências:
 
-Para cada item encontrado, informe:
+grep/rg "devolvida"
+grep/rg "com_pendencias"
 
-ARQUIVO
-FUNÇÃO
-RESPONSABILIDADE
-PERFIL QUE UTILIZA
-TABELA/RPC ENVOLVIDA
+Mapear:
 
-Não altere nada.
+migrações;
+RPCs;
+Funções do servidor;
+ganchos;
+ninhada;
+';
+painéis de controle;
+celular;
+notificações;
+histórico;
+SRS.
+REGRA
 
-============================================================
-3. AUDITORIA DOS STATUS
-============================================================
+Não simplesmente adicionardevolvida ao enum.
 
-Descubra quais são os status REAIS utilizados no banco e frontend.
+Primeiro determine se:
 
-Exemplo:
+5 A
+
+com_pendenciasé o status oficial original e o código deve voltar a utilizá-lo.
+
+OU:
+
+B
+
+devolvidaé realmente o status funcional correto e o banco precisa ser compatibilizado.
+
+A decisão deve ser baseada no código/migrações existentes, não em suposição .
+
+🔴 PROBLEMA 2 — FLUXO COMPLETO DA FOLHA
+
+Validar o fluxo real:
 
 RASCUNHO
-ENVIADA_ANALISE
-EM_ANALISE
-REPROVADA
+   ↓
+ENVIO PARA ANÁLISE
+   ↓
+EM ANÁLISE
+   ↓
 APROVADA
-HOMOLOGADA
-etc.
 
-NÃO PRESUMA esses nomes.
+E principalmente:
 
-Pesquise:
+RASCUNHO
+   ↓
+ENVIO
+   ↓
+EM ANÁLISE
+   ↓
+DEVOLVIDA / COM PENDÊNCIAS
+   ↓
+DIRETOR CORRIGE
+   ↓
+REENVIA
+   ↓
+EM ANÁLISE
+   ↓
+APROVADA
 
-- enums
-- tipos TypeScript
-- migrations
-- CHECK constraints
-- RPCs
-- Server Functions
-- queries
-- filtros
+Não considero o fluxo corrigido apenas porque a função retornasuccess .
 
-Depois monte:
+Cada transição precisa ser realmente persistente no banco.
 
-STATUS | QUEM PODE DEFINIR | QUEM PODE VISUALIZAR | PRÓXIMO STATUS
+🔴 PROBLEMA 3
 
-Identifique qualquer status que exista no frontend mas não no banco ou vice-versa.
+Preservar exatamente esta matriz funcional, salvo evidência encontrada no código de que o comportamento original era diferente:
 
-============================================================
-4. AUDITORIA DO DIRETOR DE UNIDADE
-============================================================
+MESTRE
 
-Investigue exatamente o que o perfil DIRETOR pode fazer.
+Pode:
 
-Confirmar:
+igual todas as unidades;
+todas
+analisar;
+devolver;
+aprovação;
+homólogo;
+acompanhar todo o fluxo.
+GESTOR
 
-1. visualizar sua unidade
-2. visualizar profissionais da unidade
-3. visualizar frequência da unidade
-4. lançar frequência
-5. editar frequência
-6. fechar frequência
-7. gerar folha
-8. enviar folha para análise
-9. visualizar status do envio
-10. visualizar reprovação
-11. visualizar motivo da reprovação
-12. corrigir
-13. reenviar para análise
+Pode:
 
-CONFIRMAR também:
+visualizar as unidades/secretarias dentro do seu escopo;
+receber folhas enviadas para análise;
+analisar;
+devolver para correção;
+aprovar conforme sua permissão.
+DIRETOR DE UNIDADE
 
-- unidade_principal_id
-- usuario_unidades
-- unidade_id
-- authorized_units
-- JWT
-- RPC get_my_user_context
-- RLS
+Pode:
 
-Verifique se todas essas camadas apontam para a MESMA unidade.
+visualizar somente sua unidade vinculada;
+visualizar profissionais da unidade;
+¾ frequência;
+editar rascunho;
+enviar frequência para análise;
+visualizar frequência devolvida;
+corrigir frequência devolvida;
+reenviar para análise.
+OPERACIONAL
 
-============================================================
-5. AUDITORIA DO GESTOR
-============================================================
+Preservar exatamente as permissões existentes.
 
-Confirmar exatamente:
+NÃO permissões adicionais.
 
-- quais unidades pode visualizar
-- qual secretaria pode visualizar
-- quais folhas pode analisar
-- se recebe folhas enviadas pelo Diretor
-- se consegue abrir a folha
-- se consegue aprovar
-- se consegue reprovar
-- se consegue informar motivo
-- se consegue devolver corretamente para o Diretor
+🔴 PROBLEMA 4 — UNIDADE DO DIRETOR
 
-Verifique se o Gestor está sendo bloqueado por:
+Validar especialmente:
 
-- JWT
-- RLS
-- PermissionGate
-- RPC
-- Server Function
-- filtro frontend
-
-============================================================
-6. AUDITORIA DO MASTER
-============================================================
-
-Confirmar:
-
-MASTER deve possuir visão GLOBAL.
-
-Testar conceitualmente:
-
-- todas unidades
-- todos profissionais
-- todas folhas
-- todas frequências
-- todas secretarias
-- análise
-- aprovação
-- homologação
-- auditoria
-
-Verifique se existe alguma regra recente que esteja restringindo MASTER por:
-
+usuario.unidade_principal_id
 usuario_unidades
-unidade_principal_id
-authorized_units
-JWT
-RLS
-is_master
-acesso_todas_unidades
-acesso_todas_secretarias
+competencia_unidades
+frequencias.unidade_id
 
-IMPORTANTE:
+Quando o Diretor entra:
 
-Não assumir que possuir unidade vinculada transforma MASTER em usuário restrito.
+unidade vinculada
+       ↓
+contexto do usuário
+       ↓
+filtros da Folha
+       ↓
+frequência
+       ↓
+profissionais
 
-============================================================
-7. AUDITORIA DE RLS
-============================================================
+A hora deve ser selecionada automaticamente .
 
-Localize as policies das tabelas envolvidas.
+O Diretor não precisa selecionar manualmente sua unidade.
 
-Principalmente:
+Porém:
 
-- frequencias
-- folhas
-- folha_contratados
-- folha_efetivos
-- profissionais
-- usuarios
-- usuario_unidades
-- unidades
-- setores
+IMPORTANTE
 
-Para cada policy informe:
+Não permita que o Diretor altere o filtro para uma unidade que não esteja autorizada.
 
-TABELA
-POLICY
-SELECT
-INSERT
-UPDATE
-DELETE
-USING
-WITH CHECK
-PERFIL ENVOLVIDO
-FUNÇÃO/RPC UTILIZADA
+🔴 PROBLEMA 5 — RLS COMdeleted_at
 
-Procure conflitos como:
+Os auditórios encontraram referências a:
 
-- uma policy permitindo
-- outra policy bloqueando
-- MASTER sendo tratado como usuário comum
-- Diretor sem unidade
-- Gestor usando unidade quando deveria usar secretaria
-- deleted_at bloqueando registros
-- unidade_id NULL
-- UUID comparado incorretamente
+deleted_at
 
-NÃO ALTERAR.
+em políticas/RPCs relacionadas a tabelas onde essa coluna não existe mais.
 
-============================================================
-8. AUDITORIA DAS RPCs
-============================================================
+Pesquise TODOS os usos relacionados ao fluxo:
 
-Localize as definições ATUAIS de:
+frequencias
+frequencia_profissional
+frequencias_contratados
+competencia_unidades
+usuarios
+usuario_unidades
+profissionais
+setores
 
-get_my_user_context
-get_my_permissions
-is_master
-is_master_core
-has_permission
-has_permission_core
-user_has_unit
-qualquer RPC utilizada pelo fluxo de folha
+Para cada pena:
 
-Para cada RPC informe:
+Se a tabela possuideleted_at
 
-RETORNO
-PARÂMETROS
-SECURITY DEFINER?
-SEARCH_PATH?
-REGRA DE MASTER
-REGRA DE DIRETOR
-REGRA DE GESTOR
-REGRA DE UNIDADE
-REGRA DE SECRETARIA
+Manter o filtro.
 
-Procure versões conflitantes da mesma RPC nas migrations.
+Se a aldeia não possuideleted_at
 
-============================================================
-9. AUDITORIA DAS SERVER FUNCTIONS
-============================================================
+Remover apenas uma referência inválida.
 
-Localize funções responsáveis por:
+NÃO adicionar deleted_atartificialmente apenas para fazer a consulta funcionar.
 
-- criar folha
-- atualizar folha
-- lançar frequência
-- fechar frequência
-- enviar para análise
-- aprovar
-- reprovar
-- homologar
-- corrigir
-- reenviar
+Isso é extremamente importante.
 
-Para cada uma:
+🔴 PROBLEMA 6 —orquestrarSincronizacao
 
-- quem pode executar
-- qual RPC usa
-- qual tabela altera
-- qual status altera
-- validação de unidade
-- validação de secretaria
-- validação de MASTER
-- criação de auditoria
-- tratamento de erro
+Auditor:
 
-Verifique se existe diferença entre:
+src/lib/frequencia-sincronizacao.functions.ts
 
-frontend diz PERMITIDO
-backend diz NEGADO
+Verificador:
 
-ou:
+quem pode chamar;
+até parâmetros recebem;
+se valida frequencia_id;
+se valida unidade_id;
+se valida competente;
+se valida usuário;
+se usa supabaseAdmin;
+se pode alterar dados de
+pode ser realizado por um Diretor independentemente.
 
-frontend diz NEGADO
-backend permite.
+Como utilização supabaseAdmin, garanta que todas as validações de autorização sejam feitas antes do bypass do RLS .
 
-============================================================
-10. AUDITORIA DO ENVIO PARA ANÁLISE
-============================================================
+Não remova o supabaseAdminautomaticamente.
 
-Esta é a parte MAIS IMPORTANTE.
+Primeiro confirme a validação.
 
-Localize exatamente o botão/ação:
+🔴 PROBLEMA 7 — INTEGRIDADE DOS TOTAIS
 
-"Enviar para análise"
+Quando uma frequência for enviada ou aprovada, verifique:
 
-Descubra:
+frequencias
+       ↕
+frequencia_profissional
+       ↕
+frequencias_contratados
 
-QUAL FUNÇÃO É CHAMADA?
+Validar:
+
+Abrindo de garrafa;
+dias de inserções;
+faltas;
+mentos;
+carregar separado;
+valores;
+totais consolidados.
+
+Não permita que:
+
+total_profissionais
+
+fique diferente da quantidade real dos itens.
+
+🔴 PROBLEMA 8 — INSTANTÂNEO
+
+Identificar quando
+
+Deve existir um ponto claro:
+
+APROVAÇÃO
+      ↓
+SNAPSHOT
+      ↓
+HOMOLOGAÇÃO
+
+Garantir que a aprovação não gere
+
+Se/etapa falha:
+
+ROLLBACK
+
+e a frequência não deve ficar aparentemente determinada com dados incompletos.
+
+🔴 PROBLEMA 9 — AUDITÓRIO
+
+Toda alteração de status deve registrar:
+
+usuario_id
+frequencia_id
+status_anterior
+status_novo
+data/hora
+observação
 
 Exemplo:
 
-enviarFolhaParaAnalise()
-
-ou RPC equivalente.
-
-Depois acompanhe:
-
-BOTÃO
-↓
-HOOK
-↓
-MUTATION
-↓
-SERVER FUNCTION
-↓
-RPC
-↓
-UPDATE
-↓
-STATUS
-↓
-AUDIT LOG
-
-Informe exatamente onde o fluxo pode quebrar.
-
-Verifique:
-
-- status anterior
-- status novo
-- competência
-- unidade
-- usuário
-- folha
-- profissionais
-- frequência
-
-============================================================
-11. INTEGRIDADE DOS DADOS
-============================================================
-
-Verifique se os dados lançados na frequência são os mesmos utilizados na folha.
-
-Investigar:
-
-- snapshot
-- vínculo profissional
-- competência
-- unidade
-- carga horária
-- dias trabalhados
-- faltas
-- adicionais
-- valores calculados
-
-Identificar se a folha:
-
-A) lê diretamente a frequência atual
-
-ou
-
-B) cria snapshot no momento do envio.
-
-Se não existir snapshot, registrar como PONTO DE RISCO.
-
-============================================================
-12. AUDITORIA DE REPROVAÇÃO
-============================================================
-
-Descobrir:
-
-Quando Gestor/MASTER reprova:
-
-- qual status é gravado?
-- motivo é gravado?
-- usuário que reprovou é gravado?
-- data é gravada?
-- Diretor consegue visualizar?
-- Diretor consegue editar?
-- Diretor consegue reenviar?
-
-Verificar se existe perda do histórico anterior.
-
-============================================================
-13. AUDITORIA DE APROVAÇÃO/HOMOLOGAÇÃO
-============================================================
-
-Descobrir exatamente:
-
-GESTOR APROVA
-↓
-qual status?
-
-MASTER HOMOLOGA
-↓
-qual status?
-
-Confirmar se:
-
-- Gestor pode homologar indevidamente
-- Diretor pode aprovar indevidamente
-- MASTER está sendo bloqueado
-- uma folha homologada pode voltar para RASCUNHO
-- uma folha aprovada pode ser editada
-
-============================================================
-14. AUDITORIA DO HISTÓRICO
-============================================================
-
-Verificar audit_log e/ou tabela específica da folha.
-
-Cada mudança deveria permitir identificar:
-
-- usuário
-- perfil
-- unidade
-- ação
-- status anterior
-- status novo
-- data/hora
-- registro
-- motivo
-
-Identificar transições sem auditoria.
-
-============================================================
-15. AUDITORIA JWT × RPC × RLS
-============================================================
-
-Esta é OBRIGATÓRIA.
-
-Monte uma tabela:
-
-CAMADA | MASTER | GESTOR | DIRETOR | OPERACIONAL
-
-JWT
-RPC
-RLS
-FRONTEND
-SERVER FUNCTION
-
-Verifique se todas possuem a mesma definição de escopo.
-
-Principalmente:
-
-is_master
-acesso_todas_unidades
-acesso_todas_secretarias
-authorized_units
-unidade_principal_id
-usuario_unidades
-
-Se houver divergência, NÃO CORRIJA.
-
-Apenas informe.
-
-============================================================
-16. AUDITORIA DE REGRESSÃO
-============================================================
-
-Procure migrations recentes que alteraram:
-
-- RBAC
-- permissões
-- get_my_user_context
-- get_my_permissions
-- is_master
-- unidades
-- usuario_unidades
-- RLS
-- folha
-- frequência
-
-Identifique:
-
-MIGRATION
-DATA
-ALTERAÇÃO
-IMPACTO POTENCIAL
-
-Tente descobrir qual alteração coincide com o início dos problemas relatados.
-
-============================================================
-17. TESTES FUNCIONAIS
-============================================================
-
-NÃO inventar testes.
-
-Se o ambiente permitir execução autenticada, testar:
-
-MASTER
-GESTOR
 DIRETOR
-OPERACIONAL
+RASCUNHO → ENVIADA_ANALISE
 
-Se NÃO houver sessão autenticada disponível:
+Depois:
 
-marcar:
+GESTOR
+ENVIADA_ANALISE → EM_ANALISE
 
-⚠️ NÃO VALIDADO EM RUNTIME
+Depois:
 
-Não afirmar que está funcionando.
+GESTOR
+EM_ANALISE → COM_PENDENCIAS
 
-============================================================
-18. MATRIZ FINAL ESPERADA
-============================================================
+Depois:
 
-Entregar:
+DIRETOR
+COM_PENDENCIAS → ENVIADA_ANALISE
 
-| Ação | MASTER | GESTOR | DIRETOR | OPERACIONAL |
-|---|---|---|---|---|
-| Ver folha | | | | |
-| Criar | | | | |
-| Editar | | | | |
-| Fechar | | | | |
-| Enviar análise | | | | |
-| Analisar | | | | |
-| Reprovar | | | | |
-| Corrigir | | | | |
-| Reenviar | | | | |
-| Aprovar | | | | |
-| Homologar | | | | |
+E finalmente:
 
-Não preencher por suposição.
-
-Usar somente evidências encontradas.
-
-============================================================
-19. CLASSIFICAÇÃO DOS ACHADOS
-============================================================
-
-Classifique cada problema:
-
-🔴 CRÍTICO
-Impede fluxo ou permite acesso indevido.
-
-🟠 ALTO
-Pode quebrar fluxo em determinadas condições.
-
-🟡 MÉDIO
-Problema funcional sem risco direto de segurança.
-
-🔵 BAIXO
-Melhoria técnica.
-
-============================================================
-20. REGRA ABSOLUTA
-============================================================
-
-NÃO CORRIGIR NADA NESTA ETAPA.
-
-NÃO ALTERAR:
-
-- código
-- SQL
-- migrations
-- RLS
-- RPC
-- permissões
-- JWT
-- componentes
-
-Apenas investigar.
-
-============================================================
-21. RELATÓRIO FINAL OBRIGATÓRIO
-============================================================
-
-Entregar um relatório com:
-
-1. STATUS GERAL:
-   APROVADO / REPROVADO / PARCIAL
-
-2. FLUXO REAL ENCONTRADO
-
-3. FLUXO ESPERADO
-
-4. DIFERENÇAS
-
-5. CAUSAS RAIZ
-
-6. TODOS OS ACHADOS
-
-7. ARQUIVOS ENVOLVIDOS
-
-8. RPCs ENVOLVIDAS
-
-9. RLS ENVOLVIDAS
-
-10. SERVER FUNCTIONS ENVOLVIDAS
-
-11. MIGRATIONS SUSPEITAS
-
-12. MATRIZ DE PERMISSÕES
-
-13. MATRIZ JWT × RPC × RLS
-
-14. TESTES EXECUTADOS
-
-15. TESTES NÃO EXECUTADOS
-
-16. CORREÇÕES RECOMENDADAS
-
-17. ORDEM SEGURA PARA CORREÇÃO
-
-18. RISCO DE CADA CORREÇÃO
-
-19. O QUE NÃO DEVE SER ALTERADO
-
-IMPORTANTE:
-
-NÃO dizer "corrigido".
-
-NÃO dizer "funcionando".
-
-NÃO dizer "100%".
-
-Somente após evidência real.
-
-A auditoria deve terminar com:
-
-"PRÓXIMA ETAPA RECOMENDADA"
-
-e indicar exatamente quais problemas devem ser corrigidos primeiro.
-
-============================================================
-22. PDF DA AUDITORIA
-============================================================
-
-Depois de concluir a auditoria, gerar o PDF institucional:
-
-AUDITORIA FORENSE — FLUXO DE ENVIO DA FOLHA
-
-O PDF deve conter:
-
-- objetivo
-- fluxo real
-- fluxo esperado
-- matriz de perfis
-- achados
-- evidências
-- riscos
-- causa raiz
-- plano de correção
-- data/hora da auditoria
-
-Não colocar como "aprovado" se houver problemas.
-
-O PDF deve refletir EXATAMENTE os resultados encontrados.
+GESTOR/MASTER
+EM_ANALISE → APROVADA
 */
