@@ -604,6 +604,10 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
   const [open, setOpen] = useState(false);
 
   async function abrir() {
+    if (path?.startsWith("institutional_")) {
+      setOpen(true);
+      return;
+    }
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
     if (error) {
       toast.error(error.message);
@@ -626,7 +630,23 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
           <DialogHeader>
             <DialogTitle>Pré-visualização</DialogTitle>
           </DialogHeader>
-          {url &&
+          {path?.startsWith("institutional_") ? (
+            <div className="bg-slate-50 border rounded-lg p-8 space-y-4 font-mono text-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-5">
+                <ShieldCheck className="h-32 w-32" />
+              </div>
+              <div className="text-center border-b border-slate-200 pb-2 mb-4">
+                <h3 className="font-bold text-slate-900 uppercase tracking-tighter">Assinatura Eletrônica Institucional</h3>
+              </div>
+              <div className="bg-white border border-slate-200 rounded p-4 text-center font-bold text-primary text-xl tracking-widest">
+                {path.replace("institutional_", "")}
+              </div>
+              <p className="text-[10px] text-slate-400 text-center">
+                Esta assinatura é um código eletrônico seguro e não possui imagem física.
+              </p>
+            </div>
+          ) : (
+            url &&
             (isImage ? (
               <img
                 src={url}
@@ -635,7 +655,8 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
               />
             ) : (
               <iframe src={url} className="h-[70vh] w-full rounded border" title="Arquivo" />
-            ))}
+            ))
+          )}
         </DialogContent>
       </Dialog>
     </>
