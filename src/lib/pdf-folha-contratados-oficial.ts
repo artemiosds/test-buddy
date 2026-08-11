@@ -6,6 +6,7 @@
  * Só deve ser chamado com folhas cujas linhas estejam APROVADAS.
  */
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
@@ -171,7 +172,7 @@ function drawRow(doc: jsPDF, y: number, idx: number, item: ItemContratado): numb
     cpf: fmtCPF(p.cpf),
     cargo: p.cargo ?? "-",
     lot: p.setor ?? "-",
-    dias: "-",
+    dias: n(l.dias_trabalhados as number),
     falta: n(l.dias_falta as number),
     att: n(l.atestado as number),
     he50: n(l.he_50 as number),
@@ -246,7 +247,10 @@ function drawFooter(doc: jsPDF, emitidoPor: string, emissaoStr: string) {
 export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): Promise<void> {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
-  
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const MARGEM_PDF = 10;
+
   const logoPrefeitura = LOGO_PREFEITURA;
   const logoBrasaoAlt = LOGO_BRASAO;
   const logoSaude = LOGO_SAUDE;
@@ -255,11 +259,6 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     secretariaId: input.secretariaId ?? null,
     unidadeId: input.unidadeId ?? null,
   });
-
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const rodapeReserva = 18;
-  const limiteBaixo = pageHeight - rodapeReserva;
-  const emissaoStr = new Date().toLocaleString("pt-BR");
 
   const MESES = [
     "JANEIRO",
@@ -278,43 +277,166 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const compStr = `${MESES[(input.competencia.mes - 1 + 12) % 12]}/${input.competencia.ano}`;
   const unidadeUp = (input.unidadeNome || "-").toUpperCase();
 
-  const drawTopo = (cont: boolean) => {
-    drawInstitutionalBox(doc, info, { 
-      prefeitura: logoPrefeitura || "", 
-      brasao: logoBrasaoAlt || "", 
-      saude: logoSaude || "" 
-    }, `FREQUÊNCIA — PRESTADORES • ${compStr}`);
-    let y = 32;
-    y = drawHierBar(doc, y, COR_NIVEL_1, "1 - Raiz");
-    y = drawHierBar(doc, y, COR_NIVEL_2, "1.18 - SECRETARIA MUNICIPAL DE SAÚDE");
-    y = drawHierBar(doc, y, COR_NIVEL_3, `${unidadeUp}${cont ? " (cont.)" : ""}`);
-    y += 1.5;
-    doc.setTextColor(...COR_TEXTO);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text(`Qtd prestadores: ${input.itens.length}`, MARGEM, y + 3);
-    y += 5;
-    return drawTableHeader(doc, y);
+  const drawHeader = () => {
+    const logoSize = 18;
+    const logoY = 8;
+    // Logo 1 (esquerda)
+    if (logoPrefeitura) {
+      try {
+        doc.addImage(logoPrefeitura, "JPEG", MARGEM_PDF, logoY, logoSize, logoSize);
+      } catch (e) { console.warn(e); }
+    }
+    // Logo 3 (direita)
+    if (logoSaude) {
+      try {
+        doc.addImage(logoSaude, "PNG", pageW - MARGEM_PDF - logoSize, logoY, logoSize, logoSize);
+      } catch (e) { console.warn(e); }
+    }
+
+    const cx = pageW / 2;
+    // Logo 2 (centro)
+    if (logoBrasaoAlt) {
+      try {
+        doc.addImage(logoBrasaoAlt, "PNG", cx - (logoSize * 0.8) / 2, logoY - 2, logoSize * 0.8, logoSize * 0.8);
+      } catch (e) { console.warn(e); }
+    }
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    let ty = logoY + logoSize + 3;
+    doc.setFontSize(9);
+    doc.text("ESTADO DO PARÁ", cx, ty, { align: "center" });
+    ty += 4;
+    doc.setFontSize(10);
+    doc.text("PREFEITURA MUNICIPAL DE ORIXIMINÁ", cx, ty, { align: "center" });
+    ty += 4;
+    doc.setFontSize(9);
+    doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, ty, { align: "center" });
+    ty += 4;
+    doc.setFontSize(9);
+    doc.text(`${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`, cx, ty, {
+      align: "center",
+    });
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.3);
+    doc.line(MARGEM_PDF, ty + 2, pageW - MARGEM_PDF, ty + 2);
   };
 
-  let y = drawTopo(false);
-  let idx = 1;
-  for (const item of input.itens) {
-    if (y + LINHA_ALTURA > limiteBaixo) {
-      doc.addPage();
-      y = drawTopo(true);
-    }
-    y = drawRow(doc, y, idx++, item);
-  }
+  const head = [
+    [
+      "Nº",
+      "NOME",
+      "C.P.F.",
+      "CARGO",
+      "LOTAÇÃO",
+      "DIAS",
+      "FALTA",
+      "ATT",
+      "H.E 50%",
+      "H.E 100%",
+      "ADN",
+      "PLANTÕES",
+      "SOBRE-AVISOS",
+      "INCENTIVO",
+      "CONTA",
+    ],
+  ];
+
+  const body = input.itens.map((it, i) => {
+    const p = it.profissional;
+    const l = it.linha ?? {};
+    const nVal = (v: any) => {
+      const x = Number(v ?? 0);
+      if (!x) return "";
+      return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
+    };
+    return [
+      String(i + 1),
+      p.nome ?? "",
+      fmtCPF(p.cpf),
+      p.cargo ?? "",
+      p.setor || input.unidadeNome || "",
+      nVal(l.dias_trabalhados),
+      nVal(l.dias_falta),
+      nVal(l.atestado),
+      nVal(l.he_50),
+      nVal(l.he_100),
+      nVal(l.adn),
+      nVal(l.plantoes),
+      nVal(l.sobreaviso),
+      nVal(l.incentivo),
+      fmtConta(p),
+    ];
+  });
+
+  autoTable(doc, {
+    head,
+    body,
+    startY: 52,
+    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 40 },
+    rowPageBreak: "avoid",
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      lineColor: [180, 180, 180],
+      lineWidth: 0.15,
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [226, 232, 240],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      halign: "center",
+      fontSize: 8,
+      lineColor: [120, 120, 120],
+      lineWidth: 0.25,
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 8 },
+      1: { halign: "left", cellWidth: 50 },
+      2: { halign: "center", cellWidth: 24 },
+      3: { halign: "left", cellWidth: 28 },
+      4: { halign: "left", cellWidth: 24 },
+      5: { halign: "center", cellWidth: 10 },
+      6: { halign: "center", cellWidth: 10 },
+      7: { halign: "center", cellWidth: 10 },
+      8: { halign: "center", cellWidth: 12 },
+      9: { halign: "center", cellWidth: 12 },
+      10: { halign: "center", cellWidth: 10 },
+      11: { halign: "center", cellWidth: 14 },
+      12: { halign: "center", cellWidth: 16 },
+      13: { halign: "center", cellWidth: 14 },
+      14: { halign: "left", cellWidth: 45 },
+    },
+    didDrawPage: (data) => {
+      drawHeader();
+      const emissao = new Date().toLocaleString("pt-BR");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Emissão: ${emissao} | Emitido por: ${input.emitidoPor}`, MARGEM_PDF, pageH - 5);
+      const pageNum = data.pageNumber;
+      const pageTotal = doc.getNumberOfPages();
+      doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
+    },
+  });
 
   if (assinaturas.length > 0) {
+    const lastY = (doc as any).lastAutoTable.finalY || 52;
+    // Se não couber na mesma página, joga para a próxima
+    let signY = lastY + 10;
+    if (signY + 30 > pageH - 15) {
+      doc.addPage();
+      drawHeader();
+      signY = 52 + 10;
+    }
+    
     drawAssinaturasBlock(doc, assinaturas, {
-      startY: pageHeight - 60,
-      marginX: MARGEM,
+      startY: signY,
+      marginX: MARGEM_PDF,
     });
   }
-
-  drawFooter(doc, input.emitidoPor, emissaoStr);
 
   const compFile = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
   doc.save(`folha-contratados-oficial-${compFile}.pdf`);
