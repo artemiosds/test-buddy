@@ -588,7 +588,7 @@ function UploadForm({
               onChange={(e) => setVigenciaFim(e.target.value)}
             />
           </div>
-          <Button onClick={salvar} disabled={saving || (mode !== "institutional" && !file && !padBlob) || (mode === "institutional" && !instHash)} className="w-full">
+          <Button onClick={salvar} disabled={saving || (mode === "institutional" && !instHash)} className="w-full">
             {mode === "institutional" ? <ShieldCheck className="mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />}
             {saving ? "Processando…" : mode === "institutional" ? "Confirmar Assinatura Institucional" : "Cadastrar assinatura"}
           </Button>
