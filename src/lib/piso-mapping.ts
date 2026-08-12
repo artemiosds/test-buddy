@@ -15,18 +15,26 @@ export type PisoDestino =
   | "piso_complementacao"
   | "insalubridade"
   | "gratificacao"
-  | "gratificacao_incentivo"
+  | "grat_funcao_vr"
+  | "grat_funcao_pct"
+  | "grat_nivel_superior"
+  | "incentivos"
   | "hora_extra_50"
   | "hora_extra_100"
   | "adicional_noturno"
   | "auxilio_financeiro"
+  | "aux_financeiro"
   | "auxilio_transporte"
   | "ferias_1_3"
   | "ferias"
+  | "ferias_normais"
   | "inss"
   | "irrf"
   | "iss"
+  | "outros_descontos"
   | "total_liquido_base"
+  | "total_positivos"
+  | "total_desconto"
   | "conta_bancaria"
   | "valor_liquido"
   | "valor_final"
@@ -36,7 +44,14 @@ export type PisoDestino =
   | "vale_transporte"
   | "total_descontos"
   | "total_proventos"
-  | "competencia";
+  | "total_proventos_folha"
+  | "total_descontos_folha"
+  | "valor_liquido_folha"
+  | "adn_informativo"
+  | "competencia"
+  | "confidence_extraction"
+  | "confidence_validation"
+  | "validation_status";
 
 
 export const CAMPOS_SISTEMA: {
@@ -71,9 +86,9 @@ export const CAMPOS_SISTEMA: {
   { key: "data_admissao", label: "Data de Admissão", financeiro: false },
   { key: "dias_trabalhados", label: "Dias Trabalhados", financeiro: false },
   { key: "conta_bancaria", label: "Conta Bancária", financeiro: false },
-  { key: "gratificacao_incentivo", label: "Gratificação/Incentivo", financeiro: true },
   { key: "auxilio_transporte", label: "Auxílio Transporte", financeiro: true },
   { key: "iss", label: "ISS", financeiro: true },
+  { key: "outros_descontos", label: "Outros Descontos", financeiro: true },
   { key: "total_liquido_base", label: "Total Líquido Base", financeiro: true },
 
   { key: "tempo_servico", label: "Tempo de Serviço", financeiro: true },
@@ -82,6 +97,18 @@ export const CAMPOS_SISTEMA: {
   { key: "vale_transporte", label: "Vale Transporte", financeiro: true },
   { key: "total_descontos", label: "Total Descontos", financeiro: true },
   { key: "total_proventos", label: "Total Proventos", financeiro: true },
+  { key: "grat_funcao_vr", label: "Grat. Função (VR)", financeiro: true },
+  { key: "grat_funcao_pct", label: "Grat. Função (%)", financeiro: true },
+  { key: "grat_nivel_superior", label: "Grat. Nível Superior", financeiro: true },
+  { key: "incentivos", label: "Incentivos", financeiro: true },
+  { key: "aux_financeiro", label: "Aux. Financeiro", financeiro: true },
+  { key: "ferias_normais", label: "Férias Normais", financeiro: true },
+  { key: "adn_informativo", label: "ADN (Informativo)", financeiro: true },
+  { key: "total_positivos", label: "Total Positivos", financeiro: true, calculado: true },
+  { key: "total_desconto", label: "Total Desconto (INSS/IR)", financeiro: true, calculado: true },
+  { key: "total_proventos_folha", label: "Total Proventos Folha", financeiro: true },
+  { key: "total_descontos_folha", label: "Total Descontos Folha", financeiro: true },
+  { key: "valor_liquido_folha", label: "Valor Líquido Folha", financeiro: true },
 ];
 
 /** Conjunto de destinos calculados (não devem receber auto-map). */
@@ -105,7 +132,7 @@ export function normalize(s: string): string {
 }
 
 // Palavras/aliases por destino (todas já normalizadas).
-const ALIASES: Record<PisoDestino, string[]> = {
+const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   cpf: [
     "cpf",
     "cpf do servidor",
@@ -130,7 +157,7 @@ const ALIASES: Record<PisoDestino, string[]> = {
   setor: ["setor", "departamento", "sub setor", "area"],
   vinculo: ["vinculo", "regime", "tipo vinculo", "situacao"],
   competencia: ["competencia", "referencia", "mes referencia", "mes ano", "periodo"],
-  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base"],
+  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base", "1 salario base"],
   piso_complementacao: [
     "piso",
     "complementacao piso",
@@ -149,6 +176,17 @@ const ALIASES: Record<PisoDestino, string[]> = {
     "grat fun",
     "gratif fun",
     "gratificacao de funcao",
+  ],
+  grat_funcao_vr: ["gratificacao funcao vr", "grat fun vr"],
+  grat_funcao_pct: ["gratificacao funcao pct", "grat fun %vb", "grat fun pct"],
+  grat_nivel_superior: ["gratificacao nivel superior", "gratificacao de nivel superior", "grat nivel sup", "gratif nivel sup"],
+  incentivos: ["incentivos", "incentivo"],
+  aux_financeiro: [
+    "complemento financeiro piso enfermagem",
+    "aux financ piso",
+    "compl piso",
+    "aux financeiro",
+    "auxilio financeiro piso",
   ],
   hora_extra_50: [
     "hora extra 50",
@@ -184,8 +222,8 @@ const ALIASES: Record<PisoDestino, string[]> = {
   ],
   ferias_1_3: ["1 3 ferias", "terco ferias", "abono ferias", "1 3", "1 3 constitucional"],
   ferias: ["ferias"],
-  inss: ["inss", "desc inss", "desconto inss"],
-  irrf: ["irrf", "ir", "imposto renda", "irpf", "desc irrf"],
+  inss: ["inss", "desc inss", "desconto inss", "i n s s"],
+  irrf: ["irrf", "ir", "imposto renda", "irpf", "desc irrf", "i r r f"],
   valor_liquido: ["valor liquido", "liquido", "salario liquido", "liquido a receber"],
   valor_final: [
     "valor final",
@@ -203,10 +241,17 @@ const ALIASES: Record<PisoDestino, string[]> = {
   total_proventos: ["total proventos", "total de proventos", "proventos", "tot prov", "total vantagens", "bruto"],
   data_admissao: ["data admissao", "admissao", "dt admissao", "data de admissao", "data contratacao"],
   dias_trabalhados: ["dias", "dias trabalhados", "qtd dias", "qtde dias", "n dias"],
-  gratificacao_incentivo: ["grat incentivo", "gratificacao incentivo", "incentivo"],
   auxilio_transporte: ["aux transp", "auxilio transporte", "aux transporte"],
   iss: ["iss", "issqn", "imposto sobre servicos"],
+  outros_descontos: ["outros descontos", "descontos outros", "convenio", "consignado", "emprestimo"],
   total_liquido_base: ["total liquido base", "total base"],
+  total_positivos: ["total positivos"],
+  total_desconto: ["total desconto"],
+  total_proventos_folha: ["total proventos folha"],
+  total_descontos_folha: ["total descontos folha"],
+  valor_liquido_folha: ["valor liquido folha"],
+  adn_informativo: ["adn informativo", "base patronal rgps", "adn"],
+  ferias_normais: ["ferias normais", "ferias"],
   conta_bancaria: ["conta", "conta bancaria", "conta corrente", "c c"],
 };
 

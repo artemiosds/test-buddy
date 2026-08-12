@@ -13,6 +13,7 @@ import { normalizarCategoriaPiso, normalizarTexto, type CategoriaPiso } from "./
 
 export type RubricaKey =
   | "salario_base"
+  | "dias_trabalhados"
   | "tempo_servico"
   | "insalubridade"
   | "adicional_noturno"
@@ -21,13 +22,20 @@ export type RubricaKey =
   | "plantao"
   | "sobreaviso"
   | "vale_transporte"
-  | "auxilio_financeiro"
-  | "gratificacao"
+  | "aux_financeiro"
+  | "grat_funcao_vr"
+  | "grat_funcao_pct"
+  | "grat_nivel_superior"
+  | "incentivos"
   | "inss"
   | "irrf"
-  | "total_proventos"
-  | "total_descontos"
-  | "valor_liquido";
+  | "outros_descontos"
+  | "total_positivos"
+  | "total_desconto"
+  | "total_proventos_folha"
+  | "total_descontos_folha"
+  | "valor_liquido_folha"
+  | "adn_informativo";
 
 type RubricaDef = {
   key: RubricaKey;
@@ -43,18 +51,19 @@ type RubricaDef = {
 /** Rubricas extraídas do contracheque, sempre pela coluna "Integral". */
 export const RUBRICAS_FOPAG: RubricaDef[] = [
   { key: "salario_base", header: "SALARIO BASE", codigos: ["1"], re: /SALARIO BASE/ },
+  { key: "dias_trabalhados", header: "DIAS TRABALHADOS", codigos: [], re: /DIAS|REFERENCIA/ },
   {
     key: "tempo_servico",
     header: "TEMPO DE SERVICO",
     codigos: ["81"],
-    re: /GRATIFICACAO TEMPO (DE )?SERVICO|TEMPO DE SERVICO|ANUENIO|TRIENIO|QUINQUENIO/,
+    re: /GRATIFICACAO TEMPO (DE )?SERVICO|TEMPO DE SERVICO|ANUENIO|TRIENIO|QUINQUENIO|ADIC. TEMPO/,
   },
   { key: "insalubridade", header: "INSALUBRIDADE", codigos: ["207"], re: /INSALUBRIDADE/ },
   {
     key: "adicional_noturno",
     header: "ADICIONAL NOTURNO",
     codigos: ["109"],
-    re: /ADIC\w* NOTURNO|ADICIONAL NOTURNO/,
+    re: /ADIC\w* NOTURNO|ADICIONAL NOTURNO|AD. NOT./,
   },
   { key: "hora_extra_100", header: "HORA EXTRA 100", codigos: ["4010"], re: /HORA EXTRA 100/ },
   { key: "hora_extra_50", header: "HORA EXTRA 50", codigos: ["4020"], re: /HORA EXTRA 50/ },
@@ -64,40 +73,65 @@ export const RUBRICAS_FOPAG: RubricaDef[] = [
     key: "vale_transporte",
     header: "VALE TRANSPORTE",
     codigos: ["310"],
-    re: /AUXILIO TRANSPORTE|VALE TRANSPORTE/,
+    re: /AUXILIO TRANSPORTE|VALE TRANSPORTE|VT/,
   },
   {
-    key: "auxilio_financeiro",
-    header: "AUXILIO FINANCEIRO",
+    key: "aux_financeiro",
+    header: "AUX.FINANC.",
     codigos: ["61"],
-    re: /COMPLEMENTO FINANCEIRO PISO|COMPLEMENTO PISO|COMPL\w* PISO ENFERMAGEM/,
+    re: /COMPLEMENTO FINANCEIRO PISO|COMPLEMENTO PISO|COMPL\w* PISO ENFERMAGEM|AUX FINANC PISO/,
   },
   {
-    key: "gratificacao",
-    header: "GRATIFICACAO",
-    codigos: ["283", "412", "413", "417"],
-    re: /GRATIF\w* DE NIVEL SUPERIOR|GRATIF\w* NIVEL SUPERIOR|INCENTIVO/,
+    key: "grat_funcao_vr",
+    header: "GRAT.FUNCAO VR",
+    codigos: [],
+    re: /GRATIFICACAO FUNCAO \(VR\)/,
+  },
+  {
+    key: "grat_nivel_superior",
+    header: "GRAT.NIVEL SUP.",
+    codigos: ["283"],
+    re: /GRATIF\w* DE NIVEL SUPERIOR|GRATIF\w* NIVEL SUPERIOR|GRAT NIVEL SUP/,
+  },
+  {
+    key: "incentivos",
+    header: "INCENTIVOS",
+    codigos: ["412", "413", "417"],
+    re: /INCENTIVO/,
     soma: true,
   },
-  { key: "inss", header: "INSS", codigos: [], re: /\bINSS\b/ },
-  { key: "irrf", header: "IRRF", codigos: [], re: /\bIRRF\b|IMPOSTO DE RENDA|\bIRPF\b/ },
+  { key: "inss", header: "INSS", codigos: [], re: /\bINSS\b|I.N.S.S/ },
+  { key: "irrf", header: "IRRF", codigos: [], re: /\bIRRF\b|IMPOSTO DE RENDA|\bIRPF\b|I.R.R.F/ },
   {
-    key: "total_proventos",
-    header: "TOTAL PROVENTOS",
+    key: "outros_descontos",
+    header: "OUTROS DESCONTOS",
     codigos: [],
-    re: /TOTAL (DE )?PROVENTOS|TOTAL (DE )?VANTAGENS/,
+    re: /CONVENIO|CONSIGNADO|EMPRESTIMO|SINDICATO/,
+    soma: true,
   },
   {
-    key: "total_descontos",
-    header: "TOTAL DESCONTOS",
+    key: "total_proventos_folha",
+    header: "TOTAL PROVENTOS FOLHA",
+    codigos: [],
+    re: /TOTAL (DE )?PROVENTOS|TOTAL (DE )?VANTAGENS|BRUTO/,
+  },
+  {
+    key: "total_descontos_folha",
+    header: "TOTAL DESCONTOS FOLHA",
     codigos: [],
     re: /TOTAL (DE )?DESCONTOS/,
   },
   {
-    key: "valor_liquido",
-    header: "VALOR LIQUIDO",
+    key: "valor_liquido_folha",
+    header: "VALOR LIQUIDO FOLHA",
     codigos: [],
     re: /TOTAL LIQUIDO|LIQUIDO A RECEBER|VALOR LIQUIDO|\bLIQUIDO\b/,
+  },
+  {
+    key: "adn_informativo",
+    header: "ADN INFORMATIVO",
+    codigos: [],
+    re: /BASE PATRONAL RGPS|ADN/,
   },
 ];
 
@@ -119,6 +153,9 @@ export type FopagFuncionario = {
   /** Linhas com aparência de rubrica que nenhum alias reconheceu. */
   rubricasNaoReconhecidas: string[];
   pagina: number | null;
+  confidence_extraction: number | null;
+  confidence_validation: number | null;
+  validation_status: "READY" | "REVIEW_REQUIRED" | "ERROR" | null;
 };
 
 export type FopagExtracao = {
@@ -397,7 +434,7 @@ function calcularConfianca(f: FuncionarioBase): number {
     Boolean(f.cargo),
     Boolean(f.matricula),
     f.rubricas.salario_base > 0,
-    f.rubricas.total_proventos > 0 || f.rubricas.valor_liquido > 0,
+    f.rubricas.total_proventos_folha > 0 || f.rubricas.valor_liquido_folha > 0,
   ];
   return checks.filter(Boolean).length / checks.length;
 }
@@ -413,8 +450,10 @@ const CHAVES_PROVENTOS: RubricaKey[] = [
   "plantao",
   "sobreaviso",
   "vale_transporte",
-  "auxilio_financeiro",
-  "gratificacao",
+  "aux_financeiro",
+  "grat_funcao_vr",
+  "grat_nivel_superior",
+  "incentivos",
 ];
 
 const TOLERANCIA = 0.05;
@@ -423,22 +462,22 @@ const TOLERANCIA = 0.05;
 export function validarFinanceiro(r: Record<RubricaKey, number>): string[] {
   const out: string[] = [];
   const somaProventos = CHAVES_PROVENTOS.reduce((s, k) => s + (r[k] || 0), 0);
-  if (r.total_proventos > 0 && Math.abs(somaProventos - r.total_proventos) > TOLERANCIA) {
+  if (r.total_proventos_folha > 0 && Math.abs(somaProventos - r.total_proventos_folha) > TOLERANCIA) {
     out.push(
-      `Total de proventos (${r.total_proventos.toFixed(2)}) difere da soma das rubricas (${somaProventos.toFixed(2)}).`,
+      `Total de proventos (${r.total_proventos_folha.toFixed(2)}) difere da soma das rubricas (${somaProventos.toFixed(2)}).`,
     );
   }
   const somaDescontos = (r.inss || 0) + (r.irrf || 0);
-  if (r.total_descontos > 0 && somaDescontos - r.total_descontos > TOLERANCIA) {
+  if (r.total_descontos_folha > 0 && somaDescontos - r.total_descontos_folha > TOLERANCIA) {
     out.push(
-      `Total de descontos (${r.total_descontos.toFixed(2)}) menor que INSS + IRRF (${somaDescontos.toFixed(2)}).`,
+      `Total de descontos (${r.total_descontos_folha.toFixed(2)}) menor que INSS + IRRF (${somaDescontos.toFixed(2)}).`,
     );
   }
-  if (r.valor_liquido > 0 && r.total_proventos > 0) {
-    const esperado = r.total_proventos - r.total_descontos;
-    if (Math.abs(esperado - r.valor_liquido) > TOLERANCIA) {
+  if (r.valor_liquido_folha > 0 && r.total_proventos_folha > 0) {
+    const esperado = r.total_proventos_folha - r.total_descontos_folha;
+    if (Math.abs(esperado - r.valor_liquido_folha) > TOLERANCIA) {
       out.push(
-        `Líquido (${r.valor_liquido.toFixed(2)}) difere de proventos - descontos (${esperado.toFixed(2)}).`,
+        `Líquido (${r.valor_liquido_folha.toFixed(2)}) difere de proventos - descontos (${esperado.toFixed(2)}).`,
       );
     }
   }
@@ -452,16 +491,16 @@ export function validarFinanceiro(r: Record<RubricaKey, number>): string[] {
 function autocorrigir(r: Record<RubricaKey, number>): string[] {
   const feitas: string[] = [];
   const somaProventos = CHAVES_PROVENTOS.reduce((s, k) => s + (r[k] || 0), 0);
-  if (r.total_proventos === 0 && somaProventos > 0) {
-    r.total_proventos = Number(somaProventos.toFixed(2));
+  if (r.total_proventos_folha === 0 && somaProventos > 0) {
+    r.total_proventos_folha = Number(somaProventos.toFixed(2));
     feitas.push("Total de proventos calculado pela soma das rubricas.");
   }
-  if (r.total_descontos === 0 && r.inss + r.irrf > 0) {
-    r.total_descontos = Number((r.inss + r.irrf).toFixed(2));
+  if (r.total_descontos_folha === 0 && r.inss + r.irrf > 0) {
+    r.total_descontos_folha = Number((r.inss + r.irrf).toFixed(2));
     feitas.push("Total de descontos calculado por INSS + IRRF.");
   }
-  if (r.valor_liquido === 0 && r.total_proventos > 0) {
-    r.valor_liquido = Number((r.total_proventos - r.total_descontos).toFixed(2));
+  if (r.valor_liquido_folha === 0 && r.total_proventos_folha > 0) {
+    r.valor_liquido_folha = Number((r.total_proventos_folha - r.total_descontos_folha).toFixed(2));
     feitas.push("Líquido calculado por proventos - descontos.");
   }
   return feitas;
@@ -472,12 +511,36 @@ function montar(parcial: FuncionarioBase, confiancaCampos: Record<string, number
   const confianca = confIA.length
     ? (calcularConfianca(parcial) + confIA.reduce((s, v) => s + v, 0) / confIA.length) / 2
     : calcularConfianca(parcial);
+  
   const correcoes = autocorrigir(parcial.rubricas);
   const divergencias = validarFinanceiro(parcial.rubricas);
+  
   if (parcial.cpf && !cpfValido(parcial.cpf)) {
     divergencias.push(`CPF inválido (dígitos verificadores): ${parcial.cpf}.`);
   }
-  return { ...parcial, confiancaCampos, confianca, divergencias, correcoes };
+
+  // Regra Crítica: Validação Semântica de Dias
+  let confValidacao = 1;
+  let statusValidacao: "READY" | "REVIEW_REQUIRED" | "ERROR" = "READY";
+  
+  // Se dias_trabalhados for estranho (muito alto ou tempo de serviço vazando)
+  if (parcial.rubricas.dias_trabalhados > 31 || parcial.rubricas.dias_trabalhados === parcial.rubricas.tempo_servico) {
+    confValidacao = 0;
+    statusValidacao = "REVIEW_REQUIRED";
+    divergencias.push(`Alerta Semântico: Dias Trabalhados (${parcial.rubricas.dias_trabalhados}) parece incorreto (vazamento de Tempo de Serviço ou valor > 31).`);
+  }
+
+  return { 
+    ...parcial, 
+    confiancaCampos, 
+    confianca, 
+    divergencias, 
+    correcoes,
+    // Novos campos de confiança e status
+    confidence_extraction: confianca,
+    confidence_validation: confValidacao,
+    validation_status: statusValidacao
+  };
 }
 
 /** Converte um bloco textual em funcionário normalizado (sem filtro de cargo). */
@@ -491,6 +554,9 @@ export function parseBloco(bloco: string, pagina: number | null = null): FopagFu
     rubricas: extrairRubricas(bloco),
     rubricasNaoReconhecidas: rubricasNaoReconhecidasDoBloco(bloco),
     pagina,
+    confidence_extraction: null,
+    confidence_validation: null,
+    validation_status: null,
   });
 }
 
@@ -671,6 +737,9 @@ export function parseFopagIA(
         rubricas: rub,
         rubricasNaoReconhecidas: [],
         pagina: typeof pagina === "number" ? pagina : null,
+        confidence_extraction: null,
+        confidence_validation: null,
+        validation_status: null,
       };
       if (!parcial.nome && !parcial.cpf) continue;
       brutos.push(montar(parcial, conf));

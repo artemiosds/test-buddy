@@ -126,9 +126,54 @@ async function urlToDataUrl(url: string): Promise<string | null> {
  */
 export async function resolverAssinaturasDocumento(
   tipo: TipoDocumento,
-  opts: { secretariaId?: string | null; unidadeId?: string | null } = {},
+  opts: { secretariaId?: string | null; unidadeId?: string | null; frequenciaId?: string | null } = {},
 ): Promise<AssinaturaResolvida[]> {
+  // Se for uma frequência com snapshot, buscamos os snapshots primeiro
+  if (opts.frequenciaId && (tipo === "folha_efetivos" || tipo === "folha_contratados" || tipo === "frequencia")) {
+    const { data: snapshots } = await supabase
+      .from("frequencia_assinaturas_snapshot")
+      .select("*")
+      .eq("frequencia_id", opts.frequenciaId);
+
+    if (snapshots && snapshots.length > 0) {
+      return Promise.all(snapshots.map(async (s) => {
+        let imageData: string | null = null;
+        if (s.storage_path) {
+          const signedUrl = await getSignatureSignedUrl(s.storage_path, null, 300);
+          if (signedUrl) {
+            imageData = await urlToDataUrl(signedUrl);
+          }
+        }
+
+        // Mapeia para o perfil correspondente à ação
+        const perfilCodigo = s.acao === "enviar" ? "DIRETOR_UNIDADE" : "GESTOR";
+
+        return {
+          regra_id: `snapshot-${s.id}`,
+          perfil_codigo: perfilCodigo,
+          tipo_assinatura: "assinatura",
+          ordem: s.acao === "enviar" ? 1 : 2,
+          obrigatoria: true,
+          titular_nome: s.titular_nome,
+          titular_cargo: s.titular_cargo,
+          storage_path: s.storage_path,
+          escopo: "global",
+          imageData,
+          assinatura_id: s.assinatura_id,
+          posicao_x: s.posicao_x,
+          posicao_y: s.posicao_y,
+          tamanho_percentual: s.tamanho_percentual || 80,
+          alinhamento: (s.alinhamento as any) || "centro",
+          mostrar_nome: true,
+          mostrar_cargo: true,
+          metadata: s.metadata,
+        } as AssinaturaResolvida;
+      }));
+    }
+  }
+
   const { data, error } = await supabase.rpc("get_assinaturas_documento", {
+
     _tipo_documento: tipo,
     _secretaria_id: opts.secretariaId ?? undefined,
     _unidade_id: opts.unidadeId ?? undefined,

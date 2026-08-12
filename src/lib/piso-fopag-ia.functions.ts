@@ -16,7 +16,7 @@ import { ensurePermission } from "./authz.server";
  */
 const MODELO_PADRAO = "openai/gpt-5.6-sol";
 /** Versão do prompt — registrada na auditoria para rastreabilidade. */
-export const PROMPT_VERSAO = "fopag-visao-2026.07";
+export const PROMPT_VERSAO = "fopag-visao-2026.08";
 
 function modeloConfigurado(): string {
   return (process.env.PISO_FOPAG_MODELO_IA ?? process.env.LOVABLE_AI_MODEL ?? MODELO_PADRAO).trim();
@@ -45,11 +45,12 @@ REGRAS OBRIGATÓRIAS:
 3. O bloco pode começar por "Funcionário(a)", "Funcionário", "Servidor(a)", "Servidor", "Colaborador", "Empregado", "Nome", "Nome do Servidor", "Servidor(a)", "Matrícula", "Cargo", "Lotação", "Ficha Funcional" ou "Registro" — ou estrutura equivalente sem rótulo. Compreenda o layout, não dependa de uma palavra fixa. Preserve a continuidade lógica do documento: as imagens enviadas são páginas consecutivas do MESMO contracheque. Se um bloco de funcionário começar em uma página e continuar na(s) seguinte(s), una automaticamente todas as informações (rubricas, totais, cargo, CPF) em UM ÚNICO registro, nunca em dois. Nunca crie um registro novo a partir de uma continuação sem cabeçalho de identificação.
 4. Extraia SOMENTE profissionais da enfermagem (Enfermeiro(a), Técnico/Técnica de Enfermagem, Auxiliar de Enfermagem, incluindo abreviações como TEC. ENF., AUX. ENFERMAGEM). Ignore completamente qualquer outro cargo (médico, dentista, motorista, professor, administrativo, etc.).
 5. Ordem de decisão para aceitar o registro: Cargo > CPF > Matrícula > Rubricas > Complemento Piso. O cargo é sempre o critério principal.
-6. Para os valores financeiros use SEMPRE a coluna "Integral". Nunca use Base, Referência ou Percentual.
+6. Para os valores financeiros use SEMPRE a coluna "Integral". Nunca use Base, Referência ou Percentual (exceto para o campo dias_trabalhados).
 7. Rubrica ausente para o funcionário => 0. Nunca invente valores.
 8. Valores numéricos em ponto decimal (2544.02). CPF apenas dígitos (03106793201).
 
-9. Tolere carimbos, assinaturas, marcas d\u2019água, linhas tortas, páginas fora de ordem, rubricas em ordem diferente e nomenclaturas/abreviações distintas entre municípios. Não exija um layout fixo.\n10. Cada campo (identificação e rubricas) deve ser devolvido como {"valor": ..., "confidence": 0..1} com a confiança INDIVIDUAL daquele campo. Nunca devolva apenas uma confiança geral.
+9. Tolere carimbos, assinaturas, marcas d'água, linhas tortas, páginas fora de ordem, rubricas em ordem diferente e nomenclaturas/abreviações distintas entre municípios. Não exija um layout fixo.
+10. Cada campo (identificação e rubricas) deve ser devolvido como {"valor": ..., "confidence": 0..1} com a confiança INDIVIDUAL daquele campo. Nunca devolva apenas uma confiança geral.
 
 FORMATO EXATO:
 {
@@ -63,6 +64,7 @@ FORMATO EXATO:
       "pagina": 1,
       "rubricas": {
         "salario_base": { "valor": 0, "confidence": 0.98 },
+        "dias_trabalhados": { "valor": 30, "origem": "referencia_linha_salario_base", "confidence": 0.98 },
         "tempo_servico": { "valor": 0, "confidence": 0.98 },
         "insalubridade": { "valor": 0, "confidence": 0.98 },
         "adicional_noturno": { "valor": 0, "confidence": 0.98 },
@@ -71,19 +73,45 @@ FORMATO EXATO:
         "plantao": { "valor": 0, "confidence": 0.98 },
         "sobreaviso": { "valor": 0, "confidence": 0.98 },
         "vale_transporte": { "valor": 0, "confidence": 0.98 },
-        "auxilio_financeiro": { "valor": 0, "confidence": 0.98 },
-        "gratificacao": { "valor": 0, "confidence": 0.98 },
+        "grat_funcao_vr": { "valor": 0, "confidence": 0.98 },
+        "grat_funcao_pct": { "valor": 0, "confidence": 0.98 },
+        "grat_nivel_superior": { "valor": 0, "confidence": 0.98 },
+        "incentivos": { "valor": 0, "confidence": 0.98 },
+        "aux_financeiro": { "valor": 0, "confidence": 0.98 },
         "inss": { "valor": 0, "confidence": 0.98 },
         "irrf": { "valor": 0, "confidence": 0.98 },
-        "total_proventos": { "valor": 0, "confidence": 0.98 },
-        "total_descontos": { "valor": 0, "confidence": 0.98 },
-        "valor_liquido": { "valor": 0, "confidence": 0.98 }
+        "outros_descontos": { "valor": 0, "descricao": "nome do desconto", "confidence": 0.98 },
+        "adn_informativo": { "valor": 0, "confidence": 0.98 },
+        "total_positivos": { "valor": 0, "formula": "SOMA(campos B:P)" },
+        "total_desconto": { "valor": 0, "formula": "INSS + IRRF" },
+        "total_proventos_folha": { "valor": 0, "confidence": 0.98 },
+        "total_descontos_folha": { "valor": 0, "confidence": 0.98 },
+        "valor_liquido_folha": { "valor": 0, "confidence": 0.98 }
       }
     }
   ]
 }
 
-Correspondência das rubricas: salario_base = 1 SALARIO BASE; tempo_servico = 81 GRATIFICACAO TEMPO SERVICO; insalubridade = 207 INSALUBRIDADE; adicional_noturno = 109 ADIC. NOTURNO; hora_extra_100 = 4010 HORA EXTRA 100%; hora_extra_50 = 4020 HORA EXTRA 50%; plantao = 285 PLANTAO DE TECNICOS; sobreaviso = 299 SOBREAVISO TEC. ENFERM.; vale_transporte = 310 AUXILIO TRANSPORTE; auxilio_financeiro = 61 COMPLEMENTO FINANCEIRO PISO ENFERMAGEM; gratificacao = soma de gratificação de nível superior, gratificação de função e incentivos, incluindo 283 GRATIF. DE NIVEL SUPERIOR + 417/412 INCENTIVO (PSF) + 413 INCENTIVO (ACS); inss = INSS; irrf = IRRF; total_proventos = Total de Proventos; total_descontos = Total de Descontos; valor_liquido = Total Líquido.`;
+DICIONÁRIO DE NORMALIZAÇÃO (rubrica → campo):
+salario_base        ← "1 - SALARIO BASE", tipo (P)-Dia
+dias_trabalhados    ← EXTRAÇÃO OBRIGATÓRIA: localize a linha do Salário Base cujo campo "Tipo" ou "Classe" seja "(P) - Dia" ou similar. Extraia o valor numérico EXATAMENTE da coluna "Referência" dessa linha. NUNCA use o valor monetário integral para este campo. Se não encontrar a referência específica de dias, deixe null.
+tempo_servico       ← "GRATIFICACAO TEMPO SERVICO", "ANUENIO", "ADIC. TEMPO"
+insalubridade       ← "INSALUBRIDADE"
+adicional_noturno   ← "ADICIONAL NOTURNO", "AD. NOT."
+hora_extra_50       ← rubrica contendo "50%"
+hora_extra_100      ← rubrica contendo "100%"
+plantao             ← "PLANTAO", "PLANTÃO"
+sobreaviso          ← "SOBREAVISO"
+vale_transporte     ← "VALE TRANSPORTE", "VT"
+grat_funcao_vr      ← "GRATIFICACAO FUNCAO (VR)"
+grat_funcao_pct     ← gratificação de função calculada em % do vencimento base
+grat_nivel_superior ← "GRATIF. DE NIVEL SUPERIOR", "GRAT NIVEL SUP"
+incentivos          ← rubrica nomeada "INCENTIVO" (produtividade/meta) - NUNCA o complemento do piso
+aux_financeiro      ← "COMPLEMENTO FINANCEIRO PISO ENFERMAGEM", "AUX FINANC PISO", "COMPL PISO"
+inss                ← "I.N.S.S", tipo Desconto-Tabela
+irrf                ← "I.R.R.F", tipo Desconto-Tabela
+outros_descontos    ← qualquer desconto que não seja INSS/IRRF (convênio, consignado, empréstimo, etc.)
+adn_informativo     ← campos patronais tipo "Base Patronal RGPS"`;
 
 function mensagemFalha(status: number, detalhe: string): string {
   if (status === 429) {

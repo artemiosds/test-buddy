@@ -28,10 +28,12 @@ export type ProfissionalFolha = {
   proj: number | string | null;
   h_p: number | string | null;
   c_h: number | string | null;
-  jorn: number | string | null;
+  jorn: number | string | null | undefined;
+  situacao?: string | null;
 };
 
 export type LinhaTotais = {
+  dias_trabalhados?: number | string;
   dias_falta?: number | string;
   atestado?: number | string;
   maternidade?: number | string;
@@ -72,7 +74,9 @@ export type FolhaOficialInput = {
   emitidoPor: string;
   secretariaId?: string | null;
   unidadeId?: string | null;
+  frequenciaId?: string | null;
 };
+
 
 /* ------------------------- Cores ------------------------- */
 // Extraídas do PDF de referência
@@ -114,10 +118,12 @@ const LINHA_ALTURA = 14; // altura da linha de profissional (2 sub-linhas)
 /* -------------------- Helpers de desenho -------------------- */
 
 function fmt(v: number | string | null | undefined): string {
-  if (v == null || v === 0 || v === "") return "";
+  if (v == null || v === "") return "";
   if (typeof v === "string") return v;
-  if (Number.isInteger(v)) return String(v);
-  return v.toFixed(2).replace(".", ",");
+  const x = Number(v);
+  if (isNaN(x) || x === 0) return v === 0 ? "0" : (v ? String(v) : "");
+  if (Number.isInteger(x)) return String(x);
+  return x.toFixed(2).replace(".", ",");
 }
 
 function drawInstitutionalBox(
@@ -299,25 +305,26 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
   doc.setTextColor(...COR_TEXTO);
 
   const t = item.totais;
+  const situacao = item.profissional.situacao;
   const values: Record<string, string> = {
     proj: fmt(item.profissional.proj),
     hp: fmt(item.profissional.h_p),
     ch: fmt(item.profissional.c_h),
     jorn: fmt(item.profissional.jorn),
-    dias: fmt(t.dias_falta),
-    falta: "",
-    att: fmt(t.atestado),
-    mat: fmt(t.maternidade),
-    he50: fmt(t.he_50),
-    he100: fmt(t.he_100),
-    terco: t.ferias_terco ? "X" : "",
-    integ: fmt(t.ferias_integral),
-    sal: fmt(t.sal_sub_h),
-    adic: fmt(t.adicional_noturno),
-    aulas: fmt(t.aulas_suplementares),
-    plantao: fmt(t.plantao),
-    sobre: fmt(t.sobreaviso),
-    incent: fmt(t.incentivo),
+    dias: situacao && situacao !== "Ativo" ? situacao : fmt(t.dias_trabalhados),
+    falta: situacao && situacao !== "Ativo" ? situacao : fmt(t.dias_falta),
+    att: situacao && situacao !== "Ativo" ? situacao : fmt(t.atestado),
+    mat: situacao && situacao !== "Ativo" ? situacao : fmt(t.maternidade),
+    he50: situacao && situacao !== "Ativo" ? situacao : fmt(t.he_50),
+    he100: situacao && situacao !== "Ativo" ? situacao : fmt(t.he_100),
+    terco: situacao && situacao !== "Ativo" ? situacao : (t.ferias_terco ? "X" : ""),
+    integ: situacao && situacao !== "Ativo" ? situacao : fmt(t.ferias_integral),
+    sal: situacao && situacao !== "Ativo" ? situacao : fmt(t.sal_sub_h),
+    adic: situacao && situacao !== "Ativo" ? situacao : fmt(t.adicional_noturno),
+    aulas: situacao && situacao !== "Ativo" ? situacao : fmt(t.aulas_suplementares),
+    plantao: situacao && situacao !== "Ativo" ? situacao : fmt(t.plantao),
+    sobre: situacao && situacao !== "Ativo" ? situacao : fmt(t.sobreaviso),
+    incent: situacao && situacao !== "Ativo" ? situacao : fmt(t.incentivo),
   };
 
   for (const c of COLS) {
@@ -354,7 +361,13 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       const val = values[c.key] ?? "";
-      if (val) doc.text(val, xCursor + c.w / 2, y + h / 2 + 1, { align: "center" });
+      if (val) {
+        // Se for um texto longo (como status de situação), reduzimos a fonte e permitimos quebra básica se necessário
+        const isStatus = val.length > 5 && situacao && situacao !== "Ativo" && val === situacao;
+        if (isStatus) doc.setFontSize(6);
+        doc.text(val, xCursor + c.w / 2, y + h / 2 + 1, { align: "center", maxWidth: c.w - 1 });
+        if (isStatus) doc.setFontSize(8);
+      }
     }
     xCursor += c.w;
   }
@@ -372,7 +385,9 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   const assinaturas = await resolverAssinaturasDocumento("folha_efetivos", {
     secretariaId: input.secretariaId ?? null,
     unidadeId: input.unidadeId ?? null,
+    frequenciaId: input.frequenciaId ?? null,
   });
+
 
   const pageHeight = doc.internal.pageSize.getHeight();
   const rodapeReserva = 18;

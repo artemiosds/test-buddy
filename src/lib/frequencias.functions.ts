@@ -6,6 +6,8 @@ import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { ANEXO_MIMES_ACEITOS, ANEXO_TAMANHO_MAX } from "./anexos-linha";
 import { logger } from "./logger";
 import { sendEmail, generateEmailTemplate } from "./email.server";
+import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
+
 
 
 
@@ -207,6 +209,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
   .validator((d: z.infer<typeof AlterarStatusSchema>) => AlterarStatusSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
     const perm = PERM_STATUS[data.status];
     if (perm) await ensurePermission(supabase, userId, perm);
 
@@ -220,8 +223,9 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     const { data: freq, error: fErr } = await supabase
       .from("frequencias")
       .select(
-        "id, status, updated_at, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
+        "id, tipo, status, updated_at, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
       )
+
       .eq("id", data.frequencia_id)
       .maybeSingle();
     if (fErr) throw new Error(fErr.message);
@@ -316,6 +320,39 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
 
     const label = ACAO_LABEL[data.status];
     if (label) {
+      // --- CAPTURA DE SNAPSHOT DE ASSINATURA ---
+      if (data.status === "enviada" || data.status === "aprovada") {
+        try {
+          const acaoSnapshot = data.status === "enviada" ? "enviar" : "aprovar";
+          const tipoDoc = freq.tipo === "efetivos" ? "folha_efetivos" : "folha_contratados";
+          
+          // Busca a assinatura ativa para o usuário que está realizando a ação
+          const assinatura = await obterAssinaturaInstitucionalAtual(tipoDoc as any, {
+            unidadeId: (freq as any).competencia_unidades?.unidades?.id || null,
+          });
+
+          if (assinatura) {
+            await supabase.from("frequencia_assinaturas_snapshot").upsert({
+              frequencia_id: data.frequencia_id,
+              acao: acaoSnapshot,
+              usuario_id: userId,
+              assinatura_id: assinatura.assinatura_id,
+              storage_path: assinatura.storage_path,
+              titular_nome: assinatura.titular_nome || "Não informado",
+              titular_cargo: assinatura.titular_cargo,
+              posicao_x: assinatura.posicao_x,
+              posicao_y: assinatura.posicao_y,
+              tamanho_percentual: assinatura.tamanho_percentual,
+              alinhamento: assinatura.alinhamento,
+              metadata: assinatura.metadata || {},
+            } as never, { onConflict: 'frequencia_id, acao' });
+          }
+        } catch (snapErr) {
+          logger.error("snapshot.capture.failed", { error: snapErr, frequencia_id: data.frequencia_id });
+        }
+      }
+      // ------------------------------------------
+
       const prazoEnvio = (freq as any).competencia_unidades?.competencias?.prazo_envio;
       const foraPrazo =
         data.status === "enviada" &&
@@ -335,6 +372,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
         executado_perfil: perfil?.codigo || "Indefinido",
       } as never);
     }
+
 
     const tipoEvento = EVENTO_STATUS[data.status];
     if (tipoEvento) {
@@ -537,13 +575,51 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
       ...(existentes ?? []).filter((r: any) => r.deleted_at).map((r: any) => r.profissional_id),
     ]);
 
+    const { data: profsStatus } = await supabase
+      .from("profissionais")
+      .select("id, status")
+      .in("id", data.profissional_ids);
+
     const rows = data.profissional_ids
       .filter((pid) => !existentesIds.has(pid))
-      .map((pid) => ({
-        frequencia_id: data.frequencia_id,
-        profissional_id: pid,
-        created_by: userId,
-      }));
+      .map((pid) => {
+        const p = profsStatus?.find(x => x.id === pid);
+        const status = p?.status?.toLowerCase();
+        let val: number | string = 0;
+        
+        if (status === "ferias") val = "Férias";
+        else if (status === "licenca_premio") val = "Licença Prêmio";
+        else if (status === "licenca_maternidade") val = "Licença Maternidade";
+        else if (status === "licenca_saude") val = "Licença Saúde";
+        else if (status === "licenca_sem_vencimento") val = "Licença sem Vencimento";
+        else if (status === "licenca_estudo") val = "Licença Estudo";
+        else if (status?.includes("licenca")) val = "Licença";
+        else if (status === "afastado" || status === "afastamento_inss") val = "Afastamento por INSS";
+        else if (status === "atestado") val = "Atestado";
+        else if (status === "falta_pad") val = "Falta informada ao RH (PAD)";
+        else if (status === "vacancia") val = "Vacância";
+        else if (status === "cedido") val = "Cedido";
+
+        return {
+          frequencia_id: data.frequencia_id,
+          profissional_id: pid,
+          created_by: userId,
+          dias_trabalhados: val,
+          faltas_justificadas: val,
+          faltas_injustificadas: val,
+          ferias: val,
+          licencas: val,
+          afastamentos: val,
+          horas_extras: val,
+          plantoes_extras: val,
+          adicional_noturno: val,
+          atestado: val,
+          he_50: val,
+          he_100: val,
+          sobreaviso: val,
+          incentivo: val,
+        };
+      });
 
     if (rows.length) {
       const { error } = await supabase.from("frequencia_profissional").insert(rows as never);

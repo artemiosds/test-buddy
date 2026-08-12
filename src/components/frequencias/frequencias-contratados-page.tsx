@@ -52,7 +52,13 @@ import {
 } from "@/components/shared/gerencial";
 import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
 import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
-import { contarSituacoes, derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+import {
+  contarSituacoes,
+  derivarSituacao,
+  overrideSituacaoFolha,
+  aplicarOverrideSituacao,
+  type ProfConferencia,
+} from "@/lib/situacao-funcional";
 import {
   ErpGridProvider,
   ErpTbody,
@@ -482,7 +488,7 @@ export function FrequenciasContratadosPage() {
     // na consulta; cargo/função/setor/situação/busca são aplicados em
     // `filtradas` + `linhasFinais`). Assim, o PDF/Excel exportam somente
     // as linhas visíveis atualmente na tabela.
-    const visiveis = linhasFinais.map((x) => x.it);
+    const visiveis = linhasFinais.map((x) => ({ ...x.it, conf: x.conf }));
     return visiveis.map((it: any) => {
       // Mescla o que está digitado na tela (mesmo ainda não salvo) sobre o
       // registro persistido, para o PDF/Excel refletirem exatamente a grade.
@@ -490,6 +496,7 @@ export function FrequenciasContratadosPage() {
       const linha = editada
         ? { ...(it.linha ?? {}), ...editada, status: it.linha?.status ?? "rascunho" }
         : it.linha;
+      const override = overrideSituacaoFolha(it.conf ?? it.profissional);
       return {
         profissional: {
           matricula: it.profissional.matricula,
@@ -501,7 +508,7 @@ export function FrequenciasContratadosPage() {
           agencia: it.profissional.agencia,
           conta_corrente: it.profissional.conta_corrente,
         },
-        linha,
+        linha: aplicarOverrideSituacao(linha as any, override, CAMPOS_NUM as any),
       };
     });
   }
@@ -1107,6 +1114,7 @@ export function FrequenciasContratadosPage() {
                 if (!l) return null;
                 const ro = readonlyLinha(l);
                 const situ = derivarSituacao(conf);
+                const overrideSituacao = overrideSituacaoFolha(conf);
                 const semConta = !p.banco && !p.agencia && !p.conta_corrente;
                 const semContaConf = !conf.banco && !conf.agencia && !conf.conta_corrente;
                 return (
@@ -1163,6 +1171,20 @@ export function FrequenciasContratadosPage() {
                       const isDias = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
                       const isHora = c === "he_50" || c === "he_100" || c === "adn";
+                      if (overrideSituacao) {
+                        return (
+                          <td key={c} className="text-center">
+                            <input
+                              type="text"
+                              readOnly
+                              disabled
+                              value={overrideSituacao}
+                              title={overrideSituacao}
+                              className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-center text-[10px] font-semibold text-slate-600"
+                            />
+                          </td>
+                        );
+                      }
                       return (
                         <td key={c} className="text-center font-mono">
                           <NumberCell

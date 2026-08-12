@@ -43,6 +43,7 @@ import {
   derivarAlertas,
   derivarElegibilidadePiso,
   derivarSituacao,
+  overrideSituacaoFolha,
   type Elegibilidade,
   type ProfConferencia,
   type ResumoSituacao,
@@ -507,6 +508,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
 }) {
   if (!prof) return null;
   const situ = derivarSituacao(prof);
+  const overrideSituacao = overrideSituacaoFolha(prof);
   const readOnlyStyle: CSSProperties = {
     color: "#0F172A",
     fontWeight: 500,
@@ -600,19 +602,63 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
             <div style={labelStyle} className="mb-2">
               Dados da Folha
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+            <div
+              className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
+              data-folha-fields
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+
+                const current = event.target;
+                if (!(current instanceof HTMLInputElement)) return;
+
+                const container = event.currentTarget;
+                const fields = Array.from(
+                  container.querySelectorAll<HTMLInputElement>("input:not(:disabled)"),
+                );
+                const currentIndex = fields.indexOf(current);
+                if (currentIndex < 0) return;
+
+                const direction = event.shiftKey ? -1 : 1;
+                const next = fields[currentIndex + direction];
+                if (!next) return;
+
+                event.preventDefault();
+                next.focus();
+                next.select();
+              }}
+            >
               {campos.map((c) => (
                 <div key={c.key}>
                   <Label htmlFor={`edm-${c.key}`} style={labelStyle}>
                     {c.label}
                   </Label>
-                  <CampoFolhaInput
-                    id={`edm-${c.key}`}
-                    value={linha ? (linha as any)[c.key] : 0}
-                    disabled={!canEdit}
-                    destaque={c.group === "sms"}
-                    onChange={(v) => onChangeCampo(c.key, v)}
-                  />
+                  {overrideSituacao ? (
+                    <Input
+                      id={`edm-${c.key}`}
+                      type="text"
+                      value={overrideSituacao}
+                      readOnly
+                      disabled
+                      title={overrideSituacao}
+                      style={{
+                        color: "#475569",
+                        fontWeight: 600,
+                        background: "#F1F5F9",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: 6,
+                        fontSize: 12,
+                        textAlign: "right",
+                      }}
+                    />
+                  ) : (
+                    <CampoFolhaInput
+                      id={`edm-${c.key}`}
+                      value={linha ? (linha as any)[c.key] : 0}
+                      disabled={!canEdit}
+                      destaque={c.group === "sms"}
+                      onChange={(v) => onChangeCampo(c.key, v)}
+                    />
+                  )}
                 </div>
               ))}
             </div>

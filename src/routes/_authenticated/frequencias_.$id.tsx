@@ -204,28 +204,45 @@ const COLS_EFETIVOS: ColunaDef[] = [
   { field: "licenca_premio", label: "Licença-Prêmio", extra: true },
 ];
 
-function novaLinha(profissional_id: string, novo = true): Linha {
+function novaLinha(profissional_id: string, novo = true, profData?: any): Linha {
+  // Identificação automática de status
+  let defaultValue: number | string = 0;
+  const status = profData?.status?.toLowerCase();
+  
+  if (status === "ferias") defaultValue = "Férias";
+  else if (status === "licenca_premio") defaultValue = "Licença Prêmio";
+  else if (status === "licenca_maternidade") defaultValue = "Licença Maternidade";
+  else if (status === "licenca_saude") defaultValue = "Licença Saúde";
+  else if (status === "licenca_sem_vencimento") defaultValue = "Licença sem Vencimento";
+  else if (status === "licenca_estudo") defaultValue = "Licença Estudo";
+  else if (status?.includes("licenca")) defaultValue = "Licença";
+  else if (status === "afastado" || status === "afastamento_inss") defaultValue = "Afastamento por INSS";
+  else if (status === "atestado") defaultValue = "Atestado";
+  else if (status === "falta_pad") defaultValue = "Falta informada ao RH (PAD)";
+  else if (status === "vacancia") defaultValue = "Vacância";
+  else if (status === "cedido") defaultValue = "Cedido";
+
   return {
     profissional_id,
-    dias_trabalhados: 0,
-    faltas_justificadas: 0,
-    faltas_injustificadas: 0,
-    ferias: 0,
-    licencas: 0,
-    afastamentos: 0,
-    horas_extras: 0,
-    plantoes_extras: 0,
-    adicional_noturno: 0,
-    atestado: 0,
-    he_50: 0,
-    he_100: 0,
-    sobreaviso: 0,
-    incentivo: 0,
-    licenca_premio: 0,
-    ferias_terco: 0,
-    ferias_integral: 0,
-    sal_sub_h: 0,
-    aulas_suplementares: 0,
+    dias_trabalhados: defaultValue,
+    faltas_justificadas: defaultValue,
+    faltas_injustificadas: defaultValue,
+    ferias: defaultValue,
+    licencas: defaultValue,
+    afastamentos: defaultValue,
+    horas_extras: defaultValue,
+    plantoes_extras: defaultValue,
+    adicional_noturno: defaultValue,
+    atestado: defaultValue,
+    he_50: defaultValue,
+    he_100: defaultValue,
+    sobreaviso: defaultValue,
+    incentivo: defaultValue,
+    licenca_premio: defaultValue,
+    ferias_terco: defaultValue,
+    ferias_integral: defaultValue,
+    sal_sub_h: defaultValue,
+    aulas_suplementares: defaultValue,
     observacoes: null,
     status_linha: "pendente",
     observacao_analise: null,
@@ -319,27 +336,25 @@ function FrequenciaDetalhe() {
       rowsExistentes.map((r) => ({
         id: r.id,
         profissional_id: r.profissional_id,
-        dias_trabalhados: Number(r.dias_trabalhados) || 0,
-        faltas_justificadas: Number(r.faltas_justificadas) || 0,
-        faltas_injustificadas: Number(r.faltas_injustificadas) || 0,
-        ferias: Number(r.ferias) || 0,
-        licencas: Number(r.licencas) || 0,
-        afastamentos: Number(r.afastamentos) || 0,
-        horas_extras: Number(r.horas_extras) || 0,
-        plantoes_extras: Number(r.plantoes_extras) || 0,
-        adicional_noturno: Number(r.adicional_noturno) || 0,
-        atestado: Number(r.atestado) || 0,
-        he_50: Number(r.he_50) || 0,
-        he_100: Number(r.he_100) || 0,
-        sobreaviso: Number(r.sobreaviso) || 0,
-        incentivo: Number(r.incentivo) || 0,
-        licenca_premio: Number(r.licenca_premio) || 0,
-        ferias_terco: Number((r as unknown as { ferias_terco?: number }).ferias_terco) || 0,
-        ferias_integral:
-          Number((r as unknown as { ferias_integral?: number }).ferias_integral) || 0,
-        sal_sub_h: Number((r as unknown as { sal_sub_h?: number }).sal_sub_h) || 0,
-        aulas_suplementares:
-          Number((r as unknown as { aulas_suplementares?: number }).aulas_suplementares) || 0,
+        dias_trabalhados: r.dias_trabalhados ?? 0,
+        faltas_justificadas: r.faltas_justificadas ?? 0,
+        faltas_injustificadas: r.faltas_injustificadas ?? 0,
+        ferias: r.ferias ?? 0,
+        licencas: r.licencas ?? 0,
+        afastamentos: r.afastamentos ?? 0,
+        horas_extras: r.horas_extras ?? 0,
+        plantoes_extras: r.plantoes_extras ?? 0,
+        adicional_noturno: r.adicional_noturno ?? 0,
+        atestado: r.atestado ?? 0,
+        he_50: r.he_50 ?? 0,
+        he_100: r.he_100 ?? 0,
+        sobreaviso: r.sobreaviso ?? 0,
+        incentivo: r.incentivo ?? 0,
+        licenca_premio: r.licenca_premio ?? 0,
+        ferias_terco: (r as unknown as { ferias_terco?: number | string }).ferias_terco ?? 0,
+        ferias_integral: (r as unknown as { ferias_integral?: number | string }).ferias_integral ?? 0,
+        sal_sub_h: (r as unknown as { sal_sub_h?: number | string }).sal_sub_h ?? 0,
+        aulas_suplementares: (r as unknown as { aulas_suplementares?: number | string }).aulas_suplementares ?? 0,
         observacoes: r.observacoes,
         status_linha: r.status_linha,
         observacao_analise: r.observacao_analise,
@@ -490,11 +505,11 @@ function FrequenciaDetalhe() {
   }, [profissionais, rowsExistentes, editable, canEditar]);
 
   const addProfissional = (pid: string) => {
-    setLinhas((prev) => [...prev, novaLinha(pid)]);
+    setLinhas((prev) => [...prev, novaLinha(pid, true, profMap.get(pid))]);
   };
 
   const addTodos = () => {
-    setLinhas((prev) => [...prev, ...naoAdicionados.map((p) => novaLinha(p.id))]);
+    setLinhas((prev) => [...prev, ...naoAdicionados.map((p) => novaLinha(p.id, true, p))]);
   };
 
   const updateLinha = (idx: number, patch: Partial<Linha>) => {
@@ -507,7 +522,7 @@ function FrequenciaDetalhe() {
 
   // === Item 10: Copiar mês anterior ===
   const planilhaVazia =
-    linhas.length > 0 && linhas.every((l) => ALL_NUM_FIELDS.every((f) => Number(l[f]) === 0));
+    linhas.length > 0 && linhas.every((l) => ALL_NUM_FIELDS.every((f) => !l[f] || Number(l[f]) === 0));
 
   const abrirCopiarPrevia = async () => {
     if (!frequencia || !comp || !cu?.unidade_id) return;
@@ -629,8 +644,14 @@ function FrequenciaDetalhe() {
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const nr = findNextEditableRow(r, 1);
-      if (nr >= 0) focusCell(nr, c);
+      if (c < colunas.length - 1) {
+        // Pula para a próxima célula na mesma linha
+        focusCell(r, c + 1);
+      } else {
+        // Última coluna: pula para a primeira célula da próxima linha editável
+        const nr = findNextEditableRow(r, 1);
+        if (nr >= 0) focusCell(nr, 0);
+      }
     } else if (e.key === "Tab") {
       // Tab natural funciona bem entre inputs na ordem do DOM (esq→dir, próxima linha)
       // Só interceptamos para pular linhas não-editáveis
@@ -861,7 +882,9 @@ function FrequenciaDetalhe() {
           emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
           unidadeId: cu?.unidade_id ?? null,
           secretariaId: me?.secretaria_id ?? null,
+          frequenciaId: frequencia.id,
         });
+
       } catch (e: any) {
         toast.error(e?.message ?? "Falha ao gerar PDF Oficial.");
       }
@@ -923,6 +946,7 @@ function FrequenciaDetalhe() {
     // o rodapé estático quando nenhuma regra estiver cadastrada.
     const assinDoc = await resolverAssinaturasDocumento("frequencia", {
       unidadeId: cu?.unidade_id ?? null,
+      frequenciaId: frequencia.id,
     });
     if (assinDoc.some((a) => a.tipo_assinatura !== "logo")) {
       drawAssinaturasBlock(doc, assinDoc, {
@@ -931,6 +955,7 @@ function FrequenciaDetalhe() {
     } else {
       drawSignatureFooter(doc, doc.internal.pageSize.getHeight() - 60);
     }
+
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}`, 14, pageHeight - 8);

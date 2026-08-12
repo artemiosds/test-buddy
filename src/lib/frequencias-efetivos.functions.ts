@@ -127,7 +127,7 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       .from("profissionais")
       .select(
         `
-        id, matricula, nome_completo, nome_social,
+        id, matricula, nome_completo, nome_social, status,
         proj, h_p, c_h, jorn,
         cargo_id, funcao_id, setor_id,
         cargos ( nome ),
@@ -173,7 +173,9 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
           id: p.id,
           matricula: p.matricula,
           nome: p.nome_social || p.nome_completo,
+          status: p.status ?? null,
           cargo: p.cargos?.nome ?? null,
+
           funcao: p.funcoes?.nome ?? null,
           setor: p.setores?.nome ?? null,
           cargo_id: p.cargo_id ?? null,
@@ -231,6 +233,18 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     if (exErr) throw new Error(exErr.message);
     const byProf = new Map((existentes ?? []).map((r: any) => [r.profissional_id, r]));
 
+    // Proteção: profissionais que não estão ativos (férias/licença/afastamento…)
+    // não recebem lançamentos numéricos — os campos são zerados no banco.
+    const { data: profsStatus } = await supabase
+      .from("profissionais")
+      .select("id, status")
+      .in("id", profIds);
+    const naoAtivos = new Set(
+      (profsStatus ?? [])
+        .filter((p: any) => (p.status ?? "ativo") !== "ativo")
+        .map((p: any) => p.id as string),
+    );
+
     const allRows: any[] = [];
 
     for (const l of data.linhas) {
@@ -258,8 +272,14 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         payload.id = ex.id;
       }
 
+      const inativo = naoAtivos.has(l.profissional_id);
       for (const f of PAYLOAD_FIELDS)
-        payload[f] = (l as any)[f] ?? (f === "observacoes" ? null : 0);
+        payload[f] =
+          f === "observacoes"
+            ? ((l as any)[f] ?? null)
+            : inativo
+              ? 0
+              : ((l as any)[f] ?? 0);
 
       allRows.push(payload);
     }

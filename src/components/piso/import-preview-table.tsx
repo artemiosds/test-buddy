@@ -1,7 +1,7 @@
 // Tabela de pré-visualização e auditoria da importação de contratados.
 // Mostra o status por linha (válido / aviso / erro) e os valores calculados.
 
-import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
 import { cpfFormatado } from "@/lib/import-templates";
 import type { Issue } from "@/lib/piso-validacao";
 import type { ResolvedRow } from "@/lib/piso-import";
@@ -37,6 +37,12 @@ export function statusPorLinha(
     const erro = doLinha.some((i) => BLOQUEANTES.has(i.tipo));
     const novo = row.status_match === "nao_localizado";
     const motivos = doLinha.map((i) => i.mensagem);
+    
+    // Injetar status do novo motor se presente
+    if (row.validation_status === "REVIEW_REQUIRED" && !erro) {
+       return { status: "aviso" as const, motivos: [...motivos, "Revisão requerida: divergência semântica detectada pela IA."] };
+    }
+
     if (erro) return { status: "erro" as const, motivos };
     if (novo || motivos.length > 0)
       return {
@@ -60,107 +66,34 @@ export function ImportPreviewTable({
 }) {
   const status = statusPorLinha(rows, issues);
   const visiveis = rows.slice(0, limite);
-  const ehHmsds = templateId === "HMSDS_SAUDE";
-  const ehCaps = templateId === "CAPS_SAUDE";
-  const ehAdm = templateId === "PADRAO_ADM";
-  const ehHmo = templateId === "HMO_SAUDE" || ehHmsds;
-  const cabecalhos = ehAdm
-    ? [
-        "Status",
-        "Nome",
-        "C.P.F.",
-        "Lotação",
-        "Cargo",
-        "Dias",
-        "Base",
-        "Insalub.",
-        "H.E.",
-        "Ad. Not.",
-        "Bruto",
-        "ISS",
-        "Incentivo",
-        "Total",
-      ]
-    : ehCaps
-    ? [
-        "Status",
-        "Nome",
-        "C.P.F.",
-        "Lotação",
-        "Cargo",
-        "Dias",
-        "Base",
-        "Insalub.",
-        "H.E.",
-        "Bruto",
-        "ISS",
-        "Líquido",
-        "Incentivo",
-        "Total",
-      ]
-    : ehHmsds
-    ? [
-        "Status",
-        "Nome",
-        "C.P.F.",
-        "Lotação",
-        "Cargo",
-        "Dias",
-        "Base",
-        "Insalub.",
-        "H.E.",
-        "Ad. Not.",
-        "Plantão e sobreaviso",
-        "Bruto",
-        "ISS",
-        "Total",
-        "Pensão alimentícia",
-        "Incentivo",
-        "Total final",
-      ]
-    : ehHmo
-    ? [
-        "Status",
-        "Nome",
-        "C.P.F.",
-        "Lotação",
-        "Cargo",
-        "Dias",
-        "Base",
-        "Insalub.",
-        "H.E.",
-        "Ad. Not.",
-        "Plantão e sobreaviso",
-        "Bruto",
-        "ISS",
-        "Incentivo",
-        "Total",
-      ]
-    : [
-        "Status",
-        "Nome",
-        "C.P.F.",
-        "Lotação",
-        "Cargo",
-        "Dias",
-        "Base",
-        "Insalub.",
-        "H.E.",
-        "Ad. Not.",
-        "Bruto",
-        "ISS",
-        "Total",
-        "Grat.Incentivo",
-        "Aux. Transp.",
-        "Incentivo",
-        "Total final",
-      ];
-
+  
+  const cabecalhos = [
+    "Status",
+    "Nome",
+    "C.P.F.",
+    "Cargo",
+    "Dias",
+    "Sal. Base",
+    "Tempo Serv.",
+    "Insalub.",
+    "Gr. Fun. VR",
+    "Gr. Niv. Sup.",
+    "Aux. Fin. Piso",
+    "INSS",
+    "IRRF",
+    "Outros Desc.",
+    "T. Proventos",
+    "T. Descontos",
+    "Líquido",
+  ];
 
   return (
     <div className="rounded-md border">
-      <div className="border-b p-3 text-sm font-medium">
-        Pré-visualização e auditoria ({rows.length} linha{rows.length === 1 ? "" : "s"})
+      <div className="border-b p-3 text-sm font-medium flex justify-between items-center">
+        <span>Pré-visualização e auditoria ({rows.length} linha{rows.length === 1 ? "" : "s"})</span>
+        <div className="flex gap-4 text-xs">
+          <span className="flex items-center gap-1 text-muted-foreground"><Info className="h-3 w-3" /> Schema Granular v2</span>
+        </div>
       </div>
       <div className="max-h-[26rem] overflow-auto">
         <table className="w-full text-xs">
@@ -177,8 +110,10 @@ export function ImportPreviewTable({
             {visiveis.map((r, idx) => {
               const st = status[idx];
               const cpfInvalido = st.status === "erro" && (r.cpf ?? "").replace(/\D/g, "").length !== 11;
+              const hasValidationReview = r.validation_status === "REVIEW_REQUIRED";
+
               return (
-                <tr key={`${r.cpf ?? "sem"}-${idx}`} className="border-t">
+                <tr key={`${r.cpf ?? "sem"}-${idx}`} className={cn("border-t", hasValidationReview && "bg-amber-50/50")}>
                   <td className="px-2 py-1.5">
                     <span
                       className={cn(
@@ -199,7 +134,7 @@ export function ImportPreviewTable({
                       {st.status === "valido" ? "Válido" : st.status === "aviso" ? "Aviso" : "Erro"}
                     </span>
                   </td>
-                  <td className="max-w-[16rem] truncate px-2 py-1.5">{r.nome ?? "—"}</td>
+                  <td className="max-w-[16rem] truncate px-2 py-1.5" title={r.nome ?? ""}>{r.nome ?? "—"}</td>
                   <td
                     className={cn(
                       "whitespace-nowrap px-2 py-1.5",
@@ -208,47 +143,22 @@ export function ImportPreviewTable({
                   >
                     {r.cpf ? cpfFormatado(r.cpf) : "—"}
                   </td>
-                  <td className="max-w-[12rem] truncate px-2 py-1.5">{r.unidade ?? "—"}</td>
-                  <td className="max-w-[12rem] truncate px-2 py-1.5">{r.cargo ?? "—"}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{extra(r, "dias_trabalhados") ?? r.tempo_servico ?? 0}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.salario_base)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.insalubridade)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.hora_extra_50)}</td>
-                  {!ehCaps && (
-                    <td className="whitespace-nowrap px-2 py-1.5">
-                      {moedaBr(r.adicional_noturno)}
-                    </td>
-                  )}
-                  {ehHmo && (
-                    <td className="whitespace-nowrap px-2 py-1.5">
-                      {moedaBr(r.plantao ?? r.sobreaviso)}
-                    </td>
-                  )}
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.total_proventos)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.total_descontos)}</td>
-                  {((!ehHmo && !ehAdm) || ehHmsds) && (
-                    <td className="whitespace-nowrap px-2 py-1.5 font-medium">
-                      {moedaBr(
-                        ehHmsds || ehCaps ? extra(r, "total_liquido_base") : r.valor_liquido,
-                      )}
-                    </td>
-                  )}
-                  {ehHmsds && (
-                    <td className="whitespace-nowrap px-2 py-1.5">
-                      {moedaBr(extra(r, "pensao_alimenticia"))}
-                    </td>
-                  )}
-
-                  {!ehHmo && !ehCaps && !ehAdm && (
-                    <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.gratificacao)}</td>
-                  )}
-                  {!ehHmo && !ehCaps && !ehAdm && (
-                    <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.vale_transporte)}</td>
-                  )}
-                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.auxilio_financeiro)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 font-medium">
-                    {moedaBr(r.valor_final)}
+                  <td className="max-w-[12rem] truncate px-2 py-1.5" title={r.cargo ?? ""}>{r.cargo ?? "—"}</td>
+                  <td className={cn("whitespace-nowrap px-2 py-1.5 font-bold", hasValidationReview && "text-amber-700")}>
+                    {extra(r, "dias_trabalhados") ?? 0}
                   </td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.salario_base)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.tempo_servico)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.insalubridade)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.grat_funcao_vr)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.grat_nivel_superior)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 font-medium">{moedaBr(r.aux_financeiro)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.inss)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.irrf)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">{moedaBr(r.outros_descontos)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 font-medium">{moedaBr(r.total_proventos_folha)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{moedaBr(r.total_descontos_folha)}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 font-bold text-emerald-700">{moedaBr(r.valor_liquido_folha)}</td>
                 </tr>
               );
             })}

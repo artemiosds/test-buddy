@@ -2025,13 +2025,13 @@ export function FolhaImportWizard({ layout }: { layout: LayoutFolha }) {
                       />
                     </td>
                     <td className="text-right tabular-nums">
-                      {f.rubricas.total_proventos.toFixed(2)}
+                      {(f.rubricas.total_proventos_folha ?? 0).toFixed(2)}
                     </td>
                     <td className="text-right tabular-nums">
-                      {f.rubricas.total_descontos.toFixed(2)}
+                      {(f.rubricas.total_descontos_folha ?? 0).toFixed(2)}
                     </td>
                     <td className="text-right tabular-nums">
-                      {f.rubricas.valor_liquido.toFixed(2)}
+                      {(f.rubricas.valor_liquido_folha ?? 0).toFixed(2)}
                     </td>
                     <td className="text-right tabular-nums">
                       {Object.values(f.rubricas).filter((v) => v !== 0).length}

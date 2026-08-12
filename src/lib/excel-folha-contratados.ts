@@ -73,9 +73,12 @@ export function fmtConta(p: ItemContratado["profissional"]): string {
   return partes.length ? partes.join(" ") : "-";
 }
 
-function n(v: number | null | undefined): number | string {
-  const x = Number(v ?? 0);
-  return x || "";
+function n(v: number | string | null | undefined): number | string {
+  if (v == null || v === "") return "";
+  if (typeof v === "string") return v;
+  const x = Number(v);
+  if (isNaN(x) || x === 0) return v ? String(v) : "";
+  return x;
 }
 
 export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): Promise<void> {
@@ -123,7 +126,7 @@ export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): 
       fmtCPF(p.cpf),
       p.cargo ?? "-",
       p.setor || input.unidadeNome || "-",
-      "", // DIAS trabalhados (não persistido — deixado em branco)
+      n(l.dias_trabalhados),
       n(l.dias_falta as number),
       n(l.atestado as number),
       n(l.he_50 as number),

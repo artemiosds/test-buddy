@@ -58,9 +58,11 @@ const COLS: Col[] = [
   { key: "conta", w: 38, label: "CONTA", align: "left", mono: true },
 ];
 
-function n(v: number | null | undefined): string {
-  const x = Number(v ?? 0);
-  if (!x) return "-";
+function n(v: number | string | null | undefined): string {
+  if (v == null || v === "") return "-";
+  if (typeof v === "string") return v;
+  const x = Number(v);
+  if (isNaN(x) || x === 0) return v ? String(v) : "-";
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
@@ -345,9 +347,13 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const body = input.itens.map((it, i) => {
     const p = it.profissional;
     const l = it.linha ?? {};
+    const situacao = (it as any).situacao;
     const nVal = (v: any) => {
-      const x = Number(v ?? 0);
-      if (!x) return "";
+      if (situacao && situacao !== "Ativo") return situacao;
+      if (v == null || v === "") return "";
+      if (typeof v === "string") return v;
+      const x = Number(v);
+      if (isNaN(x) || x === 0) return v ? String(v) : "";
       return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
     };
     return [

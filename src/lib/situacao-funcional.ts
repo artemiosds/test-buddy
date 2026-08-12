@@ -284,3 +284,26 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   desligado: "Desligado",
   inativo: "Inativo",
 };
+
+/**
+ * Override de lançamento por situação funcional: quando o profissional NÃO
+ * está ativo (férias, licenças, afastamentos, cedido, vacância…), os campos
+ * numéricos da folha não são lançados — exibem/exportam o rótulo da situação.
+ * Retorna `null` para profissionais ativos (lançamento normal).
+ */
+export function overrideSituacaoFolha(p: ProfConferencia): string | null {
+  const s = derivarSituacao(p);
+  return s === "ativo" ? null : SITUACAO_LABEL[s];
+}
+
+/** Substitui os campos numéricos informados pelo rótulo da situação. */
+export function aplicarOverrideSituacao<T extends Record<string, any>>(
+  linha: T | null | undefined,
+  override: string | null,
+  campos: readonly string[],
+): T | null {
+  if (!override) return (linha ?? null) as T | null;
+  const base: any = { ...(linha ?? {}) };
+  for (const c of campos) base[c] = override;
+  return base as T;
+}

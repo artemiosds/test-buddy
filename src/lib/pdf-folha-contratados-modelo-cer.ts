@@ -35,9 +35,11 @@ const MESES = [
 ];
 
 
-function fmtNum(v: number | null | undefined): string {
-  const x = Number(v ?? 0);
-  if (!x) return "";
+function fmtNum(v: number | string | null | undefined): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "string") return v;
+  const x = Number(v);
+  if (isNaN(x) || x === 0) return v ? String(v) : "";
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
@@ -137,21 +139,26 @@ export async function gerarFolhaContratadosModeloCer(
   const body = input.itens.map((it, i) => {
     const p = it.profissional;
     const l = it.linha ?? {};
+    const situacao = (it as any).situacao;
+    const fmtLocal = (v: any) => {
+      if (situacao && situacao !== "Ativo") return situacao;
+      return fmtNum(v);
+    };
     return [
       String(i + 1),
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "",
       p.setor || input.unidadeNome || "",
-      fmtNum(l.dias_trabalhados as number),
-      fmtNum(l.dias_falta as number),
-      fmtNum(l.atestado as number),
-      fmtNum(l.he_50 as number),
-      fmtNum(l.he_100 as number),
-      fmtNum(l.adn as number),
-      fmtNum(l.plantoes as number),
-      fmtNum(l.sobreaviso as number),
-      fmtNum(l.incentivo as number),
+      fmtLocal(l.dias_trabalhados as number),
+      fmtLocal(l.dias_falta as number),
+      fmtLocal(l.atestado as number),
+      fmtLocal(l.he_50 as number),
+      fmtLocal(l.he_100 as number),
+      fmtLocal(l.adn as number),
+      fmtLocal(l.plantoes as number),
+      fmtLocal(l.sobreaviso as number),
+      fmtLocal(l.incentivo as number),
       fmtConta(p),
     ];
   });

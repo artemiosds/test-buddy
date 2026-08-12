@@ -21,6 +21,10 @@ export type EntradaCalculo = {
   cargaHoraria?: number | null;
   salarioBase?: number | null;
   insalubridade?: number | null;
+  tempoServico?: number | null;
+  gratFuncaoVR?: number | null;
+  gratFuncaoPct?: number | null;
+  gratNivelSuperior?: number | null;
   /** Valor de complementação informado pela planilha importada. */
   auxilioImportado?: number | null;
   /** Valor de referência vindo da tabela parametrizável (competência/categoria). */
@@ -64,18 +68,33 @@ export function valorReferencia(
 export function calcularPiso(e: EntradaCalculo): MemoriaCalculo {
   const salarioBase = e.salarioBase ?? 0;
   const insalubridade = e.insalubridade ?? 0;
-  const baseConsiderada = round2(salarioBase + insalubridade);
+  const tempoServico = e.tempoServico ?? 0;
+  const gratFuncaoVR = e.gratFuncaoVR ?? 0;
+  const gratFuncaoPct = e.gratFuncaoPct ?? 0;
+  const gratNivelSuperior = e.gratNivelSuperior ?? 0;
+
+  // BASE_DE_CALCULO = salario_base + tempo_servico + insalubridade + grat_funcao_vr + grat_funcao_pct + grat_nivel_superior
+  const baseConsiderada = round2(
+    salarioBase + tempoServico + insalubridade + gratFuncaoVR + gratFuncaoPct + gratNivelSuperior
+  );
+
   const referenciaConfigurada = !!(
     e.categoria &&
     e.valorReferenciaBase &&
     e.valorReferenciaBase > 0
   );
   const ref = valorReferencia(e.categoria, e.cargaHoraria, e.valorReferenciaBase, e.jornadaBase);
+  
+  // COMPLEMENTACAO_DEVIDA = MAX(0, Piso_Referencia - BASE_DE_CALCULO)
   const complementacao = referenciaConfigurada ? round2(Math.max(0, ref - baseConsiderada)) : 0;
+  
   const totalRemuneracao = round2(baseConsiderada + complementacao);
   const auxilioImportado = e.auxilioImportado ?? null;
+  
+  // DIFERENCA_A_AJUSTAR = COMPLEMENTACAO_DEVIDA - auxilioImportado
   const diferenca =
     auxilioImportado == null ? 0 : round2(Math.abs(auxilioImportado - complementacao));
+
   return {
     salarioBase,
     insalubridade,

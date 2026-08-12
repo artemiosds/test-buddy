@@ -47,15 +47,15 @@ describe("piso-fopag-parser", () => {
     expect(f.categoria).toBe("TECNICO_ENFERMAGEM");
     expect(f.rubricas.salario_base).toBe(2544.02);
     expect(f.rubricas.insalubridade).toBe(254.4);
-    expect(f.rubricas.auxilio_financeiro).toBe(1100.5);
+    expect(f.rubricas.aux_financeiro).toBe(1100.5);
     expect(f.rubricas.hora_extra_50).toBe(0);
-    expect(f.rubricas.valor_liquido).toBe(3618.77);
+    expect(f.rubricas.valor_liquido_folha).toBe(3618.77);
   });
 
   it("gera AOA com cabeçalhos reconhecidos pelo motor de layouts", () => {
     const aoa = fopagParaAoa(parseFopagTexto([PAGINA]));
     expect(aoa[0]).toContain("CPF");
-    expect(aoa[0]).toContain("AUXILIO FINANCEIRO");
+    expect(aoa[0]).toContain("AUX.FINANC.");
     expect(aoa).toHaveLength(2);
   });
 

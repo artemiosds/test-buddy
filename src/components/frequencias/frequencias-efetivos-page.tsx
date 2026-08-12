@@ -36,7 +36,13 @@ import {
 } from "@/components/shared/gerencial";
 import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
 import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
-import { contarSituacoes, derivarSituacao, type ProfConferencia } from "@/lib/situacao-funcional";
+import {
+  contarSituacoes,
+  derivarSituacao,
+  overrideSituacaoFolha,
+  aplicarOverrideSituacao,
+  type ProfConferencia,
+} from "@/lib/situacao-funcional";
 import {
   ErpGridProvider,
   ErpTbody,
@@ -335,11 +341,20 @@ export function FrequenciasEfetivosPage() {
   function itensParaExport() {
     return ((folha?.itens ?? []) as any[]).map((it) => {
       const editada = (linhas as any)[it.profissional.id];
+      const base = editada
+        ? { ...(it.linha ?? {}), ...editada, status_linha: it.linha?.status_linha ?? "pendente" }
+        : (it.linha ?? null);
+      
+      const conf = (confMap as any)?.get?.(it.profissional.id) || { ...it.profissional, vinculo: "Efetivo" };
+      const override = overrideSituacaoFolha(conf);
+      
       return {
         ...it,
-        linha: editada
-          ? { ...(it.linha ?? {}), ...editada, status_linha: it.linha?.status_linha ?? "pendente" }
-          : (it.linha ?? null),
+        profissional: {
+          ...it.profissional,
+          situacao: override
+        },
+        linha: aplicarOverrideSituacao(base as any, override, CAMPOS_NUM as any),
       };
     });
   }
@@ -949,6 +964,17 @@ export function FrequenciasEfetivosPage() {
                 const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
                 const ro = !canEdit || linhaAprovada;
                 const situ = derivarSituacao(conf);
+                const overrideSituacao = overrideSituacaoFolha(conf);
+                const CelulaSituacao = (
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={overrideSituacao ?? ""}
+                    title={overrideSituacao ?? ""}
+                    className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-right text-[10px] font-semibold text-slate-600"
+                  />
+                );
                 return (
                   <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
@@ -996,7 +1022,7 @@ export function FrequenciasEfetivosPage() {
                         c.key === "adicional_noturno";
                       return (
                         <td key={c.key} className="erp-group-lanc">
-                          <NumberCell
+                          {overrideSituacao ? CelulaSituacao : <NumberCell
                             rowId={p.id}
                             colKey={c.key}
                             value={Number((l as any)[c.key] ?? 0)}
@@ -1007,13 +1033,13 @@ export function FrequenciasEfetivosPage() {
                               isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
                             }
                             onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
-                          />
+                          />}
                         </td>
                       );
                     })}
                     {CAMPOS_SMS.map((c) => (
                       <td key={c.key} className="erp-group-sms">
-                        <NumberCell
+                        {overrideSituacao ? CelulaSituacao : <NumberCell
                           rowId={p.id}
                           colKey={c.key}
                           value={Number((l as any)[c.key] ?? 0)}
@@ -1021,7 +1047,7 @@ export function FrequenciasEfetivosPage() {
                           className="w-full text-right text-[11px]"
                           validate={validateGeneric}
                           onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
-                        />
+                        />}
                       </td>
                     ))}
                     <td className="erp-group-obs">

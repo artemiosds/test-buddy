@@ -1030,6 +1030,72 @@ export type Database = {
           },
         ]
       }
+      frequencia_assinaturas_snapshot: {
+        Row: {
+          acao: string
+          alinhamento: string | null
+          assinatura_id: string | null
+          created_at: string
+          frequencia_id: string
+          id: string
+          metadata: Json | null
+          posicao_x: number | null
+          posicao_y: number | null
+          storage_path: string | null
+          tamanho_percentual: number | null
+          titular_cargo: string | null
+          titular_nome: string
+          usuario_id: string
+        }
+        Insert: {
+          acao: string
+          alinhamento?: string | null
+          assinatura_id?: string | null
+          created_at?: string
+          frequencia_id: string
+          id?: string
+          metadata?: Json | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          storage_path?: string | null
+          tamanho_percentual?: number | null
+          titular_cargo?: string | null
+          titular_nome: string
+          usuario_id: string
+        }
+        Update: {
+          acao?: string
+          alinhamento?: string | null
+          assinatura_id?: string | null
+          created_at?: string
+          frequencia_id?: string
+          id?: string
+          metadata?: Json | null
+          posicao_x?: number | null
+          posicao_y?: number | null
+          storage_path?: string | null
+          tamanho_percentual?: number | null
+          titular_cargo?: string | null
+          titular_nome?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frequencia_assinaturas_snapshot_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "assinaturas_institucionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frequencia_assinaturas_snapshot_frequencia_id_fkey"
+            columns: ["frequencia_id"]
+            isOneToOne: false
+            referencedRelation: "frequencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       frequencia_historico: {
         Row: {
           acao: string
