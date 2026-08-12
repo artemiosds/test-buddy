@@ -96,7 +96,6 @@ const TIPO_ICON: Record<Tipo, typeof Signature> = {
 
 const BUCKET = "assinaturas";
 
-
 function AssinaturasPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
