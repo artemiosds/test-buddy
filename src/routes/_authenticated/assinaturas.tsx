@@ -791,8 +791,10 @@ function NovaAssinaturaDialog({
         ? await processImage(file)
         : { blob: activeBlob!, ext: "png" };
       
+      if (!userId) throw new Error("ID de usuário inválido.");
+
       const fileName = `${crypto.randomUUID()}.${ext}`;
-      const path = fileName;
+      const path = `institucional/${userId}/${fileName}`;
 
       const up = await supabase.storage.from(BUCKET).upload(path, processedBlob, {
         contentType: ext === "pdf" ? "application/pdf" : "image/png",
@@ -817,7 +819,7 @@ function NovaAssinaturaDialog({
         tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: fileName, // A string do arquivo (".png") mapeada estritamente para storage_path
+        storage_path: path, // O caminho textual completo nunca é reutilizado em campos UUID
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
