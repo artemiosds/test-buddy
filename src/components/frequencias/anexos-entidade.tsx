@@ -37,6 +37,7 @@ export function AnexosEntidade({
   tipoEntidade = "frequencia",
   subtipo,
   unidadeId,
+  setorId,
   canEdit = true,
   titulo = "Documentos anexados",
   mensagemSemEntidade = "Salve a folha antes de anexar documentos.",
@@ -49,6 +50,7 @@ export function AnexosEntidade({
   /** Recorte dentro da entidade (ex.: "efetivos" | "contratados"). */
   subtipo?: string;
   unidadeId: string | null | undefined;
+  setorId?: string | null;
   canEdit?: boolean;
   titulo?: string;
   mensagemSemEntidade?: string;
@@ -72,12 +74,13 @@ export function AnexosEntidade({
   const { has } = usePermissions();
   const podeVerLixeira = mostrarLixeira && has("documento.excluir");
 
-  const chave = ["anexos-entidade", tipoEntidade, subtipo ?? null, alvoId] as const;
+  const chave = ["anexos-entidade", tipoEntidade, subtipo ?? null, alvoId, setorId ?? null] as const;
   const chaveLixeira = [
     "anexos-entidade-lixeira",
     tipoEntidade,
     subtipo ?? null,
     alvoId,
+    setorId ?? null,
   ] as const;
 
   const { data: secretariaId } = useQuery({
@@ -103,7 +106,7 @@ export function AnexosEntidade({
     queryKey: chave,
     enabled: !!alvoId,
     queryFn: async () =>
-      (await listar({ data: { entidade_id: alvoId!, tipo_entidade: tipoEntidade, subtipo } }))
+      (await listar({ data: { entidade_id: alvoId!, tipo_entidade: tipoEntidade, subtipo, setor_id: setorId ?? undefined } }))
         .anexos,
   });
 
@@ -113,7 +116,7 @@ export function AnexosEntidade({
     queryFn: async () =>
       (
         await listarRemovidos({
-          data: { entidade_id: alvoId!, tipo_entidade: tipoEntidade, subtipo },
+          data: { entidade_id: alvoId!, tipo_entidade: tipoEntidade, subtipo, setor_id: setorId ?? undefined },
         })
       ).anexos,
   });
@@ -172,6 +175,7 @@ export function AnexosEntidade({
             entidade_id: alvoId,
             tipo_entidade: tipoEntidade,
             subtipo,
+            setor_id: setorId ?? undefined,
             unidade_id: unidadeId,
             secretaria_id: secretariaId,
             nome: file.name.slice(0, 255),

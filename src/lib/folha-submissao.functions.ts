@@ -7,6 +7,7 @@ import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 const Schema = z.object({
   competencia_id: z.string().uuid(),
   unidade_id: z.string().uuid(),
+  setor_id: z.string().uuid().optional(),
 });
 
 /**
@@ -32,6 +33,18 @@ export const obterSubmissaoFolha = createServerFn({ method: "POST" })
       unidade_id: data.unidade_id,
       userId
     });
+
+
+    if (data.setor_id) {
+      const { data: freqId } = await supabase
+        .from("frequencias")
+        .select("id")
+        .eq("competencia_unidade_id", cuId)
+        .eq("setor_id", data.setor_id)
+        .maybeSingle();
+      
+      if (freqId) return { submissao_id: freqId.id };
+    }
 
     return { submissao_id: cuId };
   });

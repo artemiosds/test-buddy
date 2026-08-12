@@ -274,9 +274,9 @@ export function FrequenciasContratadosPage() {
   // Folha
   const carregar = useServerFn(listarFolhaContratados);
   const { data: folha, isFetching } = useQuery({
-    queryKey: ["folha-contratados", competenciaId, unidadeId],
+    queryKey: ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
     enabled: !!competenciaId && !!unidadeId,
-    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId } }),
+    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
   });
 
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
@@ -367,6 +367,9 @@ export function FrequenciasContratadosPage() {
     setLinhas(next);
   }, [folha]);
 
+  const isMaster = !!me?.is_master;
+  const perfilCodigo = me?.perfil_codigo || "";
+  const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
   const canEdit = !compFechada && has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
@@ -423,6 +426,7 @@ export function FrequenciasContratadosPage() {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
       else toast.success("Rascunho salvo.");
       qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
+      qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar."),
   });
@@ -455,7 +459,8 @@ export function FrequenciasContratadosPage() {
           },
         });
       }
-      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId } });
+      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
+      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: sId } });
     },
     onSuccess: (r: any) => {
       toast.success(`Enviado para aprovação (${r?.enviadas ?? 0} linhas).`);
@@ -471,6 +476,8 @@ export function FrequenciasContratadosPage() {
   const folhaAprovada = folhaStatusUnificado === "aprovada";
   const podeEnviar = useMemo(() => {
     if (!folha?.length) return false;
+    if (!(isDiretor || isMaster || perfilCodigo === "GESTOR") || !has("frequencia.enviar")) return false;
+    
     // Se a folha já está em análise ou aprovada, não pode enviar de novo (a menos que seja devolvida)
     if (folhaStatusUnificado === "em_analise" || folhaStatusUnificado === "enviada" || folhaStatusUnificado === "aprovada") return false;
     
@@ -590,7 +597,7 @@ export function FrequenciasContratadosPage() {
       const p = it.profissional;
       if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
-      if (setorFilter.length > 0 && !setorFilter.includes(p.setor_id || "")) return false;
+      if (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0) && !setorFilter.includes(p.setor_id || "")) return false;
       if (pendFilter !== "todos") {
         const semConta = !p.banco || !p.agencia || !p.conta_corrente;
         if (pendFilter === "sem_conta" && !semConta) return false;
@@ -1324,6 +1331,7 @@ export function FrequenciasContratadosPage() {
         competenciaId={competenciaId}
         unidadeId={unidadeId}
         folha="contratados"
+        setorId={setorFilter.length === 1 ? setorFilter[0] : null}
         enviando={mEnviar.isPending}
         onConfirm={() => mEnviar.mutate()}
       />

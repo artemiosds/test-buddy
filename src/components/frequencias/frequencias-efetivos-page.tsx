@@ -243,9 +243,9 @@ export function FrequenciasEfetivosPage() {
 
   const carregar = useServerFn(listarFolhaEfetivos);
   const { data: folha, isFetching } = useQuery({
-    queryKey: ["folha-efetivos", competenciaId, unidadeId],
+    queryKey: ["folha-efetivos", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
     enabled: !!competenciaId && !!unidadeId && has("frequencia.visualizar"),
-    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId } }),
+    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
   });
 
   useFrequencyRealtime({ 
@@ -295,7 +295,7 @@ export function FrequenciasEfetivosPage() {
   const isOperacional = perfilCodigo === "OPERACIONAL_ADM" || isMaster;
 
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
-  const canEnviar = folhaStatus === "rascunho" && has("frequencia.enviar") && isDiretor;
+  const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
   function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
     setLinhas((prev) => {
@@ -375,6 +375,7 @@ export function FrequenciasEfetivosPage() {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
       else toast.success("Rascunho salvo.");
       qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
+      qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar."),
   });
@@ -390,12 +391,15 @@ export function FrequenciasEfetivosPage() {
           data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
         });
       }
-      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId } });
+      
+      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
+      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: sId } });
     },
     onSuccess: (r: any) => {
       toast.success(`Enviado para aprovação (${r?.enviadas ?? 0} linhas).`);
       setEnviarAberto(false);
       qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
+      qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar."),
   });
@@ -407,7 +411,7 @@ export function FrequenciasEfetivosPage() {
       const p = it.profissional;
       if (cargoFilter !== "todos" && p.cargo_id !== cargoFilter) return false;
       if (funcaoFilter !== "todos" && p.funcao_id !== funcaoFilter) return false;
-      if (setorFilter.length > 0 && !setorFilter.includes(p.setor_id || "")) return false;
+      if (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0) && !setorFilter.includes(p.setor_id || "")) return false;
       if (!q) return true;
       return (
         p.nome.toLowerCase().includes(q) ||
@@ -1148,15 +1152,16 @@ export function FrequenciasEfetivosPage() {
           />
         }
       />
-      <EnviarFolhaDialog
-        open={enviarAberto}
-        onOpenChange={setEnviarAberto}
-        competenciaId={competenciaId}
-        unidadeId={unidadeId}
-        folha="efetivos"
-        enviando={mEnviar.isPending}
-        onConfirm={() => mEnviar.mutate()}
-      />
+        <EnviarFolhaDialog
+          open={enviarAberto}
+          onOpenChange={setEnviarAberto}
+          competenciaId={competenciaId}
+          unidadeId={unidadeId}
+          setorId={setorFilter.length === 1 ? setorFilter[0] : null}
+          folha="efetivos"
+          enviando={mEnviar.isPending}
+          onConfirm={() => mEnviar.mutate()}
+        />
     </div>
   );
 }

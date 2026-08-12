@@ -32,6 +32,7 @@ export function EnviarFolhaDialog({
   competenciaId,
   unidadeId,
   folha,
+  setorId,
   enviando,
   onConfirm,
 }: {
@@ -40,6 +41,7 @@ export function EnviarFolhaDialog({
   competenciaId: string | null | undefined;
   unidadeId: string | null | undefined;
   folha: "efetivos" | "contratados";
+  setorId?: string | null;
   enviando?: boolean;
   onConfirm: () => void;
 }) {
@@ -50,11 +52,11 @@ export function EnviarFolhaDialog({
   const [descartando, setDescartando] = useState(false);
 
   const { data: submissaoId, isFetching } = useQuery({
-    queryKey: ["submissao-folha", competenciaId, unidadeId],
+    queryKey: ["submissao-folha", competenciaId, unidadeId, setorId],
     enabled: open && !!competenciaId && !!unidadeId,
     staleTime: 5 * 60_000,
     queryFn: async () =>
-      (await obter({ data: { competencia_id: competenciaId!, unidade_id: unidadeId! } }))
+      (await obter({ data: { competencia_id: competenciaId!, unidade_id: unidadeId!, setor_id: setorId ?? undefined } }))
         .submissao_id,
   });
 
@@ -105,6 +107,7 @@ export function EnviarFolhaDialog({
               entidadeId={submissaoId}
               tipoEntidade="frequencia_submissao"
               subtipo={folha}
+              setorId={setorId}
               unidadeId={unidadeId}
               titulo="Documentos de justificativa"
               mensagemSemEntidade="Selecione competência e unidade para anexar documentos."

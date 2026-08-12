@@ -114,6 +114,7 @@ function AprovacoesPage() {
     id: string;
     subtipo: string;
     unidadeId: string;
+    setorId?: string | null;
   } | null>(null);
 
   const canAnalisar = has("frequencia.analisar");
@@ -128,13 +129,14 @@ function AprovacoesPage() {
         .select(
           `
           id, tipo, status, data_envio, data_aprovacao, total_profissionais,
-          competencia_unidade_id,
+          competencia_unidade_id, setor_id,
           competencia_unidades:competencia_unidade_id(
             unidade_id,
             competencia_id,
             unidades:unidade_id(id, nome),
             competencias:competencia_id(ano, mes)
-          )
+          ),
+          setores:setor_id(id, nome)
         `,
         )
         .is("deleted_at", null)
@@ -197,7 +199,7 @@ function AprovacoesPage() {
     .filter((v): v is string => !!v);
 
   const { data: anexosPorSubmissao } = useQuery({
-    queryKey: ["aprovacoes-anexos", submissaoIds.join(",")],
+    queryKey: ["aprovacoes-anexos", submissaoIds.join(","), rows?.map(r => r.setor_id).join(',')],
     enabled: submissaoIds.length > 0,
     staleTime: 60_000,
     queryFn: async () => {
@@ -211,7 +213,8 @@ function AprovacoesPage() {
       const mapa: Record<string, number> = {};
       for (const d of data ?? []) {
         const folha = (d.metadata as { folha?: string } | null)?.folha ?? "efetivos";
-        const chave = `${d.entidade_id}:${folha}`;
+        const setorId = (d.metadata as { setor_id?: string } | null)?.setor_id;
+        const chave = setorId ? `${d.entidade_id}:${folha}:${setorId}` : `${d.entidade_id}:${folha}`;
         mapa[chave] = (mapa[chave] ?? 0) + 1;
       }
       return mapa;
@@ -268,15 +271,23 @@ function AprovacoesPage() {
                 const cu = r.competencia_unidades;
                 const comp = cu?.competencias;
                 const pendente = r.status === "enviada" || r.status === "em_analise";
-                const qtdAnexos =
-                  anexosPorSubmissao?.[
-                    `${r.competencia_unidade_id}:${r.tipo === "contratados" ? "contratados" : "efetivos"}`
-                  ] ?? 0;
+                const subtipo = r.tipo === "contratados" ? "contratados" : "efetivos";
+                const chaveAnexo = r.setor_id 
+                  ? `${r.competencia_unidade_id}:${subtipo}:${r.setor_id}`
+                  : `${r.competencia_unidade_id}:${subtipo}`;
+                const qtdAnexos = anexosPorSubmissao?.[chaveAnexo] ?? 0;
                 return (
                   <tr key={r.id} className="border-b last:border-0">
                     <td className="p-3 font-medium">
-                      <span className="inline-flex items-center gap-1.5">
-                        {cu?.unidades?.nome ?? "—"}
+                      <span className="flex flex-col">
+                        <span className="font-medium text-foreground">{cu?.unidades?.nome ?? "—"}</span>
+                        {(r as any).setores?.nome && (
+                          <span className="text-[11px] font-normal text-muted-foreground bg-primary/5 border border-primary/10 px-1.5 py-0 rounded w-fit">
+                            Setor: {(r as any).setores.nome}
+                          </span>
+                        )}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 ml-2">
                         {qtdAnexos > 0 && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
@@ -330,6 +341,7 @@ function AprovacoesPage() {
                             id: r.competencia_unidade_id as string,
                             subtipo: r.tipo === "contratados" ? "contratados" : "efetivos",
                             unidadeId: cu?.unidade_id as string,
+                            setorId: r.setor_id,
                           })
                         }
                       >
@@ -484,8 +496,9 @@ function AprovacoesPage() {
           open={!!modalAnexo}
           onOpenChange={(o) => !o && setModalAnexo(null)}
           entidadeId={modalAnexo.id}
-          subtipo={modalAnexo.subtipo}
-          unidadeId={modalAnexo.unidadeId}
+            subtipo={modalAnexo.subtipo}
+            setorId={modalAnexo.setorId}
+            unidadeId={modalAnexo.unidadeId}
         />
       )}
 
@@ -680,7 +693,7 @@ function LinhasAnaliseDialog({
         const { data, error } = await supabase
           .from("frequencias_contratados")
           .select(
-            "id:profissional_id, profissional_id, status:status, observacoes, dias_trabalhados, dias_falta, atestado, he_50, he_100, profissionais:profissional_id(nome_completo, matricula)",
+            "id:profissional_id, profissional_id, status:status, observacoes, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, profissionais:profissional_id(nome_completo, matricula)",
           )
           .eq("competencia_id", cu.competencia_id)
           .eq("unidade_id", cu.unidade_id)
@@ -694,7 +707,7 @@ function LinhasAnaliseDialog({
           observacao_analise: d.observacoes,
           analisado_em: null,
           analisado_por_usuario: null,
-          plantoes_extras: 0,
+          plantoes_extras: d.plantoes,
           ferias: 0,
           licencas: 0,
           faltas_injustificadas: d.dias_falta
@@ -704,7 +717,7 @@ function LinhasAnaliseDialog({
       const { data, error } = await supabase
         .from("frequencia_profissional")
         .select(
-          "id, profissional_id, status_linha, observacao_analise, analisado_em, dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, he_50, he_100, plantoes_extras, profissionais:profissional_id(nome_completo, matricula), analisado_por_usuario:analisado_por(nome_completo)",
+          "id, profissional_id, status_linha, observacao_analise, analisado_em, dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, ferias_terco, ferias_integral, adicional_noturno, he_50, he_100, plantoes_extras, sobreaviso, incentivo, sal_sub_h, aulas_suplementares, profissionais:profissional_id(nome_completo, matricula), analisado_por_usuario:analisado_por(nome_completo)",
         )
         .eq("frequencia_id", freqId!)
         .is("deleted_at", null)
@@ -934,16 +947,36 @@ function LinhasAnaliseDialog({
           <div className="max-h-[70vh] overflow-auto rounded-lg border custom-scrollbar">
             <table className="w-full text-xs border-collapse">
               <thead className="sticky top-0 border-b bg-muted/90 backdrop-blur-sm z-10">
-                <tr className="text-left">
-                  <th className="p-3 border-r bg-muted/95 sticky left-0 z-20">Profissional / Matrícula</th>
-                  <th className="p-3 border-r text-center bg-muted/95">Status</th>
-                  <th className="p-3 border-r text-center w-20 bg-muted/95">Dias Trab.</th>
-                  <th className="p-3 border-r text-center w-20 bg-muted/95">Faltas</th>
-                  <th className="p-3 border-r text-center w-20 bg-muted/95">Atestado</th>
-                  <th className="p-3 border-r text-center w-20 bg-amber-500/10">HE 50%</th>
-                  <th className="p-3 border-r text-center w-20 bg-amber-600/10">HE 100%</th>
-                  <th className="p-3 border-r text-center w-24 bg-muted/95">Observação / Justificativa</th>
-                  <th className="p-3 text-right w-32 bg-muted/95">Decisão</th>
+                <tr className="text-left text-[10px] uppercase tracking-wider">
+                  <th className="p-2 border-r bg-muted/95 sticky left-0 z-20 min-w-[180px]">Profissional / Matrícula</th>
+                  <th className="p-2 border-r text-center bg-muted/95">Status</th>
+                  <th className="p-2 border-r text-center w-12 bg-muted/95">Dias</th>
+                  <th className="p-2 border-r text-center w-12 bg-muted/95">Faltas</th>
+                  <th className="p-2 border-r text-center w-12 bg-muted/95">ATT</th>
+                  <th className="p-2 border-r text-center w-12 bg-amber-500/10">50%</th>
+                  <th className="p-2 border-r text-center w-12 bg-amber-600/10">100%</th>
+                  {freqBase?.tipo === "efetivos" && (
+                    <>
+                      <th className="p-2 border-r text-center w-12 bg-blue-500/10">1/3</th>
+                      <th className="p-2 border-r text-center w-12 bg-blue-600/10">Int.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Not.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Plat.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sob.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Inc.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sub.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Aul.</th>
+                    </>
+                  )}
+                  {freqBase?.tipo === "contratados" && (
+                    <>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">ADN</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Plat.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sob.</th>
+                      <th className="p-2 border-r text-center w-12 bg-muted/95">Inc.</th>
+                    </>
+                  )}
+                  <th className="p-2 border-r text-center w-24 bg-muted/95">Obs / Justif</th>
+                  <th className="p-2 text-right w-32 bg-muted/95">Decisão</th>
                 </tr>
               </thead>
               <tbody>
@@ -983,21 +1016,65 @@ function LinhasAnaliseDialog({
                           )}
                         </div>
                       </td>
-                      <td className="p-3 border-r text-center font-medium bg-muted/10">
+                      <td className="p-2 border-r text-center font-medium bg-muted/10">
                         {String((l as any).dias_trabalhados ?? 0)}
                       </td>
-                      <td className="p-3 border-r text-center font-medium text-destructive/80">
+                      <td className="p-2 border-r text-center font-medium text-destructive/80">
                         {String((l as any).faltas_injustificadas ?? (l as any).dias_falta ?? 0)}
                       </td>
-                      <td className="p-3 border-r text-center font-medium text-blue-600/80">
+                      <td className="p-2 border-r text-center font-medium text-blue-600/80">
                         {String((l as any).atestado ?? 0)}
                       </td>
-                      <td className="p-3 border-r text-center font-bold text-amber-600 bg-amber-500/5">
+                      <td className="p-2 border-r text-center font-bold text-amber-600 bg-amber-500/5">
                         {String(l.he_50 ?? 0)}
                       </td>
-                      <td className="p-3 border-r text-center font-bold text-amber-700 bg-amber-600/5">
+                      <td className="p-2 border-r text-center font-bold text-amber-700 bg-amber-600/5">
                         {String(l.he_100 ?? 0)}
                       </td>
+                      {freqBase?.tipo === "efetivos" && (
+                        <>
+                          <td className="p-2 border-r text-center font-medium text-blue-700 bg-blue-500/5">
+                            {String((l as any).ferias_terco ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium text-blue-800 bg-blue-600/5">
+                            {String((l as any).ferias_integral ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).adicional_noturno ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String(l.plantoes_extras ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).sobreaviso ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).incentivo ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).sal_sub_h ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).aulas_suplementares ?? 0)}
+                          </td>
+                        </>
+                      )}
+                      {freqBase?.tipo === "contratados" && (
+                        <>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).adn ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).plantoes ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).sobreaviso ?? 0)}
+                          </td>
+                          <td className="p-2 border-r text-center font-medium">
+                            {String((l as any).incentivo ?? 0)}
+                          </td>
+                        </>
+                      )}
                       <td className="p-3 border-r">
                         <Input
                           placeholder="Motivo da decisão..."

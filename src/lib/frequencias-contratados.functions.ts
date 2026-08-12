@@ -32,13 +32,14 @@ const LinhaSchema = z.object({
 
 const SalvarSchema = z.object({
   competencia_id: z.string().uuid(),
-  unidade_id: z.string().uuid(),
+  unidade_id: z.string().uuid(), setor_id: z.string().uuid().optional(),
   linhas: z.array(LinhaSchema),
 });
 
 const EnviarSchema = z.object({
   competencia_id: z.string().uuid(),
   unidade_id: z.string().uuid(),
+  setor_id: z.string().uuid().optional(),
 });
 
 const PAYLOAD_FIELDS = [
@@ -61,11 +62,12 @@ const PAYLOAD_FIELDS = [
  */
 export const listarFolhaContratados = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((d: { competencia_id: string; unidade_id: string }) =>
+  .validator((d: { competencia_id: string; unidade_id: string; setor_id?: string | string[] }) =>
     z
       .object({
         competencia_id: z.string().uuid(),
         unidade_id: z.string().uuid(),
+        setor_id: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional(),
       })
       .parse(d),
   )
@@ -73,7 +75,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
-    const { data: allProfs, error: pErr } = await supabase
+    const query = supabase
       .from("profissionais")
       .select(
         `
@@ -90,6 +92,16 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
       .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
       .order("nome_completo");
+
+    if (data.setor_id) {
+      if (Array.isArray(data.setor_id)) {
+        query.in("setor_id", data.setor_id);
+      } else {
+        query.eq("setor_id", data.setor_id);
+      }
+    }
+
+    const { data: allProfs, error: pErr } = await query;
     
     if (pErr) throw new Error(pErr.message);
 
@@ -201,6 +213,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id,
         profissional_id: l.profissional_id,
         updated_by: userId,
+        setor_id: data.setor_id ?? null,
         status: ex ? ex.status : "rascunho",
       };
 
@@ -268,6 +281,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       } as never)
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
+      .filter("profissional_id", "in", `(select id from profissionais where setor_id ${data.setor_id ? "=" : "is"} ${data.setor_id ? "'" + data.setor_id + "'" : "null"})`)
       .in("status", ["rascunho", "rejeitada", "devolvida"])
       .is("deleted_at", null)
       .select("id");
@@ -280,6 +294,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
         tipo: "contratados",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
+        setor_id: data.setor_id,
       }
     });
 
@@ -290,6 +305,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .eq("tipo", "contratados")
       .eq("competencia_unidades.competencia_id", data.competencia_id)
       .eq("competencia_unidades.unidade_id", data.unidade_id)
+      .filter("setor_id", data.setor_id ? "eq" : "is", data.setor_id ?? null)
       .maybeSingle();
 
     if (freq?.id) {

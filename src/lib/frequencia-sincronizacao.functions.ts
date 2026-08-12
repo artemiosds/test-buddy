@@ -32,6 +32,7 @@ const SincronizarSchema = z.object({
   tipo: z.enum(["efetivos", "contratados", "mensal"]),
   competencia_id: z.string().uuid(),
   unidade_id: z.string().uuid(),
+  setor_id: z.string().uuid().optional(),
   payload: z.any().optional(),
 });
 
@@ -45,7 +46,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     try {
       const { userId } = context;
-    const { evento, tipo, competencia_id, unidade_id } = data;
+    const { evento, tipo, competencia_id, unidade_id, setor_id } = data;
 
     // 1. Localiza (ou cria) a competencia_unidade_id de forma segura
     const cuId = await garantirCompetenciaUnidade({
@@ -70,12 +71,18 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       // Para contratados, precisamos garantir que todos os profissionais elegíveis apareçam no total,
       // mesmo que ainda não tenham uma linha salva em frequencias_contratados.
       // O filtro de vínculos deve ser abrangente para não omitir profissionais da unidade.
-      const { data: profs, error: pErr } = await supabaseAdmin
+      const query = supabaseAdmin
         .from("profissionais")
-        .select(`id, vinculos!inner ( natureza, nome )`)
+        .select(`id, setor_id, vinculos!inner ( natureza, nome )`)
         .eq("unidade_id", unidade_id)
         .not("status", "in", "(desligado,inativo)")
         .is("deleted_at", null);
+
+      if (setor_id) {
+        query.eq("setor_id", setor_id);
+      }
+
+      const { data: profs, error: pErr } = await query;
 
       if (pErr) throw pErr;
 
@@ -99,6 +106,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         .select("*")
         .eq("competencia_id", competencia_id)
         .eq("unidade_id", unidade_id)
+        .in("profissional_id", elegiveis.map(e => e.id))
         .is("deleted_at", null);
 
       if (err) throw err;
@@ -128,21 +136,32 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
 
     } else {
       // Efetivos ou Mensal (usam frequencia_profissional vinculada a uma frequencia base)
-      const { data: freqBase, error: fbErr } = await supabaseAdmin
+      const queryBase = supabaseAdmin
         .from("frequencias")
         .select("id, status, data_envio, enviada_por, data_aprovacao, aprovada_por")
         .eq("competencia_unidade_id", cu.id)
         .eq("tipo", (tipo === "mensal" ? "mensal" : tipo) as any)
-        .is("deleted_at", null)
-        .maybeSingle();
+        .is("deleted_at", null);
+
+      if (setor_id) {
+        queryBase.eq("setor_id", setor_id);
+      } else {
+        queryBase.is("setor_id", null);
+      }
+
+      const { data: freqBase, error: fbErr } = await queryBase.maybeSingle();
 
       if (fbErr) throw fbErr;
       if (!freqBase) return { ok: true, msg: "Frequência base não encontrada para sincronização." };
 
       const { data: linhas, error: lErr } = await supabaseAdmin
         .from("frequencia_profissional")
-        .select("dias_trabalhados, faltas_injustificadas, faltas_justificadas")
+        .select(`
+          dias_trabalhados, faltas_injustificadas, faltas_justificadas,
+          profissionais!inner(setor_id)
+        `)
         .eq("frequencia_id", freqBase.id)
+        .filter("profissionais.setor_id", setor_id ? "eq" : "is", setor_id ?? null)
         .is("deleted_at", null);
 
       if (lErr) throw lErr;
@@ -166,6 +185,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       .upsert({
         competencia_unidade_id: cu.id,
         tipo: tipo as any,
+        setor_id: setor_id ?? null,
         status: statusOficial as any,
         total_profissionais: totalProfissionais,
         total_dias_trabalhados: totalDias,
@@ -176,7 +196,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         aprovada_por: aprovadaPor,
         updated_by: userId,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "competencia_unidade_id, tipo", ignoreDuplicates: false });
+      }, { onConflict: "competencia_unidade_id, tipo, setor_id" });
 
     if (upsertErr) throw upsertErr;
 

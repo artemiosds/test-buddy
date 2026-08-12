@@ -1481,6 +1481,7 @@ export type Database = {
           enviada_por: string | null
           id: string
           observacoes: string | null
+          setor_id: string | null
           status: Database["public"]["Enums"]["status_frequencia"]
           tipo: Database["public"]["Enums"]["tipo_frequencia"]
           total_dias_trabalhados: number
@@ -1502,6 +1503,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           observacoes?: string | null
+          setor_id?: string | null
           status?: Database["public"]["Enums"]["status_frequencia"]
           tipo: Database["public"]["Enums"]["tipo_frequencia"]
           total_dias_trabalhados?: number
@@ -1523,6 +1525,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           observacoes?: string | null
+          setor_id?: string | null
           status?: Database["public"]["Enums"]["status_frequencia"]
           tipo?: Database["public"]["Enums"]["tipo_frequencia"]
           total_dias_trabalhados?: number
@@ -1552,6 +1555,13 @@ export type Database = {
             columns: ["enviada_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frequencias_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "setores"
             referencedColumns: ["id"]
           },
         ]

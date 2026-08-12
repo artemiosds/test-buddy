@@ -306,7 +306,7 @@ function FrequenciaDetalhe() {
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza)",
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza), status, setores(id, nome)",
         )
         .eq("unidade_id", unidadeId!)
         .not("status", "in", "(desligado,inativo)")
@@ -377,7 +377,7 @@ function FrequenciaDetalhe() {
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza)",
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza), status, setores(id, nome)",
         )
         .in("id", linhaProfIds);
       if (error) throw error;
@@ -389,6 +389,8 @@ function FrequenciaDetalhe() {
     id: string;
     nome_completo: string;
     matricula: string | null;
+    status?: string | null;
+    setores?: { id: string; nome: string } | null;
     cpf?: string | null;
     cargo_id?: string | null;
     funcao_id?: string | null;
@@ -838,15 +840,30 @@ function FrequenciaDetalhe() {
         const grupos: Record<string, { codigo_setor: string; nome_setor: string; itens: any[] }> = {
           GERAL: { codigo_setor: "1", nome_setor: "GERAL", itens: [] },
         };
+        
+        // Coletar setores únicos se existirem nos profissionais
         for (const l of linhasEfetivosExportacao) {
           const p = profMap.get(l.profissional_id);
-          grupos.GERAL.itens.push({
+          const setor = p?.setores?.nome || "GERAL";
+          if (!grupos[setor]) {
+            grupos[setor] = { 
+              codigo_setor: String(Object.keys(grupos).length + 1), 
+              nome_setor: setor, 
+              itens: [] 
+            };
+          }
+        }
+
+        for (const l of linhasEfetivosExportacao) {
+          const p = profMap.get(l.profissional_id);
+          const setor = p?.setores?.nome || "GERAL";
+          grupos[setor].itens.push({
             profissional: {
               id: l.profissional_id,
               matricula: p?.matricula ?? null,
               nome: p?.nome_completo ?? l.profissional_id,
               cargo: p?.vinculos?.nome ?? null,
-              setor: "GERAL",
+              setor: p?.setores?.nome || "GERAL",
               proj: p?.proj ?? null,
               h_p: p?.h_p ?? null,
               c_h: p?.c_h ?? null,
@@ -870,15 +887,17 @@ function FrequenciaDetalhe() {
           });
         }
         const { gerarFolhaEfetivosOficial } = await import("@/lib/pdf-folha-efetivos-oficial");
+        const unidadesExport = [
+          {
+            codigo_unidade: "1.18.XXX",
+            nome_unidade: unidade,
+            grupos: Object.values(grupos).sort((a, b) => a.nome_setor.localeCompare(b.nome_setor)),
+          },
+        ];
+
         await gerarFolhaEfetivosOficial({
           competencia: { mes: comp.mes, ano: comp.ano },
-          unidades: [
-            {
-              codigo_unidade: "1.18.XXX",
-              nome_unidade: unidade,
-              grupos: Object.values(grupos),
-            },
-          ],
+          unidades: unidadesExport,
           emitidoPor: me?.nome_completo ?? me?.email ?? "SISTEMA",
           unidadeId: cu?.unidade_id ?? null,
           secretariaId: me?.secretaria_id ?? null,
@@ -1238,6 +1257,7 @@ function FrequenciaDetalhe() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Mat. {p?.matricula ?? "—"}
+                        {p?.setores?.nome ? ` · Setor: ${p.setores.nome}` : ""}
                         {p?.vinculos?.nome ? ` · ${p.vinculos.nome}` : ""}
                       </div>
                     </td>

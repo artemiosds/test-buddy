@@ -29,13 +29,14 @@ const LinhaSchema = z.object({
 
 const SalvarSchema = z.object({
   competencia_id: z.string().uuid(),
-  unidade_id: z.string().uuid(),
+  unidade_id: z.string().uuid(), setor_id: z.string().uuid().optional(),
   linhas: z.array(LinhaSchema),
 });
 
 const EnviarSchema = z.object({
   competencia_id: z.string().uuid(),
   unidade_id: z.string().uuid(),
+  setor_id: z.string().uuid().optional(),
 });
 
 const PAYLOAD_FIELDS = [
@@ -63,7 +64,7 @@ type SupabaseCtx = { supabase: any; userId: string };
  * Garante que exista uma competencia_unidades para (comp, unidade) e uma
  * frequencias(tipo='efetivos') vinculada, retornando ambos os ids.
  */
-async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, unidade_id: string) {
+async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, unidade_id: string, setor_id?: string | string[]) {
   const { supabase, userId } = ctx;
 
   const cuId = await garantirCompetenciaUnidade({
@@ -77,6 +78,7 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
     .select("id, status")
     .eq("competencia_unidade_id", cuId)
     .eq("tipo", "efetivos")
+    .filter("setor_id", Array.isArray(setor_id) ? "in" : (setor_id ? "eq" : "is"), Array.isArray(setor_id) ? `(${setor_id.join(",")})` : (setor_id ?? null))
     .is("deleted_at", null)
     .maybeSingle();
   if (fErr) throw new Error(fErr.message);
@@ -87,6 +89,7 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
       .insert({
         competencia_unidade_id: cuId,
         tipo: "efetivos",
+        setor_id: Array.isArray(setor_id) ? null : (setor_id ?? null),
         status: "rascunho",
         created_by: userId,
       } as never)
@@ -105,11 +108,12 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
 
 export const listarFolhaEfetivos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: { competencia_id: string; unidade_id: string }) =>
+  .validator((d: { competencia_id: string; unidade_id: string; setor_id?: string | string[] }) =>
     z
       .object({
         competencia_id: z.string().uuid(),
         unidade_id: z.string().uuid(),
+        setor_id: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional(),
       })
       .parse(d),
   )
@@ -121,9 +125,10 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
+      data.setor_id
     );
 
-    const { data: profs, error: pErr } = await supabase
+    const query = supabase
       .from("profissionais")
       .select(
         `
@@ -140,7 +145,16 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       .not("status", "in", "(desligado,inativo)")
       .is("deleted_at", null)
       .order("nome_completo");
-    if (pErr) throw new Error(pErr.message);
+
+    if (data.setor_id) {
+      if (Array.isArray(data.setor_id)) {
+        query.in("setor_id", data.setor_id);
+      } else {
+        query.eq("setor_id", data.setor_id);
+      }
+    }
+
+    const { data: profs, error: pErr } = await query;
 
     // Filtro de efetivos: Estatutário/Efetivo ou Comissionado
     const profsFinais = (profs ?? []).filter((p: any) => {
@@ -214,6 +228,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
+      data.setor_id
     );
     if (
       frequencia_status !== "rascunho" &&
@@ -314,6 +329,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
+      data.setor_id as string | undefined
     );
 
     // Validação de segurança: total de dias no mês
@@ -326,7 +342,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
     if (comp) {
       const { data: linhas } = await supabase
         .from("frequencia_profissional")
-        .select("dias_trabalhados, faltas_injustificadas, atestado, ferias, licenca_premio")
+        .select("dias_trabalhados, faltas_injustificadas, atestado, ferias, licenca_premio, profissionais!inner(setor_id)")
         .eq("frequencia_id", frequencia_id)
         .is("deleted_at", null);
       
@@ -372,6 +388,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
         tipo: "efetivos",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
+        setor_id: Array.isArray(data.setor_id) ? undefined : data.setor_id,
       }
     });
 

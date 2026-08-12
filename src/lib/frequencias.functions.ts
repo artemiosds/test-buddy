@@ -645,6 +645,7 @@ const AnexoSchema = z.object({
   /** Recorte dentro da entidade (ex.: "efetivos" | "contratados" na submissão). */
   subtipo: z.string().max(30).optional(),
   unidade_id: z.string().uuid().nullable().optional(),
+  setor_id: z.string().uuid().nullable().optional(),
   secretaria_id: z.string().uuid().nullable().optional(),
   categoria_id: z.string().uuid().nullable().optional(),
   nome: z.string().min(1).max(255),
@@ -667,6 +668,7 @@ export const registrarAnexoLinha = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id ?? null,
         secretaria_id: data.secretaria_id ?? null,
         categoria_id: data.categoria_id ?? null,
+        setor_id: data.setor_id ?? null,
         nome: data.nome,
         storage_path: data.storage_path,
         mime_type: data.mime_type,
@@ -675,6 +677,7 @@ export const registrarAnexoLinha = createServerFn({ method: "POST" })
           entidade_id: data.entidade_id,
           tipo_entidade: data.tipo_entidade,
           ...(data.subtipo ? { folha: data.subtipo } : {}),
+          ...(data.setor_id ? { setor_id: data.setor_id } : {}),
         },
         created_by: userId,
       } as never)
@@ -693,6 +696,7 @@ const ListarAnexosSchema = z.object({
   entidade_id: z.string().uuid(),
   tipo_entidade: TipoAnexoEnum.default("frequencia"),
   subtipo: z.string().max(30).optional(),
+  setor_id: z.string().uuid().optional(),
 });
 
 /**
@@ -712,6 +716,7 @@ export const listarAnexosLinha = createServerFn({ method: "POST" })
       .eq("entidade_id", data.entidade_id)
       .is("deleted_at", null);
     if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    if (data.setor_id) q = q.eq("metadata->>setor_id", data.setor_id);
     const { data: docs, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
@@ -828,6 +833,7 @@ export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
       .eq("entidade_id", data.entidade_id)
       .not("deleted_at", "is", null);
     if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    if (data.setor_id) q = q.eq("metadata->>setor_id", data.setor_id);
     const { data: docs, error } = await q.order("deleted_at", { ascending: false });
     if (error) throw new Error(error.message);
 

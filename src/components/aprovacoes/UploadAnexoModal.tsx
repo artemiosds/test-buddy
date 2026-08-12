@@ -17,6 +17,7 @@ interface UploadAnexoModalProps {
   entidadeId: string;
   subtipo: string;
   unidadeId: string;
+  setorId?: string | null;
   titulo?: string;
 }
 
@@ -26,6 +27,7 @@ export function UploadAnexoModal({
   entidadeId,
   subtipo,
   unidadeId,
+  setorId,
   titulo = "Documentos Comprobatórios",
 }: UploadAnexoModalProps) {
   const { has } = usePermissions();
@@ -47,6 +49,7 @@ export function UploadAnexoModal({
             tipoEntidade="frequencia_submissao"
             subtipo={subtipo}
             unidadeId={unidadeId}
+            setorId={setorId}
             canEdit={canEdit}
             mostrarLixeira={true}
             titulo="Arquivos da Folha"
