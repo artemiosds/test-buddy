@@ -412,7 +412,7 @@ function CadastroTab({
         .update({ deleted_at: new Date().toISOString(), deleted_by: me?.id, ativa: false })
         .eq("id", row.id);
       if (error) throw error;
-      await supabase.storage.from(BUCKET).remove([row.storage_path]);
+      await removeSignatureFile(row.storage_path, me?.id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assinaturas-list"] });
@@ -604,16 +604,17 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
   const [open, setOpen] = useState(false);
 
   async function abrir() {
-    if (path?.startsWith("institutional_")) {
+    if (isVirtualSignature(path)) {
       setOpen(true);
       return;
     }
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
-    if (error) {
-      toast.error(error.message);
+    const { data: auth } = await supabase.auth.getUser();
+    const signed = await getSignatureSignedUrl(path, auth.user?.id, 300);
+    if (!signed) {
+      toast.error("Arquivo da assinatura não encontrado no armazenamento.");
       return;
     }
-    setUrl(data.signedUrl);
+    setUrl(signed);
     setOpen(true);
   }
 
