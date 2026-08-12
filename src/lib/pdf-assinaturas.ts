@@ -9,6 +9,7 @@
  */
 import type jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
+import { getSignatureSignedUrl } from "@/lib/assinatura-storage";
 
 export type TipoDocumento =
   | "frequencia"
@@ -165,13 +166,11 @@ export async function resolverAssinaturasDocumento(
     rows.map(async (r) => {
       let imageData: string | null = null;
       if (r.storage_path) {
-        const { data: signed } = await supabase.storage
-          .from("assinaturas")
-          .createSignedUrl(r.storage_path, 300);
-        if (signed?.signedUrl) {
+        const signedUrl = await getSignatureSignedUrl(r.storage_path, null, 300);
+        if (signedUrl) {
           // Na Vercel, URLs assinadas do Supabase podem ter restrições de CORS ou rede
           // Converter para DataURL garante que o jsPDF consiga ler a imagem
-          imageData = await urlToDataUrl(signed.signedUrl);
+          imageData = await urlToDataUrl(signedUrl);
         }
       }
       const p = r.assinatura_id ? extraMap.get(r.assinatura_id) : undefined;
