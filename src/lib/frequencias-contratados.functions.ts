@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
+import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -119,7 +120,7 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     if (profIds.length) {
       const { data: fs, error: fErr } = await supabase
         .from("frequencias_contratados")
-        .select("*")
+        .select("status, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, observacoes, profissional_id, competencia_id, unidade_id")
         .eq("competencia_id", data.competencia_id)
         .eq("unidade_id", data.unidade_id)
         .in("profissional_id", profIds)
@@ -213,7 +214,6 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id,
         profissional_id: l.profissional_id,
         updated_by: userId,
-        setor_id: data.setor_id ?? null,
         status: ex ? ex.status : "rascunho",
       };
 
@@ -250,6 +250,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         tipo: "contratados",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
+        setor_id: data.setor_id,
       }
     });
 
@@ -271,6 +272,20 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const now = new Date().toISOString();
+    // Resolvemos os profissionais do setor se houver filtro
+    const profQuery = supabase
+      .from("profissionais")
+      .select("id")
+      .eq("unidade_id", data.unidade_id)
+      .is("deleted_at", null);
+    
+    if (data.setor_id) {
+      profQuery.eq("setor_id", data.setor_id);
+    }
+
+    const { data: profs } = await profQuery;
+    const profIds = (profs ?? []).map(p => p.id);
+
     const { data: updated, error } = await supabase
       .from("frequencias_contratados")
       .update({
@@ -281,7 +296,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       } as never)
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
-      .filter("profissional_id", "in", `(select id from profissionais where setor_id ${data.setor_id ? "=" : "is"} ${data.setor_id ? "'" + data.setor_id + "'" : "null"})`)
+      .in("profissional_id", profIds)
       .in("status", ["rascunho", "rejeitada", "devolvida"])
       .is("deleted_at", null)
       .select("id");
@@ -303,8 +318,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .from("frequencias")
       .select("id, status")
       .eq("tipo", "contratados")
-      .eq("competencia_unidades.competencia_id", data.competencia_id)
-      .eq("competencia_unidades.unidade_id", data.unidade_id)
+      .eq("competencia_unidade_id", (await garantirCompetenciaUnidade({ competencia_id: data.competencia_id, unidade_id: data.unidade_id, userId }))!)
       .filter("setor_id", data.setor_id ? "eq" : "is", data.setor_id ?? null)
       .maybeSingle();
 

@@ -103,7 +103,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
 
       const { data: contratados, error: err } = await supabaseAdmin
         .from("frequencias_contratados")
-        .select("*")
+        .select("status, dias_trabalhados, dias_falta, enviada_em, enviada_por, aprovada_em, aprovada_por")
         .eq("competencia_id", competencia_id)
         .eq("unidade_id", unidade_id)
         .in("profissional_id", elegiveis.map(e => e.id))
@@ -144,9 +144,9 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         .is("deleted_at", null);
 
       if (setor_id) {
-        queryBase.eq("setor_id", setor_id);
+        queryBase.filter("setor_id", "eq", setor_id);
       } else {
-        queryBase.is("setor_id", null);
+        queryBase.filter("setor_id", "is", null);
       }
 
       const { data: freqBase, error: fbErr } = await queryBase.maybeSingle();

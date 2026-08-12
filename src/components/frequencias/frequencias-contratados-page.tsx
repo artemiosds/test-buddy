@@ -402,10 +402,12 @@ export function FrequenciasContratadosPage() {
 
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
       if (!dirtyList.length) return { ok: true, sem_alteracoes: true };
+      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
       return salvarFn({
         data: {
           competencia_id: competenciaId,
           unidade_id: unidadeId,
+          setor_id: sId,
           linhas: dirtyList.map((l) => ({
             profissional_id: l.profissional_id,
             dias_trabalhados: l.dias_trabalhados,
@@ -438,11 +440,13 @@ export function FrequenciasContratadosPage() {
 
       // salva antes se houver alterações
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
+      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
       if (dirtyList.length) {
         await salvarFn({
           data: {
             competencia_id: competenciaId,
             unidade_id: unidadeId,
+            setor_id: sId,
             linhas: dirtyList.map((l) => ({
               profissional_id: l.profissional_id,
               dias_trabalhados: l.dias_trabalhados,
@@ -459,7 +463,6 @@ export function FrequenciasContratadosPage() {
           },
         });
       }
-      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
       return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: sId } });
     },
     onSuccess: (r: any) => {
