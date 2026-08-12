@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { getPdfjs } from "@/lib/piso-pdf";
 import { applySignaturesToPdf, type SignatureInstance } from "@/lib/pdf-editor";
 import { supabase } from "@/integrations/supabase/client";
+import { getSignatureSignedUrl, isVirtualSignature } from "@/lib/assinatura-storage";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { registrarDocumentoAssinado, armazenarPdfAssinado } from "@/lib/pdf-signature";
 
@@ -53,11 +54,9 @@ export function PDFSignatureEditor({ fileUrl, fileName }: PDFSignatureEditorProp
         .is("deleted_at", null);
       
       const sigsWithUrls = await Promise.all((data || []).map(async (sig) => {
-        if (sig.storage_path && !sig.storage_path.startsWith('institutional_')) {
-          const { data: signed } = await supabase.storage
-            .from("assinaturas")
-            .createSignedUrl(`${me.id}/${sig.storage_path}`, 3600);
-          return { ...sig, imageUrl: signed?.signedUrl };
+        if (sig.storage_path && !isVirtualSignature(sig.storage_path)) {
+          const signedUrl = await getSignatureSignedUrl(sig.storage_path, me.id, 3600);
+          return { ...sig, imageUrl: signedUrl ?? undefined };
         }
         return sig;
       }));
