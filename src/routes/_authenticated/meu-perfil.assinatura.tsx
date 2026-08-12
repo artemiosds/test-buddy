@@ -28,6 +28,7 @@ import {
 import { SignaturePad } from "@/components/assinaturas/signature-pad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateInstitutionalHash, saveInstitutionalSignature } from "@/lib/assinaturas-institucionais.functions";
+import { getSignatureSignedUrl, removeSignatureFile } from "@/lib/assinatura-storage";
 import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/meu-perfil/assinatura")({ errorComponent: ErrorComponent,
@@ -132,8 +133,7 @@ export function MinhaAssinaturaPage() {
       const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
       if (error) throw error;
       
-      const fullPath = row.storage_path.includes('/') ? row.storage_path : `${userId}/${row.storage_path}`;
-      await supabase.storage.from(BUCKET).remove([fullPath]);
+      await removeSignatureFile(row.storage_path, userId);
     },
     onSuccess: () => {
       toast.success("Assinatura removida");
@@ -421,7 +421,8 @@ function UploadForm({
         unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: fileName, // fileName (".png") mapeado estritamente para storage_path
+        // Caminho completo do arquivo — coluna textual, nunca reutilizada em campos UUID
+        storage_path: storagePath,
         mime_type: "image/png",
         is_pessoal: true,
         ativa: true,
@@ -633,9 +634,8 @@ function AssinaturaCard({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const fullPath = row.storage_path.includes('/') ? row.storage_path : (userId ? `${userId}/${row.storage_path}` : row.storage_path);
-      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fullPath, 600);
-      if (!cancel) setSignedUrl(data?.signedUrl ?? null);
+      const url = await getSignatureSignedUrl(row.storage_path, userId, 600);
+      if (!cancel) setSignedUrl(url);
     })();
     return () => {
       cancel = true;
