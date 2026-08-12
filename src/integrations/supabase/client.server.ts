@@ -33,10 +33,11 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.SB_URL;
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SERVICE_ROLE_KEY ||
+    process.env.SB_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ADMIN_KEY;
 
   if (!SUPABASE_URL || !serviceRoleKey) {
@@ -44,7 +45,7 @@ function createSupabaseAdminClient() {
       ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
       ...(!serviceRoleKey ? ["SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY"] : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Add the Supabase service_role key as SERVICE_ROLE_KEY in project secrets.`;
+    const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Add the Supabase service_role key as SB_SERVICE_ROLE_KEY in project secrets.`;
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }

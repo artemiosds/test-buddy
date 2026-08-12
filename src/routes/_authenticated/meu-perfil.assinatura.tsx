@@ -1,4 +1,5 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
+import { SeloAssinaturaInstitucional } from "@/components/assinaturas/selo-assinatura-institucional";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -491,31 +492,24 @@ function UploadForm({
           </TabsContent>
 
           <TabsContent value="institutional" className="pt-4 space-y-4">
-            <div className="bg-slate-50 border rounded-lg p-6 space-y-4 font-mono text-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-5">
-                <ShieldCheck className="h-24 w-24" />
-              </div>
-              
-              <div className="text-center border-b border-slate-200 pb-2 mb-4">
-                <h3 className="font-bold text-slate-900 uppercase tracking-tighter">Assinatura Eletrônica Institucional</h3>
-              </div>
-              
-              <div className="space-y-2 text-slate-700">
-                <p><span className="text-slate-400">Nome:</span> {titularNome || me.nome_completo || '---'}</p>
-                <p><span className="text-slate-400">Cargo:</span> {titularCargo || '---'}</p>
-                <p><span className="text-slate-400">Matrícula:</span> {me.matricula || '---'}</p>
-                <p><span className="text-slate-400">CPF:</span> {me.cpf ? (me.cpf.length === 11 ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : me.cpf) : '---'}</p>
-                <p><span className="text-slate-400">Órgão:</span> {unidades.find(u => u.id === (unidadeId === "__todas__" ? null : unidadeId))?.nome || 'Todas as Unidades'}</p>
-                <p><span className="text-slate-400">Data/Hora:</span> {instTimestamp ? new Date(instTimestamp).toLocaleString('pt-BR') : '---'}</p>
-              </div>
-              
-              <div className="mt-6 pt-4 border-t border-dashed border-slate-300">
-                <p className="text-[10px] text-slate-400 mb-1">Código de validação:</p>
-                <div className="bg-white border border-slate-200 rounded p-2 text-center font-bold text-primary tracking-widest">
-                  {instHash || '---- ---- ---- ----'}
-                </div>
-              </div>
-            </div>
+            <SeloAssinaturaInstitucional
+              nome={titularNome || me.nome_completo || null}
+              cargo={titularCargo || null}
+              matricula={me.matricula || null}
+              cpf={
+                me.cpf
+                  ? me.cpf.length === 11
+                    ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}`
+                    : me.cpf
+                  : null
+              }
+              orgao={
+                unidades.find((u) => u.id === (unidadeId === "__todas__" ? null : unidadeId))
+                  ?.nome || "Todas as Unidades"
+              }
+              dataHora={instTimestamp || null}
+              codigo={instHash || null}
+            />
 
             <Button 
               type="button" 

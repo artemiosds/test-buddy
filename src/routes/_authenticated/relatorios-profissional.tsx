@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
@@ -357,7 +358,12 @@ function RelatorioProfissionalPage() {
         /* best effort */
       }
     }
-    doc.save(`profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `profissional_${profSelecionado?.nome_completo ?? "hist"}.pdf`,
+      tipo: "relatorio",
+      assinaturas: assinProf,
+      yPadraoMm: pageHeight - 60,
+    });
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
       tabela: "profissionais",
       registro_id: profSelecionado?.id ?? null,

@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -191,7 +192,10 @@ export function FolhaTimeline({
     const cert = await gerarCertificado({ conteudo: { folha: folha.id, etapas }, usuario });
     if (nivel === "completo") drawWatermark(doc, cert.rastreio);
     drawCertificadoRodape(doc, cert);
-    doc.save(`trilha_folha_${folha.id.slice(0, 8)}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `trilha_folha_${folha.id.slice(0, 8)}.pdf`,
+      tipo: "relatorio",
+    });
     registrarDownload({
       relatorio: "auditoria.trilha_folha",
       formato: "pdf",

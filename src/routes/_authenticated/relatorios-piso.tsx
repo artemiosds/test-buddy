@@ -48,6 +48,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export const Route = createFileRoute("/_authenticated/relatorios-piso")({ errorComponent: ErrorComponent,
   component: RelatorioPisoPage,
@@ -524,13 +525,13 @@ function RelatorioPisoPage() {
     });
 
     const assin = await resolverAssinaturasDocumento("piso");
-    if (assin.length > 0) {
-      drawAssinaturasBlock(doc, assin, {
-        startY: doc.internal.pageSize.getHeight() - 60,
-      });
-    }
 
-    doc.save(`piso_enfermagem_${competenciaAtual ?? "todas"}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `piso_enfermagem_${competenciaAtual ?? "todas"}.pdf`,
+      tipo: "piso",
+      assinaturas: assin,
+      yPadraoMm: doc.internal.pageSize.getHeight() - 60,
+    });
     toast.success("PDF gerado.");
   }
 

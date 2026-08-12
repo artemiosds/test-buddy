@@ -3,7 +3,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 import type { Row } from "./tipos";
 import type { GroupNode } from "./agrupamento";
 
@@ -96,19 +97,25 @@ export async function exportarPdfMulti(opts: {
     y = (doc as any).lastAutoTable?.finalY ?? y + 20;
   });
   
+  let assinaturaBaseY: number | undefined;
   if (assinaturas.length > 0) {
     const pageH = doc.internal.pageSize.getHeight();
     const finalY = (doc as any).lastAutoTable?.finalY ?? y;
     if (finalY + 40 > pageH - 20) {
       doc.addPage();
       drawInstitutionalHeader(doc, info, opts.titulo);
-      drawAssinaturasBlock(doc, assinaturas, { startY: 52 });
+      assinaturaBaseY = 52;
     } else {
-      drawAssinaturasBlock(doc, assinaturas, { startY: finalY + 15 });
+      assinaturaBaseY = finalY + 15;
     }
   }
 
-  doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
+  await finalizarPdf(doc, {
+    filename: opts.filename,
+    tipo: "relatorio",
+    assinaturas,
+    yPadraoMm: assinaturaBaseY,
+  });
 }
 
 function cellStr(v: unknown): string {

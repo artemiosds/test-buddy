@@ -69,6 +69,7 @@ import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-as
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export const Route = createFileRoute("/_authenticated/frequencias_/$id")({ errorComponent: ErrorComponent,
   component: FrequenciaDetalhe,
@@ -962,7 +963,11 @@ function FrequenciaDetalhe() {
       }
     }
 
-    doc.save(`frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `frequencia-${unidade}-${compLabel.replace("/", "-")}.pdf`,
+      tipo: "frequencia",
+      assinaturas: assinDoc,
+    });
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
       tabela: "frequencias",
       registro_id: frequencia.id,

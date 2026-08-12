@@ -32,6 +32,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export const Route = createFileRoute("/_authenticated/relatorios-executivo")({ errorComponent: ErrorComponent,
   component: RelatorioExecutivoPage,
@@ -278,7 +279,10 @@ function RelatorioExecutivoPage() {
         headStyles: { fillColor: [30, 58, 138] },
       });
     }
-    doc.save(`relatorio_executivo_${compLabel.replace("/", "-")}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `relatorio_executivo_${compLabel.replace("/", "-")}.pdf`,
+      tipo: "relatorio",
+    });
     toast.success("PDF exportado");
   }
 

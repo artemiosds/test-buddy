@@ -7,7 +7,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export type ExportColumn<T> = {
   header: string;
@@ -77,15 +78,15 @@ export async function exportarPdfInstitucional<T>(opts: {
     },
   });
 
-  if (assinaturas.length > 0) {
-    const lastY = (doc as any).lastAutoTable?.finalY || y;
-    drawAssinaturasBlock(doc, assinaturas, {
-      startY: lastY + 15,
-      marginX: 10,
-    });
-  }
+  const lastY = (doc as any).lastAutoTable?.finalY || y;
 
-  doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
+  await finalizarPdf(doc, {
+    filename: opts.filename,
+    tipo: "relatorio",
+    assinaturas,
+    yPadraoMm: lastY + 15,
+    xPadraoMm: 10,
+  });
 }
 
 export function exportarExcel<T>(opts: {

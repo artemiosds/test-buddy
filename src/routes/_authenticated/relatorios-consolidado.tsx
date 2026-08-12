@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import type { Database } from "@/integrations/supabase/types";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
 type StatusLinha = Database["public"]["Enums"]["status_linha_frequencia"];
@@ -364,7 +365,12 @@ function RelatorioConsolidadoPage() {
         /* best effort */
       }
     }
-    doc.save(`consolidado_${compLabel.replace("/", "-")}.pdf`);
+    await finalizarPdf(doc, {
+      filename: `consolidado_${compLabel.replace("/", "-")}.pdf`,
+      tipo: "relatorio",
+      assinaturas: assin,
+      yPadraoMm: pageHeight - 60,
+    });
     void auditClient.action(AUDIT_ACOES.EXPORT_PDF, {
       tabela: "relatorios",
       contexto: { tipo: "consolidado", competencia: compLabel, tipoFolha: tipo },

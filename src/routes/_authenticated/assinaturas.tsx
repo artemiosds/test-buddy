@@ -1,4 +1,5 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
+import { SeloAssinaturaInstitucional } from "@/components/assinaturas/selo-assinatura-institucional";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -393,6 +394,31 @@ function CadastroTab({
 
   const toggleAtiva = useMutation({
     mutationFn: async ({ id, ativa }: { id: string; ativa: boolean }) => {
+      // Ao ativar, garante EXCLUSIVIDADE: as demais assinaturas do mesmo
+      // titular/perfil/escopo são inativadas, para que o sistema saiba
+      // automaticamente qual assinatura usar nos PDFs.
+      if (ativa) {
+        const alvo = (rows ?? []).find((r) => r.id === id);
+        if (alvo) {
+          const irmas = (rows ?? [])
+            .filter(
+              (r) =>
+                r.id !== id &&
+                r.ativa &&
+                (r.perfil_id ?? null) === (alvo.perfil_id ?? null) &&
+                (r.unidade_id ?? null) === (alvo.unidade_id ?? null) &&
+                (r.secretaria_id ?? null) === (alvo.secretaria_id ?? null),
+            )
+            .map((r) => r.id);
+          if (irmas.length) {
+            const { error: errOff } = await supabase
+              .from("assinaturas_institucionais")
+              .update({ ativa: false, updated_by: me?.id })
+              .in("id", irmas);
+            if (errOff) throw errOff;
+          }
+        }
+      }
       const { error } = await supabase
         .from("assinaturas_institucionais")
         .update({ ativa, updated_by: me?.id })
@@ -401,10 +427,11 @@ function CadastroTab({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assinaturas-list"] });
-      toast.success("Vigência atualizada");
+      toast.success("Assinatura ativa atualizada — será usada nos PDFs");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const remove = useMutation({
     mutationFn: async (row: NonNullable<typeof rows>[number]) => {
@@ -633,20 +660,7 @@ function PreviewButton({ path, mime }: { path: string; mime: string | null }) {
             <DialogTitle>Pré-visualização</DialogTitle>
           </DialogHeader>
           {path?.startsWith("institutional_") ? (
-            <div className="bg-slate-50 border rounded-lg p-8 space-y-4 font-mono text-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-5">
-                <ShieldCheck className="h-32 w-32" />
-              </div>
-              <div className="text-center border-b border-slate-200 pb-2 mb-4">
-                <h3 className="font-bold text-slate-900 uppercase tracking-tighter">Assinatura Eletrônica Institucional</h3>
-              </div>
-              <div className="bg-white border border-slate-200 rounded p-4 text-center font-bold text-primary text-xl tracking-widest">
-                {path.replace("institutional_", "")}
-              </div>
-              <p className="text-[10px] text-slate-400 text-center">
-                Esta assinatura é um código eletrônico seguro e não possui imagem física.
-              </p>
-            </div>
+            <SeloAssinaturaInstitucional codigo={path.replace("institutional_", "")} />
           ) : (
             url &&
             (isImage ? (

@@ -123,9 +123,10 @@ export function exportarCsv(exp: HsmExportacao) {
 }
 
 export async function exportarPdf(exp: HsmExportacao) {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+  const [{ default: jsPDF }, { default: autoTable }, { finalizarPdf }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
+    import("@/lib/pdf-pipeline"),
   ]);
   const doc = new jsPDF({ orientation: exp.colunas.length > 6 ? "landscape" : "portrait" });
   doc.setFontSize(13);
@@ -140,7 +141,7 @@ export async function exportarPdf(exp: HsmExportacao) {
     headStyles: { fillColor: [30, 64, 92], textColor: 255 },
     theme: "grid",
   });
-  doc.save(nomeArquivo(exp.titulo, "pdf"));
+  await finalizarPdf(doc, { filename: nomeArquivo(exp.titulo, "pdf"), tipo: "relatorio" });
 }
 
 /** Word: documento HTML compatível com .doc (sem dependência extra). */

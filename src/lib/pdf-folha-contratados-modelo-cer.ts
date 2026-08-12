@@ -7,7 +7,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fmtCPF, fmtConta, type ItemContratado } from "@/lib/excel-folha-contratados";
 import { LOGO_PREFEITURA, LOGO_SAUDE, LOGO_BRASAO } from "@/lib/pdf-logos-base64";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export type PdfContratadosModeloCerInput = {
   competencia: { mes: number; ano: number };
@@ -211,6 +212,7 @@ export async function gerarFolhaContratadosModeloCer(
     },
   });
 
+  let assinaturaBaseY: number | undefined;
   if (assinaturas.length > 0) {
     const lastY = (doc as any).lastAutoTable?.finalY || 52;
     let signY = lastY + 10;
@@ -219,12 +221,17 @@ export async function gerarFolhaContratadosModeloCer(
       drawHeader();
       signY = 52 + 5;
     }
-    drawAssinaturasBlock(doc, assinaturas, {
-      startY: signY,
-      marginX: MARGEM,
-    });
+    assinaturaBaseY = signY;
   }
 
   const compFile = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
-  doc.save(`folha-contratados-gestao-sms-${compFile}.pdf`);
+  await finalizarPdf(doc, {
+    filename: `folha-contratados-gestao-sms-${compFile}.pdf`,
+    tipo: "folha_contratados",
+    unidadeId: input.unidadeId ?? null,
+    secretariaId: input.secretariaId ?? null,
+    assinaturas,
+    yPadraoMm: assinaturaBaseY,
+    xPadraoMm: MARGEM,
+  });
 }

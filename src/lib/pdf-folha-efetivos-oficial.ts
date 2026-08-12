@@ -15,7 +15,8 @@
  */
 import jsPDF from "jspdf";
 import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
+import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 import { LOGO_BRASAO } from "@/lib/pdf-logos-base64";
 
 export type ProfissionalFolha = {
@@ -450,16 +451,16 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     }
   }
 
-  // Bloco de assinaturas (Diretor + Gestor + Logo por padrão)
-  if (assinaturas.length > 0) {
-    drawAssinaturasBlock(doc, assinaturas, {
-      startY: pageHeight - 60,
-      marginX: MARGEM,
-    });
-  }
-
   drawFooter(doc, input.emitidoPor, emissaoStr);
 
   const compStr = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
-  doc.save(`folha-efetivos-oficial-${compStr}.pdf`);
+  await finalizarPdf(doc, {
+    filename: `folha-efetivos-oficial-${compStr}.pdf`,
+    tipo: "folha_efetivos",
+    unidadeId: input.unidadeId ?? null,
+    secretariaId: input.secretariaId ?? null,
+    assinaturas,
+    yPadraoMm: pageHeight - 60,
+    xPadraoMm: MARGEM,
+  });
 }

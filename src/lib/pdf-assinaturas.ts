@@ -62,6 +62,48 @@ export function cargoDoPerfil(perfilCodigo: string | null): string | null {
 }
 
 
+function fmtImagem(dataUri: string): "PNG" | "JPEG" | "WEBP" {
+  const head = dataUri.slice(0, 40).toLowerCase();
+  if (head.includes("image/jpeg") || head.includes("image/jpg")) return "JPEG";
+  if (head.includes("image/webp")) return "WEBP";
+  return "PNG";
+}
+
+/**
+ * Desenha a imagem do carimbo/assinatura dentro da caixa (x,y,boxW,boxH)
+ * preservando a proporção original e centralizando — evita a imagem "achatada".
+ */
+export function desenharImagemProporcional(
+  doc: jsPDF,
+  dataUri: string,
+  x: number,
+  y: number,
+  boxW: number,
+  boxH: number,
+): void {
+  try {
+    let ratio = boxW / boxH;
+    try {
+      const props: any = (doc as any).getImageProperties(dataUri);
+      if (props?.width && props?.height) ratio = props.width / props.height;
+    } catch {
+      /* usa a proporção da caixa */
+    }
+    let w = boxW;
+    let h = w / ratio;
+    if (h > boxH) {
+      h = boxH;
+      w = h * ratio;
+    }
+    const ox = x + (boxW - w) / 2;
+    const oy = y + (boxH - h);
+    doc.addImage(dataUri, fmtImagem(dataUri), ox, oy, w, h, undefined, "FAST");
+  } catch {
+    /* imagem inválida — ignora */
+  }
+}
+
+
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, { cache: 'no-cache' });
@@ -244,8 +286,8 @@ export function drawAssinaturasBlock(
   const fluxo = assin.filter((a) => a.posicao_x === null || a.posicao_y === null);
 
   // ---- Assinaturas com posição custom (coordenadas absolutas na página) ----
-  const baseImgW = 55; // largura base em mm (100%)
-  const baseImgH = 16;
+  const baseImgW = 75; // largura base em mm (100%) - Aumentado de 55 para 75
+  const baseImgH = 30; // altura base em mm - Aumentado de 22 para 30
   for (const a of custom) {
     const scaleX = pageWidth / REF_W;
     const scaleY = pageHeight / REF_H;
@@ -255,12 +297,9 @@ export function drawAssinaturasBlock(
     const px = (a.posicao_x ?? 0) * scaleX;
     const py = (a.posicao_y ?? 0) * scaleY;
     if (a.imageData) {
-      try {
-        doc.addImage(a.imageData, "PNG", px, py, imgW, imgH);
-      } catch {
-        /* ignore */
-      }
+      desenharImagemProporcional(doc, a.imageData, px, py, imgW, imgH);
     }
+
     const lineY = py + imgH + 1.5;
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.2);
@@ -314,8 +353,8 @@ export function drawAssinaturasBlock(
   for (let i = 0; i < fluxo.length; i++) {
     const a = fluxo[i];
     const factor = (a.tamanho_percentual ?? 80) / 100;
-    const imgH = 16 * factor;
-    const imgW = Math.min(colW - 8, 55 * factor);
+    const imgH = 30 * factor;
+    const imgW = Math.min(colW - 8, 75 * factor);
     const row = Math.floor(i / perRow);
     const col = i % perRow;
     // alinhamento dentro da coluna
@@ -325,12 +364,9 @@ export function drawAssinaturasBlock(
     const cy = y + row * (blockH + 4);
 
     if (a.imageData) {
-      try {
-        doc.addImage(a.imageData, "PNG", cx - imgW / 2, cy, imgW, imgH);
-      } catch {
-        /* ignore */
-      }
+      desenharImagemProporcional(doc, a.imageData, cx - imgW / 2, cy, imgW, imgH);
     }
+
 
     const lineY = cy + imgH + 2;
     doc.line(cx - colW / 2 + 6, lineY, cx + colW / 2 - 6, lineY);

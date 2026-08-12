@@ -8,6 +8,7 @@ import { loadMunicipioInfo } from "@/lib/pdf-institucional";
 import type { BlocoExport } from "./export-multi";
 import type { ParecerBloco } from "./parecer";
 import type { IndiceAutomatico } from "./indice";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 export async function exportarPdfAbnt(opts: {
   filename: string;
@@ -168,7 +169,7 @@ export async function exportarPdfAbnt(opts: {
     });
   });
 
-  doc.save(opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`);
+  await finalizarPdf(doc, { filename: opts.filename, tipo: "relatorio" });
 }
 
 function titulo(doc: jsPDF, texto: string, y: number) {

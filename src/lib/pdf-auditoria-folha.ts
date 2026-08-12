@@ -2,7 +2,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { drawInstitutionalHeader, loadMunicipioInfo } from "./pdf-institucional";
-import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "./pdf-assinaturas";
+import { resolverAssinaturasDocumento } from "./pdf-assinaturas";
+import { finalizarPdf } from "./pdf-pipeline";
 
 /**
  * Gera PDF da Auditoria Forense do Fluxo de Envio da Folha
@@ -78,9 +79,10 @@ export async function gerarPdfAuditoriaFolha() {
   currentY += 6;
 
   doc.setFont("helvetica", "normal");
+  let assinaturaBaseY: number | undefined;
   const assinaturas = await resolverAssinaturasDocumento("relatorio");
   if (assinaturas.length > 0) {
-    currentY = drawAssinaturasBlock(doc, assinaturas, { startY: currentY + 10 });
+    assinaturaBaseY = currentY + 10;
   }
 
   const footerY = doc.internal.pageSize.getHeight() - 15;
@@ -88,5 +90,10 @@ export async function gerarPdfAuditoriaFolha() {
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm:ss")}`, 14, footerY);
   doc.text("HSM Gestão - Auditoria Forense", doc.internal.pageSize.getWidth() - 14, footerY, { align: "right" });
 
-  doc.save(`auditoria_forense_folha_${format(new Date(), "yyyyMMdd")}.pdf`);
+  await finalizarPdf(doc, {
+    filename: `auditoria_forense_folha_${format(new Date(), "yyyyMMdd")}.pdf`,
+    tipo: "relatorio",
+    assinaturas,
+    yPadraoMm: assinaturaBaseY,
+  });
 }

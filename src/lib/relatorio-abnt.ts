@@ -10,6 +10,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { loadMunicipioInfo } from "@/lib/pdf-institucional";
 import { gerarCertificado, drawCertificadoRodape, registrarDownload } from "@/lib/fe-publica";
+import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 /* ---------------------------------------------------------------- tipos */
 
@@ -520,7 +521,7 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
   drawCertificadoRodape(doc, cert);
 
   const nome = opts.arquivo.endsWith(".pdf") ? opts.arquivo : `${opts.arquivo}.pdf`;
-  doc.save(nome);
+  await finalizarPdf(doc, { filename: nome, tipo: "relatorio" });
 
   registrarDownload({
     relatorio: `gerencial.${opts.arquivo}`,

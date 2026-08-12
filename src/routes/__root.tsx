@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
 import { NetworkBanner } from "@/components/shared/NetworkBanner";
 import { TermoAceiteProvider } from "@/components/documentos/termo-aceite-provider";
+import { PdfPosicaoProvider } from "@/components/pdf/PdfPosicaoProvider";
+
 import { AvisoModal } from "@/components/mural/AvisoModal";
 
 function NotFoundComponent() {
@@ -185,13 +187,16 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
         <TermoAceiteProvider>
-          <script dangerouslySetInnerHTML={{ __html: supabaseConfigScript }} />
-          <NetworkBanner />
-          <Outlet />
-          <AvisoModal />
-          <Toaster richColors position="top-right" />
+          <PdfPosicaoProvider>
+            <script dangerouslySetInnerHTML={{ __html: supabaseConfigScript }} />
+            <NetworkBanner />
+            <Outlet />
+            <AvisoModal />
+            <Toaster richColors position="top-right" />
+          </PdfPosicaoProvider>
         </TermoAceiteProvider>
       </ConfirmProvider>
+
     </QueryClientProvider>
   );
 }
