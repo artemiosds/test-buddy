@@ -330,29 +330,28 @@ function UploadForm({
         const sanitizeUUID = (id: any, fieldName: string) => {
           if (!id || id === "__todas__") return null;
           const s = String(id).trim();
-          console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
-          if (s.includes('.') || s.includes('/')) {
-            console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+          if (s.includes('.') || s.includes('/') || (s.includes('-') && !isUUID(s))) {
+            console.error(`[BLOCK] UUID malformado em ${fieldName}:`, s);
             return null;
           }
-          const valid = isUUID(s) ? s : null;
-          if (!valid && s) {
-            console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
-          }
-          return valid;
+          return isUUID(s) ? s : null;
         };
 
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
         const payloadInst = {
-          usuario_id: sanitizeUUID(me.id, 'INST_usuario_id')!,
-          perfil_id: sanitizeUUID(me.perfil_id, 'INST_perfil_id'),
-          unidade_id: sanitizeUUID(unidadeReal, 'INST_unidade_id'),
+          usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
+          perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
+          unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
           secretaria_id: null,
           titular_nome: (titularNome || me.nome_completo || "").trim(),
           titular_cargo: titularCargo.trim() || null,
           hash: instHash,
+          storage_path: `institutional_${instHash}`,
+          mime_type: "application/json",
+          is_pessoal: true,
+          ativa: true,
           metadata: {
             matricula: me.matricula,
             unidade_nome: unidadeNome,
@@ -361,20 +360,8 @@ function UploadForm({
             cpf_mascarado: me.cpf ? `${me.cpf.slice(0, 3)}.***.***-${me.cpf.slice(-2)}` : null
           }
         };
-        console.log('PAYLOAD INSTITUCIONAL ANTES DO SAVE:', JSON.stringify(payloadInst, null, 2));
 
-        // Validação final de emergência antes do saveInst
-        const instFieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
-        instFieldsToCheck.forEach(field => {
-          const val = payloadInst[field];
-          if (val && (String(val).includes('.') || String(val).includes('/'))) {
-             throw new Error(`CRITICAL STOP: Campo ${field} institucional contém path inválido: ${val}`);
-          }
-        });
-
-        if (!payloadInst.usuario_id) {
-          throw new Error("Erro de identificação do usuário. Tente recarregar a página.");
-        }
+        if (!payloadInst.usuario_id) throw new Error("ID de usuário inválido.");
 
         await saveInst({ data: payloadInst });
 
@@ -392,19 +379,7 @@ function UploadForm({
 
     const activeBlob = mode === "upload" ? file : padBlob;
     if (!activeBlob) {
-      toast.error(mode === "upload" ? "Selecione um arquivo PNG ou JPG" : "Faça sua assinatura no quadro");
-      return;
-    }
-    if (mode === "upload" && file && !/^image\/(png|jpe?g)$/i.test(file.type)) {
-      toast.error("Formato inválido. Use PNG ou JPG");
-      return;
-    }
-    if (activeBlob.size > 2 * 1024 * 1024) {
-      toast.error("Arquivo muito grande. Máx: 2MB");
-      return;
-    }
-    if (!titularNome.trim() && !me.nome_completo) {
-      toast.error("Informe seu nome completo");
+      toast.error(mode === "upload" ? "Selecione um arquivo" : "Desenhe sua assinatura");
       return;
     }
 
@@ -419,8 +394,6 @@ function UploadForm({
       const fileName = `${fileId}.${ext}`;
       const storagePath = `pessoal/${userId}/${fileName}`;
 
-      console.log(`[FORENSIC-UPLOAD] PREPARING UPLOAD: userId=${userId}, fileId=${fileId}, fileName=${fileName}, storagePath=${storagePath}`);
-
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, processedBlob, {
         contentType: "image/png",
         upsert: false,
@@ -432,64 +405,37 @@ function UploadForm({
       const sanitizeUUID = (id: any, fieldName: string) => {
         if (!id || id === "__todas__") return null;
         const s = String(id).trim();
-        console.log(`[FORENSIC-DEBUG] sanitizeUUID field=${fieldName} value="${s}"`);
-        if (s.includes('.') || s.includes('/')) {
-          console.error(`[CRITICAL] BLOQUEIO ATIVO - Tentativa de salvar path no campo UUID ${fieldName}:`, s);
+        if (s.includes('.') || s.includes('/') || (s.includes('-') && !isUUID(s))) {
           return null;
         }
-        const valid = isUUID(s) ? s : null;
-        if (!valid && s) {
-          console.warn(`[FORENSIC-DEBUG] Valor rejeitado por não ser UUID válido em ${fieldName}:`, s);
-        }
-        return valid;
+        return isUUID(s) ? s : null;
       };
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       
-      console.log(`[FORENSIC-PAYLOAD] BUILDING PAYLOAD: me.id=${me.id}, unidadeReal=${unidadeReal}, fileName=${fileName}`);
-
-      const payloadAssinatura = {
-        tipo: "assinatura" as const,
+      const payload = {
+        usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
+        perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
+        unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
         storage_path: fileName,
         mime_type: "image/png",
-        usuario_id: sanitizeUUID(me.id, 'UPLOAD_usuario_id'),
-        unidade_id: sanitizeUUID(unidadeReal, 'UPLOAD_unidade_id'),
-        secretaria_id: null,
-        perfil_id: sanitizeUUID(me.perfil_id, 'UPLOAD_perfil_id'),
         is_pessoal: true,
         ativa: true,
-        obrigatoria: false,
-        ordem: 1,
-        tipos_documento: [],
-        vigencia_fim: vigenciaFim || null,
-        created_by: me.id,
         posicao_x: pos.posicao_x,
         posicao_y: pos.posicao_y,
         tamanho_percentual: pos.tamanho_percentual,
         alinhamento: pos.alinhamento,
         mostrar_nome: pos.mostrar_nome,
         mostrar_cargo: pos.mostrar_cargo,
+        vigencia_fim: vigenciaFim || null,
       };
 
-      console.log('PAYLOAD FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
-      
-      // Validação final de emergência antes do insert
-      const fieldsToCheck = ['usuario_id', 'unidade_id', 'perfil_id', 'secretaria_id'] as const;
-      fieldsToCheck.forEach(field => {
-        const val = payloadAssinatura[field];
-        if (val && (String(val).includes('.') || String(val).includes('/'))) {
-           console.error(`[CRITICAL FAILURE] Campo ${field} contém path inválido detectado na última barreira:`, val);
-           throw new Error(`CRITICAL STOP: Campo ${field} contém path inválido: ${val}`);
-        }
-      });
-      const ins = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
+      if (!payload.usuario_id) throw new Error("ID de usuário inválido.");
 
-      if (ins.error) {
-        await supabase.storage.from(BUCKET).remove([storagePath]);
-        throw ins.error;
-      }
+      await saveInst({ data: payload });
+
       toast.success("Assinatura cadastrada com sucesso");
       setFile(null);
       setPadBlob(null);

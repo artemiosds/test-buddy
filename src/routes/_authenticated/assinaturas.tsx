@@ -791,8 +791,6 @@ function NovaAssinaturaDialog({
         ? await processImage(file)
         : { blob: activeBlob!, ext: "png" };
       
-      // O path do storage deve ser limpo e utilizar IDs únicos
-      // Evitamos strings textuais como "unidade" ou "secretaria" no início do path se o bucket/política for restritivo
       const fileName = `${crypto.randomUUID()}.${ext}`;
       const path = fileName;
 
@@ -804,16 +802,17 @@ function NovaAssinaturaDialog({
 
       const isUUID = (val: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ""));
       const sanitizeUUID = (id: any, fieldName: string) => {
-        if (!id || id === "__todas__") return null;
+        if (!id || id === "__todas__" || id === "__institucional__") return null;
         const s = String(id).trim();
-        if (/\.(png|jpg|jpeg|pdf|json)$/i.test(s) || s.includes('/')) {
-          console.error(`[FORENSIC-ADMIN] Bloqueio de UUID inválido em ${fieldName}:`, s);
+        if (s.includes('.') || s.includes('/') || (s.includes('-') && !isUUID(s))) {
+          console.error(`[ADMIN-BLOCK] UUID malformado em ${fieldName}:`, s);
           return null;
         }
         return isUUID(s) ? s : null;
       };
 
-      const payloadAssinatura = {
+      const payload = {
+        usuario_id: userId,
         tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
@@ -821,27 +820,27 @@ function NovaAssinaturaDialog({
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
-            ? sanitizeUUID(secretariaId, 'ADMIN_secretaria_id')
+            ? sanitizeUUID(secretariaId, 'secretaria_id')
             : escopo === "unidade"
               ? (unidades?.find((u) => u.id === (unidadeId as string))?.secretaria_id ?? null)
               : null,
-        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'ADMIN_unidade_id') : null,
-        perfil_id: sanitizeUUID(perfilId, 'ADMIN_perfil_id'),
+        unidade_id: escopo === "unidade" ? sanitizeUUID(unidadeId, 'unidade_id') : null,
+        perfil_id: sanitizeUUID(perfilId, 'perfil_id'),
         obrigatoria,
         ordem,
         tipos_documento: Array.from(tiposDoc),
         vigencia_inicio: vigenciaInicio || null,
         vigencia_fim: vigenciaFim || null,
         ativa: true,
-        created_by: userId,
+        is_pessoal: false,
       };
 
-      console.log('PAYLOAD ADMIN FINAL ANTES DO INSERT:', JSON.stringify(payloadAssinatura, null, 2));
-      const insert = await supabase.from("assinaturas_institucionais").insert(payloadAssinatura);
-      if (insert.error) {
-        await supabase.storage.from(BUCKET).remove([path]);
-        throw insert.error;
-      }
+      if (!payload.usuario_id) throw new Error("ID de usuário inválido.");
+
+      // Importação dinâmica para usar a função servidora centralizada
+      const { saveInstitutionalSignature } = await import("@/lib/assinaturas-institucionais.functions");
+      await saveInstitutionalSignature({ data: payload });
+
       toast.success("Assinatura cadastrada");
       onSaved();
     } catch (e: any) {
