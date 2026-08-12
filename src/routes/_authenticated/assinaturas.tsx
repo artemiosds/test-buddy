@@ -811,12 +811,13 @@ function NovaAssinaturaDialog({
         return isUUID(s) ? s : null;
       };
 
+      // Mapeamento estrito (Strict Mapping) para evitar vazamento de estado
       const payload = {
-        usuario_id: userId,
+        usuario_id: userId, // Apenas UUID
         tipo: tipo as "assinatura" | "carimbo" | "logo",
         titular_nome: titularNome.trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: fileName,
+        storage_path: fileName, // A string do arquivo (".png") mapeada estritamente para storage_path
         mime_type: ext === "pdf" ? "application/pdf" : "image/png",
         secretaria_id:
           escopo === "secretaria"
