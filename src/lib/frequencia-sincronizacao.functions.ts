@@ -180,25 +180,52 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
     }
 
     // 3. Atualiza a tabela consolidada 'frequencias'
-    const { error: upsertErr } = await supabaseAdmin
-      .from("frequencias")
-      .upsert({
-        competencia_unidade_id: cu.id,
-        tipo: tipo as any,
-        setor_id: setor_id ?? null,
-        status: statusOficial as any,
-        total_profissionais: totalProfissionais,
-        total_dias_trabalhados: totalDias,
-        total_faltas: totalFaltas,
-        data_envio: dataEnvio,
-        enviada_por: enviadaPor,
-        data_aprovacao: dataAprovacao,
-        aprovada_por: aprovadaPor,
-        updated_by: userId,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "competencia_unidade_id, tipo, setor_id" });
+    // Obs.: o índice único é uma expressão (COALESCE(setor_id, ...)), portanto NÃO é
+    // possível usar `upsert(onConflict: "competencia_unidade_id, tipo, setor_id")`.
+    // Fazemos select + update/insert manualmente.
+    const metadados = {
+      status: statusOficial as any,
+      total_profissionais: totalProfissionais,
+      total_dias_trabalhados: totalDias,
+      total_faltas: totalFaltas,
+      data_envio: dataEnvio,
+      enviada_por: enviadaPor,
+      data_aprovacao: dataAprovacao,
+      aprovada_por: aprovadaPor,
+      updated_by: userId,
+      updated_at: new Date().toISOString(),
+    };
 
-    if (upsertErr) throw upsertErr;
+    const buscaExistente = supabaseAdmin
+      .from("frequencias")
+      .select("id")
+      .eq("competencia_unidade_id", cu.id)
+      .eq("tipo", tipo as any);
+
+    if (setor_id) buscaExistente.eq("setor_id", setor_id);
+    else buscaExistente.is("setor_id", null);
+
+    const { data: existente, error: buscaErr } = await buscaExistente.maybeSingle();
+    if (buscaErr) throw buscaErr;
+
+    if (existente?.id) {
+      const { error: updErr } = await supabaseAdmin
+        .from("frequencias")
+        .update(metadados as never)
+        .eq("id", existente.id);
+      if (updErr) throw updErr;
+    } else {
+      const { error: insErr } = await supabaseAdmin
+        .from("frequencias")
+        .insert({
+          competencia_unidade_id: cu.id,
+          tipo: tipo as any,
+          setor_id: setor_id ?? null,
+          created_by: userId,
+          ...metadados,
+        } as never);
+      if (insErr) throw insErr;
+    }
 
     // 4. Registrar no Log de Sincronização (Audit)
     await supabaseAdmin.from("audit_log").insert({
@@ -221,8 +248,13 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         total: totalProfissionais,
         tipo_sincronizado: tipo
       };
-    } catch (err) {
+    } catch (err: any) {
       console.error("[orquestrarSincronizacao] Erro crítico:", err);
-      throw err instanceof Error ? err : new Error("Falha na orquestração de sincronização");
+      const detalhe = err?.message || err?.details || err?.hint || err?.code;
+      throw new Error(
+        detalhe
+          ? `Falha na sincronização da folha: ${detalhe}`
+          : "Falha na orquestração de sincronização",
+      );
     }
   });
