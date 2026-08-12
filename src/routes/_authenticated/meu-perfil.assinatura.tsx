@@ -340,6 +340,7 @@ function UploadForm({
         const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
         const unidadeNome = unidades.find(u => u.id === unidadeReal)?.nome ?? "Todas as unidades";
 
+        // Mapeamento estrito (Strict Mapping) para evitar vazamento de estado
         const payloadInst = {
           usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
           perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
@@ -413,13 +414,14 @@ function UploadForm({
       
       const unidadeReal = unidadeId === "__todas__" ? null : unidadeId;
       
+      // Mapeamento estrito (Strict Mapping) para evitar vazamento de estado
       const payload = {
         usuario_id: sanitizeUUID(me.id, 'usuario_id')!,
         perfil_id: sanitizeUUID(me.perfil_id, 'perfil_id'),
         unidade_id: sanitizeUUID(unidadeReal, 'unidade_id'),
         titular_nome: (titularNome || me.nome_completo || "").trim(),
         titular_cargo: titularCargo.trim() || null,
-        storage_path: fileName,
+        storage_path: fileName, // fileName (".png") mapeado estritamente para storage_path
         mime_type: "image/png",
         is_pessoal: true,
         ativa: true,
