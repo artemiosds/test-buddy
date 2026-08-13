@@ -895,7 +895,7 @@ function GroupNodeView({
         <span className="ml-auto tabular-nums text-muted-foreground">
           {node.rows.length} linha(s)
         </span>
-        {numeric.slice(0, 2).map((f) => (
+        {numeric.slice(0, 3).map((f) => (
           <span key={f} className="rounded bg-primary/10 px-1.5 text-[10px] text-primary">
             Σ {labelField(block, f)}: {fmtCell(node.stats[f].soma, f)}
           </span>
