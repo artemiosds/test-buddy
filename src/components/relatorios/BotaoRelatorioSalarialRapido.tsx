@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 export function BotaoRelatorioSalarialRapido() {
   const navigate = useNavigate();
