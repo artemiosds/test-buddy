@@ -259,7 +259,10 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       const { error } = await (supabase.from("frequencias_contratados") as any)
         .upsert(allRows, { onConflict: "competencia_id, unidade_id, profissional_id" });
       
-      if (error) throw new Error(error.message || "Erro ao salvar lote de frequências");
+      if (error) {
+        console.error("[salvarFolhaContratados] Erro ao salvar frequencias_contratados:", error);
+        throw new Error(`Erro ao salvar no banco: ${error.message} (Código: ${error.code})`);
+      }
     }
 
     // Sincronização após salvar
