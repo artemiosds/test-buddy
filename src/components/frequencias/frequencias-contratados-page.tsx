@@ -397,29 +397,41 @@ export function FrequenciasContratadosPage() {
       if (offlineGuard()) throw new Error("Offline");
 
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
-      if (!dirtyList.length) return { ok: true, sem_alteracoes: true };
+      const list = dirtyList.map((l) => ({
+        profissional_id: l.profissional_id,
+        status: l.status as any,
+        dias_trabalhados: l.dias_trabalhados,
+        dias_falta: l.dias_falta,
+        atestado: l.atestado,
+        he_50: l.he_50,
+        he_100: l.he_100,
+        adn: l.adn,
+        plantoes: l.plantoes,
+        sobreaviso: l.sobreaviso,
+        incentivo: l.incentivo,
+        observacoes: l.observacoes || null,
+      }));
+
+      console.log("DEBUG_SALVAMENTO: Payload enviado (Contratados)", list);
+
+      if (!list.length) return { ok: true, sem_alteracoes: true };
       const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
-      return salvarFn({
-        data: {
-          competencia_id: competenciaId,
-          unidade_id: unidadeId,
-          setor_id: sId,
-          linhas: dirtyList.map((l) => ({
-            profissional_id: l.profissional_id,
-            status: l.status as any,
-            dias_trabalhados: l.dias_trabalhados,
-            dias_falta: l.dias_falta,
-            atestado: l.atestado,
-            he_50: l.he_50,
-            he_100: l.he_100,
-            adn: l.adn,
-            plantoes: l.plantoes,
-            sobreaviso: l.sobreaviso,
-            incentivo: l.incentivo,
-            observacoes: l.observacoes || null,
-          })),
-        },
-      });
+      
+      try {
+        const res = await salvarFn({
+          data: {
+            competencia_id: competenciaId,
+            unidade_id: unidadeId,
+            setor_id: sId,
+            linhas: list,
+          },
+        });
+        console.log("DEBUG_SALVAMENTO: Resposta servidor", res);
+        return res;
+      } catch (error) {
+        console.log("DEBUG_SUPABASE: Erro recebido ao salvar", error);
+        throw error;
+      }
     },
     onSuccess: (r: any) => {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
