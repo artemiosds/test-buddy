@@ -1038,7 +1038,7 @@ export function FrequenciasEfetivosPage() {
                           {overrideSituacao ? CelulaSituacao : <NumberCell
                             rowId={p.id}
                             colKey={c.key}
-                            value={Number((l as any)[c.key] ?? 0)}
+                            value={(l as any)[c.key] ?? 0}
                             disabled={ro}
                             decimals={0}
                             className="w-full text-right text-[11px]"
@@ -1055,7 +1055,7 @@ export function FrequenciasEfetivosPage() {
                         {overrideSituacao ? CelulaSituacao : <NumberCell
                           rowId={p.id}
                           colKey={c.key}
-                          value={Number((l as any)[c.key] ?? 0)}
+                          value={(l as any)[c.key] ?? 0}
                           disabled={ro}
                           className="w-full text-right text-[11px]"
                           validate={validateGeneric}
