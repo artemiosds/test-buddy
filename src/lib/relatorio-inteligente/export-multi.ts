@@ -189,8 +189,11 @@ function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
   return [
     b.colunas.map((c) => {
       const s = n.stats[c.key];
-      if (!s) return c === b.colunas[0] ? "Subtotal" : "";
-      return `Σ ${s.soma.toLocaleString("pt-BR")}`;
+      if (!s) {
+        if (c === b.colunas[0]) return "Subtotal";
+        return "";
+      }
+      return s.soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }),
   ];
 }
@@ -252,11 +255,36 @@ export function exportarExcelMulti(opts: { filename: string; blocos: BlocoExport
 
 export function exportarCsvMulti(opts: { filenamePrefix: string; blocos: BlocoExport[] }) {
   for (const b of opts.blocos) {
-    const rows = [
-      b.colunas.map((c) => JSON.stringify(c.header)).join(","),
-      ...b.linhas.map((r) => b.colunas.map((c) => JSON.stringify(r[c.key] ?? "")).join(",")),
-    ].join("\n");
-    const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
+    const csvRows: string[][] = [];
+    csvRows.push(b.colunas.map((c) => c.header));
+    
+    if (b.grupos && b.grupos.length) {
+      const walk = (nodes: GroupNode[]) => {
+        for (const n of nodes) {
+          if (n.children.length) {
+            walk(n.children);
+          } else {
+            n.rows.forEach(r => {
+              csvRows.push(b.colunas.map(c => String(r[c.key] ?? "")));
+            });
+            // Subtotal row
+            csvRows.push(b.colunas.map(c => {
+              const s = n.stats[c.key];
+              return s ? String(s.soma) : (c === b.colunas[0] ? "Subtotal" : "");
+            }));
+            csvRows.push([]); // Empty row
+          }
+        }
+      };
+      walk(b.grupos);
+    } else {
+      b.linhas.forEach(r => {
+        csvRows.push(b.colunas.map(c => String(r[c.key] ?? "")));
+      });
+    }
+
+    const csvContent = csvRows.map(row => row.map(v => JSON.stringify(v)).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const slug = b.titulo

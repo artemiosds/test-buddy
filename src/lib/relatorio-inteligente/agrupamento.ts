@@ -3,7 +3,7 @@
  * Puro; alimenta prévia, PDF e Excel.
  */
 import type { Row } from "./tipos";
-import { statsFor, type Stats } from "./agregacoes";
+import { statsFor, type Stats, numericFields } from "./agregacoes";
 
 export type GroupNode = {
   /** Chave do grupo (valor do campo groupBy no nível atual). */
@@ -29,7 +29,7 @@ function keyOf(v: unknown): string {
 export function agrupar(
   rows: Row[],
   groupBy: string[],
-  numericFieldsIds: string[],
+  numericFieldsIds: string[] = [],
   nivel = 0,
 ): GroupNode[] {
   if (!groupBy.length || nivel >= groupBy.length) return [];
@@ -41,10 +41,18 @@ export function agrupar(
     arr.push(r);
     buckets.set(k, arr);
   }
+
+  // Garantir que cargos/unidades vazios apareçam de forma consistente e ordenados
+  const keys = Array.from(buckets.keys()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
   const out: GroupNode[] = [];
-  for (const [k, subset] of buckets) {
+  for (const k of keys) {
+    const subset = buckets.get(k)!;
     const stats: Record<string, Stats> = {};
-    for (const f of numericFieldsIds) stats[f] = statsFor(subset, f);
+    const effectiveNumericFields = numericFieldsIds.length > 0 ? numericFieldsIds : numericFields(subset);
+    for (const f of effectiveNumericFields) {
+      stats[f] = statsFor(subset, f);
+    }
     out.push({
       key: k,
       label: k,
@@ -54,8 +62,18 @@ export function agrupar(
       children: agrupar(subset, groupBy, numericFieldsIds, nivel + 1),
     });
   }
-  out.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  // Ordenação já feita no loop do Map
   return out;
+}
+
+/** Calcula o total geral de um conjunto de linhas. */
+export function totalGeral(rows: Row[], numericFieldsIds: string[] = []): Record<string, Stats> {
+  const stats: Record<string, Stats> = {};
+  const effectiveNumericFields = numericFieldsIds.length > 0 ? numericFieldsIds : numericFields(rows);
+  for (const f of effectiveNumericFields) {
+    stats[f] = statsFor(rows, f);
+  }
+  return stats;
 }
 
 /** Achata a árvore em uma lista linear preservando ordem hierárquica (para PDF/Excel). */

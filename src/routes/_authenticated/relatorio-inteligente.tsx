@@ -5,7 +5,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
  * NÃO altera regras de negócio, banco, APIs, permissões ou cálculos.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Sparkles,
   Check,
@@ -23,7 +23,11 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Zap,
+  Filter,
+  TrendingUp,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,12 +121,48 @@ function RelatorioInteligentePage() {
 /* ============================================================= */
 
 function Wizard() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
-  const [tipo, setTipo] = useState<TipoRelatorio>("executivo");
-  const [blocks, setBlocks] = useState<BlockConfig[]>(
-    () => PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[],
-  );
+  const navigate = useNavigate();
+  const search = Route.useSearch() as any;
+  const isSalarialRapido = search?.mode === "salarial_rapido";
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido ? 6 : 1);
+  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido ? "rh" : "executivo");
+
+  const salarialBlocks: BlockConfig[] = useMemo(() => {
+    return [
+      {
+        blockId: "cadastro_profissionais",
+        fields: [
+          "nome_completo",
+          "matricula",
+          "cargo",
+          "unidade",
+          "vinculo",
+          "salario_base",
+          "salario_bruto",
+          "salario_liquido",
+          "horas_extras",
+          "adicional_noturno",
+          "gratificacao_incentivo",
+          "vencimento_liquido",
+        ],
+        sort: { fieldId: "nome_completo", dir: "asc" },
+        groupBy: ["unidade", "cargo"],
+      },
+    ];
+  }, []);
+
+  const [blocks, setBlocks] = useState<BlockConfig[]>(() => {
+    if (isSalarialRapido) return salarialBlocks;
+    return PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[];
+  });
+
   const [textFilter, setTextFilter] = useState("");
+  const [filtrosAvancados, setFiltrosAvancados] = useState<{
+    unidades: string[];
+    cargos: string[];
+    vinculos: string[];
+  }>({ unidades: [], cargos: [], vinculos: [] });
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
   const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
@@ -169,15 +209,23 @@ function Wizard() {
           <StepConteudo tipo={tipo} setTipo={escolherTipo} blocks={blocks} toggle={toggleBloco} />
         )}
         {step === 2 && <StepCampos blocks={blocks} update={updateBlock} />}
-        {step === 3 && <StepFiltros textFilter={textFilter} setTextFilter={setTextFilter} />}
+        {step === 3 && (
+          <StepFiltros 
+            textFilter={textFilter} 
+            setTextFilter={setTextFilter}
+            filtrosAvancados={filtrosAvancados}
+            setFiltrosAvancados={setFiltrosAvancados}
+          />
+        )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
             blocks={blocks}
             textFilter={textFilter}
+            filtrosAvancados={filtrosAvancados}
             formato={formato}
             setFormato={setFormato}
             gerando={gerando}
@@ -190,14 +238,14 @@ function Wizard() {
         <Button
           variant="outline"
           disabled={step === 1}
-          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6) : s))}
+          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : s))}
         >
           <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
         </Button>
         {step < 7 ? (
           <Button
             disabled={step === 1 && blocks.length === 0}
-            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6 | 7)}
+            onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7)}
           >
             Avançar <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
@@ -423,28 +471,80 @@ function StepCampos({
 
 /* ============ Etapa 3 · Filtros ============ */
 
+import { MultiSelect } from "@/components/shared/MultiSelect";
+import { useUnidadesLookup, useCargosLookup, useVinculosLookup } from "@/hooks/use-lookups";
+
 function StepFiltros({
   textFilter,
   setTextFilter,
+  filtrosAvancados,
+  setFiltrosAvancados,
 }: {
   textFilter: string;
   setTextFilter: (v: string) => void;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  setFiltrosAvancados: (v: any) => void;
 }) {
+  const unidades = useUnidadesLookup();
+  const cargos = useCargosLookup();
+  const vinculos = useVinculosLookup();
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 3 · Filtros</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label>Busca textual (todos os blocos)</Label>
+      
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Busca textual rápida
+          </Label>
           <Input
-            placeholder="Filtra linhas cujo texto contenha…"
+            placeholder="Filtra por Nome, CPF, Matrícula..."
             value={textFilter}
             onChange={(e) => setTextFilter(e.target.value)}
           />
           <p className="text-[10px] text-muted-foreground">
-            Filtros por unidade, cargo, período e demais campos continuam sendo aplicados pelas
-            permissões e RLS já existentes na fonte de dados (`useGerencial`).
+            Filtra linhas cujo texto contenha o termo digitado em qualquer campo.
           </p>
+        </div>
+
+        <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+          <Label className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground">
+            <Filter className="h-3 w-3" /> Filtros por Estrutura
+          </Label>
+          
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Unidades</Label>
+              <MultiSelect
+                placeholder="Todas as unidades"
+                options={(unidades.data ?? []).map(u => ({ value: u.nome, label: u.nome }))}
+                value={filtrosAvancados.unidades}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, unidades: v }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Cargos</Label>
+              <MultiSelect
+                placeholder="Todos os cargos"
+                options={(cargos.data ?? []).map(c => ({ value: c.nome, label: c.nome }))}
+                value={filtrosAvancados.cargos}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, cargos: v }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Vínculos</Label>
+              <MultiSelect
+                placeholder="Todos os vínculos"
+                options={(vinculos.data ?? []).map(v => ({ value: v.nome, label: v.nome }))}
+                value={filtrosAvancados.vinculos}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, vinculos: v }))}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -525,7 +625,11 @@ function StepOrdenacao({
 
 /* ============ Etapa 5 · Prévia ============ */
 
-function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
+function useBuiltBlocks(
+  blocks: BlockConfig[], 
+  textFilter: string,
+  filtrosAvancados?: { unidades: string[]; cargos: string[]; vinculos: string[] }
+) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
   const built = useMemo(() => {
@@ -537,10 +641,22 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
         let rows: Row[] = b.build({ aggregate: ger.data, profissionais: prof.data });
         if (textFilter.trim()) {
           const q = textFilter.toLowerCase();
-          rows = rows.filter((r) =>
-            Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
-          );
-        }
+            rows = rows.filter((r) =>
+              Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
+            );
+          }
+
+          if (filtrosAvancados) {
+            if (filtrosAvancados.unidades.length > 0) {
+              rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
+            }
+            if (filtrosAvancados.cargos.length > 0) {
+              rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
+            }
+            if (filtrosAvancados.vinculos.length > 0) {
+              rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
+            }
+          }
         rows = applySort(rows, cfg.sort);
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
@@ -556,12 +672,20 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
-function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter: string }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
+function StepPrevia({ 
+  blocks, 
+  textFilter,
+  filtrosAvancados
+}: { 
+  blocks: BlockConfig[]; 
+  textFilter: string;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+}) {
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
   const indice: IndiceAutomatico | null = useMemo(() => {
     if (!ger.data || !built.length) return null;
@@ -772,9 +896,9 @@ function GroupNodeView({
         <span className="ml-auto tabular-nums text-muted-foreground">
           {node.rows.length} linha(s)
         </span>
-        {numeric.slice(0, 2).map((f) => (
+        {numeric.slice(0, 3).map((f) => (
           <span key={f} className="rounded bg-primary/10 px-1.5 text-[10px] text-primary">
-            Σ {labelField(block, f)}: {node.stats[f].soma.toLocaleString("pt-BR")}
+            Σ {labelField(block, f)}: {fmtCell(node.stats[f].soma, f)}
           </span>
         ))}
       </button>
@@ -817,7 +941,7 @@ function StepGruposGraficos({
         if (!b) return null;
         const gb = cfg.groupBy ?? [];
         const charts = cfg.charts ?? [];
-        const groupables = b.fields.filter((f) => cfg.fields.includes(f.id) && f.groupable);
+        const groupables = b.fields.filter((f) => cfg.fields.includes(f.id)); // Liberado todos para agrupar se necessário
         return (
           <div key={cfg.blockId} className="rounded-md border p-3">
             <div className="mb-2 text-sm font-semibold">{b.label}</div>
@@ -1053,7 +1177,7 @@ function BlockTable({
                       "px-2 py-1 " + (f?.tipo === "number" ? "text-right tabular-nums" : "")
                     }
                   >
-                    {fmtCell(r[id])}
+                    {fmtCell(r[id], id)}
                   </td>
                 );
               })}
@@ -1074,39 +1198,46 @@ function StatsBar({
   fields: string[];
   block: NonNullable<ReturnType<typeof findBlock>>;
 }) {
+  const isSalarial = fields.some(f => f.startsWith("salario_") || f === "vencimento_liquido");
   const nums = numericFields(rows).filter((f) => fields.includes(f));
   if (!nums.length || !rows.length) return null;
   return (
-    <div className="grid gap-2 border-t bg-muted/10 p-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
-      {nums.map((f) => {
-        const s = statsFor(rows, f);
-        const rot = block.fields.find((x) => x.id === f)?.label ?? f;
-        return (
-          <div key={f} className="rounded border bg-card px-2 py-1.5">
-            <div className="mb-0.5 font-semibold">{rot}</div>
-            <div className="grid grid-cols-3 gap-x-2 text-muted-foreground">
-              <span>
-                Soma <b className="text-foreground">{s.soma.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Média <b className="text-foreground">{s.media.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Mediana <b className="text-foreground">{s.mediana.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Mín <b className="text-foreground">{s.minimo.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Máx <b className="text-foreground">{s.maximo.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Desvio <b className="text-foreground">{s.desvio.toLocaleString("pt-BR")}</b>
-              </span>
+    <div className="border-t bg-primary/5 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-primary">
+        <TrendingUp className="h-3.5 w-3.5" /> 
+        {isSalarial ? "Total Geral Salarial" : "Totais e Agregações"}
+      </div>
+      <div className="grid gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+        {nums.map((f) => {
+          const s = statsFor(rows, f);
+          const rot = block.fields.find((x) => x.id === f)?.label ?? f;
+          return (
+            <div key={f} className="rounded border bg-card px-2 py-1.5">
+              <div className="mb-0.5 font-semibold">{rot}</div>
+              <div className="grid grid-cols-3 gap-x-2 text-muted-foreground">
+                <span>
+                  Soma <b className="text-foreground">{fmtCell(s.soma, f)}</b>
+                </span>
+                <span>
+                  Média <b className="text-foreground">{fmtCell(s.media, f)}</b>
+                </span>
+                <span>
+                  Mediana <b className="text-foreground">{fmtCell(s.mediana, f)}</b>
+                </span>
+                <span>
+                  Mín <b className="text-foreground">{fmtCell(s.minimo, f)}</b>
+                </span>
+                <span>
+                  Máx <b className="text-foreground">{fmtCell(s.maximo, f)}</b>
+                </span>
+                <span>
+                  Desvio <b className="text-foreground">{fmtCell(s.desvio, f)}</b>
+                </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1117,6 +1248,7 @@ function StepExportar({
   tipo,
   blocks,
   textFilter,
+  filtrosAvancados,
   formato,
   setFormato,
   gerando,
@@ -1126,13 +1258,14 @@ function StepExportar({
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
   textFilter: string;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
   formato: Formato;
   setFormato: (f: Formato) => void;
   gerando: boolean;
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);

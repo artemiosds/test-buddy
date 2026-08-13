@@ -25,8 +25,23 @@ export function projectFields(rows: Row[], fieldIds: string[]): Row[] {
   });
 }
 
-export function fmtCell(v: unknown): string {
+export function fmtCell(v: unknown, fieldId?: string): string {
   if (v == null || v === "") return "—";
-  if (typeof v === "number") return v.toLocaleString("pt-BR");
+  if (typeof v === "number") {
+    // Se for um campo de salário/valor, formata como R$
+    const salariais = [
+      "salario_base",
+      "salario_bruto",
+      "salario_liquido",
+      "horas_extras",
+      "adicional_noturno",
+      "gratificacao_incentivo",
+      "vencimento_liquido",
+    ];
+    if (fieldId && salariais.includes(fieldId)) {
+      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    return v.toLocaleString("pt-BR");
+  }
   return String(v);
 }

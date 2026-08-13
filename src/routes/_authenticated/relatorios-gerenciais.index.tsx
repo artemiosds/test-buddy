@@ -10,8 +10,10 @@ import {
   BarChart3,
   Coins,
   ShieldCheck,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BotaoRelatorioSalarialRapido } from "@/components/relatorios/BotaoRelatorioSalarialRapido";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({ errorComponent: ErrorComponent,
   component: HubGerenciais,
@@ -72,7 +74,11 @@ const CARDS: Card[] = [
 
 function HubGerenciais() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <BotaoRelatorioSalarialRapido />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {CARDS.map((c) => (
         <Link
           key={c.to}
@@ -89,6 +95,7 @@ function HubGerenciais() {
           </div>
         </Link>
       ))}
+      </div>
     </div>
   );
 }
