@@ -1197,7 +1197,17 @@ function StatsBar({
   fields: string[];
   block: NonNullable<ReturnType<typeof findBlock>>;
 }) {
+  const isSalarial = fields.some(f => f.startsWith("salario_") || f === "vencimento_liquido");
   const nums = numericFields(rows).filter((f) => fields.includes(f));
+  if (!nums.length || !rows.length) return null;
+  return (
+    <div className="border-t bg-primary/5 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-primary">
+        <TrendingUp className="h-3.5 w-3.5" /> 
+        {isSalarial ? "Total Geral Salarial" : "Totais e Agregações"}
+      </div>
+      <div className="grid gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+        {nums.map((f) => {
   if (!nums.length || !rows.length) return null;
   return (
     <div className="grid gap-2 border-t bg-muted/10 p-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
