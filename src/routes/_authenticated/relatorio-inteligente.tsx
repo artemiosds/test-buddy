@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Zap,
   Filter,
+  TrendingUp,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
