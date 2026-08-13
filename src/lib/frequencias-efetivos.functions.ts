@@ -9,7 +9,7 @@ const NUM = z.number().nonnegative();
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
-  status_linha: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias"]).optional(),
+  status_linha: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"]).optional(),
   dias_trabalhados: NUM.default(0),
   faltas_injustificadas: NUM.default(0),
   atestado: NUM.default(0),

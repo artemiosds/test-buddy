@@ -410,7 +410,7 @@ export function FrequenciasContratadosPage() {
           setor_id: sId,
           linhas: dirtyList.map((l) => ({
             profissional_id: l.profissional_id,
-            status: l.status,
+            status: l.status as any,
             dias_trabalhados: l.dias_trabalhados,
             dias_falta: l.dias_falta,
             atestado: l.atestado,
@@ -450,7 +450,7 @@ export function FrequenciasContratadosPage() {
             setor_id: sId,
             linhas: dirtyList.map((l) => ({
               profissional_id: l.profissional_id,
-              status: l.status,
+              status: l.status as any,
               dias_trabalhados: l.dias_trabalhados,
               dias_falta: l.dias_falta,
               atestado: l.atestado,

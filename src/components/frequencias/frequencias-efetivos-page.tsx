@@ -320,7 +320,7 @@ export function FrequenciasEfetivosPage() {
       .filter((l) => l._dirty)
       .map((l) => ({
         profissional_id: l.profissional_id,
-        status_linha: l.status_linha,
+        status_linha: l.status_linha as any,
         dias_trabalhados: l.dias_trabalhados,
         faltas_injustificadas: l.faltas_injustificadas,
         atestado: l.atestado,
