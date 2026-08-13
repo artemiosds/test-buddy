@@ -768,15 +768,15 @@ export function FrequenciasContratadosPage() {
   );
 
   const validateGeneric = (v: number | string) => {
-    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    const n = normalizarParaSoma(v);
     return !isNaN(n) && n < 0 ? "Valor negativo" : null;
   };
   const validateHoras = (v: number | string) => {
-    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    const n = normalizarParaSoma(v);
     return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
   };
   const validateFalta = (v: number | string) => {
-    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    const n = normalizarParaSoma(v);
     return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
   };
 
