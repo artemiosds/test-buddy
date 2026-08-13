@@ -3263,6 +3263,89 @@ export type Database = {
           },
         ]
       }
+      piso_consolidado: {
+        Row: {
+          cargo: string | null
+          categoria_enfermagem: string | null
+          competencia: string
+          complementacao_calculada: number | null
+          cpf: string
+          created_at: string | null
+          diferenca_ajustar: number | null
+          divergencia: boolean | null
+          gratificacoes: number | null
+          historico_id: string | null
+          id: string
+          insalubridade: number | null
+          matricula: string | null
+          metadata: Json | null
+          nome: string
+          piso_complementacao: number | null
+          piso_devido: number | null
+          salario_base: number | null
+          status: string | null
+          tempo_servico: number | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          categoria_enfermagem?: string | null
+          competencia: string
+          complementacao_calculada?: number | null
+          cpf: string
+          created_at?: string | null
+          diferenca_ajustar?: number | null
+          divergencia?: boolean | null
+          gratificacoes?: number | null
+          historico_id?: string | null
+          id?: string
+          insalubridade?: number | null
+          matricula?: string | null
+          metadata?: Json | null
+          nome: string
+          piso_complementacao?: number | null
+          piso_devido?: number | null
+          salario_base?: number | null
+          status?: string | null
+          tempo_servico?: number | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          categoria_enfermagem?: string | null
+          competencia?: string
+          complementacao_calculada?: number | null
+          cpf?: string
+          created_at?: string | null
+          diferenca_ajustar?: number | null
+          divergencia?: boolean | null
+          gratificacoes?: number | null
+          historico_id?: string | null
+          id?: string
+          insalubridade?: number | null
+          matricula?: string | null
+          metadata?: Json | null
+          nome?: string
+          piso_complementacao?: number | null
+          piso_devido?: number | null
+          salario_base?: number | null
+          status?: string | null
+          tempo_servico?: number | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_consolidado_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       piso_enfermagem: {
         Row: {
           adicional_noturno: number | null
@@ -3567,6 +3650,77 @@ export type Database = {
           ultimo_erro?: string | null
         }
         Relationships: []
+      }
+      piso_importacoes_linhas: {
+        Row: {
+          aux_fin_piso: number | null
+          cargo: string | null
+          cargo_exibido: string | null
+          categoria_enfermagem: string | null
+          competencia: string
+          cpf: string
+          created_at: string | null
+          grat_funcao_pvb: number | null
+          grat_funcao_vr: number | null
+          grat_nivel_superior: number | null
+          historico_id: string | null
+          horas_mensais: number | null
+          id: string
+          insalubridade: number | null
+          matricula: string | null
+          nome: string | null
+          salario_base: number | null
+          tempo_servico: number | null
+        }
+        Insert: {
+          aux_fin_piso?: number | null
+          cargo?: string | null
+          cargo_exibido?: string | null
+          categoria_enfermagem?: string | null
+          competencia: string
+          cpf: string
+          created_at?: string | null
+          grat_funcao_pvb?: number | null
+          grat_funcao_vr?: number | null
+          grat_nivel_superior?: number | null
+          historico_id?: string | null
+          horas_mensais?: number | null
+          id?: string
+          insalubridade?: number | null
+          matricula?: string | null
+          nome?: string | null
+          salario_base?: number | null
+          tempo_servico?: number | null
+        }
+        Update: {
+          aux_fin_piso?: number | null
+          cargo?: string | null
+          cargo_exibido?: string | null
+          categoria_enfermagem?: string | null
+          competencia?: string
+          cpf?: string
+          created_at?: string | null
+          grat_funcao_pvb?: number | null
+          grat_funcao_vr?: number | null
+          grat_nivel_superior?: number | null
+          historico_id?: string | null
+          horas_mensais?: number | null
+          id?: string
+          insalubridade?: number | null
+          matricula?: string | null
+          nome?: string | null
+          salario_base?: number | null
+          tempo_servico?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piso_importacoes_linhas_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "historico_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       piso_mapeamentos_salvos: {
         Row: {
