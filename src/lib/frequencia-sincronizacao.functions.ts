@@ -68,9 +68,6 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
     let aprovadaPor: string | null = null;
 
     if (tipo === "contratados") {
-      // Para contratados, precisamos garantir que todos os profissionais elegíveis apareçam no total,
-      // mesmo que ainda não tenham uma linha salva em frequencias_contratados.
-      // O filtro de vínculos deve ser abrangente para não omitir profissionais da unidade.
       const query = supabaseAdmin
         .from("profissionais")
         .select(`id, setor_id, vinculos!inner ( natureza, nome )`)
@@ -83,19 +80,14 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       }
 
       const { data: profs, error: pErr } = await query;
-
       if (pErr) throw pErr;
 
-      // Filtramos no código para ter flexibilidade total e evitar erros de join complexos
       const elegiveis = (profs ?? []).filter((p: any) => {
         const natureza = p.vinculos?.natureza?.toLowerCase() || "";
         const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
-        
-        // Critério: Não estatutários (Efetivos/Estatutários vão para a outra folha)
-        // Refinado para garantir que Prestadores de Serviços (temporario) e outros vínculos precários entrem aqui.
+        if (natureza.includes("terceir") || nomeVinculo.includes("terceir")) return false;
         const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
         const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
-        
         return !ehEstatutario && !ehComissionado;
       });
 
@@ -111,12 +103,9 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
 
       if (err) throw err;
       
-      totalProfissionais = elegiveis.length;
-      // O status oficial da folha é 'rascunho' se houver qualquer rascunho, devolvida ou rejeitada.
-      // Caso contrário, se houver enviada, é 'enviada'.
       if (contratados && contratados.length > 0) {
-        const statuses = contratados.map(c => c.status);
-        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada"].includes(s))) {
+        const statuses = contratados.map(c => (c as any).status);
+        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
           statusOficial = "rascunho";
         } else if (statuses.every(s => s === "aprovada")) {
           statusOficial = "aprovada";
@@ -124,18 +113,17 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
           statusOficial = "enviada";
         }
 
-        const ref = contratados.find(c => c.status === statusOficial) || contratados[0];
-        dataEnvio = ref.enviada_em ?? null;
-        enviadaPor = ref.enviada_por ?? null;
-        dataAprovacao = ref.aprovada_em ?? null;
-        aprovadaPor = ref.aprovada_por ?? null;
+        const ref = contratados.find(c => ((c as any).status) === statusOficial) || contratados[0];
+        dataEnvio = (ref as any).enviada_em ?? null;
+        enviadaPor = (ref as any).enviada_por ?? null;
+        dataAprovacao = (ref as any).aprovada_em ?? null;
+        aprovadaPor = (ref as any).aprovada_por ?? null;
       }
 
-      totalDias = contratados?.reduce((acc, curr) => acc + (typeof curr.dias_trabalhados === 'string' ? 0 : (Number(curr.dias_trabalhados) || 0)), 0) ?? 0;
-      totalFaltas = contratados?.reduce((acc, curr) => acc + (typeof curr.dias_falta === 'string' ? 0 : (Number(curr.dias_falta) || 0)), 0) ?? 0;
+      totalDias = contratados?.reduce((acc, curr) => acc + (typeof (curr as any).dias_trabalhados === 'string' ? 0 : (Number((curr as any).dias_trabalhados) || 0)), 0) ?? 0;
+      totalFaltas = contratados?.reduce((acc, curr) => acc + (typeof (curr as any).dias_falta === 'string' ? 0 : (Number((curr as any).dias_falta) || 0)), 0) ?? 0;
 
     } else {
-      // Efetivos ou Mensal (usam frequencia_profissional vinculada a uma frequencia base)
       const queryBase = supabaseAdmin
         .from("frequencias")
         .select("id, status, data_envio, enviada_por, data_aprovacao, aprovada_por")
@@ -157,6 +145,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       const { data: linhas, error: lErr } = await supabaseAdmin
         .from("frequencia_profissional")
         .select(`
+          status_linha,
           dias_trabalhados, faltas_injustificadas, faltas_justificadas,
           profissionais!inner(setor_id)
         `)
@@ -166,17 +155,29 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
 
       if (lErr) throw lErr;
 
-      statusOficial = freqBase.status;
+      if (linhas && linhas.length > 0) {
+        const statuses = linhas.map(l => (l as any).status_linha || "rascunho");
+        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
+          statusOficial = "rascunho";
+        } else if (statuses.every(s => s === "aprovada")) {
+          statusOficial = "aprovada";
+        } else if (statuses.some(s => s === "enviada")) {
+          statusOficial = "enviada";
+        }
+      } else {
+        statusOficial = freqBase.status;
+      }
+
       totalProfissionais = linhas?.length ?? 0;
       dataEnvio = freqBase.data_envio;
       enviadaPor = freqBase.enviada_por;
       dataAprovacao = freqBase.data_aprovacao;
       aprovadaPor = freqBase.aprovada_por;
 
-      totalDias = linhas?.reduce((acc, curr) => acc + (typeof curr.dias_trabalhados === 'string' ? 0 : (Number(curr.dias_trabalhados) || 0)), 0) ?? 0;
+      totalDias = linhas?.reduce((acc, curr) => acc + (typeof (curr as any).dias_trabalhados === 'string' ? 0 : (Number((curr as any).dias_trabalhados) || 0)), 0) ?? 0;
       totalFaltas = linhas?.reduce((acc, curr) => 
-        acc + (typeof curr.faltas_injustificadas === 'string' ? 0 : (Number(curr.faltas_injustificadas) || 0)) + 
-        (typeof curr.faltas_justificadas === 'string' ? 0 : (Number(curr.faltas_justificadas) || 0)), 0) ?? 0;
+        acc + (typeof (curr as any).faltas_injustificadas === 'string' ? 0 : (Number((curr as any).faltas_injustificadas) || 0)) + 
+        (typeof (curr as any).faltas_justificadas === 'string' ? 0 : (Number((curr as any).faltas_justificadas) || 0)), 0) ?? 0;
     }
 
     // 3. Atualiza a tabela consolidada 'frequencias'
