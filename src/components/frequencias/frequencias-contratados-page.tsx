@@ -380,13 +380,13 @@ export function FrequenciasContratadosPage() {
     return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
   }
 
-  function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
+  const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
       return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
-  }
+  }, []);
 
   const salvarFn = useServerFn(salvarFolhaContratados);
   const enviarFn = useServerFn(enviarFolhaContratados);

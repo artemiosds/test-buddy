@@ -300,13 +300,13 @@ export function FrequenciasEfetivosPage() {
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
   const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
-  function updateCampo(pid: string, campo: keyof LinhaState, valor: number | string) {
+  const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
       return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
-  }
+  }, []);
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
