@@ -310,7 +310,7 @@ export function FrequenciasEfetivosPage() {
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
 
-  function payloadDirty() {
+  function payloadDirty(): any[] {
     return Object.values(linhas)
       .filter((l) => l._dirty)
       .map((l) => ({
