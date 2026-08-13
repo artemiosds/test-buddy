@@ -502,7 +502,7 @@ export function FrequenciasContratadosPage() {
       // registro persistido, para o PDF/Excel refletirem exatamente a grade.
       const editada = linhas[it.profissional.id];
       const linha = editada
-        ? { ...(it.linha ?? {}), ...editada, status: it.linha?.status ?? "rascunho" }
+        ? { ...(it.linha ?? {}), ...editada, status: editada.status ?? it.linha?.status ?? "rascunho" }
         : it.linha;
       const override = overrideSituacaoFolha(it.conf ?? it.profissional);
       return {

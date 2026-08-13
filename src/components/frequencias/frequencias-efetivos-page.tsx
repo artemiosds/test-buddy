@@ -341,7 +341,7 @@ export function FrequenciasEfetivosPage() {
     return ((folha?.itens ?? []) as any[]).map((it) => {
       const editada = (linhas as any)[it.profissional.id];
       const base = editada
-        ? { ...(it.linha ?? {}), ...editada, status_linha: it.linha?.status_linha ?? "pendente" }
+        ? { ...(it.linha ?? {}), ...editada, status_linha: editada.status_linha ?? it.linha?.status_linha ?? "pendente" }
         : (it.linha ?? null);
       
       const conf = (confMap as any)?.get?.(it.profissional.id) || { ...it.profissional, vinculo: "Efetivo" };

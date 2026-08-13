@@ -55,7 +55,7 @@ export const garantirLinhaFolha = createServerFn({ method: "POST" })
           unidade_id: data.unidade_id,
           profissional_id: data.profissional_id,
           status: "rascunho",
-          dias_trabalhados: 0,
+          dias_trabalhados: "0",
           dias_falta: "0",
           atestado: "0",
           he_50: "0",

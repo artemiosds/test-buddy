@@ -212,8 +212,10 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
       const toN = (v: any) => {
         if (typeof v === 'number') return v;
-        const s = String(v || '').replace(',', '.');
-        const n = parseFloat(s);
+        const s = String(v || '').trim();
+        if (!s) return 0;
+        const sClean = s.replace(/\./g, "").replace(',', '.');
+        const n = parseFloat(sClean);
         return isNaN(n) ? 0 : n;
       };
       const totalDias = toN(l.dias_trabalhados) + toN(l.dias_falta) + toN(l.atestado);
