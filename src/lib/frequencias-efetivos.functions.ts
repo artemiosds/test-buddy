@@ -5,26 +5,26 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 
-const NUM = z.number().nonnegative();
+const VAL = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
   status_linha: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"]).optional(),
-  dias_trabalhados: NUM.default(0),
-  faltas_injustificadas: NUM.default(0),
-  atestado: NUM.default(0),
-  he_50: NUM.default(0),
-  he_100: NUM.default(0),
-  ferias_terco: NUM.default(0),
-  ferias_integral: NUM.default(0),
-  sal_sub_h: NUM.default(0),
-  adicional_noturno: NUM.default(0),
-  aulas_suplementares: NUM.default(0),
-  sobreaviso: NUM.default(0),
-  plantoes_extras: NUM.default(0),
-  incentivo: NUM.default(0),
-  ferias: NUM.default(0),
-  licenca_premio: NUM.default(0),
+  dias_trabalhados: VAL,
+  faltas_injustificadas: VAL,
+  atestado: VAL,
+  he_50: VAL,
+  he_100: VAL,
+  ferias_terco: VAL,
+  ferias_integral: VAL,
+  sal_sub_h: VAL,
+  adicional_noturno: VAL,
+  aulas_suplementares: VAL,
+  sobreaviso: VAL,
+  plantoes_extras: VAL,
+  incentivo: VAL,
+  ferias: VAL,
+  licenca_premio: VAL,
   observacoes: z.string().nullable().optional(),
 });
 
@@ -273,8 +273,16 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
-      const totalDias = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
-                        Number(l.atestado ?? 0) + Number(l.ferias ?? 0) + Number(l.licenca_premio ?? 0);
+      
+      const toN = (v: any) => {
+        if (typeof v === 'number') return v;
+        const s = String(v || '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+      };
+
+      const totalDias = toN(l.dias_trabalhados) + toN(l.faltas_injustificadas) + 
+                        toN(l.atestado) + toN(l.ferias) + toN(l.licenca_premio);
       
       if (totalDias > diasNoMes) {
         throw new Error(`O total de dias (${totalDias}) excede os ${diasNoMes} dias do mês para o profissional.`);
@@ -353,9 +361,16 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
         .is("deleted_at", null);
       
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
+      const toN = (v: any) => {
+        if (typeof v === 'number') return v;
+        const s = String(v || '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+      };
+
       for (const l of (linhas ?? [])) {
-        const total = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
-                     Number(l.atestado ?? 0) + Number(l.ferias ?? 0) + Number(l.licenca_premio ?? 0);
+        const total = toN(l.dias_trabalhados) + toN(l.faltas_injustificadas) + 
+                     toN(l.atestado) + toN(l.ferias) + toN(l.licenca_premio);
         if (total > diasNoMes) {
           throw new Error(`Existem profissionais com mais de ${diasNoMes} dias lançados. Corrija antes de enviar.`);
         }
