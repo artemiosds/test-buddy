@@ -19,6 +19,7 @@ const NUM = z.number().nonnegative();
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
+  status: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida"]).optional(),
   dias_trabalhados: NUM.default(0),
   dias_falta: NUM.default(0),
   atestado: NUM.default(0),
