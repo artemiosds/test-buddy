@@ -653,7 +653,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
                   ) : (
                     <CampoFolhaInput
                       id={`edm-${c.key}`}
-                      value={linha ? (linha as any)[c.key] : 0}
+                      value={linha ? (linha as any)[c.key] : ""}
                       disabled={!canEdit}
                       destaque={c.group === "sms"}
                       onChange={(v) => onChangeCampo(c.key, v)}
@@ -750,12 +750,12 @@ function CampoFolhaInput({
   destaque?: boolean;
   onChange: (v: number | string) => void;
 }) {
-  const externo = value ?? "";
-  const [local, setLocal] = useState<string>(String(externo));
-  const emitido = useRef<string>(String(externo));
+  const externo = value === null || value === undefined ? "" : String(value);
+  const [local, setLocal] = useState<string>(externo);
+  const emitido = useRef<string>(externo);
 
   useEffect(() => {
-    const s = String(value ?? "");
+    const s = value === null || value === undefined ? "" : String(value);
     if (s === emitido.current) return;
     emitido.current = s;
     setLocal(s);
@@ -787,12 +787,8 @@ function CampoFolhaInput({
         onChange(s);
       }}
       onBlur={() => {
-        if (isNumericText(local)) {
-          const n = parseNum(local);
-          emitido.current = String(n);
-          setLocal(String(n));
-          onChange(n);
-        }
+        // Removemos a normalização numérica forçada no Blur para evitar ".00"
+        // O valor já foi emitido no onChange.
       }}
       style={{
         color: "#0F172A",
