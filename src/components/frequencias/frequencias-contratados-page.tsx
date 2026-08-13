@@ -1347,6 +1347,7 @@ export function FrequenciasContratadosPage() {
         competenciaId={competenciaId}
         unidadeId={unidadeId}
         folha="contratados"
+        statusLinha={folhaStatusUnificado}
         setorId={setorFilter.length === 1 ? setorFilter[0] : null}
         enviando={mEnviar.isPending}
         onConfirm={() => mEnviar.mutate()}

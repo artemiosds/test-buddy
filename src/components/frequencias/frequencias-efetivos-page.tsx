@@ -1178,16 +1178,17 @@ export function FrequenciasEfetivosPage() {
         }
       />
 
-        <EnviarFolhaDialog
-          open={enviarAberto}
-          onOpenChange={setEnviarAberto}
-          competenciaId={competenciaId}
-          unidadeId={unidadeId}
-          setorId={setorFilter.length === 1 ? setorFilter[0] : null}
-          folha="efetivos"
-          enviando={mEnviar.isPending}
-          onConfirm={() => mEnviar.mutate()}
-        />
+      <EnviarFolhaDialog
+        open={enviarAberto}
+        onOpenChange={setEnviarAberto}
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        setorId={setorFilter.length === 1 ? setorFilter[0] : null}
+        folha="efetivos"
+        statusLinha={folhaStatus}
+        enviando={mEnviar.isPending}
+        onConfirm={() => mEnviar.mutate()}
+      />
     </div>
   );
 }
