@@ -545,9 +545,18 @@ export function FrequenciasEfetivosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateFalta = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
-  const validateHoras = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
-  const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
+  const validateGeneric = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
+  };
+  const validateHoras = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
+  };
+  const validateFalta = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
+  };
 
   function focarLinha(rowId: string) {
     const tr = document.querySelector<HTMLTableRowElement>(
