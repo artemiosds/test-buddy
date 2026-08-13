@@ -10,8 +10,10 @@ import {
   BarChart3,
   Coins,
   ShieldCheck,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BotaoRelatorioSalarialRapido } from "@/components/relatorios/BotaoRelatorioSalarialRapido";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({ errorComponent: ErrorComponent,
   component: HubGerenciais,
