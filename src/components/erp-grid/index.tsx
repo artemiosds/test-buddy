@@ -281,7 +281,8 @@ export function NumberCell({
       }}
       onBlur={() => {
         ctx.setActiveRow(null);
-        if (local !== String(value)) {
+        const externalStr = value === null || value === undefined ? "" : String(value);
+        if (local !== externalStr) {
           onChange(local);
         }
       }}
