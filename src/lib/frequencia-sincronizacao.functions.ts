@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
+import { normalizarParaSoma } from "@/components/erp-grid";
 
 /**
  * Orquestrador de Sincronização de Frequências
@@ -120,8 +121,8 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         aprovadaPor = (ref as any).aprovada_por ?? null;
       }
 
-      totalDias = contratados?.reduce((acc, curr) => acc + (Number((curr as any).dias_trabalhados) || 0), 0) ?? 0;
-      totalFaltas = contratados?.reduce((acc, curr) => acc + (Number((curr as any).dias_falta) || 0), 0) ?? 0;
+      totalDias = contratados?.reduce((acc, curr) => acc + (normalizarParaSoma((curr as any).dias_trabalhados)), 0) ?? 0;
+      totalFaltas = contratados?.reduce((acc, curr) => acc + (normalizarParaSoma((curr as any).dias_falta)), 0) ?? 0;
 
     } else {
       const queryBase = supabaseAdmin
@@ -174,10 +175,10 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       dataAprovacao = freqBase.data_aprovacao;
       aprovadaPor = freqBase.aprovada_por;
 
-      totalDias = linhas?.reduce((acc, curr) => acc + (Number((curr as any).dias_trabalhados) || 0), 0) ?? 0;
+      totalDias = linhas?.reduce((acc, curr) => acc + (normalizarParaSoma((curr as any).dias_trabalhados)), 0) ?? 0;
       totalFaltas = linhas?.reduce((acc, curr) => 
-        acc + (Number((curr as any).faltas_injustificadas) || 0) + 
-        (Number((curr as any).faltas_justificadas) || 0), 0) ?? 0;
+        acc + (normalizarParaSoma((curr as any).faltas_injustificadas)) + 
+        (normalizarParaSoma((curr as any).faltas_justificadas)), 0) ?? 0;
     }
 
     // 3. Atualiza a tabela consolidada 'frequencias'
