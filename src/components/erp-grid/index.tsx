@@ -252,10 +252,10 @@ export function NumberCell({
 }: NumberCellProps) {
   const ctx = useErp();
   const ref = useRef<HTMLInputElement | null>(null);
-  const [local, setLocal] = useState<string>(String(value ?? ""));
+  const [local, setLocal] = useState<string>(value === null || value === undefined ? "" : String(value));
 
   useEffect(() => {
-    setLocal(String(value ?? ""));
+    setLocal(value === null || value === undefined ? "" : String(value));
   }, [value]);
 
   useEffect(() => {
