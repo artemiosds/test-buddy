@@ -334,7 +334,11 @@ function fmtNum(n: number, decimals?: number): string {
   // Se o número for inteiro, não força casas decimais, mesmo que pedidas.
   if (Number.isInteger(safe)) return String(safe);
   // Se o número tiver decimais, exibe-os apenas se solicitado ou se necessário para precisão mínima.
-  return String(Number(safe.toFixed(decimals ?? 2)));
+  const formatted = safe.toLocaleString("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals ?? 2,
+  });
+  return formatted;
 }
 
 
