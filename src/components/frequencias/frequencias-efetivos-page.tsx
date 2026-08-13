@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
 import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
@@ -316,7 +316,7 @@ export function FrequenciasEfetivosPage() {
       .filter((l) => l._dirty)
       .map((l) => ({
         profissional_id: l.profissional_id,
-        status_linha: l.status_linha as any,
+        status_linha: l.status_linha,
         dias_trabalhados: l.dias_trabalhados,
         faltas_injustificadas: l.faltas_injustificadas,
         atestado: l.atestado,
@@ -1178,16 +1178,17 @@ export function FrequenciasEfetivosPage() {
         }
       />
 
-        <EnviarFolhaDialog
-          open={enviarAberto}
-          onOpenChange={setEnviarAberto}
-          competenciaId={competenciaId}
-          unidadeId={unidadeId}
-          setorId={setorFilter.length === 1 ? setorFilter[0] : null}
-          folha="efetivos"
-          enviando={mEnviar.isPending}
-          onConfirm={() => mEnviar.mutate()}
-        />
+      <EnviarFolhaDialog
+        open={enviarAberto}
+        onOpenChange={setEnviarAberto}
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        setorId={setorFilter.length === 1 ? setorFilter[0] : null}
+        folha="efetivos"
+        statusLinha={folhaStatus}
+        enviando={mEnviar.isPending}
+        onConfirm={() => mEnviar.mutate()}
+      />
     </div>
   );
 }

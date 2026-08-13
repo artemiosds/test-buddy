@@ -399,7 +399,7 @@ export function FrequenciasContratadosPage() {
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
       const list = dirtyList.map((l) => ({
         profissional_id: l.profissional_id,
-        status: l.status as any,
+        status: l.status,
         dias_trabalhados: l.dias_trabalhados,
         dias_falta: l.dias_falta,
         atestado: l.atestado,
@@ -458,7 +458,7 @@ export function FrequenciasContratadosPage() {
             setor_id: sId,
             linhas: dirtyList.map((l) => ({
               profissional_id: l.profissional_id,
-              status: l.status as any,
+              status: l.status,
               dias_trabalhados: l.dias_trabalhados,
               dias_falta: l.dias_falta,
               atestado: l.atestado,
@@ -1347,6 +1347,7 @@ export function FrequenciasContratadosPage() {
         competenciaId={competenciaId}
         unidadeId={unidadeId}
         folha="contratados"
+        statusLinha={folhaStatusUnificado}
         setorId={setorFilter.length === 1 ? setorFilter[0] : null}
         enviando={mEnviar.isPending}
         onConfirm={() => mEnviar.mutate()}

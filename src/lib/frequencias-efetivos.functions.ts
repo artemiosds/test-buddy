@@ -293,7 +293,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       const payload: Record<string, unknown> = {
         frequencia_id,
         profissional_id: l.profissional_id,
-        status_linha: l.status_linha || (ex ? ex.status_linha : "rascunho"),
+        status_linha: l.status_linha || (ex ? ex.status_linha : "rascunho") || "rascunho",
         updated_by: userId,
       };
 
