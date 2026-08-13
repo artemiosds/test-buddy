@@ -156,10 +156,14 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const { data: profs, error: pErr } = await query;
 
-    // Filtro de efetivos: Estatutário/Efetivo ou Comissionado
+    // Filtro de efetivos: Estatutário/Efetivo ou Comissionado (EXCLUI TERCEIRIZADOS)
     const profsFinais = (profs ?? []).filter((p: any) => {
       const natureza = p.vinculos?.natureza?.toLowerCase() || "";
       const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
+
+      // Terceirizados nunca devem aparecer nas folhas (Missão: Remover Terceirizados)
+      if (natureza.includes("terceir") || nomeVinculo.includes("terceir")) return false;
+
       const ehEstatutario = natureza.includes("estatut") || natureza.includes("efetiv") || nomeVinculo.includes("efetiv") || nomeVinculo.includes("estatut");
       const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
       return ehEstatutario || ehComissionado;
