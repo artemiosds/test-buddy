@@ -124,7 +124,7 @@ function Wizard() {
   const search = Route.useSearch() as any;
   const isSalarialRapido = search?.mode === "salarial_rapido";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido ? 2 : 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido ? 6 : 1);
   const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido ? "rh" : "executivo");
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
