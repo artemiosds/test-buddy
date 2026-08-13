@@ -1,0 +1,1 @@
+ALTER TABLE public.frequencias_contratados ALTER COLUMN dias_trabalhados TYPE TEXT;
