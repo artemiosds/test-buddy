@@ -219,7 +219,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id,
         profissional_id: l.profissional_id,
         updated_by: userId,
-        status: ex ? ex.status : "rascunho",
+        status: l.status || (ex ? ex.status : "rascunho"),
       };
 
       if (!ex) {
