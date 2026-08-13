@@ -1,29 +1,34 @@
-# Plano de Correção: Salvamento Limpo e Persistência de Formatação
+# Plano de Migração e Limpeza de Dados
 
-## Problema
-O usuário relata que ao editar um valor (ex: "32.00" para "32"), a alteração é refletida na tela, mas após um recarregamento (F5), o valor retorna para a versão formatada ("32.00"). Isso indica que o dado está sendo enviado ou processado com formatação forçada no momento do salvamento.
+Este plano descreve as etapas para corrigir os dados já gravados com formatação indesejada nas tabelas de frequência e as alterações de código para evitar novas ocorrências.
 
-## Diagnóstico Técnico
-1. **Normalização no Servidor**: As server functions `salvarFolhaEfetivos` e `salvarFolhaContratados` usavam `parseFloat(s.replace(',', '.'))`, que falha se o número já tiver pontos como separadores de milhar (ex: "1.000,00").
-2. **Emissão de Evento**: No Grid ERP (`NumberCell`), a comparação `local !== String(value)` podia falhar se o `value` externo estivesse vindo como número e o `local` como string, ou se o `value` fosse `null`.
-3. **Valores Iniciais**: A função `garantirLinhaFolha` estava inicializando campos como número `0` em vez de string `"0"`, o que pode induzir o banco de dados a retornar o valor formatado pelo driver.
+## 1. Correção no Código (Prevenção)
+- **Grid ERP (`NumberCell`)**: Refinar a função `fmtNum` para remover zeros à direita desnecessários em valores decimais (ex: "1,50" -> "1,5").
+- **Server Functions**: Já ajustadas para salvar como string bruta, mas revisaremos se há algum ponto de coerção numérica residual.
 
-## Ações Realizadas
-1. **Refinamento da Normalização (Server)**:
-   - Atualizada a função `toN` em `listarFolhaEfetivos` e `listarFolhaContratados` para remover pontos de milhar antes de converter vírgula em ponto.
-   - Isso garante que "1.000,00" vire "1000.00" e "32" continue "32".
+## 2. Migração de Dados (Limpeza)
+A migração será dividida em fases para garantir a segurança dos dados.
 
-2. **Garantia de Tipagem String (Server/DB)**:
-   - Alterada a inicialização em `garantirLinhaFolha` para usar strings `"0"` em todos os campos, preservando a intenção de "Texto Livre" desde o nascimento do registro.
+### Fase A: Preparação e Auditoria Inicial
+- **Backup**: Criação de tabelas de backup (`frequencia_profissional_backup_20260813` e `frequencias_contratados_backup_20260813`).
+- **Contagem Pré-Migração**: Identificar quantos registros possuem o padrão `.00` ou `,00`.
 
-3. **Correção de Comparação no Grid (Frontend)**:
-   - Ajustada a lógica de `onBlur` no `NumberCell` para converter o valor externo em String antes de comparar com o estado local, garantindo que o evento de mudança seja disparado corretamente.
+### Fase B: Execução do Script SQL
+O script SQL utilizará uma função auxiliar `limpar_valor_texto` para:
+1. Remover `.00` ou `,00` de números inteiros (ex: "32.00" -> "32").
+2. Remover zeros à direita de decimais reais (ex: "1,50" -> "1,5").
+3. Ignorar textos puros (ex: "Férias").
+4. Manter nulos ou vazios.
 
-4. **Persistência de Status em Exportações**:
-   - Ajustado o mapeamento de exportação em ambas as folhas para priorizar o status editado na tela (rascunho, enviada, etc) sobre o status vindo do banco, garantindo que o PDF reflita o estado atual da edição.
+### Fase C: Verificação Pós-Migração
+- **Contagem Pós-Migração**: Confirmar que os registros identificados foram limpos.
+- **Amostragem**: `SELECT` de 10 registros aleatórios para inspeção visual.
 
-## Teste de Aceitação
-- [x] Editar campo na grade e sair (onBlur).
-- [x] Verificar que o estado `_dirty` é marcado.
-- [x] Clicar em Salvar e verificar resposta da API.
-- [x] Recarregar a página e confirmar que o valor permanece sem ".00" forçado.
+## Detalhes Técnicos
+As colunas afetadas em `folha_efetivos`: `dias_trabalhados`, `atestado`, `he_50`, `he_100`, `ferias_terco`, `ferias_integral`, `adicional_noturno`, `sobreaviso`, `plantoes_extras`, `incentivo`, `ferias`, `licenca_premio`.
+
+As colunas afetadas em `folha_contratados`: `dias_trabalhados`, `dias_falta`, `atestado`, `he_50`, `he_100`, `adn`, `plantoes`, `sobreaviso`, `incentivo`.
+
+---
+
+**Solicitação de Autorização**: O script SQL de backup e limpeza está pronto para visualização. Deseja revisar o SQL agora?
