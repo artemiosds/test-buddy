@@ -98,15 +98,15 @@ const MESES = [
 type LinhaState = {
   profissional_id: string;
   status: StatusFreq;
-  dias_trabalhados: number;
-  dias_falta: number;
-  atestado: number;
-  he_50: number;
-  he_100: number;
-  adn: number;
-  plantoes: number;
-  sobreaviso: number;
-  incentivo: number;
+  dias_trabalhados: number | string;
+  dias_falta: number | string;
+  atestado: number | string;
+  he_50: number | string;
+  he_100: number | string;
+  adn: number | string;
+  plantoes: number | string;
+  sobreaviso: number | string;
+  incentivo: number | string;
   observacoes: string;
   _dirty?: boolean;
 };
@@ -1202,10 +1202,7 @@ export function FrequenciasContratadosPage() {
                           <NumberCell
                             rowId={p.id}
                             colKey={c}
-                            value={(() => {
-                              const v = Number((l as any)[c] ?? 0);
-                              return Number.isFinite(v) ? v : 0;
-                            })()}
+                            value={(l as any)[c] ?? 0}
                             disabled={ro}
                             decimals={0}
                             validate={
