@@ -42,10 +42,10 @@ const MESES = [
   "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
 ];
 
-function num(v: number | string | null | undefined): number | "" {
+function num(v: number | string | null | undefined): string | number {
   if (v == null || v === 0 || v === "") return "";
-  const x = Number(v);
-  return x || "";
+  if (typeof v === "string") return v;
+  return v;
 }
 
 export async function gerarExcelFolhaEfetivos(input: ExcelEfetivosInput): Promise<void> {
