@@ -302,7 +302,7 @@ function ImportarPage() {
       const enriched = rows.map((r) => {
         if (r.status_match !== "nao_localizado" || !r.nome) return r;
         const hit = bestFuzzy(r.nome, candidatos, 0.85);
-        return hit ? { ...r, profissional_id: hit.id, status_match: "nome" as const } : r;
+        return hit ? { ...r, profissional_id: hit.id, status_match: "nome" } : r;
       });
       setResolved(enriched);
       setPasso(3);
