@@ -301,18 +301,33 @@ function isNumericText(s: string): boolean {
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+([.,]\d+)?$/.test(t);
 }
 
-/** Função utilitária para converter texto (possivelmente com vírgula) em número para cálculos */
-export function safeParseFloat(v: any): number {
-  if (v === null || v === undefined || v === "") return 0;
-  if (typeof v === "number") return v;
-  const t = String(v).trim().replace(/\./g, "").replace(",", ".");
+/** 
+ * Função central de normalização para soma.
+ * Converte valor bruto (inclusive textos como 'Férias') em número seguro para cálculos.
+ */
+export function normalizarParaSoma(valorBruto: any): number {
+  if (valorBruto === null || valorBruto === undefined || valorBruto === "") return 0;
+  if (typeof valorBruto === "number") return valorBruto;
+  
+  const texto = String(valorBruto).trim();
+  const textosEspeciais = ['férias', 'falta', 'atestado', 'afastamento', 'licença', 'folga', 'ferias', 'licenca'];
+  
+  if (textosEspeciais.includes(texto.toLowerCase())) return 0;
+  
+  const t = texto.replace(/\./g, "").replace(",", ".");
   const n = parseFloat(t);
   return isNaN(n) ? 0 : n;
 }
 
-function parseNum(s: string): number {
-  return safeParseFloat(s);
+/** Alias para compatibilidade legada */
+export function safeParseFloat(v: any): number {
+  return normalizarParaSoma(v);
 }
+
+function parseNum(s: string): number {
+  return normalizarParaSoma(s);
+}
+
 function fmtNum(n: number, decimals?: number): string {
   const safe = Number.isFinite(n) ? n : 0;
   // Se o número for inteiro, não força casas decimais, mesmo que pedidas.
