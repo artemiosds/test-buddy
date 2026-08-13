@@ -238,14 +238,14 @@ function Wizard() {
         <Button
           variant="outline"
           disabled={step === 1}
-          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6) : s))}
+          onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : s))}
         >
           <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
         </Button>
         {step < 7 ? (
           <Button
             disabled={step === 1 && blocks.length === 0}
-            onClick={() => setStep((s) => (s + 1) as 2 | 3 | 4 | 5 | 6 | 7)}
+            onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7)}
           >
             Avançar <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
