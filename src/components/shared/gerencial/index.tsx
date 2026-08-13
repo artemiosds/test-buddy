@@ -730,13 +730,6 @@ function isNumericText(s: string): boolean {
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+([.,]\d+)?$/.test(t);
 }
 
-function parseNum(s: string): number {
-  if (!s) return 0;
-  const t = s.trim().replace(/\./g, "").replace(",", ".");
-  const n = Number(t.includes(".") || t.includes("-") ? t : s);
-  return Number.isFinite(n) ? n : 0;
-}
-
 function CampoFolhaInput({
   id,
   value,
@@ -772,23 +765,11 @@ function CampoFolhaInput({
       onChange={(e) => {
         const s = e.target.value;
         setLocal(s);
-        if (s.trim() === "") {
-          emitido.current = "";
-          onChange("");
-          return;
-        }
-        if (isNumericText(s)) {
-          // Se for numérico, emitimos o valor limpo (sem forçar decimais)
-          emitido.current = s;
-          onChange(s);
-          return;
-        }
         emitido.current = s;
         onChange(s);
       }}
       onBlur={() => {
-        // Removemos a normalização numérica forçada no Blur para evitar ".00"
-        // O valor já foi emitido no onChange.
+        // Sem normalização numérica forçada no Blur para evitar ".00"
       }}
       style={{
         color: "#0F172A",
