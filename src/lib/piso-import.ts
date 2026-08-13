@@ -58,7 +58,7 @@ export type ResolvedRow = {
   valor_liquido_folha: number | null;
   adn_informativo: number | null;
   profissional_id: string | null;
-  status_match: string;
+  status_match: "cpf" | "matricula" | "nome" | "nao_localizado";
   confidence_extraction: number | null;
   confidence_validation: number | null;
   validation_status: "READY" | "REVIEW_REQUIRED" | "ERROR" | null;

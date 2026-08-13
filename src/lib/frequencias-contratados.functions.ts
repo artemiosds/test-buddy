@@ -19,7 +19,7 @@ const VAL = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
-  status: z.string().optional(),
+  status: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"]).optional(),
   dias_trabalhados: VAL,
   dias_falta: VAL,
   atestado: VAL,

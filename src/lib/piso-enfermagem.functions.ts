@@ -107,7 +107,7 @@ const LinhaSchema = z.object({
   sobreaviso: z.number().nullable().optional(),
   conta_bancaria: z.string().nullable().optional(),
   profissional_id: z.string().uuid().nullable().optional(),
-  status_match: z.string().optional(),
+  status_match: z.enum(["cpf", "matricula", "nome", "nao_localizado"]),
 });
 
 const CommitInput = z.object({
