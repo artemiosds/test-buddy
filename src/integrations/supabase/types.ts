@@ -1580,7 +1580,7 @@ export type Database = {
           devolvida_em: string | null
           devolvida_por: string | null
           dias_falta: string
-          dias_trabalhados: number
+          dias_trabalhados: string
           enviada_em: string | null
           enviada_por: string | null
           he_100: string
@@ -1610,7 +1610,7 @@ export type Database = {
           devolvida_em?: string | null
           devolvida_por?: string | null
           dias_falta?: string
-          dias_trabalhados?: number
+          dias_trabalhados?: string
           enviada_em?: string | null
           enviada_por?: string | null
           he_100?: string
@@ -1640,7 +1640,7 @@ export type Database = {
           devolvida_em?: string | null
           devolvida_por?: string | null
           dias_falta?: string
-          dias_trabalhados?: number
+          dias_trabalhados?: string
           enviada_em?: string | null
           enviada_por?: string | null
           he_100?: string
