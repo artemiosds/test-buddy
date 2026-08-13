@@ -74,11 +74,9 @@ export function fmtConta(p: ItemContratado["profissional"]): string {
 }
 
 function n(v: number | string | null | undefined): number | string {
-  if (v == null || v === "") return "";
+  if (v == null || v === 0 || v === "") return "";
   if (typeof v === "string") return v;
-  const x = Number(v);
-  if (isNaN(x) || x === 0) return v ? String(v) : "";
-  return x;
+  return v;
 }
 
 export async function gerarExcelFolhaContratados(input: ExcelContratadosInput): Promise<void> {
