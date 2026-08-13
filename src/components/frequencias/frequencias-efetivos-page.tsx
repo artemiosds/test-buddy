@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
 import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";

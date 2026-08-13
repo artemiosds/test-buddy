@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { obterSubmissaoFolha } from "@/lib/folha-submissao.functions";
 import { descartarAnexosPendentes } from "@/lib/frequencias.functions";
+import { toast } from "sonner";
 
 /**
  * Confirmação do envio da folha para aprovação, com o bloco opcional de
@@ -32,6 +33,7 @@ export function EnviarFolhaDialog({
   competenciaId,
   unidadeId,
   folha,
+  statusLinha,
   setorId,
   enviando,
   onConfirm,
@@ -41,6 +43,7 @@ export function EnviarFolhaDialog({
   competenciaId: string | null | undefined;
   unidadeId: string | null | undefined;
   folha: "efetivos" | "contratados";
+  statusLinha?: string;
   setorId?: string | null;
   enviando?: boolean;
   onConfirm: () => void;
@@ -133,6 +136,11 @@ export function EnviarFolhaDialog({
           </Button>
           <Button
             onClick={() => {
+              const validos = ["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"];
+              if (statusLinha && !validos.includes(statusLinha)) {
+                toast.error(`Status de linha inválido: "${statusLinha}". Por favor, recarregue a página.`);
+                return;
+              }
               pendentesRef.current = [];
               onConfirm();
             }}
