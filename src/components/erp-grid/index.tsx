@@ -284,6 +284,7 @@ export function NumberCell({
         const externalStr = value === null || value === undefined ? "" : String(value);
         if (local !== externalStr) {
           onChange(local);
+          setLocal(local); // Garante que o estado local reflita exatamente o que foi enviado
         }
       }}
       onChange={(e) => {
