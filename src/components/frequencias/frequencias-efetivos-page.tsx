@@ -365,10 +365,20 @@ export function FrequenciasEfetivosPage() {
       if (offlineGuard()) throw new Error("Offline");
 
       const list = payloadDirty();
+      console.log("DEBUG_SALVAMENTO: Payload enviado (Efetivos)", list);
+      
       if (!list.length) return { ok: true, sem_alteracoes: true };
-      return salvarFn({
-        data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
-      });
+      
+      try {
+        const res = await salvarFn({
+          data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
+        });
+        console.log("DEBUG_SALVAMENTO: Resposta servidor", res);
+        return res;
+      } catch (error) {
+        console.log("DEBUG_SUPABASE: Erro recebido ao salvar", error);
+        throw error;
+      }
     },
     onSuccess: (r: any) => {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
