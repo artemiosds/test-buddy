@@ -828,6 +828,8 @@ export function FrequenciasEfetivosPage() {
               faltas: Number(l.faltas_injustificadas ?? 0),
               att: Number(l.atestado ?? 0),
             },
+            status: l.status_linha,
+
           };
         })()}
       />
