@@ -1240,6 +1240,7 @@ function StepExportar({
   tipo,
   blocks,
   textFilter,
+  filtrosAvancados,
   formato,
   setFormato,
   gerando,
@@ -1249,13 +1250,14 @@ function StepExportar({
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
   textFilter: string;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
   formato: Formato;
   setFormato: (f: Formato) => void;
   gerando: boolean;
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
