@@ -17,8 +17,7 @@ export function BotaoRelatorioSalarialRapido() {
       variant="default" 
       className="gap-2 bg-blue-600 hover:bg-blue-700"
       onClick={() => {
-        // Redireciona para o relatório inteligente com parâmetros ou configuração inicial
-        navigate({ to: "/relatorio-inteligente" });
+        navigate({ to: "/relatorio-inteligente", search: { mode: "salarial_rapido" } });
       }}
     >
       <Zap className="h-4 w-4" /> Relatório Salarial Rápido
