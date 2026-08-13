@@ -9,7 +9,7 @@ const VAL = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
-  status_linha: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"]).optional(),
+  status_linha: z.enum(["pendente", "aprovada", "rejeitada"]).optional(),
   dias_trabalhados: VAL,
   faltas_injustificadas: VAL,
   atestado: VAL,
@@ -293,7 +293,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       const payload: Record<string, unknown> = {
         frequencia_id,
         profissional_id: l.profissional_id,
-        status_linha: l.status_linha || (ex ? ex.status_linha : "rascunho") || "rascunho",
+        status_linha: l.status_linha || (ex ? ex.status_linha : "pendente") || "pendente",
         updated_by: userId,
       };
 
