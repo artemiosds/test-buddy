@@ -193,7 +193,7 @@ function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
         if (c === b.colunas[0]) return "Subtotal";
         return "";
       }
-      return `R$ ${s.soma.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+      return s.soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }),
   ];
 }
