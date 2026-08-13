@@ -98,15 +98,15 @@ const MESES = [
 type LinhaState = {
   profissional_id: string;
   status: StatusFreq;
-  dias_trabalhados: number;
-  dias_falta: number;
-  atestado: number;
-  he_50: number;
-  he_100: number;
-  adn: number;
-  plantoes: number;
-  sobreaviso: number;
-  incentivo: number;
+  dias_trabalhados: number | string;
+  dias_falta: number | string;
+  atestado: number | string;
+  he_50: number | string;
+  he_100: number | string;
+  adn: number | string;
+  plantoes: number | string;
+  sobreaviso: number | string;
+  incentivo: number | string;
   observacoes: string;
   _dirty?: boolean;
 };
@@ -352,15 +352,15 @@ export function FrequenciasContratadosPage() {
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
         status: (l?.status as StatusFreq) ?? "rascunho",
-        dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
-        dias_falta: Number(l?.dias_falta ?? 0),
-        atestado: Number(l?.atestado ?? 0),
-        he_50: Number(l?.he_50 ?? 0),
-        he_100: Number(l?.he_100 ?? 0),
-        adn: Number(l?.adn ?? 0),
-        plantoes: Number(l?.plantoes ?? 0),
-        sobreaviso: Number(l?.sobreaviso ?? 0),
-        incentivo: Number.isFinite(Number(l?.incentivo)) ? Number(l?.incentivo) : 0,
+        dias_trabalhados: l?.dias_trabalhados ?? 0,
+        dias_falta: l?.dias_falta ?? 0,
+        atestado: l?.atestado ?? 0,
+        he_50: l?.he_50 ?? 0,
+        he_100: l?.he_100 ?? 0,
+        adn: l?.adn ?? 0,
+        plantoes: l?.plantoes ?? 0,
+        sobreaviso: l?.sobreaviso ?? 0,
+        incentivo: l?.incentivo ?? 0,
         observacoes: l?.observacoes ?? "",
       };
     }
@@ -383,12 +383,7 @@ export function FrequenciasContratadosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      let v: any = valor;
-      if (CAMPOS_NUM.includes(campo as any)) {
-        const n = typeof valor === "number" ? valor : Number(valor);
-        v = isNaN(n) || n < 0 ? 0 : n;
-      }
-      return { ...prev, [pid]: { ...cur, [campo]: v, _dirty: true } };
+      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
   }
 
@@ -718,8 +713,9 @@ export function FrequenciasContratadosPage() {
       const l = linhas[it.profissional.id];
       if (!l) continue;
       for (const k of colKeysAll) {
-        const v = Number((l as any)[k] ?? 0);
-        if (Number.isFinite(v)) acc[k] += v;
+        const raw = (l as any)[k];
+        const val = typeof raw === "number" ? raw : Number(String(raw || "").replace(",", ".")) || 0;
+        acc[k] += val;
       }
     }
     return acc;
@@ -774,9 +770,18 @@ export function FrequenciasContratadosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateFalta = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
-  const validateHoras = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
-  const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
+  const validateGeneric = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
+  };
+  const validateHoras = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
+  };
+  const validateFalta = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
+  };
 
   function focarLinha(rowId: string) {
     const tr = document.querySelector<HTMLTableRowElement>(
@@ -1202,10 +1207,7 @@ export function FrequenciasContratadosPage() {
                           <NumberCell
                             rowId={p.id}
                             colKey={c}
-                            value={(() => {
-                              const v = Number((l as any)[c] ?? 0);
-                              return Number.isFinite(v) ? v : 0;
-                            })()}
+                            value={(l as any)[c] ?? 0}
                             disabled={ro}
                             decimals={0}
                             validate={

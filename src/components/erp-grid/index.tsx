@@ -223,15 +223,15 @@ function cssEsc(v: string): string {
 export type NumberCellProps = {
   rowId: string;
   colKey: string;
-  value: number;
-  onChange: (v: number) => void;
+  value: number | string;
+  onChange: (v: number | string) => void;
   disabled?: boolean;
   min?: number;
   max?: number;
   step?: number;
   decimals?: number;
   /** Retorna mensagem se o valor estiver fora do esperado; não bloqueia edição. */
-  validate?: (v: number) => string | null;
+  validate?: (v: number | string) => string | null;
   className?: string;
   title?: string;
 };
@@ -252,15 +252,11 @@ export function NumberCell({
 }: NumberCellProps) {
   const ctx = useErp();
   const ref = useRef<HTMLInputElement | null>(null);
-  const [local, setLocal] = useState<string>(fmtNum(value, decimals));
-  // Guarda o último número emitido para não sobrescrever texto livre digitado.
-  const emitted = useRef<number>(value);
+  const [local, setLocal] = useState<string>(String(value ?? ""));
 
   useEffect(() => {
-    if (value === emitted.current) return;
-    emitted.current = value;
-    setLocal(fmtNum(value, decimals));
-  }, [value, decimals]);
+    setLocal(String(value ?? ""));
+  }, [value]);
 
   useEffect(() => {
     ctx.register(rowId, colKey, ref.current);
@@ -285,30 +281,13 @@ export function NumberCell({
       }}
       onBlur={() => {
         ctx.setActiveRow(null);
-        // Se o conteúdo for numérico, normaliza. Texto livre permanece como digitado.
-        if (isNumericText(local)) {
-          const n = parseNum(local);
-          if (n !== value) {
-            emitted.current = n;
-            onChange(n);
-          }
-          setLocal(fmtNum(n, decimals));
+        if (local !== String(value)) {
+          onChange(local);
         }
       }}
       onChange={(e) => {
-        const s = e.target.value;
-        setLocal(s);
-        // Só propaga como número quando o texto for numérico (ou vazio).
-        if (s.trim() === "") {
-          emitted.current = 0;
-          onChange(0);
-          return;
-        }
-        if (isNumericText(s)) {
-          const n = parseNum(s);
-          emitted.current = n;
-          onChange(n);
-        }
+        setLocal(e.target.value);
+        // Emissão otimista removida para evitar que o sistema altere o que o usuário digita
       }}
       onKeyDown={(e) => ctx.onCellKeyDown(rowId, colKey, e)}
       onPaste={(e) => ctx.onCellPaste(rowId, colKey, e)}
@@ -322,11 +301,17 @@ function isNumericText(s: string): boolean {
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+([.,]\d+)?$/.test(t);
 }
 
+/** Função utilitária para converter texto (possivelmente com vírgula) em número para cálculos */
+export function safeParseFloat(v: any): number {
+  if (v === null || v === undefined || v === "") return 0;
+  if (typeof v === "number") return v;
+  const t = String(v).trim().replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
 function parseNum(s: string): number {
-  if (!s) return 0;
-  const t = s.trim().replace(/\./g, "").replace(",", ".");
-  const n = Number(t.includes(".") || t.includes("-") ? t : s);
-  return Number.isFinite(n) ? n : 0;
+  return safeParseFloat(s);
 }
 function fmtNum(n: number, decimals?: number): string {
   const safe = Number.isFinite(n) ? n : 0;

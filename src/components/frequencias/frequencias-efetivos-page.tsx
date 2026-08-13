@@ -81,21 +81,21 @@ const MESES = [
 type LinhaState = {
   profissional_id: string;
   status_linha: StatusFreq;
-  dias_trabalhados: number;
-  faltas_injustificadas: number;
-  atestado: number;
-  he_50: number;
-  he_100: number;
-  ferias_terco: number;
-  ferias_integral: number;
-  sal_sub_h: number;
-  adicional_noturno: number;
-  aulas_suplementares: number;
-  sobreaviso: number;
-  plantoes_extras: number;
-  incentivo: number;
-  ferias: number;
-  licenca_premio: number;
+  dias_trabalhados: number | string;
+  faltas_injustificadas: number | string;
+  atestado: number | string;
+  he_50: number | string;
+  he_100: number | string;
+  ferias_terco: number | string;
+  ferias_integral: number | string;
+  sal_sub_h: number | string;
+  adicional_noturno: number | string;
+  aulas_suplementares: number | string;
+  sobreaviso: number | string;
+  plantoes_extras: number | string;
+  incentivo: number | string;
+  ferias: number | string;
+  licenca_premio: number | string;
   observacoes: string;
   _dirty?: boolean;
 };
@@ -264,21 +264,21 @@ export function FrequenciasEfetivosPage() {
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
         status_linha: (l?.status_linha as StatusFreq) ?? "rascunho",
-        dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
-        faltas_injustificadas: Number(l?.faltas_injustificadas ?? 0),
-        atestado: Number(l?.atestado ?? 0),
-        he_50: Number(l?.he_50 ?? 0),
-        he_100: Number(l?.he_100 ?? 0),
-        ferias_terco: Number(l?.ferias_terco ?? 0),
-        ferias_integral: Number(l?.ferias_integral ?? 0),
-        sal_sub_h: Number(l?.sal_sub_h ?? 0),
-        adicional_noturno: Number(l?.adicional_noturno ?? 0),
-        aulas_suplementares: Number(l?.aulas_suplementares ?? 0),
-        sobreaviso: Number(l?.sobreaviso ?? 0),
-        plantoes_extras: Number(l?.plantoes_extras ?? 0),
-        incentivo: Number(l?.incentivo ?? 0),
-        ferias: Number(l?.ferias ?? 0),
-        licenca_premio: Number(l?.licenca_premio ?? 0),
+        dias_trabalhados: l?.dias_trabalhados ?? 0,
+        faltas_injustificadas: l?.faltas_injustificadas ?? 0,
+        atestado: l?.atestado ?? 0,
+        he_50: l?.he_50 ?? 0,
+        he_100: l?.he_100 ?? 0,
+        ferias_terco: l?.ferias_terco ?? 0,
+        ferias_integral: l?.ferias_integral ?? 0,
+        sal_sub_h: l?.sal_sub_h ?? 0,
+        adicional_noturno: l?.adicional_noturno ?? 0,
+        aulas_suplementares: l?.aulas_suplementares ?? 0,
+        sobreaviso: l?.sobreaviso ?? 0,
+        plantoes_extras: l?.plantoes_extras ?? 0,
+        incentivo: l?.incentivo ?? 0,
+        ferias: l?.ferias ?? 0,
+        licenca_premio: l?.licenca_premio ?? 0,
         observacoes: l?.observacoes ?? "",
       };
     }
@@ -303,19 +303,14 @@ export function FrequenciasEfetivosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      let v: any = valor;
-      if ((CAMPOS_NUM as readonly string[]).includes(campo as string)) {
-        const n = typeof valor === "number" ? valor : Number(valor);
-        v = isNaN(n) || n < 0 ? 0 : n;
-      }
-      return { ...prev, [pid]: { ...cur, [campo]: v, _dirty: true } };
+      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
   }
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
 
-  function payloadDirty() {
+  function payloadDirty(): any[] {
     return Object.values(linhas)
       .filter((l) => l._dirty)
       .map((l) => ({
@@ -494,8 +489,8 @@ export function FrequenciasEfetivosPage() {
       const l = linhas[it.profissional.id];
       if (!l) continue;
       for (const k of colKeysAll) {
-        const v = Number((l as any)[k] ?? 0);
-        if (Number.isFinite(v)) acc[k] += v;
+        const v = (l as any)[k];
+        acc[k] += (typeof v === "number" ? v : Number(String(v || "").replace(",", ".")) || 0);
       }
     }
     return acc;
@@ -550,9 +545,18 @@ export function FrequenciasEfetivosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateFalta = (v: number) => (v > 31 ? "Faltas acima de 31 dias" : null);
-  const validateHoras = (v: number) => (v > 400 ? "Valor incomum (> 400h)" : null);
-  const validateGeneric = (v: number) => (v < 0 ? "Valor negativo" : null);
+  const validateGeneric = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
+  };
+  const validateHoras = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
+  };
+  const validateFalta = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
+  };
 
   function focarLinha(rowId: string) {
     const tr = document.querySelector<HTMLTableRowElement>(
@@ -1034,7 +1038,7 @@ export function FrequenciasEfetivosPage() {
                           {overrideSituacao ? CelulaSituacao : <NumberCell
                             rowId={p.id}
                             colKey={c.key}
-                            value={Number((l as any)[c.key] ?? 0)}
+                            value={(l as any)[c.key] ?? 0}
                             disabled={ro}
                             decimals={0}
                             className="w-full text-right text-[11px]"
@@ -1051,7 +1055,7 @@ export function FrequenciasEfetivosPage() {
                         {overrideSituacao ? CelulaSituacao : <NumberCell
                           rowId={p.id}
                           colKey={c.key}
-                          value={Number((l as any)[c.key] ?? 0)}
+                          value={(l as any)[c.key] ?? 0}
                           disabled={ro}
                           className="w-full text-right text-[11px]"
                           validate={validateGeneric}
