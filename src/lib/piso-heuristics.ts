@@ -328,7 +328,7 @@ export function buildRowsFromAoa(
   headerRowIndex: number,
 ): { headers: string[]; rows: Record<string, unknown>[] } {
   const headers = labelHeaders(aoa[headerRowIndex] ?? []);
-  const cpfColIdx = headers.findIndex((h) => normalize(h).includes("cpf"));
+  const cpfColIdx = headers.findIndex((h) => normalize(h) === "cpf" || normalize(h).includes("cpf"));
   const rows: Record<string, unknown>[] = [];
   for (let i = headerRowIndex + 1; i < aoa.length; i++) {
     const raw = aoa[i] ?? [];

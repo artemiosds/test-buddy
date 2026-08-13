@@ -72,7 +72,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         .from("profissionais")
         .select(`id, setor_id, vinculos!inner ( natureza, nome )`)
         .eq("unidade_id", unidade_id)
-        .not("status", "in", "(desligado,inativo)")
+        .not("status", "in", "(inativo)")
         .is("deleted_at", null);
 
       if (setor_id) {
