@@ -3,7 +3,7 @@
  * Puro; alimenta prévia, PDF e Excel.
  */
 import type { Row } from "./tipos";
-import { statsFor, type Stats } from "./agregacoes";
+import { statsFor, type Stats, numericFields } from "./agregacoes";
 
 export type GroupNode = {
   /** Chave do grupo (valor do campo groupBy no nível atual). */
@@ -29,7 +29,7 @@ function keyOf(v: unknown): string {
 export function agrupar(
   rows: Row[],
   groupBy: string[],
-  numericFieldsIds: string[],
+  numericFieldsIds: string[] = [],
   nivel = 0,
 ): GroupNode[] {
   if (!groupBy.length || nivel >= groupBy.length) return [];
@@ -44,7 +44,10 @@ export function agrupar(
   const out: GroupNode[] = [];
   for (const [k, subset] of buckets) {
     const stats: Record<string, Stats> = {};
-    for (const f of numericFieldsIds) stats[f] = statsFor(subset, f);
+    const effectiveNumericFields = numericFieldsIds.length > 0 ? numericFieldsIds : numericFields(subset);
+    for (const f of effectiveNumericFields) {
+      stats[f] = statsFor(subset, f);
+    }
     out.push({
       key: k,
       label: k,

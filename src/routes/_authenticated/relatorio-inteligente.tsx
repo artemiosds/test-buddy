@@ -5,7 +5,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
  * NÃO altera regras de negócio, banco, APIs, permissões ou cálculos.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Sparkles,
   Check,
@@ -23,7 +23,10 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Zap,
+  Filter,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,12 +120,48 @@ function RelatorioInteligentePage() {
 /* ============================================================= */
 
 function Wizard() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
-  const [tipo, setTipo] = useState<TipoRelatorio>("executivo");
-  const [blocks, setBlocks] = useState<BlockConfig[]>(
-    () => PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[],
-  );
+  const navigate = useNavigate();
+  const search = Route.useSearch() as any;
+  const isSalarialRapido = search?.mode === "salarial_rapido";
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido ? 2 : 1);
+  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido ? "rh" : "executivo");
+
+  const salarialBlocks: BlockConfig[] = useMemo(() => {
+    return [
+      {
+        blockId: "cadastro_profissionais",
+        fields: [
+          "nome_completo",
+          "matricula",
+          "cargo",
+          "unidade",
+          "vinculo",
+          "salario_base",
+          "salario_bruto",
+          "salario_liquido",
+          "horas_extras",
+          "adicional_noturno",
+          "gratificacao_incentivo",
+          "vencimento_liquido",
+        ],
+        sort: { fieldId: "nome_completo", dir: "asc" },
+        groupBy: ["unidade", "cargo"],
+      },
+    ];
+  }, []);
+
+  const [blocks, setBlocks] = useState<BlockConfig[]>(() => {
+    if (isSalarialRapido) return salarialBlocks;
+    return PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[];
+  });
+
   const [textFilter, setTextFilter] = useState("");
+  const [filtrosAvancados, setFiltrosAvancados] = useState<{
+    unidades: string[];
+    cargos: string[];
+    vinculos: string[];
+  }>({ unidades: [], cargos: [], vinculos: [] });
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
   const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);

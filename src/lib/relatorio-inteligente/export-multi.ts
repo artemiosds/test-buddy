@@ -189,8 +189,11 @@ function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
   return [
     b.colunas.map((c) => {
       const s = n.stats[c.key];
-      if (!s) return c === b.colunas[0] ? "Subtotal" : "";
-      return `Σ ${s.soma.toLocaleString("pt-BR")}`;
+      if (!s) {
+        if (c === b.colunas[0]) return "Subtotal";
+        return "";
+      }
+      return `R$ ${s.soma.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
     }),
   ];
 }
