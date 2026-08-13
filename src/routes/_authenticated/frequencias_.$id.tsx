@@ -309,7 +309,7 @@ function FrequenciaDetalhe() {
           "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza), status, setores(id, nome)",
         )
         .eq("unidade_id", unidadeId!)
-        .not("status", "in", "(desligado,inativo)")
+        .not("status", "in", "(inativo)")
         .in("vinculos.natureza", naturezas)
         .order("nome_completo");
       if (error) throw error;
