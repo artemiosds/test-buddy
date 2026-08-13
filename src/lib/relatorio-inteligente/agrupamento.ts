@@ -41,8 +41,13 @@ export function agrupar(
     arr.push(r);
     buckets.set(k, arr);
   }
+
+  // Garantir que cargos/unidades vazios apareçam de forma consistente e ordenados
+  const keys = Array.from(buckets.keys()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
   const out: GroupNode[] = [];
-  for (const [k, subset] of buckets) {
+  for (const k of keys) {
+    const subset = buckets.get(k)!;
     const stats: Record<string, Stats> = {};
     const effectiveNumericFields = numericFieldsIds.length > 0 ? numericFieldsIds : numericFields(subset);
     for (const f of effectiveNumericFields) {
