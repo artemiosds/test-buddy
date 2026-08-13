@@ -208,15 +208,23 @@ function Wizard() {
           <StepConteudo tipo={tipo} setTipo={escolherTipo} blocks={blocks} toggle={toggleBloco} />
         )}
         {step === 2 && <StepCampos blocks={blocks} update={updateBlock} />}
-        {step === 3 && <StepFiltros textFilter={textFilter} setTextFilter={setTextFilter} />}
+        {step === 3 && (
+          <StepFiltros 
+            textFilter={textFilter} 
+            setTextFilter={setTextFilter}
+            filtrosAvancados={filtrosAvancados}
+            setFiltrosAvancados={setFiltrosAvancados}
+          />
+        )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
             blocks={blocks}
             textFilter={textFilter}
+            filtrosAvancados={filtrosAvancados}
             formato={formato}
             setFormato={setFormato}
             gerando={gerando}
@@ -462,28 +470,80 @@ function StepCampos({
 
 /* ============ Etapa 3 · Filtros ============ */
 
+import { MultiSelect } from "@/components/shared/MultiSelect";
+import { useUnidadesLookup, useCargosLookup, useVinculosLookup } from "@/hooks/use-lookups";
+
 function StepFiltros({
   textFilter,
   setTextFilter,
+  filtrosAvancados,
+  setFiltrosAvancados,
 }: {
   textFilter: string;
   setTextFilter: (v: string) => void;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  setFiltrosAvancados: (v: any) => void;
 }) {
+  const unidades = useUnidadesLookup();
+  const cargos = useCargosLookup();
+  const vinculos = useVinculosLookup();
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 3 · Filtros</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label>Busca textual (todos os blocos)</Label>
+      
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Busca textual rápida
+          </Label>
           <Input
-            placeholder="Filtra linhas cujo texto contenha…"
+            placeholder="Filtra por Nome, CPF, Matrícula..."
             value={textFilter}
             onChange={(e) => setTextFilter(e.target.value)}
           />
           <p className="text-[10px] text-muted-foreground">
-            Filtros por unidade, cargo, período e demais campos continuam sendo aplicados pelas
-            permissões e RLS já existentes na fonte de dados (`useGerencial`).
+            Filtra linhas cujo texto contenha o termo digitado em qualquer campo.
           </p>
+        </div>
+
+        <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+          <Label className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground">
+            <Filter className="h-3 w-3" /> Filtros por Estrutura
+          </Label>
+          
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Unidades</Label>
+              <MultiSelect
+                placeholder="Todas as unidades"
+                options={(unidades.data ?? []).map(u => ({ value: u.nome, label: u.nome }))}
+                value={filtrosAvancados.unidades}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, unidades: v }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Cargos</Label>
+              <MultiSelect
+                placeholder="Todos os cargos"
+                options={(cargos.data ?? []).map(c => ({ value: c.nome, label: c.nome }))}
+                value={filtrosAvancados.cargos}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, cargos: v }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Vínculos</Label>
+              <MultiSelect
+                placeholder="Todos os vínculos"
+                options={(vinculos.data ?? []).map(v => ({ value: v.nome, label: v.nome }))}
+                value={filtrosAvancados.vinculos}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, vinculos: v }))}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -564,7 +624,11 @@ function StepOrdenacao({
 
 /* ============ Etapa 5 · Prévia ============ */
 
-function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
+function useBuiltBlocks(
+  blocks: BlockConfig[], 
+  textFilter: string,
+  filtrosAvancados?: { unidades: string[]; cargos: string[]; vinculos: string[] }
+) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
   const built = useMemo(() => {
@@ -576,10 +640,22 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
         let rows: Row[] = b.build({ aggregate: ger.data, profissionais: prof.data });
         if (textFilter.trim()) {
           const q = textFilter.toLowerCase();
-          rows = rows.filter((r) =>
-            Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
-          );
-        }
+            rows = rows.filter((r) =>
+              Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
+            );
+          }
+
+          if (filtrosAvancados) {
+            if (filtrosAvancados.unidades.length > 0) {
+              rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
+            }
+            if (filtrosAvancados.cargos.length > 0) {
+              rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
+            }
+            if (filtrosAvancados.vinculos.length > 0) {
+              rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
+            }
+          }
         rows = applySort(rows, cfg.sort);
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
@@ -595,12 +671,20 @@ function useBuiltBlocks(blocks: BlockConfig[], textFilter: string) {
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
-function StepPrevia({ blocks, textFilter }: { blocks: BlockConfig[]; textFilter: string }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter);
+function StepPrevia({ 
+  blocks, 
+  textFilter,
+  filtrosAvancados
+}: { 
+  blocks: BlockConfig[]; 
+  textFilter: string;
+  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+}) {
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
   const indice: IndiceAutomatico | null = useMemo(() => {
     if (!ger.data || !built.length) return null;
@@ -856,7 +940,7 @@ function StepGruposGraficos({
         if (!b) return null;
         const gb = cfg.groupBy ?? [];
         const charts = cfg.charts ?? [];
-        const groupables = b.fields.filter((f) => cfg.fields.includes(f.id) && f.groupable);
+        const groupables = b.fields.filter((f) => cfg.fields.includes(f.id)); // Liberado todos para agrupar se necessário
         return (
           <div key={cfg.blockId} className="rounded-md border p-3">
             <div className="mb-2 text-sm font-semibold">{b.label}</div>
