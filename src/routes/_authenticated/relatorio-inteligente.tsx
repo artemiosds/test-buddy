@@ -1208,38 +1208,35 @@ function StatsBar({
       </div>
       <div className="grid gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
         {nums.map((f) => {
-  if (!nums.length || !rows.length) return null;
-  return (
-    <div className="grid gap-2 border-t bg-muted/10 p-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
-      {nums.map((f) => {
-        const s = statsFor(rows, f);
-        const rot = block.fields.find((x) => x.id === f)?.label ?? f;
-        return (
-          <div key={f} className="rounded border bg-card px-2 py-1.5">
-            <div className="mb-0.5 font-semibold">{rot}</div>
-            <div className="grid grid-cols-3 gap-x-2 text-muted-foreground">
-              <span>
-                Soma <b className="text-foreground">{fmtCell(s.soma, f)}</b>
-              </span>
-              <span>
-                Média <b className="text-foreground">{fmtCell(s.media, f)}</b>
-              </span>
-              <span>
-                Mediana <b className="text-foreground">{s.mediana.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Mín <b className="text-foreground">{s.minimo.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Máx <b className="text-foreground">{s.maximo.toLocaleString("pt-BR")}</b>
-              </span>
-              <span>
-                Desvio <b className="text-foreground">{s.desvio.toLocaleString("pt-BR")}</b>
-              </span>
+          const s = statsFor(rows, f);
+          const rot = block.fields.find((x) => x.id === f)?.label ?? f;
+          return (
+            <div key={f} className="rounded border bg-card px-2 py-1.5">
+              <div className="mb-0.5 font-semibold">{rot}</div>
+              <div className="grid grid-cols-3 gap-x-2 text-muted-foreground">
+                <span>
+                  Soma <b className="text-foreground">{fmtCell(s.soma, f)}</b>
+                </span>
+                <span>
+                  Média <b className="text-foreground">{fmtCell(s.media, f)}</b>
+                </span>
+                <span>
+                  Mediana <b className="text-foreground">{fmtCell(s.mediana, f)}</b>
+                </span>
+                <span>
+                  Mín <b className="text-foreground">{fmtCell(s.minimo, f)}</b>
+                </span>
+                <span>
+                  Máx <b className="text-foreground">{fmtCell(s.maximo, f)}</b>
+                </span>
+                <span>
+                  Desvio <b className="text-foreground">{fmtCell(s.desvio, f)}</b>
+                </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
