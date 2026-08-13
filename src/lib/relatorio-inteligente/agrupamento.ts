@@ -62,8 +62,18 @@ export function agrupar(
       children: agrupar(subset, groupBy, numericFieldsIds, nivel + 1),
     });
   }
-  out.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  // Ordenação já feita no loop do Map
   return out;
+}
+
+/** Calcula o total geral de um conjunto de linhas. */
+export function totalGeral(rows: Row[], numericFieldsIds: string[] = []): Record<string, Stats> {
+  const stats: Record<string, Stats> = {};
+  const effectiveNumericFields = numericFieldsIds.length > 0 ? numericFieldsIds : numericFields(rows);
+  for (const f of effectiveNumericFields) {
+    stats[f] = statsFor(rows, f);
+  }
+  return stats;
 }
 
 /** Achata a árvore em uma lista linear preservando ordem hierárquica (para PDF/Excel). */
