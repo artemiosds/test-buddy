@@ -61,8 +61,9 @@ const COLS: Col[] = [
 function n(v: number | string | null | undefined): string {
   if (v == null || v === "") return "-";
   if (typeof v === "string") return v;
-  const x = Number(v);
-  if (isNaN(x) || x === 0) return v ? String(v) : "-";
+  const x = Number(String(v).replace(",", "."));
+  if (isNaN(x)) return String(v);
+  if (x === 0) return "0";
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
@@ -352,8 +353,9 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       if (situacao && situacao !== "Ativo") return situacao;
       if (v == null || v === "") return "";
       if (typeof v === "string") return v;
-      const x = Number(v);
-      if (isNaN(x) || x === 0) return v ? String(v) : "";
+      const x = Number(String(v).replace(",", "."));
+      if (isNaN(x)) return String(v);
+      if (x === 0) return "0";
       return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
     };
     return [
