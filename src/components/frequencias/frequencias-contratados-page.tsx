@@ -64,6 +64,7 @@ import {
   ErpTbody,
   NumberCell,
   TextCell,
+  normalizarParaSoma,
   KpiFolhaBar,
   InconsistenciasPanel,
   frozenLeftMap,
@@ -754,7 +755,7 @@ export function FrequenciasContratadosPage() {
             if (!cur) return;
             const raw = String(cell ?? "").trim();
             const n = normalizarParaSoma(raw);
-            const finalValue = isNumericText(raw) ? n : raw;
+            const finalValue = /^-?\d+([.,]\d+)?$/.test(raw) ? n : raw;
             next[rId] = { ...cur, [cKey]: finalValue, _dirty: true };
             touched++;
           });

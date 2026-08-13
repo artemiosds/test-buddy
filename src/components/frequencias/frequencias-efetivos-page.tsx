@@ -48,6 +48,7 @@ import {
   ErpTbody,
   NumberCell,
   TextCell,
+  normalizarParaSoma,
   KpiFolhaBar,
   InconsistenciasPanel,
   frozenLeftMap,
@@ -532,7 +533,7 @@ export function FrequenciasEfetivosPage() {
             // Mantém o valor bruto se não for numérico puro (pode ser "Férias", "1,5", etc)
             // Se for numérico, normaliza para salvar consistentemente
             const n = normalizarParaSoma(raw);
-            const finalValue = isNumericText(raw) ? n : raw;
+            const finalValue = /^-?\d+([.,]\d+)?$/.test(raw) ? n : raw;
             next[rId] = { ...cur, [cKey]: finalValue, _dirty: true };
             touched++;
           });
