@@ -1468,6 +1468,135 @@ export type Database = {
           },
         ]
       }
+      frequencia_profissional_backup_20260813: {
+        Row: {
+          adicional_noturno: string | null
+          afastamentos: string | null
+          analisado_em: string | null
+          analisado_por: string | null
+          atestado: string | null
+          aulas_suplementares: number | null
+          carga_horaria_mensal: string | null
+          cargo_id: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          detalhes: Json | null
+          dias_trabalhados: string | null
+          faltas_injustificadas: string | null
+          faltas_justificadas: string | null
+          ferias: string | null
+          ferias_integral: string | null
+          ferias_terco: string | null
+          frequencia_id: string | null
+          funcao_id: string | null
+          he_100: string | null
+          he_50: string | null
+          horas_extras: string | null
+          id: string | null
+          incentivo: string | null
+          licenca_premio: string | null
+          licencas: string | null
+          observacao_analise: string | null
+          observacoes: string | null
+          plantoes_extras: string | null
+          profissional_id: string | null
+          sal_sub_h: string | null
+          sobreaviso: string | null
+          status_linha:
+            | Database["public"]["Enums"]["status_linha_frequencia"]
+            | null
+          updated_at: string | null
+          updated_by: string | null
+          vinculo_id: string | null
+        }
+        Insert: {
+          adicional_noturno?: string | null
+          afastamentos?: string | null
+          analisado_em?: string | null
+          analisado_por?: string | null
+          atestado?: string | null
+          aulas_suplementares?: number | null
+          carga_horaria_mensal?: string | null
+          cargo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          detalhes?: Json | null
+          dias_trabalhados?: string | null
+          faltas_injustificadas?: string | null
+          faltas_justificadas?: string | null
+          ferias?: string | null
+          ferias_integral?: string | null
+          ferias_terco?: string | null
+          frequencia_id?: string | null
+          funcao_id?: string | null
+          he_100?: string | null
+          he_50?: string | null
+          horas_extras?: string | null
+          id?: string | null
+          incentivo?: string | null
+          licenca_premio?: string | null
+          licencas?: string | null
+          observacao_analise?: string | null
+          observacoes?: string | null
+          plantoes_extras?: string | null
+          profissional_id?: string | null
+          sal_sub_h?: string | null
+          sobreaviso?: string | null
+          status_linha?:
+            | Database["public"]["Enums"]["status_linha_frequencia"]
+            | null
+          updated_at?: string | null
+          updated_by?: string | null
+          vinculo_id?: string | null
+        }
+        Update: {
+          adicional_noturno?: string | null
+          afastamentos?: string | null
+          analisado_em?: string | null
+          analisado_por?: string | null
+          atestado?: string | null
+          aulas_suplementares?: number | null
+          carga_horaria_mensal?: string | null
+          cargo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          detalhes?: Json | null
+          dias_trabalhados?: string | null
+          faltas_injustificadas?: string | null
+          faltas_justificadas?: string | null
+          ferias?: string | null
+          ferias_integral?: string | null
+          ferias_terco?: string | null
+          frequencia_id?: string | null
+          funcao_id?: string | null
+          he_100?: string | null
+          he_50?: string | null
+          horas_extras?: string | null
+          id?: string | null
+          incentivo?: string | null
+          licenca_premio?: string | null
+          licencas?: string | null
+          observacao_analise?: string | null
+          observacoes?: string | null
+          plantoes_extras?: string | null
+          profissional_id?: string | null
+          sal_sub_h?: string | null
+          sobreaviso?: string | null
+          status_linha?:
+            | Database["public"]["Enums"]["status_linha_frequencia"]
+            | null
+          updated_at?: string | null
+          updated_by?: string | null
+          vinculo_id?: string | null
+        }
+        Relationships: []
+      }
       frequencias: {
         Row: {
           aprovada_por: string | null
@@ -1680,6 +1809,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      frequencias_contratados_backup_20260813: {
+        Row: {
+          adn: string | null
+          aprovada_em: string | null
+          aprovada_por: string | null
+          atestado: string | null
+          competencia_id: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          devolvida_em: string | null
+          devolvida_por: string | null
+          dias_falta: string | null
+          dias_trabalhados: string | null
+          enviada_em: string | null
+          enviada_por: string | null
+          he_100: string | null
+          he_50: string | null
+          id: string | null
+          incentivo: string | null
+          justificativa_devolucao: string | null
+          observacoes: string | null
+          plantoes: string | null
+          profissional_id: string | null
+          sobreaviso: string | null
+          status: Database["public"]["Enums"]["status_frequencia"] | null
+          unidade_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          adn?: string | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          atestado?: string | null
+          competencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          devolvida_em?: string | null
+          devolvida_por?: string | null
+          dias_falta?: string | null
+          dias_trabalhados?: string | null
+          enviada_em?: string | null
+          enviada_por?: string | null
+          he_100?: string | null
+          he_50?: string | null
+          id?: string | null
+          incentivo?: string | null
+          justificativa_devolucao?: string | null
+          observacoes?: string | null
+          plantoes?: string | null
+          profissional_id?: string | null
+          sobreaviso?: string | null
+          status?: Database["public"]["Enums"]["status_frequencia"] | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          adn?: string | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          atestado?: string | null
+          competencia_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          devolvida_em?: string | null
+          devolvida_por?: string | null
+          dias_falta?: string | null
+          dias_trabalhados?: string | null
+          enviada_em?: string | null
+          enviada_por?: string | null
+          he_100?: string | null
+          he_50?: string | null
+          id?: string | null
+          incentivo?: string | null
+          justificativa_devolucao?: string | null
+          observacoes?: string | null
+          plantoes?: string | null
+          profissional_id?: string | null
+          sobreaviso?: string | null
+          status?: Database["public"]["Enums"]["status_frequencia"] | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       funcoes: {
         Row: {
@@ -5464,6 +5686,7 @@ export type Database = {
       is_master_core: { Args: { _user_id: string }; Returns: boolean }
       is_master_db: { Args: { _user_id: string }; Returns: boolean }
       jwt_has_permission: { Args: { _perm: string }; Returns: boolean }
+      limpar_valor_texto: { Args: { val: string }; Returns: string }
       log_client_action: {
         Args: {
           _acao: string
