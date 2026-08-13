@@ -713,10 +713,9 @@ export function FrequenciasContratadosPage() {
       const l = linhas[it.profissional.id];
       if (!l) continue;
       for (const k of colKeysAll) {
-        const v = (l as any)[k];
         const raw = (l as any)[k];
-        const v = typeof raw === "number" ? raw : Number(String(raw || "").replace(",", ".")) || 0;
-        acc[k] += v;
+        const val = typeof raw === "number" ? raw : Number(String(raw || "").replace(",", ".")) || 0;
+        acc[k] += val;
       }
     }
     return acc;
