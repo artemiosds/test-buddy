@@ -714,7 +714,9 @@ export function FrequenciasContratadosPage() {
       if (!l) continue;
       for (const k of colKeysAll) {
         const v = (l as any)[k];
-        acc[k] += (typeof v === "number" ? v : Number(String(v || "").replace(",", ".")) || 0);
+        const raw = (l as any)[k];
+        const v = typeof raw === "number" ? raw : Number(String(raw || "").replace(",", ".")) || 0;
+        acc[k] += v;
       }
     }
     return acc;
