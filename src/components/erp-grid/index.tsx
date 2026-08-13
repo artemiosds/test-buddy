@@ -331,14 +331,15 @@ function parseNum(s: string): number {
 
 function fmtNum(n: number, decimals?: number): string {
   const safe = Number.isFinite(n) ? n : 0;
-  // Se o número for inteiro, não força casas decimais, mesmo que pedidas.
+  // Se o número for inteiro, não força casas decimais.
   if (Number.isInteger(safe)) return String(safe);
-  // Se o número tiver decimais, exibe-os apenas se solicitado ou se necessário para precisão mínima.
-  const formatted = safe.toLocaleString("pt-BR", {
+  
+  // Para decimais, formatamos removendo zeros à direita desnecessários.
+  // Ex: 1.50 vira "1,5"
+  return safe.toLocaleString("pt-BR", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals ?? 2,
   });
-  return formatted;
 }
 
 
