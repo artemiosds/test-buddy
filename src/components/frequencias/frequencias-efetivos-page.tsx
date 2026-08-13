@@ -264,7 +264,7 @@ export function FrequenciasEfetivosPage() {
       const l = item.linha as any;
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
-        status_linha: (l?.status_linha as StatusFreq) ?? "rascunho",
+        status_linha: (l?.status_linha as StatusFreq) ?? "pendente",
         dias_trabalhados: String(l?.dias_trabalhados ?? "0"),
         faltas_injustificadas: String(l?.faltas_injustificadas ?? "0"),
         atestado: String(l?.atestado ?? "0"),
