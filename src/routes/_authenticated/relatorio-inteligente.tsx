@@ -1176,7 +1176,7 @@ function BlockTable({
                       "px-2 py-1 " + (f?.tipo === "number" ? "text-right tabular-nums" : "")
                     }
                   >
-                    {fmtCell(r[id])}
+                    {fmtCell(r[id], id)}
                   </td>
                 );
               })}
