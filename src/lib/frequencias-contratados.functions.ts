@@ -238,13 +238,17 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       }
 
       const inativo = naoAtivos.has(l.profissional_id);
-      for (const f of PAYLOAD_FIELDS)
-        payload[f] =
-          f === "observacoes"
-            ? ((l as any)[f] ?? null)
-            : inativo
-              ? 0
-              : ((l as any)[f] ?? 0);
+      for (const f of PAYLOAD_FIELDS) {
+        if (f === "observacoes") {
+          payload[f] = (l as any)[f] ?? null;
+        } else if (inativo) {
+          payload[f] = "0";
+        } else {
+          const val = (l as any)[f];
+          // Grava a string limpa vinda do frontend (ex: "24", "1,5", "Férias")
+          payload[f] = (val === null || val === undefined || val === "") ? "0" : String(val);
+        }
+      }
 
       allRows.push(payload);
     }
