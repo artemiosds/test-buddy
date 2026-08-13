@@ -312,8 +312,9 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         } else {
           const val = (l as any)[f];
           // Grava a string limpa vinda do frontend (ex: "24", "1,5", "Férias")
-          // O VAL schema permite string, então passamos o que veio.
-          payload[f] = val === null || val === undefined ? "0" : String(val);
+          // O Zod LinhaSchema usa VAL (z.union([z.number(), z.string()])), 
+          // mas garantimos string aqui para o banco não aplicar cast numérico.
+          payload[f] = (val === null || val === undefined || val === "") ? "0" : String(val);
         }
       }
 

@@ -246,7 +246,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         } else {
           const val = (l as any)[f];
           // Grava a string limpa vinda do frontend (ex: "24", "1,5", "Férias")
-          payload[f] = val === null || val === undefined ? "0" : String(val);
+          payload[f] = (val === null || val === undefined || val === "") ? "0" : String(val);
         }
       }
 
