@@ -303,12 +303,7 @@ export function FrequenciasEfetivosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      let v: any = valor;
-      if ((CAMPOS_NUM as readonly string[]).includes(campo as string)) {
-        const n = typeof valor === "number" ? valor : Number(valor);
-        v = isNaN(n) || n < 0 ? 0 : n;
-      }
-      return { ...prev, [pid]: { ...cur, [campo]: v, _dirty: true } };
+      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
   }
 
