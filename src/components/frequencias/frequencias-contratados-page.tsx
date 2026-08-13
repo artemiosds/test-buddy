@@ -352,15 +352,15 @@ export function FrequenciasContratadosPage() {
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
         status: (l?.status as StatusFreq) ?? "rascunho",
-        dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
-        dias_falta: Number(l?.dias_falta ?? 0),
-        atestado: Number(l?.atestado ?? 0),
-        he_50: Number(l?.he_50 ?? 0),
-        he_100: Number(l?.he_100 ?? 0),
-        adn: Number(l?.adn ?? 0),
-        plantoes: Number(l?.plantoes ?? 0),
-        sobreaviso: Number(l?.sobreaviso ?? 0),
-        incentivo: Number.isFinite(Number(l?.incentivo)) ? Number(l?.incentivo) : 0,
+        dias_trabalhados: l?.dias_trabalhados ?? 0,
+        dias_falta: l?.dias_falta ?? 0,
+        atestado: l?.atestado ?? 0,
+        he_50: l?.he_50 ?? 0,
+        he_100: l?.he_100 ?? 0,
+        adn: l?.adn ?? 0,
+        plantoes: l?.plantoes ?? 0,
+        sobreaviso: l?.sobreaviso ?? 0,
+        incentivo: l?.incentivo ?? 0,
         observacoes: l?.observacoes ?? "",
       };
     }
@@ -383,12 +383,7 @@ export function FrequenciasContratadosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      let v: any = valor;
-      if (CAMPOS_NUM.includes(campo as any)) {
-        const n = typeof valor === "number" ? valor : Number(valor);
-        v = isNaN(n) || n < 0 ? 0 : n;
-      }
-      return { ...prev, [pid]: { ...cur, [campo]: v, _dirty: true } };
+      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
     });
   }
 
