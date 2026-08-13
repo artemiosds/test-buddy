@@ -120,8 +120,9 @@ const LINHA_ALTURA = 14; // altura da linha de profissional (2 sub-linhas)
 function fmt(v: number | string | null | undefined): string {
   if (v == null || v === "") return "";
   if (typeof v === "string") return v;
-  const x = Number(v);
-  if (isNaN(x) || x === 0) return v === 0 ? "0" : (v ? String(v) : "");
+  const x = Number(String(v).replace(",", "."));
+  if (isNaN(x)) return String(v);
+  if (x === 0) return "0";
   if (Number.isInteger(x)) return String(x);
   return x.toFixed(2).replace(".", ",");
 }
