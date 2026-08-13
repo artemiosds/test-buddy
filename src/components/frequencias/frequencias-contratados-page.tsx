@@ -64,6 +64,7 @@ import {
   ErpTbody,
   NumberCell,
   TextCell,
+  normalizarParaSoma,
   KpiFolhaBar,
   InconsistenciasPanel,
   frozenLeftMap,
@@ -714,8 +715,7 @@ export function FrequenciasContratadosPage() {
       if (!l) continue;
       for (const k of colKeysAll) {
         const raw = (l as any)[k];
-        const val = typeof raw === "number" ? raw : Number(String(raw || "").replace(",", ".")) || 0;
-        acc[k] += val;
+        acc[k] += normalizarParaSoma(raw);
       }
     }
     return acc;
@@ -753,13 +753,10 @@ export function FrequenciasContratadosPage() {
             if (!rId || !cKey) return;
             const cur = next[rId];
             if (!cur) return;
-            const raw = String(cell ?? "")
-              .trim()
-              .replace(/\./g, "")
-              .replace(",", ".");
-            const n = Number(raw.replace(/[^\d.-]/g, ""));
-            if (!Number.isFinite(n)) return;
-            next[rId] = { ...cur, [cKey]: n, _dirty: true };
+            const raw = String(cell ?? "").trim();
+            const n = normalizarParaSoma(raw);
+            const finalValue = /^-?\d+([.,]\d+)?$/.test(raw) ? n : raw;
+            next[rId] = { ...cur, [cKey]: finalValue, _dirty: true };
             touched++;
           });
         });

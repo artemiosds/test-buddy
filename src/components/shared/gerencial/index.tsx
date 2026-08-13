@@ -773,14 +773,14 @@ function CampoFolhaInput({
         const s = e.target.value;
         setLocal(s);
         if (s.trim() === "") {
-          emitido.current = "0";
-          onChange(0);
+          emitido.current = "";
+          onChange("");
           return;
         }
         if (isNumericText(s)) {
-          const n = parseNum(s);
-          emitido.current = String(n);
-          onChange(n);
+          // Se for numérico, emitimos o valor limpo (sem forçar decimais)
+          emitido.current = s;
+          onChange(s);
           return;
         }
         emitido.current = s;

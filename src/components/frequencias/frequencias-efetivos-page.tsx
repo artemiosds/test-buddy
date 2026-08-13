@@ -48,6 +48,7 @@ import {
   ErpTbody,
   NumberCell,
   TextCell,
+  normalizarParaSoma,
   KpiFolhaBar,
   InconsistenciasPanel,
   frozenLeftMap,
@@ -490,7 +491,7 @@ export function FrequenciasEfetivosPage() {
       if (!l) continue;
       for (const k of colKeysAll) {
         const v = (l as any)[k];
-        acc[k] += (typeof v === "number" ? v : Number(String(v || "").replace(",", ".")) || 0);
+        acc[k] += Number(normalizarParaSoma(v));
       }
     }
     return acc;
@@ -528,13 +529,12 @@ export function FrequenciasEfetivosPage() {
             if (!rId || !cKey) return;
             const cur = next[rId];
             if (!cur) return;
-            const raw = String(cell ?? "")
-              .trim()
-              .replace(/\./g, "")
-              .replace(",", ".");
-            const n = Number(raw.replace(/[^\d.-]/g, ""));
-            if (!Number.isFinite(n)) return;
-            next[rId] = { ...cur, [cKey]: n, _dirty: true };
+            const raw = String(cell ?? "").trim();
+            // Mantém o valor bruto se não for numérico puro (pode ser "Férias", "1,5", etc)
+            // Se for numérico, normaliza para salvar consistentemente
+            const n = normalizarParaSoma(raw);
+            const finalValue = /^-?\d+([.,]\d+)?$/.test(raw) ? n : raw;
+            next[rId] = { ...cur, [cKey]: finalValue, _dirty: true };
             touched++;
           });
         });
@@ -546,7 +546,7 @@ export function FrequenciasEfetivosPage() {
   );
 
   const validateGeneric = (v: number | string) => {
-    const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.'));
+    const n = normalizarParaSoma(v);
     return !isNaN(n) && n < 0 ? "Valor negativo" : null;
   };
   const validateHoras = (v: number | string) => {
