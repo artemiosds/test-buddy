@@ -15,20 +15,20 @@ const NATUREZAS_CONTRATADO = [
   "voluntario",
 ] as const;
 
-const NUM = z.number().nonnegative();
+const VAL = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
   status: z.enum(["rascunho", "enviada", "aprovada", "rejeitada", "com_pendencias", "devolvida", "em_analise", "arquivada"]).optional(),
-  dias_trabalhados: NUM.default(0),
-  dias_falta: NUM.default(0),
-  atestado: NUM.default(0),
-  he_50: NUM.default(0),
-  he_100: NUM.default(0),
-  adn: NUM.default(0),
-  plantoes: NUM.default(0),
-  sobreaviso: NUM.default(0),
-  incentivo: NUM.default(0),
+  dias_trabalhados: VAL,
+  dias_falta: VAL,
+  atestado: VAL,
+  he_50: VAL,
+  he_100: VAL,
+  adn: VAL,
+  plantoes: VAL,
+  sobreaviso: VAL,
+  incentivo: VAL,
   observacoes: z.string().nullable().optional(),
 });
 
@@ -210,7 +210,14 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
-      if (Number(l.dias_trabalhados ?? 0) + Number(l.dias_falta ?? 0) + Number(l.atestado ?? 0) > diasNoMes) {
+      const toN = (v: any) => {
+        if (typeof v === 'number') return v;
+        const s = String(v || '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+      };
+      const totalDias = toN(l.dias_trabalhados) + toN(l.dias_falta) + toN(l.atestado);
+      if (totalDias > diasNoMes) {
         throw new Error(`O total de dias para o profissional (id: ${l.profissional_id}) excede os ${diasNoMes} dias do mês.`);
       }
 
