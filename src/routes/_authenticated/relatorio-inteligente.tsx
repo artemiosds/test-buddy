@@ -897,7 +897,7 @@ function GroupNodeView({
         </span>
         {numeric.slice(0, 2).map((f) => (
           <span key={f} className="rounded bg-primary/10 px-1.5 text-[10px] text-primary">
-            Σ {labelField(block, f)}: {node.stats[f].soma.toLocaleString("pt-BR")}
+            Σ {labelField(block, f)}: {fmtCell(node.stats[f].soma, f)}
           </span>
         ))}
       </button>
@@ -1209,10 +1209,10 @@ function StatsBar({
             <div className="mb-0.5 font-semibold">{rot}</div>
             <div className="grid grid-cols-3 gap-x-2 text-muted-foreground">
               <span>
-                Soma <b className="text-foreground">{s.soma.toLocaleString("pt-BR")}</b>
+                Soma <b className="text-foreground">{fmtCell(s.soma, f)}</b>
               </span>
               <span>
-                Média <b className="text-foreground">{s.media.toLocaleString("pt-BR")}</b>
+                Média <b className="text-foreground">{fmtCell(s.media, f)}</b>
               </span>
               <span>
                 Mediana <b className="text-foreground">{s.mediana.toLocaleString("pt-BR")}</b>
