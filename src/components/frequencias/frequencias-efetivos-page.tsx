@@ -1117,6 +1117,12 @@ export function FrequenciasEfetivosPage() {
         open={dossieOpen}
         onOpenChange={setDossieOpen}
         canEdit={canEdit}
+        statusValue={dossieProf ? linhas[dossieProf.id]?.status_linha : undefined}
+        onStatusChange={(v) => {
+          if (dossieProf) {
+            updateCampo(dossieProf.id, "status_linha", v as StatusFreq);
+          }
+        }}
         campos={[
           ...CAMPOS_OFICIAIS.map((c) => ({
             key: c.key,
@@ -1157,6 +1163,7 @@ export function FrequenciasEfetivosPage() {
           />
         }
       />
+
         <EnviarFolhaDialog
           open={enviarAberto}
           onOpenChange={setEnviarAberto}
