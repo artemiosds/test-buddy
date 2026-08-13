@@ -80,6 +80,7 @@ const MESES = [
 
 type LinhaState = {
   profissional_id: string;
+  status_linha: StatusFreq;
   dias_trabalhados: number;
   faltas_injustificadas: number;
   atestado: number;
@@ -262,6 +263,7 @@ export function FrequenciasEfetivosPage() {
       const l = item.linha as any;
       next[item.profissional.id] = {
         profissional_id: item.profissional.id,
+        status_linha: (l?.status_linha as StatusFreq) ?? "rascunho",
         dias_trabalhados: Number(l?.dias_trabalhados ?? 0),
         faltas_injustificadas: Number(l?.faltas_injustificadas ?? 0),
         atestado: Number(l?.atestado ?? 0),
@@ -318,6 +320,7 @@ export function FrequenciasEfetivosPage() {
       .filter((l) => l._dirty)
       .map((l) => ({
         profissional_id: l.profissional_id,
+        status_linha: l.status_linha as any,
         dias_trabalhados: l.dias_trabalhados,
         faltas_injustificadas: l.faltas_injustificadas,
         atestado: l.atestado,
