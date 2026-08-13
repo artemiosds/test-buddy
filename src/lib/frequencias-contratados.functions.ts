@@ -255,11 +255,13 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     }
 
     if (allRows.length) {
+      console.log("DEBUG_SALVAMENTO: Upsert no banco (Contratados)", allRows);
       // Upsert atômico de todas as linhas (novas e existentes)
       const { error } = await (supabase.from("frequencias_contratados") as any)
         .upsert(allRows, { onConflict: "competencia_id, unidade_id, profissional_id" });
       
       if (error) {
+        console.log("DEBUG_SUPABASE: Erro no upsert (Contratados)", error);
         console.error("[salvarFolhaContratados] Erro ao salvar frequencias_contratados:", error);
         throw new Error(`Erro ao salvar no banco: ${error.message} (Código: ${error.code})`);
       }

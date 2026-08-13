@@ -1304,12 +1304,12 @@ export type Database = {
       }
       frequencia_profissional: {
         Row: {
-          adicional_noturno: string
-          afastamentos: string
+          adicional_noturno: string | null
+          afastamentos: string | null
           analisado_em: string | null
           analisado_por: string | null
-          atestado: string
-          aulas_suplementares: number
+          atestado: string | null
+          aulas_suplementares: string | null
           carga_horaria_mensal: string | null
           cargo_id: string | null
           created_at: string
@@ -1317,39 +1317,39 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           detalhes: Json
-          dias_trabalhados: string
-          faltas_injustificadas: string
-          faltas_justificadas: string
-          ferias: string
-          ferias_integral: string
-          ferias_terco: string
+          dias_trabalhados: string | null
+          faltas_injustificadas: string | null
+          faltas_justificadas: string | null
+          ferias: string | null
+          ferias_integral: string | null
+          ferias_terco: string | null
           frequencia_id: string
           funcao_id: string | null
-          he_100: string
-          he_50: string
-          horas_extras: string
+          he_100: string | null
+          he_50: string | null
+          horas_extras: string | null
           id: string
-          incentivo: string
-          licenca_premio: string
-          licencas: string
+          incentivo: string | null
+          licenca_premio: string | null
+          licencas: string | null
           observacao_analise: string | null
           observacoes: string | null
-          plantoes_extras: string
+          plantoes_extras: string | null
           profissional_id: string
-          sal_sub_h: string
-          sobreaviso: string
+          sal_sub_h: string | null
+          sobreaviso: string | null
           status_linha: Database["public"]["Enums"]["status_linha_frequencia"]
           updated_at: string
           updated_by: string | null
           vinculo_id: string | null
         }
         Insert: {
-          adicional_noturno?: string
-          afastamentos?: string
+          adicional_noturno?: string | null
+          afastamentos?: string | null
           analisado_em?: string | null
           analisado_por?: string | null
-          atestado?: string
-          aulas_suplementares?: number
+          atestado?: string | null
+          aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
           cargo_id?: string | null
           created_at?: string
@@ -1357,39 +1357,39 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           detalhes?: Json
-          dias_trabalhados?: string
-          faltas_injustificadas?: string
-          faltas_justificadas?: string
-          ferias?: string
-          ferias_integral?: string
-          ferias_terco?: string
+          dias_trabalhados?: string | null
+          faltas_injustificadas?: string | null
+          faltas_justificadas?: string | null
+          ferias?: string | null
+          ferias_integral?: string | null
+          ferias_terco?: string | null
           frequencia_id: string
           funcao_id?: string | null
-          he_100?: string
-          he_50?: string
-          horas_extras?: string
+          he_100?: string | null
+          he_50?: string | null
+          horas_extras?: string | null
           id?: string
-          incentivo?: string
-          licenca_premio?: string
-          licencas?: string
+          incentivo?: string | null
+          licenca_premio?: string | null
+          licencas?: string | null
           observacao_analise?: string | null
           observacoes?: string | null
-          plantoes_extras?: string
+          plantoes_extras?: string | null
           profissional_id: string
-          sal_sub_h?: string
-          sobreaviso?: string
+          sal_sub_h?: string | null
+          sobreaviso?: string | null
           status_linha?: Database["public"]["Enums"]["status_linha_frequencia"]
           updated_at?: string
           updated_by?: string | null
           vinculo_id?: string | null
         }
         Update: {
-          adicional_noturno?: string
-          afastamentos?: string
+          adicional_noturno?: string | null
+          afastamentos?: string | null
           analisado_em?: string | null
           analisado_por?: string | null
-          atestado?: string
-          aulas_suplementares?: number
+          atestado?: string | null
+          aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
           cargo_id?: string | null
           created_at?: string
@@ -1397,27 +1397,27 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           detalhes?: Json
-          dias_trabalhados?: string
-          faltas_injustificadas?: string
-          faltas_justificadas?: string
-          ferias?: string
-          ferias_integral?: string
-          ferias_terco?: string
+          dias_trabalhados?: string | null
+          faltas_injustificadas?: string | null
+          faltas_justificadas?: string | null
+          ferias?: string | null
+          ferias_integral?: string | null
+          ferias_terco?: string | null
           frequencia_id?: string
           funcao_id?: string | null
-          he_100?: string
-          he_50?: string
-          horas_extras?: string
+          he_100?: string | null
+          he_50?: string | null
+          horas_extras?: string | null
           id?: string
-          incentivo?: string
-          licenca_premio?: string
-          licencas?: string
+          incentivo?: string | null
+          licenca_premio?: string | null
+          licencas?: string | null
           observacao_analise?: string | null
           observacoes?: string | null
-          plantoes_extras?: string
+          plantoes_extras?: string | null
           profissional_id?: string
-          sal_sub_h?: string
-          sobreaviso?: string
+          sal_sub_h?: string | null
+          sobreaviso?: string | null
           status_linha?: Database["public"]["Enums"]["status_linha_frequencia"]
           updated_at?: string
           updated_by?: string | null
@@ -1697,10 +1697,10 @@ export type Database = {
       }
       frequencias_contratados: {
         Row: {
-          adn: string
+          adn: string | null
           aprovada_em: string | null
           aprovada_por: string | null
-          atestado: string
+          atestado: string | null
           competencia_id: string
           created_at: string
           created_by: string | null
@@ -1708,29 +1708,29 @@ export type Database = {
           deleted_by: string | null
           devolvida_em: string | null
           devolvida_por: string | null
-          dias_falta: string
-          dias_trabalhados: string
+          dias_falta: string | null
+          dias_trabalhados: string | null
           enviada_em: string | null
           enviada_por: string | null
-          he_100: string
-          he_50: string
+          he_100: string | null
+          he_50: string | null
           id: string
-          incentivo: string
+          incentivo: string | null
           justificativa_devolucao: string | null
           observacoes: string | null
-          plantoes: string
+          plantoes: string | null
           profissional_id: string
-          sobreaviso: string
+          sobreaviso: string | null
           status: Database["public"]["Enums"]["status_frequencia"]
           unidade_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          adn?: string
+          adn?: string | null
           aprovada_em?: string | null
           aprovada_por?: string | null
-          atestado?: string
+          atestado?: string | null
           competencia_id: string
           created_at?: string
           created_by?: string | null
@@ -1738,29 +1738,29 @@ export type Database = {
           deleted_by?: string | null
           devolvida_em?: string | null
           devolvida_por?: string | null
-          dias_falta?: string
-          dias_trabalhados?: string
+          dias_falta?: string | null
+          dias_trabalhados?: string | null
           enviada_em?: string | null
           enviada_por?: string | null
-          he_100?: string
-          he_50?: string
+          he_100?: string | null
+          he_50?: string | null
           id?: string
-          incentivo?: string
+          incentivo?: string | null
           justificativa_devolucao?: string | null
           observacoes?: string | null
-          plantoes?: string
+          plantoes?: string | null
           profissional_id: string
-          sobreaviso?: string
+          sobreaviso?: string | null
           status?: Database["public"]["Enums"]["status_frequencia"]
           unidade_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          adn?: string
+          adn?: string | null
           aprovada_em?: string | null
           aprovada_por?: string | null
-          atestado?: string
+          atestado?: string | null
           competencia_id?: string
           created_at?: string
           created_by?: string | null
@@ -1768,19 +1768,19 @@ export type Database = {
           deleted_by?: string | null
           devolvida_em?: string | null
           devolvida_por?: string | null
-          dias_falta?: string
-          dias_trabalhados?: string
+          dias_falta?: string | null
+          dias_trabalhados?: string | null
           enviada_em?: string | null
           enviada_por?: string | null
-          he_100?: string
-          he_50?: string
+          he_100?: string | null
+          he_50?: string | null
           id?: string
-          incentivo?: string
+          incentivo?: string | null
           justificativa_devolucao?: string | null
           observacoes?: string | null
-          plantoes?: string
+          plantoes?: string | null
           profissional_id?: string
-          sobreaviso?: string
+          sobreaviso?: string | null
           status?: Database["public"]["Enums"]["status_frequencia"]
           unidade_id?: string
           updated_at?: string

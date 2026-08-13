@@ -323,11 +323,13 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     }
 
     if (allRows.length) {
+      console.log("DEBUG_SALVAMENTO: Upsert no banco (Efetivos)", allRows);
       const { error } = await supabase
         .from("frequencia_profissional")
         .upsert(allRows, { onConflict: "frequencia_id, profissional_id" });
       
       if (error) {
+        console.log("DEBUG_SUPABASE: Erro no upsert (Efetivos)", error);
         console.error("[salvarFolhaEfetivos] Erro ao salvar frequencia_profissional:", error);
         throw new Error(`Erro ao salvar no banco: ${error.message} (Código: ${error.code})`);
       }
