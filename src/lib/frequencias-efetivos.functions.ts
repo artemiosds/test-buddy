@@ -314,6 +314,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
           // Grava a string limpa vinda do frontend (ex: "24", "1,5", "Férias")
           // O Zod LinhaSchema usa VAL (z.union([z.number(), z.string()])), 
           // mas garantimos string aqui para o banco não aplicar cast numérico.
+          // Se for nulo/vazio, salva "0" para manter consistência numérica visual.
           payload[f] = (val === null || val === undefined || val === "") ? "0" : String(val);
         }
       }
