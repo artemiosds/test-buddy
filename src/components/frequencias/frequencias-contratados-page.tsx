@@ -1207,7 +1207,7 @@ export function FrequenciasContratadosPage() {
                           <NumberCell
                             rowId={p.id}
                             colKey={c}
-                            value={(l as any)[c] ?? 0}
+                            value={(l as any)[c] ?? ""}
                             disabled={ro}
                             decimals={0}
                             validate={
@@ -1266,7 +1266,7 @@ export function FrequenciasContratadosPage() {
                 <td colSpan={2}></td>
                 {CAMPOS_NUM.map((c) => (
                   <td key={c} className="text-center font-mono">
-                    {(totCampo[c] ?? 0).toLocaleString("pt-BR")}
+                    {(totCampo[c] ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                   </td>
                 ))}
                 <td></td>

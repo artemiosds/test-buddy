@@ -315,6 +315,8 @@ function parseNum(s: string): number {
 }
 function fmtNum(n: number, decimals?: number): string {
   const safe = Number.isFinite(n) ? n : 0;
+  // Se o número for inteiro, não força casas decimais, mesmo que pedidas.
+  if (Number.isInteger(safe)) return String(safe);
   if (decimals && decimals > 0) return safe.toFixed(decimals);
   return String(safe);
 }

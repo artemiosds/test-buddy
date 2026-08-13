@@ -1038,7 +1038,7 @@ export function FrequenciasEfetivosPage() {
                           {overrideSituacao ? CelulaSituacao : <NumberCell
                             rowId={p.id}
                             colKey={c.key}
-                            value={(l as any)[c.key] ?? 0}
+                            value={(l as any)[c.key] ?? ""}
                             disabled={ro}
                             decimals={0}
                             className="w-full text-right text-[11px]"
@@ -1055,7 +1055,7 @@ export function FrequenciasEfetivosPage() {
                         {overrideSituacao ? CelulaSituacao : <NumberCell
                           rowId={p.id}
                           colKey={c.key}
-                          value={(l as any)[c.key] ?? 0}
+                          value={(l as any)[c.key] ?? ""}
                           disabled={ro}
                           className="w-full text-right text-[11px]"
                           validate={validateGeneric}
@@ -1092,12 +1092,12 @@ export function FrequenciasEfetivosPage() {
                 <td colSpan={3}></td>
                 {CAMPOS_OFICIAIS.map((c) => (
                   <td key={c.key} className="erp-group-lanc" style={{ textAlign: "right" }}>
-                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
+                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                   </td>
                 ))}
                 {CAMPOS_SMS.map((c) => (
                   <td key={c.key} className="erp-group-sms" style={{ textAlign: "right" }}>
-                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR")}
+                    {(totCampo[c.key] ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                   </td>
                 ))}
                 <td></td>
