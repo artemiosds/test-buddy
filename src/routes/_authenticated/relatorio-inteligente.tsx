@@ -98,11 +98,6 @@ import { z } from "zod";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ 
   errorComponent: ErrorComponent,
-  validateSearch: (search: Record<string, unknown>): { mode?: string } => {
-    return {
-      mode: typeof search.mode === 'string' ? search.mode : undefined
-    }
-  },
   component: RelatorioInteligenteWrapper,
 });
 

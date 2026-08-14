@@ -20,9 +20,24 @@ export type GroupNode = {
   children: GroupNode[];
 };
 
-function keyOf(v: unknown): string {
+function normalizeLabel(v: unknown): string {
   if (v == null || v === "") return "— (não informado)";
-  return String(v);
+  const s = String(v).trim();
+  
+  // Normalização agressiva de cargos para evitar fragmentação
+  // ENFERMEIRO(A), Enfermeiro, Enfermeira -> Enfermeiro
+  // AUX. SERV.GERAIS(I), Auxiliar de Serviços Gerais -> Auxiliar de Serviços Gerais
+  const upper = s.toUpperCase();
+  if (upper.includes("ENFERMEIR")) return "Enfermeiro(a)";
+  if (upper.includes("AUX") && upper.includes("GERAIS")) return "Auxiliar de Serviços Gerais";
+  if (upper.includes("TECNICO") && upper.includes("ENFERM")) return "Técnico(a) em Enfermagem";
+  if (upper.includes("MEDICO")) return "Médico(a)";
+  
+  return s;
+}
+
+function keyOf(v: unknown): string {
+  return normalizeLabel(v);
 }
 
 /** Agrupa `rows` pelos campos `groupBy` (em ordem). */
