@@ -52,6 +52,7 @@ import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './ro
 import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
+import { Route as ApiPublicVerifyLinkRouteImport } from './routes/api/public/verify-link'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -326,6 +327,11 @@ const AuthenticatedConfiguracaoIndexRoute =
     path: '/configuracao/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicVerifyLinkRoute = ApiPublicVerifyLinkRouteImport.update({
+  id: '/api/public/verify-link',
+  path: '/api/public/verify-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -592,6 +598,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -669,6 +676,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -749,6 +757,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -829,6 +838,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/verify-link'
     | '/configuracao/'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
@@ -906,6 +916,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/verify-link'
     | '/configuracao'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
@@ -985,6 +996,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/api/public/verify-link'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
@@ -1004,6 +1016,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ValidarIdRoute: typeof ValidarIdRoute
+  ApiPublicVerifyLinkRoute: typeof ApiPublicVerifyLinkRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
@@ -1312,6 +1325,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/configuracao/'
       preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/verify-link': {
+      id: '/api/public/verify-link'
+      path: '/api/public/verify-link'
+      fullPath: '/api/public/verify-link'
+      preLoaderRoute: typeof ApiPublicVerifyLinkRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
@@ -1798,6 +1818,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ValidarIdRoute: ValidarIdRoute,
+  ApiPublicVerifyLinkRoute: ApiPublicVerifyLinkRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
