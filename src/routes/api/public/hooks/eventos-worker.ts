@@ -98,7 +98,7 @@ async function notificar(
         .in("id", ids)
         .is("deleted_at", null);
         
-      const emails = (users ?? []).map(u => u.email).filter(Boolean);
+      const emails = (users ?? []).map((u: { email: string | null }) => u.email).filter(Boolean);
       
       if (emails.length > 0) {
         const html = generateEmailTemplate({
