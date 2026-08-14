@@ -454,5 +454,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     assinaturas,
     yPadraoMm: assinaturaBaseY,
     xPadraoMm: MARGEM_PDF,
+    competencia: input.competencia,
   });
+
 }

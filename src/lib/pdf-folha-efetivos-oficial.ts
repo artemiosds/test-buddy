@@ -478,5 +478,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     assinaturas,
     yPadraoMm: pageHeight - 60,
     xPadraoMm: MARGEM,
+    competencia: input.competencia, // Passa a competência para o metadado
   });
+
 }
