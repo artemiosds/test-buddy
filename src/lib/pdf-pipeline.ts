@@ -256,16 +256,18 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       .from("documentos_assinados")
       .insert({
         tipo: opts.tipo || "relatorio",
-        unidade_id: opts.unidadeId || null,
-        secretaria_id: opts.secretariaId || null,
-        criado_por: me?.id || null,
-        metadata: {
+        descricao: finalFilename,
+        hash_conteudo: "SHA-256-PENDENTE",
+        status: "emitido",
+        assinado_por_nome: me?.nome_completo || null,
+        dados_json: {
           filename: finalFilename,
           competencia: (opts as any).competencia,
         }
       })
       .select("id")
       .single();
+
     
     if (newDoc) {
       documentoId = newDoc.id;
@@ -357,8 +359,9 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     alturaMm: BASE_H,
     tamanhoPercentualPadrao: assinatura.tamanho_percentual ?? 80,
     assinatura,
-    filename,
+    filename: finalFilename,
   });
+
 
   // Modal indisponível → posição padrão (nunca quebra o download)
   if (escolha === undefined) {
