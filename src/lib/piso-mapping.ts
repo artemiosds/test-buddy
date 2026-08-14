@@ -84,6 +84,7 @@ export const CAMPOS_SISTEMA: {
   { key: "irrf", label: "IRRF", financeiro: true },
   { key: "valor_liquido", label: "Valor Líquido", financeiro: true, calculado: true },
   { key: "valor_final", label: "Valor Final", financeiro: true, calculado: true },
+  { key: "pensao_alimenticia", label: "Pensão Alimentícia", financeiro: true },
   { key: "data_admissao", label: "Data de Admissão", financeiro: false },
   { key: "dias_trabalhados", label: "Dias Trabalhados", financeiro: false },
   { key: "conta_bancaria", label: "Conta Bancária", financeiro: false },
@@ -255,6 +256,7 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   adn_informativo: ["adn informativo", "base patronal rgps", "adn"],
   ferias_normais: ["ferias normais", "ferias"],
   pensao_alimenticia: ["pensao alimenticia", "pensao", "desc pensao", "desconto pensao"],
+  pensao_alimenticia: ["pensao alimenticia", "pensao", "desc pensao", "desconto pensao", "pensaoalimenticia"],
   conta_bancaria: ["conta", "conta bancaria", "conta corrente", "c c"],
 };
 
