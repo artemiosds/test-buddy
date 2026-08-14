@@ -700,7 +700,7 @@ function LinhasAnaliseDialog({
           .is("deleted_at", null);
         
         if (freqBase.setor_id) {
-          q = q.eq("setor_id", freqBase.setor_id);
+          q = q.eq("setor_id" as any, freqBase.setor_id);
         }
 
         const { data, error } = await q;
