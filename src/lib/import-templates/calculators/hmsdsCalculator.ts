@@ -196,10 +196,13 @@ export const HMSDS_SAUDE: ImportTemplateConfig = {
     TOTAL: "total_liquido_base",
     PENSAOALIMENTICIA: "pensao_alimenticia",
     PENSAO: "pensao_alimenticia",
+    DESC_PENSAO: "pensao_alimenticia",
+    PENSAO_ALIM: "pensao_alimenticia",
     INCENTIVO: "incentivo",
     LIQUIDO: "valor_liquido",
     CONTA: "conta_bancaria",
   },
+
   colunasSaida: [...COLUNAS_SAIDA_HMSDS],
   calculationRules: calcularHmsds,
   descricaoRegras: [
