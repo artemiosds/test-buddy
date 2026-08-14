@@ -391,7 +391,7 @@ export const CATALOG: BlockDef[] = [
     label: "Dados Salariais",
     categoria: "Cadastros",
     descricao: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
-    icone: "Coins",
+    
     fields: [
       { id: "nome_completo", label: "Nome", default: true, groupable: true },
       { id: "matricula", label: "Matrícula", default: true },

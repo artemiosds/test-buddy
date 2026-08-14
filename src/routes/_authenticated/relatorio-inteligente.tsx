@@ -581,6 +581,63 @@ function StepFiltros({
                 onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, vinculos: v }))}
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Situação (Status)</Label>
+              <MultiSelect
+                placeholder="Todas as situações"
+                options={[
+                  { value: "Ativo", label: "Ativo" },
+                  { value: "Afastado", label: "Afastado" },
+                  { value: "Férias", label: "Férias" },
+                  { value: "Licença", label: "Licença" },
+                  { value: "Desligado", label: "Desligado" },
+                  { value: "Inativo", label: "Inativo" },
+                ]}
+                value={filtrosAvancados.status}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, status: v }))}
+              />
+            </div>
+
+            <div className="mt-2 space-y-2 border-t pt-2">
+              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Faixas Salariais (R$)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Salário Base (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaBase.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBase: { ...prev.faixaBase, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaBase.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBase: { ...prev.faixaBase, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Salário Bruto (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaBruto.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBruto: { ...prev.faixaBruto, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaBruto.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBruto: { ...prev.faixaBruto, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
