@@ -380,6 +380,9 @@ export function FrequenciasContratadosPage() {
     return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
   }
 
+  const salvarFn = useServerFn(salvarFolhaContratados);
+  const enviarFn = useServerFn(enviarFolhaContratados);
+
   const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     setLinhas((prev) => {
       const cur = prev[pid];
@@ -418,9 +421,6 @@ export function FrequenciasContratadosPage() {
       return next;
     });
   }, [competenciaId, unidadeId, setorFilter, setoresOpts, salvarFn, qc]);
-
-  const salvarFn = useServerFn(salvarFolhaContratados);
-  const enviarFn = useServerFn(enviarFolhaContratados);
 
   const mSalvar = useMutation({
     mutationFn: async () => {

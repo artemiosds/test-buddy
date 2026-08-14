@@ -300,6 +300,9 @@ export function FrequenciasEfetivosPage() {
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
   const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
+  const salvarFn = useServerFn(salvarFolhaEfetivos);
+  const enviarFn = useServerFn(enviarFolhaEfetivos);
+
   const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     setLinhas((prev) => {
       const cur = prev[pid];
@@ -308,13 +311,18 @@ export function FrequenciasEfetivosPage() {
       
       // Sincronização automática para 'status_linha' (Edição via Modal)
       if (campo === "status_linha") {
+        // Mapeia os status da folha para os permitidos na linha (pendente, aprovada, rejeitada)
+        let mappedStatus: "pendente" | "aprovada" | "rejeitada" = "pendente";
+        if (valor === "aprovada") mappedStatus = "aprovada";
+        if (valor === "rejeitada") mappedStatus = "rejeitada";
+
         salvarFn({
           data: { 
             competencia_id: competenciaId, 
             unidade_id: unidadeId, 
             linhas: [{
               profissional_id: pid,
-              status_linha: valor as StatusFreq,
+              status_linha: mappedStatus,
               dias_trabalhados: cur.dias_trabalhados,
               faltas_injustificadas: cur.faltas_injustificadas,
               atestado: cur.atestado,
@@ -342,9 +350,6 @@ export function FrequenciasEfetivosPage() {
       return next;
     });
   }, [competenciaId, unidadeId, salvarFn, qc]);
-
-  const salvarFn = useServerFn(salvarFolhaEfetivos);
-  const enviarFn = useServerFn(enviarFolhaEfetivos);
 
   function payloadDirty(): any[] {
     return Object.values(linhas)
