@@ -183,6 +183,7 @@ export const HMSDS_SAUDE: ImportTemplateConfig = {
     CARGO: "cargo",
     DIAS: "dias_trabalhados",
     BASE: "salario_base",
+    VENCIMENTOBASE: "salario_base",
     INSALUBRIDADE: "insalubridade",
     INSALUBIRADE: "insalubridade",
     HE: "hora_extra_50",
