@@ -1649,6 +1649,7 @@ function ModelosBar({
     formato: Formato;
     id: string | null;
     nome: string;
+    filtrosAvancados?: any;
   };
   onLoad: (m: ModeloSalvo) => void;
   onSaved: (m: ModeloSalvo) => void;
@@ -1679,6 +1680,7 @@ function ModelosBar({
       blocks: current.blocks,
       textFilter: current.textFilter,
       formato: current.formato,
+      filtrosAvancados: current.filtrosAvancados,
     });
     onSaved(m);
     refresh();
