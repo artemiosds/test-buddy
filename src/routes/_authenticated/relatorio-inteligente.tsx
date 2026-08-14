@@ -118,7 +118,7 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
   const mode = modeProp || search?.mode;
   const initialFilters = useMemo(() => {
     return filtersProp || search?.filtrosAvancados;
-  }, [filtersProp, search?.filtrosAvancados]);
+  }, [filtersProp, search]);
 
   return (
     <PermissionGate permission="relatorio.visualizar">
@@ -140,6 +140,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
   const navigate = useNavigate();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
+  const isSalarial = isSalarios || isSalarialRapido;
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(
     isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1
@@ -283,7 +284,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} mode={mode} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarial} mode={mode} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -295,7 +296,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             gerando={gerando}
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
-            isSalarial={isSalarios}
+            isSalarial={isSalarial}
             mode={mode}
           />
         )}
