@@ -650,7 +650,24 @@ function StepFiltros({
                   </div>
                 </div>
               </div>
-            </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-[9px]">Salário Líquido (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaLiquido.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaLiquido: { ...prev.faixaLiquido, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaLiquido.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaLiquido: { ...prev.faixaLiquido, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+              </div>
           </div>
         </div>
       </div>
