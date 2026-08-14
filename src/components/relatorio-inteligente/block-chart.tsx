@@ -84,9 +84,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
               ))}
             </Pie>
-              formatter={(v: unknown) =>
-                typeof v === "number" ? (v > 1000 ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : v.toLocaleString("pt-BR")) : String(v ?? "")
-              }
+              formatter={(v: unknown) => {
+                if (typeof v !== "number") return String(v ?? "");
+                if (v > 1000) return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                return v.toLocaleString("pt-BR");
+              }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} verticalAlign="bottom" align="center" />
           </PieChart>
@@ -102,9 +104,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               minTickGap={16}
             />
             <YAxis fontSize={10} width={36} />
-              formatter={(v: unknown) =>
-                typeof v === "number" ? (v > 1000 ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : v.toLocaleString("pt-BR")) : String(v ?? "")
-              }
+              formatter={(v: unknown) => {
+                if (typeof v !== "number") return String(v ?? "");
+                if (v > 1000) return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                return v.toLocaleString("pt-BR");
+              }}
             />
             <Line type="monotone" dataKey="value" stroke={PALETTE[0]} strokeWidth={2} />
           </LineChart>
@@ -120,9 +124,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               minTickGap={16}
             />
             <YAxis fontSize={10} width={36} />
-              formatter={(v: unknown) =>
-                typeof v === "number" ? (v > 1000 ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : v.toLocaleString("pt-BR")) : String(v ?? "")
-              }
+              formatter={(v: unknown) => {
+                if (typeof v !== "number") return String(v ?? "");
+                if (v > 1000) return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                return v.toLocaleString("pt-BR");
+              }}
             />
             <Area type="monotone" dataKey="value" stroke={PALETTE[0]} fill={PALETTE[2]} />
           </AreaChart>
@@ -147,9 +153,11 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               width={50} 
               tickFormatter={(v) => (typeof v === 'number' && v > 1000 ? `${(v / 1000).toFixed(1)}k` : v)}
             />
-              formatter={(v: unknown) =>
-                typeof v === "number" ? (v > 1000 ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : v.toLocaleString("pt-BR")) : String(v ?? "")
-              }
+              formatter={(v: unknown) => {
+                if (typeof v !== "number") return String(v ?? "");
+                if (v > 1000) return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                return v.toLocaleString("pt-BR");
+              }}
             />
             <Bar dataKey="value" fill={PALETTE[0]} />
           </BarChart>
