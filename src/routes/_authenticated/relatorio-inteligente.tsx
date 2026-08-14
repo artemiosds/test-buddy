@@ -117,6 +117,7 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
   const initialFilters = filtersProp || search?.filtrosAvancados;
+
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -138,8 +139,12 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1);
-  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido || isSalarios ? "rh" : "executivo");
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(
+    isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1
+  );
+  const [tipo, setTipo] = useState<TipoRelatorio>(
+    isSalarialRapido || isSalarios ? "rh" : "executivo"
+  );
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
     return [
@@ -821,6 +826,12 @@ function useBuiltBlocks(
           }
         }
         rows = applySort(rows, cfg.sort);
+        
+        // Se estiver em modo salarial, garante que a ordenação padrão seja pelo nome se nada estiver definido
+        if (isSalarios && !cfg.sort) {
+          rows = applySort(rows, { fieldId: "nome_completo", dir: "asc" });
+        }
+        
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
           (id) => b.fields.find((f) => f.id === id)?.tipo === "number",
