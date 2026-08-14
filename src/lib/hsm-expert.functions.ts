@@ -340,8 +340,7 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     }
 
     const historico = ((histRes?.data ?? []) as Msg[]).slice().reverse();
-    const perfilRows = perfilRes?.data;
-    const perfil = Array.isArray(perfilRows) ? perfilRows[0] : perfilRows;
+    const perfil = perfilRes?.data;
 
     const disponiveis = filtrarPorAgente(
       filtrarFerramentasPorConfig(todasFerramentas, config),

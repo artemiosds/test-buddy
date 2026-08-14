@@ -235,7 +235,7 @@ export async function resolverAssinaturasDocumento(
   let meuCpf: string | null = null;
   try {
     const { data: ctx } = await supabase.rpc("get_my_user_context");
-    const me = (Array.isArray(ctx) ? ctx[0] : ctx) as {
+    const me = ctx as {
       perfil_codigo?: string | null;
       nome_completo?: string | null;
       matricula?: string | null;

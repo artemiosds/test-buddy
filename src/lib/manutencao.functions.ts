@@ -4,7 +4,7 @@ import { z } from "zod";
 
 async function assertMaster(supabase: { rpc: (fn: string) => Promise<{ data: unknown }> }) {
   const { data } = await supabase.rpc("get_my_user_context");
-  const ctx = (Array.isArray(data) ? data[0] : data) as
+  const ctx = data as
     | { perfil_codigo?: string; perfil_nome?: string; is_master?: boolean }
     | null;
 

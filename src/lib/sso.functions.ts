@@ -309,14 +309,15 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       throw new Error(`Configuração inválida: Audience não definida para o sistema ${sistema.nome}`);
     }
 
-    // 3. Buscar contexto do usuário via RPC
+    // 3. Buscar contexto do usuário via RPC (que retorna um JSONB direto)
     const { data: userContext, error: cErr } = await supabaseAdmin.rpc("get_my_user_context");
     
     if (cErr || !userContext) {
+      console.error(`[SSO][${correlationId}] Erro RPC get_my_user_context:`, cErr);
       throw new Error("Falha ao obter contexto do usuário");
     }
 
-    const profile = (Array.isArray(userContext) ? userContext[0] : userContext) as any;
+    const profile = userContext as any;
 
     // 4. Buscar permissões
     const { data: permsData } = await supabaseAdmin.rpc("get_my_permissions");
