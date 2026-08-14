@@ -676,7 +676,7 @@ function LinhasAnaliseDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("frequencias")
-        .select("id, tipo, competencia_unidade_id, competencia_unidades(unidade_id, competencia_id)")
+        .select("id, tipo, setor_id, competencia_unidade_id, competencia_unidades(unidade_id, competencia_id)")
         .eq("id", freqId!)
         .maybeSingle();
       if (error) throw error;
