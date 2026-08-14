@@ -116,7 +116,7 @@ type TipoRelatorio = keyof typeof PRESETS;
 /* ============================================================= */
 
 export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
-  const search: any = Route.useSearch({
+  const search: any = (Route as any).useSearch({
     shouldThrow: false
   });
   const mode = modeProp || search?.mode;
@@ -139,7 +139,7 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
 function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
   // Safe search access inside the Wizard that can be rendered from different routes
-  const search: any = Route.useSearch({
+  const search: any = (Route as any).useSearch({
     shouldThrow: false
   });
   const isSalarialRapido = mode === "salarial_rapido";
