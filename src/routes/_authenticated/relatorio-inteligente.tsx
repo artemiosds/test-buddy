@@ -850,9 +850,21 @@ function StepPrevia({
   if (!built.length)
     return <EmptyState title="Nada para exibir" description="Selecione blocos na Etapa 1." />;
 
+  const [resumido, setResumido] = useState(false);
+
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="resumido-toggle" className="text-xs cursor-pointer">Visão Resumida (Apenas Totais)</Label>
+          <Checkbox 
+            id="resumido-toggle" 
+            checked={resumido} 
+            onCheckedChange={(v) => setResumido(!!v)}
+          />
+        </div>
+      </div>
       {indice && <IndiceCard indice={indice} />}
       {built.map(({ cfg, block, rows, rawRows, grupos }) => (
         <div key={cfg.blockId} className="rounded-md border">
@@ -867,7 +879,11 @@ function StepPrevia({
                 : ""}
             </div>
           </div>
-          {grupos && grupos.length ? (
+          {resumido ? (
+            <div className="p-3 text-sm italic text-muted-foreground">
+              Visão resumida ativa. Os totais de grupo e indicadores estão calculados abaixo.
+            </div>
+          ) : grupos && grupos.length ? (
             <GroupedPreview block={block} cfg={cfg} grupos={grupos} />
           ) : (
             <>
