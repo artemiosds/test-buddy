@@ -534,18 +534,27 @@ function ConfiguracaoPage() {
               </Button>
             </Link>
           </div>
-          <div className="rounded-md bg-muted/50 p-4 text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">Configuração de E-mail:</p>
-            <p>
-              Para ativar o envio de e-mails, configure as variáveis de ambiente no editor Lovable (Settings &gt; Environment Variables):
+          <div className="rounded-md bg-muted/50 p-4 text-xs text-muted-foreground border-l-4 border-primary">
+            <p className="font-semibold mb-2 text-foreground flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              Configuração do Gmail (Recomendado):
             </p>
-            <ul className="mt-2 list-disc list-inside space-y-1">
-              <li><strong>SMTP_HOST</strong>: Ex: smtp.gmail.com</li>
-              <li><strong>SMTP_PORT</strong>: Ex: 587 (STARTTLS) ou 465 (SSL)</li>
-              <li><strong>SMTP_USER</strong>: Seu e-mail ou usuário</li>
-              <li><strong>SMTP_PASSWORD</strong>: Senha do app ou senha da conta</li>
-              <li><strong>SMTP_FROM</strong>: (Opcional) Nome/E-mail de remetente</li>
-            </ul>
+            <div className="space-y-2">
+              <p>
+                Para enviar via Gmail, você deve usar uma <strong>Senha de App</strong> (App Password), 
+                pois o Google bloqueia o acesso por senha comum.
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>SMTP_HOST</strong>: smtp.gmail.com</li>
+                <li><strong>SMTP_PORT</strong>: 587</li>
+                <li><strong>SMTP_USER</strong>: seu-email@gmail.com</li>
+                <li><strong>SMTP_PASSWORD</strong>: sua-senha-de-app-de-16-digitos</li>
+                <li><strong>SMTP_FROM</strong>: seu-email@gmail.com</li>
+              </ul>
+              <p className="mt-2 text-[10px] italic">
+                * As variáveis devem ser adicionadas em <strong>Settings &gt; Environment Variables</strong> no editor.
+              </p>
+            </div>
           </div>
         </section>
       )}
