@@ -6,28 +6,29 @@ Implementar uma camada de proteção para evitar que arquivos físicos de assina
 
 ### Backend (Banco de Dados / SQL)
 
-- Criar uma função SQL `check_assinatura_em_uso(assinatura_id UUID)` que verifica se a assinatura está vinculada a algum snapshot em `frequencia_assinaturas_snapshot` ou a documentos em `documentos_assinados`.
-- Implementar um trigger na tabela `assinaturas_institucionais` para impedir a exclusão física (ou forçar soft-delete) se o arquivo estiver em uso.
-- Adicionar uma regra de integridade ou política no Storage (se possível via RLS do Storage) para impedir a remoção do objeto se ele for referenciado em snapshots.
+- Criar a função SQL `public.assinatura_em_uso(storage_path text)` para verificar referências em `frequencia_assinaturas_snapshot` e `documentos_assinados`.
+- Implementar política de RLS no Storage para o bucket `assinaturas`, bloqueando a operação `DELETE` caso a função `assinatura_em_uso` retorne verdadeiro.
+- Adicionar trigger de proteção na tabela `assinaturas_institucionais` para impedir que o registro seja marcado como deletado sem os devidos cuidados com o arquivo físico, se necessário.
 
 ### Frontend / API Functions
 
 - **`src/lib/assinatura-storage.ts`**:
-  - Modificar `removeSignatureFile` para validar se a assinatura está "em uso" antes de proceder com o `supabase.storage.from(...).remove()`.
-  - Se estiver em uso, o sistema deve apenas marcar o registro no banco como deletado (`deleted_at`), mantendo o arquivo no bucket para integridade histórica.
+  - Atualizar `removeSignatureFile` para realizar uma checagem prévia (via RPC ou consulta direta segura) antes de tentar o comando de remoção no Storage.
+  - Se o arquivo estiver vinculado a um documento histórico, abortar a exclusão física e manter apenas o soft-delete no banco de dados.
 - **`src/routes/_authenticated/assinaturas.tsx`**:
-  - Ajustar a mutation de exclusão para exibir um aviso amigável caso a assinatura esteja protegida por uso histórico, explicando que o arquivo será mantido para validade jurídica dos documentos já assinados.
+  - Melhorar o feedback visual na exclusão: se o arquivo for mantido por integridade histórica, informar ao usuário que o carimbo foi desativado mas o arquivo permanece preservado para validade jurídica.
 
 ## Detalhes Técnicos
 
-- **Soft-delete vs Hard-delete**: A exclusão no banco já é soft-delete (`deleted_at`). O problema é a chamada subsequente ao Storage.
-- **Fluxo de Proteção**:
-  1. `removeSignatureFile(path, userId)`
-  2. Consulta `frequencia_assinaturas_snapshot` e `documentos_assinados` pelo path.
-  3. Se existir referência -> Abortar remoção do arquivo físico e retornar `true` (arquivo mantido por segurança).
-  4. Se não existir -> Proceder com `storage.remove()`.
+- **RLS do Storage**: A barreira definitiva será no banco de dados (via `storage.objects`), garantindo que nem mesmo chamadas diretas via SDK apaguem assinaturas históricas.
+- **Fluxo de Segurança**:
+  1. Solicitação de exclusão.
+  2. Verificação de uso em `documentos_assinados` (metadados/snapshots).
+  3. Se em uso: `storage.remove()` é bloqueado pela RLS.
+  4. Resultado: O sistema mantém a "prova" visual necessária para auditoria.
 
 ---
 
 ✅ Garantia de integridade dos documentos históricos.
-🔒 Prevenção contra erros de "Object not found" em PDFs antigos.
+🔒 Camada de segurança RLS no Storage (Proteção de nível de infraestrutura).
+⚠️ Bloqueio de deleção física de carimbos referenciados.
