@@ -5487,6 +5487,7 @@ export type Database = {
       ack_evento_dominio: { Args: { _id: string }; Returns: undefined }
       arquivar_profissional: { Args: { _id: string }; Returns: undefined }
       assinatura_dashboard: { Args: never; Returns: Json }
+      assinatura_em_uso: { Args: { _storage_path: string }; Returns: boolean }
       assinatura_pendentes: {
         Args: never
         Returns: {
