@@ -1,5 +1,5 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -521,6 +521,35 @@ function ConfiguracaoPage() {
       </section>
 
       <HsmConfigSection />
+
+      {userCtx?.is_master && (
+        <section className="space-y-4 rounded-lg border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Comunicações (SMTP)
+            </h2>
+            <Link to="/smtp-test">
+              <Button variant="outline" size="sm">
+                Diagnóstico SMTP
+              </Button>
+            </Link>
+          </div>
+          <div className="rounded-md bg-muted/50 p-4 text-xs text-muted-foreground">
+            <p className="font-semibold mb-1">Configuração de E-mail:</p>
+            <p>
+              Para ativar o envio de e-mails, configure as variáveis de ambiente no editor Lovable (Settings &gt; Environment Variables):
+            </p>
+            <ul className="mt-2 list-disc list-inside space-y-1">
+              <li><strong>SMTP_HOST</strong>: Ex: smtp.gmail.com</li>
+              <li><strong>SMTP_PORT</strong>: Ex: 587 (STARTTLS) ou 465 (SSL)</li>
+              <li><strong>SMTP_USER</strong>: Seu e-mail ou usuário</li>
+              <li><strong>SMTP_PASSWORD</strong>: Senha do app ou senha da conta</li>
+              <li><strong>SMTP_FROM</strong>: (Opcional) Nome/E-mail de remetente</li>
+            </ul>
+          </div>
+        </section>
+      )}
+
 
       {userCtx?.is_master && (
         <section className="space-y-3 rounded-lg border bg-card p-6">
