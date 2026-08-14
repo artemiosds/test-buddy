@@ -235,7 +235,11 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       data.unidade_id,
       data.setor_id
     );
+
+    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
+
     if (
+      !isMaster &&
       frequencia_status !== "rascunho" &&
       frequencia_status !== "com_pendencias" &&
       frequencia_status !== "rejeitada"
@@ -269,7 +273,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      if (ex && ex.status_linha === "aprovada") continue;
+      if (!isMaster && ex && ex.status_linha === "aprovada") continue;
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
