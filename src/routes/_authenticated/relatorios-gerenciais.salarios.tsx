@@ -10,6 +10,6 @@ export const Route = createFileRoute(
       .object({
         mode: z.string().optional(),
       })
-      .parse(search),
+      .catch({ mode: "salarios" }),
   component: () => <RelatorioInteligentePage mode="salarios" />,
 });
