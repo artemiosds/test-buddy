@@ -109,8 +109,7 @@ export const CAMPOS_SISTEMA: {
   { key: "total_positivos", label: "Total Positivos", financeiro: true, calculado: true },
   { key: "total_desconto", label: "Total Desconto (INSS/IR)", financeiro: true, calculado: true },
   { key: "total_proventos_folha", label: "Total Proventos Folha", financeiro: true },
-  "pensao_alimenticia",
-  "total_descontos_folha", label: "Total Descontos Folha", financeiro: true },
+  { key: "total_descontos_folha", label: "Total Descontos Folha", financeiro: true },
   { key: "valor_liquido_folha", label: "Valor Líquido Folha", financeiro: true },
 ];
 
