@@ -342,6 +342,7 @@ export function drawAssinaturasBlock(
   }
 
 
+
   // Separa assinaturas com posicionamento custom (posicao_x/y definidos)
   const custom = assin.filter((a) => a.posicao_x !== null && a.posicao_y !== null);
   const fluxo = assin.filter((a) => a.posicao_x === null || a.posicao_y === null);
