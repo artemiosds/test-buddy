@@ -90,7 +90,6 @@ export const CAMPOS_SISTEMA: {
   { key: "conta_bancaria", label: "Conta Bancária", financeiro: false },
   { key: "auxilio_transporte", label: "Auxílio Transporte", financeiro: true },
   { key: "iss", label: "ISS", financeiro: true },
-  { key: "pensao_alimenticia", label: "Pensão Alimentícia", financeiro: true },
   { key: "outros_descontos", label: "Outros Descontos", financeiro: true },
   { key: "total_liquido_base", label: "Total Líquido Base", financeiro: true },
 
