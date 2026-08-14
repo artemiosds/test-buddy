@@ -1390,7 +1390,15 @@ function StepExportar({
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
   textFilter: string;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
   formato: Formato;
   setFormato: (f: Formato) => void;
   gerando: boolean;
