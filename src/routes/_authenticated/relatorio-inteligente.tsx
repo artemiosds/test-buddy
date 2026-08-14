@@ -133,7 +133,7 @@ export function RelatorioInteligentePage({ mode }: { mode?: string }) {
 
 function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
-  const search = Route.useSearch() as any;
+  const search = Route.useSearch();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
