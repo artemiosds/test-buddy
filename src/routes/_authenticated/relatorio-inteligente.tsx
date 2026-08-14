@@ -283,7 +283,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} mode={mode} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -787,7 +787,7 @@ function useBuiltBlocks(
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
   },
-  isSalarios?: boolean
+  isSalarial?: boolean
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
@@ -856,7 +856,7 @@ function useBuiltBlocks(
         rows = applySort(rows, cfg.sort);
         
         // Se estiver em modo salarial, garante que a ordenação padrão seja pelo nome se nada estiver definido
-        if ((isSalarios || isSalarialRapido) && !cfg.sort) {
+        if (isSalarial && !cfg.sort) {
           rows = applySort(rows, { fieldId: "nome_completo", dir: "asc" });
         }
         
@@ -879,7 +879,7 @@ function useBuiltBlocks(
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarios]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarial]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
@@ -887,7 +887,8 @@ function StepPrevia({
   blocks, 
   textFilter,
   filtrosAvancados,
-  isSalarial
+  isSalarial,
+  mode
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
@@ -901,6 +902,7 @@ function StepPrevia({
     faixaLiquido: { min: string; max: string };
   };
   isSalarial?: boolean;
+  mode?: string;
 }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial || mode === "salarial_rapido");
   const ger = useGerencial();
