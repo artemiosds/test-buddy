@@ -98,14 +98,14 @@ import { z } from "zod";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ 
   errorComponent: ErrorComponent,
-  validateSearch: (search) => z.object({
+  validateSearch: (search: Record<string, unknown>) => z.object({
     mode: z.string().optional(),
   }).parse(search),
   component: RelatorioInteligenteWrapper,
 });
 
 function RelatorioInteligenteWrapper() {
-  const search = Route.useSearch();
+  const search: any = Route.useSearch();
   return <RelatorioInteligentePage mode={search.mode} />;
 }
 
@@ -115,8 +115,8 @@ type TipoRelatorio = keyof typeof PRESETS;
 /* ============================================================= */
 
 export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
-  const search = Route.useSearch();
-  const mode = modeProp || search.mode;
+  const search: any = Route.useSearch();
+  const mode = modeProp || search?.mode;
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -136,7 +136,7 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
 function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
   // Safe search access inside the Wizard that can be rendered from different routes
-  const search = Route.useSearch();
+  const search: any = Route.useSearch();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
