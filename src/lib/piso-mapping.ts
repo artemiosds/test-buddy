@@ -155,7 +155,7 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   ],
   matricula: ["matricula", "mat", "registro", "chapa", "matr", "n matricula"],
   cargo: ["cargo", "funcao cargo", "cargo funcao", "descricao cargo"],
-  unidade: ["unidade", "lotacao", "estabelecimento", "local trabalho", "unidade lotacao"],
+  unidade: ["unidade", "lotacao", "estabelecimento", "local trabalho", "unidade lotacao", "departamento"],
   setor: ["setor", "departamento", "sub setor", "area"],
   vinculo: ["vinculo", "regime", "tipo vinculo", "situacao"],
   competencia: ["competencia", "referencia", "mes referencia", "mes ano", "periodo"],
