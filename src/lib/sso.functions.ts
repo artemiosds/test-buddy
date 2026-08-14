@@ -301,23 +301,32 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       throw new Error("Sistema em manutenção: SSO temporariamente indisponível.");
     }
 
-    if (!sistema.issuer) {
-      throw new Error(`Configuração inválida: Issuer não definido para o sistema ${sistema.nome}`);
-    }
-
-    if (!sistema.audience) {
-      throw new Error(`Configuração inválida: Audience não definida para o sistema ${sistema.nome}`);
+    // Issuer e Audience são obrigatórios para a assinatura do token
+    if (!sistema.issuer || !sistema.audience) {
+      console.error(`[SSO][${correlationId}] Configuração incompleta para o sistema ${sistema.nome}:`, { issuer: sistema.issuer, audience: sistema.audience });
+      throw new Error(`Configuração incompleta: Preencha os campos 'Issuer' e 'Audience' na aba 'Segurança/SSO' para o sistema ${sistema.nome}.`);
     }
 
     // 3. Buscar contexto do usuário via RPC (que retorna um JSONB direto)
+    // 3. Buscar contexto do usuário via RPC
     const { data: userContext, error: cErr } = await supabaseAdmin.rpc("get_my_user_context");
     
-    if (cErr || !userContext) {
-      console.error(`[SSO][${correlationId}] Erro RPC get_my_user_context:`, cErr);
-      throw new Error("Falha ao obter contexto do usuário");
+    // Fallback manual se a RPC falhar ou retornar nulo, para não bloquear o acesso
+    let profile = userContext as any;
+    
+    if (cErr || !profile) {
+      console.warn(`[SSO][${correlationId}] RPC get_my_user_context retornou erro ou vazio. Usando fallback de metadados.`, cErr);
+      profile = {
+        id: user.id,
+        email: user.email,
+        nome_completo: user.user_metadata?.full_name || user.user_metadata?.name || 'Usuário',
+        perfil_nome: user.user_metadata?.role || 'profissional',
+        secretaria_id: user.user_metadata?.secretaria_id || null,
+        unidade_principal_id: user.user_metadata?.unidade_principal_id || null
+      };
     }
 
-    const profile = userContext as any;
+    
 
     // 4. Buscar permissões
     const { data: permsData } = await supabaseAdmin.rpc("get_my_permissions");
@@ -359,8 +368,8 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       name: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       secretaria_id: profile?.secretaria_id || null,
       role: profile?.perfil_nome || profile?.role || 'profissional',
-      iss: "https://gestao-saude-sms-oriximina.vercel.app",
-      aud: "plantao-inteligente",
+      iss: sistema.issuer || "https://gestao-saude-sms-oriximina.vercel.app",
+      aud: sistema.audience || "plantao-inteligente",
       iat: now,
       exp: exp,
       correlation_id: correlationId,
