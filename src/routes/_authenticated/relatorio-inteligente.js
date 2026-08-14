@@ -496,7 +496,7 @@ function useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios) {
     }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarios]);
     return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
-function StepPrevia({ blocks, textFilter, filtrosAvancados }) {
+function StepPrevia({ blocks, textFilter, filtrosAvancados, isSalarial }) {
     const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
     const ger = useGerencial();
     const indice = useMemo(() => {
@@ -851,8 +851,8 @@ function StatsBar({ rows, fields, block, }) {
     </div>);
 }
 /* ============ Etapa 6 · Exportar ============ */
-function StepExportar({ tipo, blocks, textFilter, filtrosAvancados, formato, setFormato, gerando, setGerando, nomeAtual, }) {
-    const isSalarios = tipo === "rh" || mode === "salarios";
+function StepExportar({ tipo, blocks, textFilter, filtrosAvancados, formato, setFormato, gerando, setGerando, nomeAtual, isSalarial, }) {
+    const isSalarios = tipo === "rh" || isSalarial;
     const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
     const ger = useGerencial();
     const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
