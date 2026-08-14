@@ -231,6 +231,8 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         profissional_id: l.profissional_id,
         updated_by: userId,
         status: l.status || (ex ? ex.status : "rascunho") || "rascunho",
+        aprovada_em: (l.status === "aprovada" && ex?.status !== "aprovada") ? new Date().toISOString() : (ex?.aprovada_em ?? null),
+        aprovada_por: (l.status === "aprovada" && ex?.status !== "aprovada") ? userId : (ex?.aprovada_por ?? null),
       };
 
       if (!ex) {

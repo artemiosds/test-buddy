@@ -300,16 +300,56 @@ export function FrequenciasEfetivosPage() {
   const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
   const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
+  const salvarFn = useServerFn(salvarFolhaEfetivos);
+  const enviarFn = useServerFn(enviarFolhaEfetivos);
+
   const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
-    });
-  }, []);
+      const next = { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+      
+      // Sincronização automática para 'status_linha' (Edição via Modal)
+      if (campo === "status_linha") {
+        // Mapeia os status da folha para os permitidos na linha (pendente, aprovada, rejeitada)
+        let mappedStatus: "pendente" | "aprovada" | "rejeitada" = "pendente";
+        if (valor === "aprovada") mappedStatus = "aprovada";
+        if (valor === "rejeitada") mappedStatus = "rejeitada";
 
-  const salvarFn = useServerFn(salvarFolhaEfetivos);
-  const enviarFn = useServerFn(enviarFolhaEfetivos);
+        salvarFn({
+          data: { 
+            competencia_id: competenciaId, 
+            unidade_id: unidadeId, 
+            linhas: [{
+              profissional_id: pid,
+              status_linha: mappedStatus,
+              dias_trabalhados: cur.dias_trabalhados,
+              faltas_injustificadas: cur.faltas_injustificadas,
+              atestado: cur.atestado,
+              he_50: cur.he_50,
+              he_100: cur.he_100,
+              ferias_terco: cur.ferias_terco,
+              ferias_integral: cur.ferias_integral,
+              sal_sub_h: cur.sal_sub_h,
+              adicional_noturno: cur.adicional_noturno,
+              aulas_suplementares: cur.aulas_suplementares,
+              sobreaviso: cur.sobreaviso,
+              plantoes_extras: cur.plantoes_extras,
+              incentivo: cur.incentivo,
+              ferias: cur.ferias,
+              licenca_premio: cur.licenca_premio,
+              observacoes: cur.observacoes || null,
+            }]
+          },
+        }).then(() => {
+          qc.invalidateQueries({ queryKey: ["folha-efetivos"] });
+          qc.invalidateQueries({ queryKey: ["frequencia-resumo"] });
+        });
+      }
+      
+      return next;
+    });
+  }, [competenciaId, unidadeId, salvarFn, qc]);
 
   function payloadDirty(): any[] {
     return Object.values(linhas)
