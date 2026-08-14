@@ -223,7 +223,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     const { data: freq, error: fErr } = await supabase
       .from("frequencias")
       .select(
-        "id, tipo, status, updated_at, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
+        "id, tipo, status, updated_at, setor_id, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
       )
 
       .eq("id", data.frequencia_id)
@@ -295,9 +295,10 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       await orquestrarSincronizacao({
         data: {
           evento: "FOLHA_APROVADA",
-          tipo: (fInfo.tipo || "contratados") as any, // Fallback caso tipo não esteja no select inicial
+          tipo: (fInfo.tipo || "contratados") as any,
           competencia_id: fInfo.competencia_unidades.competencia_id,
           unidade_id: fInfo.competencia_unidades.unidades.id,
+          setor_id: fInfo.setor_id || undefined,
         }
       });
     }
