@@ -40,8 +40,10 @@ export function fmtCell(v: unknown, fieldId?: string): string {
       "valor_piso",
       "valor_bruto",
       "valor_liquido",
+      "remuneracao_bruta",
+      "remuneracao_liquida",
     ];
-    if (fieldId && (salariais.includes(fieldId) || fieldId.includes("salario") || fieldId.includes("valor"))) {
+    if (fieldId && (salariais.includes(fieldId) || fieldId.toLowerCase().includes("salario") || fieldId.toLowerCase().includes("valor") || fieldId.toLowerCase().includes("vencimento"))) {
       return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
     // Para valores grandes que não estão na lista mas parecem monetários (heurística)
