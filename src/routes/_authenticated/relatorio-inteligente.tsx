@@ -100,6 +100,11 @@ import { z } from "zod";
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ 
   errorComponent: ErrorComponent,
   component: RelatorioInteligenteWrapper,
+  pendingComponent: () => (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ),
 });
 
 function RelatorioInteligenteWrapper() {
@@ -118,7 +123,7 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
   const mode = modeProp || search?.mode;
   const initialFilters = useMemo(() => {
     return filtersProp || search?.filtrosAvancados;
-  }, [filtersProp, search?.filtrosAvancados]);
+  }, [filtersProp, search]);
 
   return (
     <PermissionGate permission="relatorio.visualizar">
@@ -140,6 +145,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
   const navigate = useNavigate();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
+  const isSalarial = isSalarios || isSalarialRapido;
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(
     isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1
@@ -283,7 +289,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} mode={mode} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarial} mode={mode} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -295,7 +301,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             gerando={gerando}
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
-            isSalarial={isSalarios}
+            isSalarial={isSalarial}
             mode={mode}
           />
         )}
@@ -827,20 +833,18 @@ function useBuiltBlocks(
           }
           
           // Filtros de faixa salarial
+          const parseMoney = (s: string) => {
+            if (!s) return null;
+            // Remove R$, pontos de milhar e troca vírgula por ponto
+            const clean = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+            return parseFloat(clean);
+          };
+
           const filterRange = (val: any, range: { min: string; max: string }) => {
             if (!range.min && !range.max) return true;
-            
-            const parseMoney = (s: string) => {
-              if (!s) return null;
-              // Remove R$, pontos de milhar e troca vírgula por ponto
-              const clean = s.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
-              return parseFloat(clean);
-            };
-
-            const numVal = typeof val === 'number' ? val : (parseMoney(String(val || "0")) || 0);
+            const numVal = typeof val === "number" ? val : (parseMoney(String(val || "0")) || 0);
             const min = range.min ? (parseMoney(range.min) ?? -Infinity) : -Infinity;
             const max = range.max ? (parseMoney(range.max) ?? Infinity) : Infinity;
-            
             return numVal >= min && numVal <= max;
           };
 
@@ -915,7 +919,19 @@ function StepPrevia({
     });
   }, [ger.data, built]);
   const pareceres: ParecerBloco[] = useMemo(
-    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    () => built.map((b) => {
+      try {
+        return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
+      } catch (e) {
+        console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
+        return { 
+          blockId: b.block.id, 
+          titulo: b.block.label,
+          frases: [], 
+          destaques: [] 
+        };
+      }
+    }),
     [built],
   );
 
@@ -984,7 +1000,7 @@ function StepPrevia({
           <ParecerCard parecer={pareceres.find((p) => p.blockId === block.id)} />
           {cfg.charts?.length ? (
             <div className="grid gap-3 border-t bg-muted/10 p-3 sm:grid-cols-2">
-              {cfg.charts.map((c) => (
+              {cfg.charts.filter(c => c.xField && c.yField).map((c) => (
                 <div key={c.id} className="rounded border bg-card p-2">
                   <div className="mb-1 text-xs font-semibold">
                     {c.titulo ??
@@ -1099,7 +1115,7 @@ function GroupedPreview({
   grupos: GroupNode[];
 }) {
   return (
-    <div className="max-h-[520px] overflow-auto p-2">
+    <div className="max-h-[600px] overflow-auto p-2">
       {grupos.map((g, i) => (
         <GroupNodeView key={i} block={block} cfg={cfg} node={g} />
       ))}
@@ -1116,7 +1132,8 @@ function GroupNodeView({
   cfg: BlockConfig;
   node: GroupNode;
 }) {
-  const [open, setOpen] = useState(node.nivel === 0);
+  // Nível 0 e 1 abertos por padrão se houver poucos dados, senão apenas nível 0
+  const [open, setOpen] = useState(node.nivel === 0 || (node.nivel === 1 && node.rows.length < 50));
   const nome =
     block.fields.find((f) => f.id === cfg.groupBy?.[node.nivel])?.label ??
     `Nível ${node.nivel + 1}`;
@@ -1515,8 +1532,8 @@ function StepExportar({
   isSalarial?: boolean;
   mode?: string;
 }) {
-  const isSalarios = tipo === "rh" || isSalarial || mode === "salarial_rapido";
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
+  const isSalariosAtivo = tipo === "rh" || isSalarial || mode === "salarial_rapido";
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalariosAtivo);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
@@ -1529,7 +1546,19 @@ function StepExportar({
     });
   }, [ger.data, built]);
   const pareceres = useMemo<ParecerBloco[]>(
-    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    () => built.map((b) => {
+      try {
+        return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
+      } catch (e) {
+        console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
+        return { 
+          blockId: b.block.id, 
+          titulo: b.block.label,
+          frases: [], 
+          destaques: [] 
+        };
+      }
+    }),
     [built],
   );
 

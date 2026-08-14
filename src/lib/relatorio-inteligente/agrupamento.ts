@@ -26,9 +26,13 @@ function normalizeLabel(v: unknown): string {
   
   // Normalização agressiva de cargos para evitar fragmentação
   const upper = s.toUpperCase();
-  if (upper.includes("ENFERMEIR")) return "Enfermeiro(a)";
+  if (upper.includes("ENFERMEIR")) {
+    if (upper.includes("TECNICO")) return "Técnico(a) em Enfermagem";
+    if (upper.includes("AUXILIAR")) return "Auxiliar de Enfermagem";
+    return "Enfermeiro(a)";
+  }
   if (upper.includes("AUX") && upper.includes("GERAIS")) return "Auxiliar de Serviços Gerais";
-  if (upper.includes("TECNICO") && upper.includes("ENFERM")) return "Técnico(a) em Enfermagem";
+  if (upper.includes("TECNICO") && (upper.includes("ENFERM") || upper.includes("ENF."))) return "Técnico(a) em Enfermagem";
   if (upper.includes("MEDICO")) return "Médico(a)";
   if (upper.includes("AGENTE") && (upper.includes("COMUNI") || upper.includes("ACS"))) return "Agente Comunitário de Saúde (ACS)";
   if (upper.includes("AGENTE") && (upper.includes("ENDEMIA") || upper.includes("ACE"))) return "Agente de Combate às Endemias (ACE)";
