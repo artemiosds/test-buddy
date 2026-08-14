@@ -1000,7 +1000,7 @@ function StepPrevia({
           <ParecerCard parecer={pareceres.find((p) => p.blockId === block.id)} />
           {cfg.charts?.length ? (
             <div className="grid gap-3 border-t bg-muted/10 p-3 sm:grid-cols-2">
-              {cfg.charts.map((c) => (
+              {cfg.charts.filter(c => c.xField && c.yField).map((c) => (
                 <div key={c.id} className="rounded border bg-card p-2">
                   <div className="mb-1 text-xs font-semibold">
                     {c.titulo ??
