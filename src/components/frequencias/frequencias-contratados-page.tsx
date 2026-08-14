@@ -384,9 +384,40 @@ export function FrequenciasContratadosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+      const next = { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+
+      // Sincronização automática para 'status' (Edição via Modal)
+      if (campo === "status") {
+        const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
+        salvarFn({
+          data: {
+            competencia_id: competenciaId,
+            unidade_id: unidadeId,
+            setor_id: sId,
+            linhas: [{
+              profissional_id: pid,
+              status: valor as StatusFreq,
+              dias_trabalhados: cur.dias_trabalhados,
+              dias_falta: cur.dias_falta,
+              atestado: cur.atestado,
+              he_50: cur.he_50,
+              he_100: cur.he_100,
+              adn: cur.adn,
+              plantoes: cur.plantoes,
+              sobreaviso: cur.sobreaviso,
+              incentivo: cur.incentivo,
+              observacoes: cur.observacoes || null,
+            }],
+          },
+        }).then(() => {
+          qc.invalidateQueries({ queryKey: ["folha-contratados"] });
+          qc.invalidateQueries({ queryKey: ["frequencia-resumo"] });
+        });
+      }
+
+      return next;
     });
-  }, []);
+  }, [competenciaId, unidadeId, setorFilter, setoresOpts, salvarFn, qc]);
 
   const salvarFn = useServerFn(salvarFolhaContratados);
   const enviarFn = useServerFn(enviarFolhaContratados);

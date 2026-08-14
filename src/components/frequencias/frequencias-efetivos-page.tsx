@@ -304,9 +304,44 @@ export function FrequenciasEfetivosPage() {
     setLinhas((prev) => {
       const cur = prev[pid];
       if (!cur) return prev;
-      return { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+      const next = { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+      
+      // Sincronização automática para 'status_linha' (Edição via Modal)
+      if (campo === "status_linha") {
+        salvarFn({
+          data: { 
+            competencia_id: competenciaId, 
+            unidade_id: unidadeId, 
+            linhas: [{
+              profissional_id: pid,
+              status_linha: valor as StatusFreq,
+              dias_trabalhados: cur.dias_trabalhados,
+              faltas_injustificadas: cur.faltas_injustificadas,
+              atestado: cur.atestado,
+              he_50: cur.he_50,
+              he_100: cur.he_100,
+              ferias_terco: cur.ferias_terco,
+              ferias_integral: cur.ferias_integral,
+              sal_sub_h: cur.sal_sub_h,
+              adicional_noturno: cur.adicional_noturno,
+              aulas_suplementares: cur.aulas_suplementares,
+              sobreaviso: cur.sobreaviso,
+              plantoes_extras: cur.plantoes_extras,
+              incentivo: cur.incentivo,
+              ferias: cur.ferias,
+              licenca_premio: cur.licenca_premio,
+              observacoes: cur.observacoes || null,
+            }]
+          },
+        }).then(() => {
+          qc.invalidateQueries({ queryKey: ["folha-efetivos"] });
+          qc.invalidateQueries({ queryKey: ["frequencia-resumo"] });
+        });
+      }
+      
+      return next;
     });
-  }, []);
+  }, [competenciaId, unidadeId, salvarFn, qc]);
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
