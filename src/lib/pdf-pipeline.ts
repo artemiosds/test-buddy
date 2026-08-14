@@ -236,7 +236,10 @@ export type FinalizarPdfOpts = {
   semModal?: boolean;
   /** callback com o blob final (upload/arquivamento) */
   onBlob?: (blob: Blob) => void | Promise<void>;
+  /** Metadados extras para o registro do documento */
+  competencia?: { mes: number; ano: number };
 };
+
 
 /**
  * FASE 2 + 3 — Gera o PDF em memória, abre o Modal de Posicionamento,
