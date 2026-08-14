@@ -765,7 +765,8 @@ function useBuiltBlocks(
     faixaBase: { min: string; max: string };
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
-  }
+  },
+  isSalarios?: boolean
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
@@ -846,7 +847,7 @@ function useBuiltBlocks(
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarios]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
@@ -868,7 +869,7 @@ function StepPrevia({
   };
   isSalarial?: boolean;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
   const ger = useGerencial();
   const indice: IndiceAutomatico | null = useMemo(() => {
     if (!ger.data || !built.length) return null;
