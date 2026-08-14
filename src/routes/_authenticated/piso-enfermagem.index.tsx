@@ -818,16 +818,21 @@ function PisoIndex() {
           </PermissionGate>
 
 
-          <a
-            href="https://gemini.google.com/app"
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-medium cursor-pointer transition-[background-color,transform,box-shadow] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
-            aria-label="Abrir chat de IA em nova aba"
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText("https://gemini.google.com/app");
+                toast.success("Link copiado! Cole na barra do navegador para abrir o Chat IA.");
+              } catch (err) {
+                toast.error("Erro ao copiar link. Por favor, copie manualmente: https://gemini.google.com/app");
+              }
+            }}
+            title="Copiar link do Gemini para abrir manualmente"
           >
             <Sparkles className="mr-2 h-4 w-4" /> Chat IA
-          </a>
+          </Button>
 
           <Select value={modeloSel} onValueChange={setModeloSel}>
             <SelectTrigger className="h-9 w-[230px]">
