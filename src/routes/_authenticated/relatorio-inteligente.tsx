@@ -828,20 +828,18 @@ function useBuiltBlocks(
           }
           
           // Filtros de faixa salarial
+          const parseMoney = (s: string) => {
+            if (!s) return null;
+            // Remove R$, pontos de milhar e troca vírgula por ponto
+            const clean = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+            return parseFloat(clean);
+          };
+
           const filterRange = (val: any, range: { min: string; max: string }) => {
             if (!range.min && !range.max) return true;
-            
-            const parseMoney = (s: string) => {
-              if (!s) return null;
-              // Remove R$, pontos de milhar e troca vírgula por ponto
-              const clean = s.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
-              return parseFloat(clean);
-            };
-
-            const numVal = typeof val === 'number' ? val : (parseMoney(String(val || "0")) || 0);
+            const numVal = typeof val === "number" ? val : (parseMoney(String(val || "0")) || 0);
             const min = range.min ? (parseMoney(range.min) ?? -Infinity) : -Infinity;
             const max = range.max ? (parseMoney(range.max) ?? Infinity) : Infinity;
-            
             return numVal >= min && numVal <= max;
           };
 
