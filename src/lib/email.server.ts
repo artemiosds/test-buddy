@@ -18,11 +18,11 @@ export async function sendEmail({
   html: string;
   text?: string;
 }) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
-  const from = process.env.SMTP_FROM || user;
+  const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 587);
+  const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD;
+  const from = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user;
 
   if (!host || !user || !pass) {
     const missing = [];
