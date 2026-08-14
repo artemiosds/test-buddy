@@ -15,11 +15,11 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { BotaoRelatorioSalarialRapido } from "@/components/relatorios/BotaoRelatorioSalarialRapido";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({ errorComponent: ErrorComponent,
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({
   component: HubGerenciais,
 });
 
-type Card = { to: string; title: string; desc: string; icon: LucideIcon };
+type Card = { to: string; search?: any; title: string; desc: string; icon: LucideIcon };
 
 const CARDS: Card[] = [
   {
@@ -71,7 +71,8 @@ const CARDS: Card[] = [
     icon: ShieldCheck,
   },
   {
-    to: "/relatorios-gerenciais/salarios",
+    to: "/relatorio-inteligente",
+    search: { mode: "salarios" },
     title: "Dados Salariais",
     desc: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
     icon: Coins,
@@ -89,6 +90,7 @@ function HubGerenciais() {
         <Link
           key={c.to}
           to={c.to}
+          search={c.search}
           className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-muted/50"
         >
           <div className="mb-2 flex items-center gap-2">

@@ -26,6 +26,7 @@ import {
   Zap,
   Filter,
   TrendingUp,
+  Coins,
 } from "lucide-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -98,11 +99,6 @@ import { z } from "zod";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ 
   errorComponent: ErrorComponent,
-  validateSearch: (search: Record<string, unknown>): { mode?: string } => {
-    return {
-      mode: typeof search.mode === 'string' ? search.mode : undefined
-    }
-  },
   component: RelatorioInteligenteWrapper,
 });
 
@@ -115,12 +111,12 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
+export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filtersProp }: { mode?: string, initialFilters?: any }) {
   // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
-  // com a rota /relatorio-inteligente — o componente também é usado em
-  // /relatorios-gerenciais/salarios.
+  // com a rota /relatorio-inteligente.
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
+  const initialFilters = filtersProp || search?.filtrosAvancados;
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -129,7 +125,7 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
           description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
         />
         <RelatoriosTabs />
-        <Wizard mode={mode} />
+        <Wizard mode={mode} initialFilters={initialFilters} />
       </div>
     </PermissionGate>
   );
@@ -137,12 +133,12 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
 
 /* ============================================================= */
 
-function Wizard({ mode }: { mode?: string }) {
+function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any }) {
   const navigate = useNavigate();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios ? 6 : 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1);
   const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido || isSalarios ? "rh" : "executivo");
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
@@ -169,7 +165,10 @@ function Wizard({ mode }: { mode?: string }) {
           { id: "bruto_unidade", tipo: "barra", xField: "unidade", yField: "salario_bruto", titulo: "Remuneração Bruta por Unidade" },
           { id: "vinculo_dist", tipo: "pizza", xField: "vinculo", yField: "nome_completo", titulo: "Distribuição por Vínculo" },
           { id: "massa_cargo", tipo: "barra", xField: "cargo", yField: "salario_bruto", titulo: "Cargos com Maior Massa Salarial", top: 10 }
-        ] : []
+        ] : [
+          { id: "prof_unidade", tipo: "barra", xField: "unidade", yField: "nome_completo", titulo: "Profissionais por Unidade" },
+          { id: "prof_vinculo", tipo: "pizza", xField: "vinculo", yField: "nome_completo", titulo: "Vínculos" }
+        ]
       },
     ];
   }, [isSalarios]);
@@ -184,7 +183,19 @@ function Wizard({ mode }: { mode?: string }) {
     unidades: string[];
     cargos: string[];
     vinculos: string[];
-  }>({ unidades: [], cargos: [], vinculos: [] });
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  }>({ 
+    unidades: initialFilters?.unidades ?? [], 
+    cargos: initialFilters?.cargos ?? [], 
+    vinculos: initialFilters?.vinculos ?? [], 
+    status: initialFilters?.status ?? [], 
+    faixaBase: initialFilters?.faixaBase ?? { min: "", max: "" }, 
+    faixaBruto: initialFilters?.faixaBruto ?? { min: "", max: "" }, 
+    faixaLiquido: initialFilters?.faixaLiquido ?? { min: "", max: "" } 
+  });
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
   const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
@@ -210,6 +221,12 @@ function Wizard({ mode }: { mode?: string }) {
     setBlocks(m.blocks);
     setTextFilter(m.textFilter ?? "");
     setFormato((m.formato as Formato) ?? "pdf");
+    
+    // Suporte a filtros salvos (se houver no JSON)
+    if (m.filtrosAvancados) {
+      setFiltrosAvancados(m.filtrosAvancados as any);
+    }
+    
     setModeloAtualId(m.id);
     setModeloAtualNome(m.nome);
     toast.success(`Modelo "${m.nome}" carregado.`);
@@ -218,7 +235,7 @@ function Wizard({ mode }: { mode?: string }) {
   return (
     <div className="space-y-4">
       <ModelosBar
-        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome }}
+        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome, filtrosAvancados }}
         onLoad={carregarModelo}
         onSaved={(m) => {
           setModeloAtualId(m.id);
@@ -241,7 +258,7 @@ function Wizard({ mode }: { mode?: string }) {
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -504,7 +521,15 @@ function StepFiltros({
 }: {
   textFilter: string;
   setTextFilter: (v: string) => void;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
   setFiltrosAvancados: (v: any) => void;
 }) {
   const unidades = useUnidadesLookup();
@@ -566,6 +591,83 @@ function StepFiltros({
                 onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, vinculos: v }))}
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Situação (Status)</Label>
+              <MultiSelect
+                placeholder="Todas as situações"
+                options={[
+                  { value: "Ativo", label: "Ativo" },
+                  { value: "Afastado", label: "Afastado" },
+                  { value: "Férias", label: "Férias" },
+                  { value: "Licença", label: "Licença" },
+                  { value: "Desligado", label: "Desligado" },
+                  { value: "Falecido", label: "Falecido" },
+                  { value: "Aposentado", label: "Aposentado" },
+                  { value: "Cedido", label: "Cedido" },
+                  { value: "Inativo", label: "Inativo" },
+                ]}
+                value={filtrosAvancados.status}
+                onChange={(v) => setFiltrosAvancados((prev: any) => ({ ...prev, status: v }))}
+              />
+            </div>
+
+            <div className="mt-2 space-y-2 border-t pt-2">
+              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Faixas Salariais (R$)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Salário Base (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaBase.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBase: { ...prev.faixaBase, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaBase.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBase: { ...prev.faixaBase, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Salário Bruto (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaBruto.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBruto: { ...prev.faixaBruto, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaBruto.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaBruto: { ...prev.faixaBruto, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+              </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-[9px]">Salário Líquido (Mín/Máx)</Label>
+                  <div className="flex gap-1">
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Mín" 
+                      value={filtrosAvancados.faixaLiquido.min} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaLiquido: { ...prev.faixaLiquido, min: e.target.value } }))}
+                    />
+                    <Input 
+                      className="h-7 text-[10px]" 
+                      placeholder="Máx" 
+                      value={filtrosAvancados.faixaLiquido.max} 
+                      onChange={e => setFiltrosAvancados((prev: any) => ({ ...prev, faixaLiquido: { ...prev.faixaLiquido, max: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+              </div>
           </div>
         </div>
       </div>
@@ -645,12 +747,20 @@ function StepOrdenacao({
   );
 }
 
-/* ============ Etapa 5 · Prévia ============ */
+/* ============ Etapa 6 · Prévia ============ */
 
 function useBuiltBlocks(
   blocks: BlockConfig[], 
   textFilter: string,
-  filtrosAvancados?: { unidades: string[]; cargos: string[]; vinculos: string[] }
+  filtrosAvancados?: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  }
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
@@ -663,22 +773,43 @@ function useBuiltBlocks(
         let rows: Row[] = b.build({ aggregate: ger.data, profissionais: prof.data });
         if (textFilter.trim()) {
           const q = textFilter.toLowerCase();
-            rows = rows.filter((r) =>
-              Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
-            );
-          }
+          rows = rows.filter((r) =>
+            Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
+          );
+        }
 
-          if (filtrosAvancados) {
-            if (filtrosAvancados.unidades.length > 0) {
-              rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
-            }
-            if (filtrosAvancados.cargos.length > 0) {
-              rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
-            }
-            if (filtrosAvancados.vinculos.length > 0) {
-              rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
-            }
+        if (filtrosAvancados) {
+          if (filtrosAvancados.unidades.length > 0) {
+            rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
           }
+          if (filtrosAvancados.cargos.length > 0) {
+            rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
+          }
+          if (filtrosAvancados.vinculos.length > 0) {
+            rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
+          }
+          if (filtrosAvancados.status.length > 0) {
+            rows = rows.filter(r => r.status && filtrosAvancados.status.includes(String(r.status)));
+          }
+          
+          // Filtros de faixa salarial
+          const filterRange = (val: any, range: { min: string; max: string }) => {
+            const numVal = typeof val === 'number' ? val : parseFloat(String(val || 0).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+            const min = range.min ? parseFloat(range.min.replace(',', '.')) : -Infinity;
+            const max = range.max ? parseFloat(range.max.replace(',', '.')) : Infinity;
+            return numVal >= min && numVal <= max;
+          };
+
+          if (filtrosAvancados.faixaBase.min || filtrosAvancados.faixaBase.max) {
+            rows = rows.filter(r => filterRange(r.salario_base || r.valor_piso, filtrosAvancados.faixaBase));
+          }
+          if (filtrosAvancados.faixaBruto.min || filtrosAvancados.faixaBruto.max) {
+            rows = rows.filter(r => filterRange(r.salario_bruto || r.valor_bruto || r.remuneracao_bruta, filtrosAvancados.faixaBruto));
+          }
+          if (filtrosAvancados.faixaLiquido.min || filtrosAvancados.faixaLiquido.max) {
+            rows = rows.filter(r => filterRange(r.salario_liquido || r.valor_liquido || r.remuneracao_liquida, filtrosAvancados.faixaLiquido));
+          }
+        }
         rows = applySort(rows, cfg.sort);
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
@@ -705,7 +836,16 @@ function StepPrevia({
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
+  isSalarial?: boolean;
 }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
@@ -734,9 +874,23 @@ function StepPrevia({
   if (!built.length)
     return <EmptyState title="Nada para exibir" description="Selecione blocos na Etapa 1." />;
 
+  const [resumido, setResumido] = useState(false);
+
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="resumido-toggle" className="text-xs cursor-pointer flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" /> Visão Resumida (Totais)
+          </Label>
+          <Checkbox 
+            id="resumido-toggle" 
+            checked={resumido} 
+            onCheckedChange={(v) => setResumido(!!v)}
+          />
+        </div>
+      </div>
       {indice && <IndiceCard indice={indice} />}
       {built.map(({ cfg, block, rows, rawRows, grupos }) => (
         <div key={cfg.blockId} className="rounded-md border">
@@ -751,7 +905,11 @@ function StepPrevia({
                 : ""}
             </div>
           </div>
-          {grupos && grupos.length ? (
+          {resumido ? (
+            <div className="p-3 text-sm italic text-muted-foreground">
+              Visão resumida ativa. Os totais de grupo e indicadores estão calculados abaixo.
+            </div>
+          ) : grupos && grupos.length ? (
             <GroupedPreview block={block} cfg={cfg} grupos={grupos} />
           ) : (
             <>
@@ -1280,7 +1438,15 @@ function StepExportar({
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
   textFilter: string;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
   formato: Formato;
   setFormato: (f: Formato) => void;
   gerando: boolean;
@@ -1525,6 +1691,7 @@ function ModelosBar({
     formato: Formato;
     id: string | null;
     nome: string;
+    filtrosAvancados?: any;
   };
   onLoad: (m: ModeloSalvo) => void;
   onSaved: (m: ModeloSalvo) => void;
@@ -1555,6 +1722,7 @@ function ModelosBar({
       blocks: current.blocks,
       textFilter: current.textFilter,
       formato: current.formato,
+      filtrosAvancados: current.filtrosAvancados,
     });
     onSaved(m);
     refresh();

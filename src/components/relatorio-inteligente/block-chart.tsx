@@ -57,6 +57,12 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
     return list;
   }, [rows, spec]);
 
+  const formatterFn = (v: unknown) => {
+    if (typeof v !== "number") return String(v ?? "");
+    if (v > 1000) return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return v.toLocaleString("pt-BR");
+  };
+
   if (!data.length) {
     return (
       <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
@@ -84,11 +90,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
               ))}
             </Pie>
-            <Tooltip
-              formatter={(v: unknown) =>
-                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
-              }
-            />
+            <Tooltip formatter={formatterFn} />
             <Legend wrapperStyle={{ fontSize: 11 }} verticalAlign="bottom" align="center" />
           </PieChart>
         );
@@ -103,11 +105,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               minTickGap={16}
             />
             <YAxis fontSize={10} width={36} />
-            <Tooltip
-              formatter={(v: unknown) =>
-                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
-              }
-            />
+            <Tooltip formatter={formatterFn} />
             <Line type="monotone" dataKey="value" stroke={PALETTE[0]} strokeWidth={2} />
           </LineChart>
         );
@@ -122,11 +120,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               minTickGap={16}
             />
             <YAxis fontSize={10} width={36} />
-            <Tooltip
-              formatter={(v: unknown) =>
-                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
-              }
-            />
+            <Tooltip formatter={formatterFn} />
             <Area type="monotone" dataKey="value" stroke={PALETTE[0]} fill={PALETTE[2]} />
           </AreaChart>
         );
@@ -150,11 +144,7 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
               width={50} 
               tickFormatter={(v) => (typeof v === 'number' && v > 1000 ? `${(v / 1000).toFixed(1)}k` : v)}
             />
-            <Tooltip
-              formatter={(v: unknown) =>
-                typeof v === "number" ? v.toLocaleString("pt-BR") : String(v ?? "")
-              }
-            />
+            <Tooltip formatter={formatterFn} />
             <Bar dataKey="value" fill={PALETTE[0]} />
           </BarChart>
         );

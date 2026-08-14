@@ -27,6 +27,7 @@ export type ModeloSalvo = {
   formato: string;
   criadoEm: string;
   atualizadoEm: string;
+  filtrosAvancados?: any;
 };
 
 export type EntradaHistorico = {
