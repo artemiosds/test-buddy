@@ -385,6 +385,30 @@ export const CATALOG: BlockDef[] = [
     build: ({ aggregate: a }) => a.auditoria.porDia.map((r) => ({ dia: r.dia, qtd: r.qtd })),
     graficos: ["linha", "area"],
   },
+  /* ===== Dados Salariais ===== */
+  {
+    id: "dados_salariais",
+    label: "Dados Salariais",
+    categoria: "Cadastros",
+    descricao: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
+    fields: [
+      { id: "nome_completo", label: "Nome", default: true, groupable: true },
+      { id: "matricula", label: "Matrícula", default: true },
+      { id: "cargo", label: "Cargo", default: true, groupable: true },
+      { id: "unidade", label: "Unidade", default: true, groupable: true },
+      { id: "setor", label: "Setor", default: true, groupable: true },
+      { id: "vinculo", label: "Vínculo", default: true, groupable: true },
+      { id: "salario_base", label: "Salário Base", default: true, tipo: "number" },
+      { id: "salario_bruto", label: "Salário Bruto", default: true, tipo: "number" },
+      { id: "salario_liquido", label: "Salário Líquido", default: true, tipo: "number" },
+      { id: "horas_extras", label: "Horas Extras", default: true, tipo: "number" },
+      { id: "adicional_noturno", label: "Adic. Noturno", default: true, tipo: "number" },
+      { id: "gratificacao_incentivo", label: "Gratif. Inc.", default: true, tipo: "number" },
+      { id: "vencimento_liquido", label: "Venc. Líquido", default: true, tipo: "number" },
+      { id: "status", label: "Situação", groupable: true },
+    ],
+    build: ({ profissionais }) => profissionais ?? [],
+  },
 ];
 
 export function findBlock(id: string): BlockDef | undefined {

@@ -19,6 +19,7 @@ const GERENCIAIS = [
   { to: "/relatorios-gerenciais/funcoes", label: "Funções" },
   { to: "/relatorios-gerenciais/estrutura", label: "Estrutura" },
   { to: "/relatorios-gerenciais/piso", label: "Piso (gerencial)" },
+  { to: "/relatorios-gerenciais/salarios", label: "Dados Salariais" },
   { to: "/relatorios-gerenciais/auditoria", label: "Auditoria" },
   { to: "/relatorio-inteligente", label: "⭐ Relatório Geral Inteligente" },
 ] as const;

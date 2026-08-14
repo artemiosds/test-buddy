@@ -95,15 +95,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ errorComponent: ErrorComponent,
-  component: RelatorioInteligentePage,
+  component: RelatorioInteligenteWrapper,
 });
+
+function RelatorioInteligenteWrapper() {
+  const search = Route.useSearch() as any;
+  return <RelatorioInteligentePage mode={search?.mode} />;
+}
 
 type Formato = "pdf" | "pdf_abnt" | "excel" | "csv" | "word";
 type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-function RelatorioInteligentePage() {
+export function RelatorioInteligentePage({ mode }: { mode?: string }) {
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -112,7 +117,7 @@ function RelatorioInteligentePage() {
           description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
         />
         <RelatoriosTabs />
-        <Wizard />
+        <Wizard mode={mode} />
       </div>
     </PermissionGate>
   );
@@ -120,18 +125,19 @@ function RelatorioInteligentePage() {
 
 /* ============================================================= */
 
-function Wizard() {
+function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
   const search = Route.useSearch() as any;
-  const isSalarialRapido = search?.mode === "salarial_rapido";
+  const isSalarialRapido = mode === "salarial_rapido";
+  const isSalarios = mode === "salarios";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido ? 6 : 1);
-  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido ? "rh" : "executivo");
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios ? 6 : 1);
+  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido || isSalarios ? "rh" : "executivo");
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
     return [
       {
-        blockId: "cadastro_profissionais",
+        blockId: isSalarios ? "dados_salariais" : "cadastro_profissionais",
         fields: [
           "nome_completo",
           "matricula",
@@ -148,12 +154,17 @@ function Wizard() {
         ],
         sort: { fieldId: "nome_completo", dir: "asc" },
         groupBy: ["unidade", "cargo"],
+        charts: isSalarios ? [
+          { id: "bruto_unidade", tipo: "barra", xField: "unidade", yField: "salario_bruto", titulo: "Remuneração Bruta por Unidade" },
+          { id: "vinculo_dist", tipo: "pizza", xField: "vinculo", yField: "nome_completo", titulo: "Distribuição por Vínculo" },
+          { id: "massa_cargo", tipo: "barra", xField: "cargo", yField: "salario_bruto", titulo: "Cargos com Maior Massa Salarial", top: 10 }
+        ] : []
       },
     ];
-  }, []);
+  }, [isSalarios]);
 
   const [blocks, setBlocks] = useState<BlockConfig[]>(() => {
-    if (isSalarialRapido) return salarialBlocks;
+    if (isSalarialRapido || isSalarios) return salarialBlocks;
     return PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[];
   });
 
