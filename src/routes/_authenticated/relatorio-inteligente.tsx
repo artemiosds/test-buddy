@@ -107,8 +107,7 @@ export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
 });
 
 function RelatorioInteligenteWrapper() {
-  const search = Route.useSearch();
-  return <RelatorioInteligentePage mode={(search as any).mode} />;
+  return <RelatorioInteligentePage />;
 }
 
 type Formato = "pdf" | "pdf_abnt" | "excel" | "csv" | "word";
@@ -118,8 +117,8 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
   const search: any = (Route as any).useSearch({
-    from: Route.fullPath,
-    shouldThrow: false,
+    from: "/_authenticated/relatorio-inteligente",
+    shouldThrow: false
   });
   const mode = modeProp || search?.mode;
   return (
@@ -142,8 +141,8 @@ function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
   // Safe search access inside the Wizard that can be rendered from different routes
   const search: any = (Route as any).useSearch({
-    from: Route.fullPath,
-    shouldThrow: false,
+    from: "/_authenticated/relatorio-inteligente",
+    shouldThrow: false
   });
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
