@@ -63,7 +63,7 @@ export function calcularHmsds(linha: LinhaCalculavel): LinhaCalculavel {
   const bruto = moeda(base + insalubridade + horaExtra + noturno + plantao);
   const iss = moeda(bruto * ISS_ALIQUOTA);
   const liquido = moeda(bruto - iss);
-  const pensao = numero(primeiro(linha, "pensao_alimenticia", "total_descontos_extra"));
+  const pensao = numero(primeiro(linha, "pensao_alimenticia", "pensao", "total_descontos_extra"));
 
   const incentivo = temValor(linha, "incentivo", "auxilio_financeiro")
     ? numero(primeiro(linha, "incentivo", "auxilio_financeiro"))
@@ -183,6 +183,7 @@ export const HMSDS_SAUDE: ImportTemplateConfig = {
     CARGO: "cargo",
     DIAS: "dias_trabalhados",
     BASE: "salario_base",
+    VENCIMENTOBASE: "salario_base",
     INSALUBRIDADE: "insalubridade",
     INSALUBIRADE: "insalubridade",
     HE: "hora_extra_50",
@@ -194,6 +195,7 @@ export const HMSDS_SAUDE: ImportTemplateConfig = {
     ISS: "iss",
     TOTAL: "total_liquido_base",
     PENSAOALIMENTICIA: "pensao_alimenticia",
+    PENSAO: "pensao_alimenticia",
     INCENTIVO: "incentivo",
     LIQUIDO: "valor_liquido",
     CONTA: "conta_bancaria",

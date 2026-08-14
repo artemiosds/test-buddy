@@ -35,6 +35,7 @@ export type PisoDestino =
   | "total_liquido_base"
   | "total_positivos"
   | "total_desconto"
+  | "pensao_alimenticia"
   | "conta_bancaria"
   | "valor_liquido"
   | "valor_final"
@@ -83,6 +84,7 @@ export const CAMPOS_SISTEMA: {
   { key: "irrf", label: "IRRF", financeiro: true },
   { key: "valor_liquido", label: "Valor Líquido", financeiro: true, calculado: true },
   { key: "valor_final", label: "Valor Final", financeiro: true, calculado: true },
+  { key: "pensao_alimenticia", label: "Pensão Alimentícia", financeiro: true },
   { key: "data_admissao", label: "Data de Admissão", financeiro: false },
   { key: "dias_trabalhados", label: "Dias Trabalhados", financeiro: false },
   { key: "conta_bancaria", label: "Conta Bancária", financeiro: false },
@@ -112,9 +114,10 @@ export const CAMPOS_SISTEMA: {
 ];
 
 /** Conjunto de destinos calculados (não devem receber auto-map). */
-export const CAMPOS_CALCULADOS: ReadonlySet<PisoDestino> = new Set(
-  CAMPOS_SISTEMA.filter((c) => c.calculado).map((c) => c.key),
-);
+export const CAMPOS_CALCULADOS: ReadonlySet<PisoDestino> = new Set([
+  ...CAMPOS_SISTEMA.filter((c) => c.calculado).map((c) => c.key),
+  "pensao_alimenticia" as PisoDestino,
+]);
 
 /** Destinos padrão marcados na UI de "campos a atualizar" (financeiros). */
 export const CAMPOS_UPDATE_DEFAULT: ReadonlySet<PisoDestino> = new Set(
@@ -153,11 +156,11 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   ],
   matricula: ["matricula", "mat", "registro", "chapa", "matr", "n matricula"],
   cargo: ["cargo", "funcao cargo", "cargo funcao", "descricao cargo"],
-  unidade: ["unidade", "lotacao", "estabelecimento", "local trabalho", "unidade lotacao"],
+  unidade: ["unidade", "lotacao", "estabelecimento", "local trabalho", "unidade lotacao", "departamento"],
   setor: ["setor", "departamento", "sub setor", "area"],
   vinculo: ["vinculo", "regime", "tipo vinculo", "situacao"],
   competencia: ["competencia", "referencia", "mes referencia", "mes ano", "periodo"],
-  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base", "1 salario base"],
+  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base", "1 salario base", "vencimento base"],
   piso_complementacao: [
     "piso",
     "complementacao piso",
@@ -252,6 +255,7 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   valor_liquido_folha: ["valor liquido folha"],
   adn_informativo: ["adn informativo", "base patronal rgps", "adn"],
   ferias_normais: ["ferias normais", "ferias"],
+  pensao_alimenticia: ["pensao alimenticia", "pensao", "desc pensao", "desconto pensao", "pensaoalimenticia"],
   conta_bancaria: ["conta", "conta bancaria", "conta corrente", "c c"],
 };
 
