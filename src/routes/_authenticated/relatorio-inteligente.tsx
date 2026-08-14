@@ -95,15 +95,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ errorComponent: ErrorComponent,
-  component: RelatorioInteligentePage,
+  component: RelatorioInteligenteWrapper,
 });
+
+function RelatorioInteligenteWrapper() {
+  const search = Route.useSearch() as any;
+  return <RelatorioInteligentePage mode={search?.mode} />;
+}
 
 type Formato = "pdf" | "pdf_abnt" | "excel" | "csv" | "word";
 type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-function RelatorioInteligentePage() {
+export function RelatorioInteligentePage({ mode }: { mode?: string }) {
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -112,7 +117,7 @@ function RelatorioInteligentePage() {
           description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
         />
         <RelatoriosTabs />
-        <Wizard />
+        <Wizard mode={mode} />
       </div>
     </PermissionGate>
   );
