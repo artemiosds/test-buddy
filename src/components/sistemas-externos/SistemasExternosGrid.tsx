@@ -100,9 +100,13 @@ export function SistemasExternosGrid() {
           formattedUrl = `https://${formattedUrl}`;
         }
 
-        // Se for o Plantão Inteligente, garantir a URL exata solicitada
+        // Se for o Plantão Inteligente, garantir a URL exata solicitada ou usar o endpoint_sso configurado
         if (sistema.nome?.toLowerCase().includes("plantão inteligente") || sistema.nome?.toLowerCase().includes("plantao inteligente")) {
-           window.open(`https://plantao-inteligente.vercel.app/auth/sso?token=${result.token}`, "_blank");
+           const baseUrl = sistema.url_base?.replace(/\/$/, '') || "https://plantao-inteligente.vercel.app";
+           const ssoPath = sistema.endpoint_sso || "/auth/sso";
+           const fullUrl = ssoPath.startsWith('http') ? ssoPath : `${baseUrl}${ssoPath.startsWith('/') ? '' : '/'}${ssoPath}`;
+           
+           window.open(`${fullUrl}${fullUrl.includes('?') ? '&' : '?'}token=${result.token}`, "_blank");
            return;
         }
 
