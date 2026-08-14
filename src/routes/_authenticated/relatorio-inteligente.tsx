@@ -916,7 +916,14 @@ function StepPrevia({
     });
   }, [ger.data, built]);
   const pareceres: ParecerBloco[] = useMemo(
-    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    () => built.map((b) => {
+      try {
+        return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
+      } catch (e) {
+        console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
+        return { blockId: b.block.id, frases: [], destaques: [] };
+      }
+    }),
     [built],
   );
 
@@ -1516,8 +1523,8 @@ function StepExportar({
   isSalarial?: boolean;
   mode?: string;
 }) {
-  const isSalarios = tipo === "rh" || isSalarial || mode === "salarial_rapido";
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
+  const isSalariosAtivo = tipo === "rh" || isSalarial || mode === "salarial_rapido";
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalariosAtivo);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
@@ -1530,7 +1537,14 @@ function StepExportar({
     });
   }, [ger.data, built]);
   const pareceres = useMemo<ParecerBloco[]>(
-    () => built.map((b) => parecerPorBloco(b.block, b.rawRows, b.cfg.fields)),
+    () => built.map((b) => {
+      try {
+        return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
+      } catch (e) {
+        console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
+        return { blockId: b.block.id, frases: [], destaques: [] };
+      }
+    }),
     [built],
   );
 
