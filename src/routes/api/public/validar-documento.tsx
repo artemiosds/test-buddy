@@ -106,7 +106,11 @@ function ValidarDocumentoPage() {
                     <Calendar className="w-4 h-4 text-blue-500" />
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400">Data de Emissão</p>
-                      <p className="font-medium">{format(new Date(doc.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                      <p className="font-medium">
+                        {doc.assinado_em 
+                          ? format(new Date(doc.assinado_em), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+                          : "Data não disponível"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-slate-600">
@@ -135,14 +139,22 @@ function ValidarDocumentoPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-slate-100 flex justify-center">
-                <Link to="/api/public/documento-pdf/$id" params={{ id: doc.id }}>
-                  <Button variant="outline" className="gap-2 border-slate-300 hover:bg-slate-50 rounded-xl px-8 h-12">
+              {/* Visualização restrita: apenas para documentos que não contenham dados sensíveis
+                  ou para usuários autenticados (verificado no servidor) */}
+              <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center gap-4 text-center">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-xs max-w-sm">
+                  <p className="font-semibold mb-1">Nota sobre Privacidade (LGPD):</p>
+                  <p>Por segurança, documentos contendo dados pessoais sensíveis (como CPFs ou salários) exigem autenticação para visualização completa.</p>
+                </div>
 
-                    <ExternalLink className="w-4 h-4" />
-                    Visualizar Documento Original
-                  </Button>
-                </Link>
+                {doc.id && (
+                  <Link to="/api/public/documento-pdf/$id" params={{ id: doc.id }}>
+                    <Button variant="outline" className="gap-2 border-slate-300 hover:bg-slate-50 rounded-xl px-8 h-12">
+                      <ExternalLink className="w-4 h-4" />
+                      Visualizar Documento Original
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           )}
