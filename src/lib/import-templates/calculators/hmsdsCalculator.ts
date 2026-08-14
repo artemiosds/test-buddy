@@ -194,6 +194,7 @@ export const HMSDS_SAUDE: ImportTemplateConfig = {
     ISS: "iss",
     TOTAL: "total_liquido_base",
     PENSAOALIMENTICIA: "pensao_alimenticia",
+    PENSAO: "pensao_alimenticia",
     INCENTIVO: "incentivo",
     LIQUIDO: "valor_liquido",
     CONTA: "conta_bancaria",
