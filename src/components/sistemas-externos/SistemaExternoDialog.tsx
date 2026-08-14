@@ -373,12 +373,14 @@ export function SistemaExternoDialog({ open, onOpenChange, sistema }: SistemaExt
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-2">
+                  <FormItem className="space-y-2">
                     <FormLabel>Chaves RSA (Auditoria SSO)</FormLabel>
-                    <Button type="button" variant="outline" size="sm" onClick={handleGenerateKeys} className="w-full">
-                      Gerar Novo Par de Chaves
-                    </Button>
-                  </div>
+                    <FormControl>
+                      <Button type="button" variant="outline" size="sm" onClick={handleGenerateKeys} className="w-full">
+                        Gerar Novo Par de Chaves
+                      </Button>
+                    </FormControl>
+                  </FormItem>
                   <FormField
                     control={form.control}
                     name="public_key"
