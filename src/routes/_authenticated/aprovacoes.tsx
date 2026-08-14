@@ -676,7 +676,11 @@ function LinhasAnaliseDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("frequencias")
-        .select("id, tipo, setor_id, competencia_unidade_id, competencia_unidades(unidade_id, competencia_id)")
+        .select(`
+          id, tipo, setor_id, 
+          competencia_unidade_id, 
+          competencia_unidades(unidade_id, competencia_id)
+        `)
         .eq("id", freqId!)
         .maybeSingle();
       if (error) throw error;
@@ -722,14 +726,28 @@ function LinhasAnaliseDialog({
 
       const { data, error } = await supabase
         .from("frequencia_profissional")
-        .select(
-          "id, profissional_id, status_linha, observacao_analise, analisado_em, dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, ferias_terco, ferias_integral, adicional_noturno, he_50, he_100, plantoes_extras, sobreaviso, incentivo, sal_sub_h, aulas_suplementares, profissionais:profissional_id(nome_completo, matricula), analisado_por_usuario:analisado_por(nome_completo)",
-        )
+        .select(`
+          id, profissional_id, status_linha, observacao_analise, analisado_em, 
+          dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, 
+          ferias_terco, ferias_integral, adicional_noturno, he_50, he_100, 
+          plantoes_extras, sobreaviso, incentivo, sal_sub_h, aulas_suplementares, 
+          profissionais:profissional_id(nome_completo, matricula, setor_id), 
+          analisado_por_usuario:analisado_por(nome_completo)
+        `)
         .eq("frequencia_id", freqId!)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });
+      
       if (error) throw error;
-      return (data ?? []) as unknown as (LinhaAnalise & { profissional_id: string })[];
+      
+      const rows = (data ?? []) as unknown as (LinhaAnalise & { profissional_id: string; profissionais: { setor_id: string | null } })[];
+      
+      // Filtra por setor se a frequência for vinculada a um setor específico
+      if (freqBase?.setor_id) {
+        return rows.filter(r => r.profissionais?.setor_id === freqBase.setor_id);
+      }
+
+      return rows;
     },
   });
 
