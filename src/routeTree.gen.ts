@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyLinkRouteImport } from './routes/verify-link'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -52,7 +53,6 @@ import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './ro
 import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
-import { Route as ApiPublicVerifyLinkRouteImport } from './routes/api/public/verify-link'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -88,6 +88,11 @@ import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/pu
 import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
+const VerifyLinkRoute = VerifyLinkRouteImport.update({
+  id: '/verify-link',
+  path: '/verify-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -327,11 +332,6 @@ const AuthenticatedConfiguracaoIndexRoute =
     path: '/configuracao/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicVerifyLinkRoute = ApiPublicVerifyLinkRouteImport.update({
-  id: '/api/public/verify-link',
-  path: '/api/public/verify-link',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -536,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-link': typeof VerifyLinkRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -598,7 +599,6 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
-  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -615,6 +615,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-link': typeof VerifyLinkRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -676,7 +677,6 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
-  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -695,6 +695,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-link': typeof VerifyLinkRoute
   '/_authenticated/analitico': typeof AuthenticatedAnaliticoRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -757,7 +758,6 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
-  '/api/public/verify-link': typeof ApiPublicVerifyLinkRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -776,6 +776,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/verify-link'
     | '/analitico'
     | '/aprovacoes'
     | '/assinar-pdf'
@@ -838,7 +839,6 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
-    | '/api/public/verify-link'
     | '/configuracao/'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
@@ -855,6 +855,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/verify-link'
     | '/analitico'
     | '/aprovacoes'
     | '/assinar-pdf'
@@ -916,7 +917,6 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
-    | '/api/public/verify-link'
     | '/configuracao'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
@@ -934,6 +934,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/verify-link'
     | '/_authenticated/analitico'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/assinar-pdf'
@@ -996,7 +997,6 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
-    | '/api/public/verify-link'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
@@ -1015,8 +1015,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VerifyLinkRoute: typeof VerifyLinkRoute
   ValidarIdRoute: typeof ValidarIdRoute
-  ApiPublicVerifyLinkRoute: typeof ApiPublicVerifyLinkRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
@@ -1025,6 +1025,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-link': {
+      id: '/verify-link'
+      path: '/verify-link'
+      fullPath: '/verify-link'
+      preLoaderRoute: typeof VerifyLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1325,13 +1332,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/configuracao/'
       preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/public/verify-link': {
-      id: '/api/public/verify-link'
-      path: '/api/public/verify-link'
-      fullPath: '/api/public/verify-link'
-      preLoaderRoute: typeof ApiPublicVerifyLinkRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
@@ -1817,8 +1817,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  VerifyLinkRoute: VerifyLinkRoute,
   ValidarIdRoute: ValidarIdRoute,
-  ApiPublicVerifyLinkRoute: ApiPublicVerifyLinkRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,

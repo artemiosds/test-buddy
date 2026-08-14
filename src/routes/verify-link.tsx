@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/api/public/verify-link")({
+export const Route = createFileRoute("/verify-link")({
   component: () => (
     <div className="p-10">
       <a
