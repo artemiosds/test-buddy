@@ -166,7 +166,10 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
           { id: "bruto_unidade", tipo: "barra", xField: "unidade", yField: "salario_bruto", titulo: "Remuneração Bruta por Unidade" },
           { id: "vinculo_dist", tipo: "pizza", xField: "vinculo", yField: "nome_completo", titulo: "Distribuição por Vínculo" },
           { id: "massa_cargo", tipo: "barra", xField: "cargo", yField: "salario_bruto", titulo: "Cargos com Maior Massa Salarial", top: 10 }
-        ] : []
+        ] : [
+          { id: "prof_unidade", tipo: "barra", xField: "unidade", yField: "nome_completo", titulo: "Profissionais por Unidade" },
+          { id: "prof_vinculo", tipo: "pizza", xField: "vinculo", yField: "nome_completo", titulo: "Vínculos" }
+        ]
       },
     ];
   }, [isSalarios]);
