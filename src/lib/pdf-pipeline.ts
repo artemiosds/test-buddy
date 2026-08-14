@@ -244,7 +244,7 @@ export type FinalizarPdfOpts = {
  * Sem assinatura ativa, baixa o PDF direto (FALLBACK).
  */
 export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<void> {
-  const filename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
+  const finalFilename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
 
   // Persiste o registro do documento no banco para permitir validação futura
   let documentoId: string | null = null;
@@ -255,12 +255,12 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const { data: newDoc } = await supabase
       .from("documentos_assinados")
       .insert({
-        tipo_documento: opts.tipo || "relatorio",
+        tipo: opts.tipo || "relatorio",
         unidade_id: opts.unidadeId || null,
         secretaria_id: opts.secretariaId || null,
         criado_por: me?.id || null,
         metadata: {
-          filename,
+          filename: finalFilename,
           competencia: (opts as any).competencia,
         }
       })
@@ -278,9 +278,17 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     console.warn("Erro ao registrar documento para validação:", err);
   }
 
-  const filename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
-
   const baixar = async () => {
+    if (opts.onBlob) {
+      try {
+        await opts.onBlob(doc.output("blob"));
+      } catch {
+        /* best effort */
+      }
+    }
+    doc.save(finalFilename);
+  };
+
     if (opts.onBlob) {
       try {
         await opts.onBlob(doc.output("blob"));
