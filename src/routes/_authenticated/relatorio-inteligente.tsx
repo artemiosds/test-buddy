@@ -1110,7 +1110,7 @@ function GroupedPreview({
   grupos: GroupNode[];
 }) {
   return (
-    <div className="max-h-[520px] overflow-auto p-2">
+    <div className="max-h-[600px] overflow-auto p-2">
       {grupos.map((g, i) => (
         <GroupNodeView key={i} block={block} cfg={cfg} node={g} />
       ))}
