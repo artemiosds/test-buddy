@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({
   component: HubGerenciais,
 });
 
-type Card = { to: string; title: string; desc: string; icon: LucideIcon };
+type Card = { to: string; search?: any; title: string; desc: string; icon: LucideIcon };
 
 const CARDS: Card[] = [
   {
@@ -90,6 +90,7 @@ function HubGerenciais() {
         <Link
           key={c.to}
           to={c.to}
+          search={c.search}
           className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-muted/50"
         >
           <div className="mb-2 flex items-center gap-2">
