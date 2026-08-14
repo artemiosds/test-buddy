@@ -179,7 +179,19 @@ function Wizard({ mode }: { mode?: string }) {
     unidades: string[];
     cargos: string[];
     vinculos: string[];
-  }>({ unidades: [], cargos: [], vinculos: [] });
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  }>({ 
+    unidades: [], 
+    cargos: [], 
+    vinculos: [], 
+    status: [], 
+    faixaBase: { min: "", max: "" }, 
+    faixaBruto: { min: "", max: "" }, 
+    faixaLiquido: { min: "", max: "" } 
+  });
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
   const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
@@ -236,7 +248,7 @@ function Wizard({ mode }: { mode?: string }) {
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -499,7 +511,15 @@ function StepFiltros({
 }: {
   textFilter: string;
   setTextFilter: (v: string) => void;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
   setFiltrosAvancados: (v: any) => void;
 }) {
   const unidades = useUnidadesLookup();
