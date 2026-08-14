@@ -818,20 +818,15 @@ function PisoIndex() {
           </PermissionGate>
 
 
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
+          <a
+            href="https://gemini.google.com/spark/chat/efafafc04fd74247?utm_source=app_launcher&utm_medium=owned&utm_campaign=base_all"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-medium cursor-pointer transition-[background-color,transform,box-shadow] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
             aria-label="Abrir chat de IA em nova aba"
           >
-            <a
-              href="https://gemini.google.com/spark/chat/efafafc04fd74247?utm_source=app_launcher&utm_medium=owned&utm_campaign=base_all"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Sparkles className="mr-2 h-4 w-4" /> Chat IA
-            </a>
-          </Button>
+            <Sparkles className="mr-2 h-4 w-4" /> Chat IA
+          </a>
 
           <Select value={modeloSel} onValueChange={setModeloSel}>
             <SelectTrigger className="h-9 w-[230px]">
