@@ -12,7 +12,7 @@ export function useProfissionaisLista() {
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, cpf, matricula, sexo, data_nascimento, data_admissao, telefone, email, carga_horaria_semanal, status, unidade:unidade_id(nome), setor:setor_id(nome), cargo:cargo_id(nome), funcao:funcao_id(nome), vinculo:vinculo_id(nome)",
+          "id, nome_completo, cpf, matricula, sexo, data_nascimento, data_admissao, telefone, email, carga_horaria_semanal, status, unidade:unidade_id(nome), setor:setor_id(nome), cargo:cargo_id(nome), funcao:funcao_id(nome), vinculo:vinculo_id(nome), salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido",
         )
         .is("deleted_at", null)
         .order("nome_completo", { ascending: true })
@@ -35,6 +35,13 @@ export function useProfissionaisLista() {
         cargo: (r.cargo as Named)?.nome ?? "",
         funcao: (r.funcao as Named)?.nome ?? "",
         vinculo: (r.vinculo as Named)?.nome ?? "",
+        salario_base: (r.salario_base as number) ?? 0,
+        salario_bruto: (r.salario_bruto as number) ?? 0,
+        salario_liquido: (r.salario_liquido as number) ?? 0,
+        horas_extras: (r.horas_extras as number) ?? 0,
+        adicional_noturno: (r.adicional_noturno as number) ?? 0,
+        gratificacao_incentivo: (r.gratificacao_incentivo as number) ?? 0,
+        vencimento_liquido: (r.vencimento_liquido as number) ?? 0,
       }));
     },
   });
