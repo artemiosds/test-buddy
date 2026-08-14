@@ -259,7 +259,7 @@ function CompetenciasPage() {
                           <Settings className="h-4 w-4" />
                         </Link>
                       </Button>
-                      {canEditar && c.status === "aberta" && (
+                      {canEditar && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -404,7 +404,7 @@ function CompetenciaForm({
             <Select
               value={String(mes)}
               onValueChange={(v) => setMes(Number(v))}
-              disabled={!!editing}
+              disabled={!!editing && editing.status !== "aberta"}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -424,12 +424,12 @@ function CompetenciaForm({
               type="number"
               value={ano}
               onChange={(e) => setAno(Number(e.target.value))}
-              disabled={!!editing}
+              disabled={!!editing && editing.status !== "aberta"}
             />
           </div>
           <div>
             <Label>Secretaria</Label>
-            <Select value={secretariaId} onValueChange={setSecretariaId} disabled={!!editing}>
+            <Select value={secretariaId} onValueChange={setSecretariaId} disabled={!!editing && editing.status !== "aberta"}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
