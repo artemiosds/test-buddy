@@ -747,7 +747,7 @@ function StepOrdenacao({
   );
 }
 
-/* ============ Etapa 5 · Prévia ============ */
+/* ============ Etapa 6 · Prévia ============ */
 
 function useBuiltBlocks(
   blocks: BlockConfig[], 
