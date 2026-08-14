@@ -32,6 +32,14 @@ function normalizeLabel(v: unknown): string {
   if (upper.includes("AUX") && upper.includes("GERAIS")) return "Auxiliar de Serviços Gerais";
   if (upper.includes("TECNICO") && upper.includes("ENFERM")) return "Técnico(a) em Enfermagem";
   if (upper.includes("MEDICO")) return "Médico(a)";
+  if (upper.includes("AGENTE") && (upper.includes("COMUNI") || upper.includes("ACS"))) return "Agente Comunitário de Saúde (ACS)";
+  if (upper.includes("AGENTE") && (upper.includes("ENDEMIA") || upper.includes("ACE"))) return "Agente de Combate às Endemias (ACE)";
+  if (upper.includes("MOTORISTA")) return "Motorista";
+  if (upper.includes("ADMINISTRA")) return "Administrativo";
+  if (upper.includes("RECEPCIONISTA")) return "Recepcionista";
+  if (upper.includes("OPERACIONAL")) return "Apoio Operacional";
+  if (upper.includes("SERVICO") && upper.includes("GERAL")) return "Serviços Gerais";
+  if (upper.includes("VIGIA")) return "Vigia";
   
   return s;
 }

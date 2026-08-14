@@ -599,6 +599,9 @@ function StepFiltros({
                   { value: "Férias", label: "Férias" },
                   { value: "Licença", label: "Licença" },
                   { value: "Desligado", label: "Desligado" },
+                  { value: "Falecido", label: "Falecido" },
+                  { value: "Aposentado", label: "Aposentado" },
+                  { value: "Cedido", label: "Cedido" },
                   { value: "Inativo", label: "Inativo" },
                 ]}
                 value={filtrosAvancados.status}
