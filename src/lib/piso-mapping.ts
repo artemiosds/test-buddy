@@ -159,7 +159,7 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   setor: ["setor", "departamento", "sub setor", "area"],
   vinculo: ["vinculo", "regime", "tipo vinculo", "situacao"],
   competencia: ["competencia", "referencia", "mes referencia", "mes ano", "periodo"],
-  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base", "1 salario base"],
+  salario_base: ["salario base", "vencimento", "salario", "base", "sal base", "venc base", "1 salario base", "vencimento base"],
   piso_complementacao: [
     "piso",
     "complementacao piso",
