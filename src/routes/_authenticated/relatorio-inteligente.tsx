@@ -1127,7 +1127,8 @@ function GroupNodeView({
   cfg: BlockConfig;
   node: GroupNode;
 }) {
-  const [open, setOpen] = useState(node.nivel === 0);
+  // Nível 0 e 1 abertos por padrão se houver poucos dados, senão apenas nível 0
+  const [open, setOpen] = useState(node.nivel === 0 || (node.nivel === 1 && node.rows.length < 50));
   const nome =
     block.fields.find((f) => f.id === cfg.groupBy?.[node.nivel])?.label ??
     `Nível ${node.nivel + 1}`;
