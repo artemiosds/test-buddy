@@ -35,6 +35,7 @@ export type PisoDestino =
   | "total_liquido_base"
   | "total_positivos"
   | "total_desconto"
+  | "pensao_alimenticia"
   | "conta_bancaria"
   | "valor_liquido"
   | "valor_final"
