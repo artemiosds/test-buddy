@@ -114,9 +114,10 @@ export const CAMPOS_SISTEMA: {
 ];
 
 /** Conjunto de destinos calculados (não devem receber auto-map). */
-export const CAMPOS_CALCULADOS: ReadonlySet<PisoDestino> = new Set(
-  CAMPOS_SISTEMA.filter((c) => c.calculado).map((c) => c.key),
-);
+export const CAMPOS_CALCULADOS: ReadonlySet<PisoDestino> = new Set([
+  ...CAMPOS_SISTEMA.filter((c) => c.calculado).map((c) => c.key),
+  "pensao_alimenticia" as PisoDestino,
+]);
 
 /** Destinos padrão marcados na UI de "campos a atualizar" (financeiros). */
 export const CAMPOS_UPDATE_DEFAULT: ReadonlySet<PisoDestino> = new Set(
