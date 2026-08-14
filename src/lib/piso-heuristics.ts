@@ -235,6 +235,8 @@ const HEADER_KEYWORDS = [
   "irrf",
   "ir",
   "liquido",
+  "pensao",
+  "pensao alimenticia",
   "total",
   "valor",
   "vale transp",
