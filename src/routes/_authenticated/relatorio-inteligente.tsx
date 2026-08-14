@@ -296,6 +296,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
             isSalarial={isSalarios}
+            mode={mode}
           />
         )}
       </div>
@@ -1492,6 +1493,7 @@ function StepExportar({
   setGerando,
   nomeAtual,
   isSalarial,
+  mode
 }: {
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
@@ -1511,8 +1513,9 @@ function StepExportar({
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
   isSalarial?: boolean;
+  mode?: string;
 }) {
-  const isSalarios = tipo === "rh" || isSalarial;
+  const isSalarios = tipo === "rh" || isSalarial || mode === "salarial_rapido";
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
   const ger = useGerencial();
 
