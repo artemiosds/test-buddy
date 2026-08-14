@@ -106,10 +106,10 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       
       if (contratados && contratados.length > 0) {
         const statuses = contratados.map(c => (c as any).status);
-        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
-          statusOficial = "rascunho";
-        } else if (statuses.every(s => s === "aprovada")) {
+        if (statuses.every(s => s === "aprovada")) {
           statusOficial = "aprovada";
+        } else if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
+          statusOficial = "rascunho";
         } else if (statuses.some(s => s === "enviada")) {
           statusOficial = "enviada";
         }
@@ -158,10 +158,10 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
 
       if (linhas && linhas.length > 0) {
         const statuses = linhas.map(l => (l as any).status_linha || "rascunho");
-        if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
-          statusOficial = "rascunho";
-        } else if (statuses.every(s => s === "aprovada")) {
+        if (statuses.every(s => s === "aprovada")) {
           statusOficial = "aprovada";
+        } else if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
+          statusOficial = "rascunho";
         } else if (statuses.some(s => s === "enviada")) {
           statusOficial = "enviada";
         }

@@ -298,6 +298,8 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         frequencia_id,
         profissional_id: l.profissional_id,
         status_linha: l.status_linha || (ex ? ex.status_linha : "pendente") || "pendente",
+        aprovada_em: (l.status_linha === "aprovada" && ex?.status_linha !== "aprovada") ? new Date().toISOString() : (ex?.aprovada_em ?? null),
+        aprovada_por: (l.status_linha === "aprovada" && ex?.status_linha !== "aprovada") ? userId : (ex?.aprovada_por ?? null),
         updated_by: userId,
       };
 
