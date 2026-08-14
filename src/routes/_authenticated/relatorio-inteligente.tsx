@@ -110,7 +110,7 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
+export function RelatorioInteligentePage({ mode: modeProp, initialFilters }: { mode?: string, initialFilters?: any }) {
   // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
   // com a rota /relatorio-inteligente — o componente também é usado em
   // /relatorios-gerenciais/salarios.
@@ -124,7 +124,7 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
           description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
         />
         <RelatoriosTabs />
-        <Wizard mode={mode} />
+        <Wizard mode={mode} initialFilters={initialFilters} />
       </div>
     </PermissionGate>
   );
@@ -132,7 +132,7 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
 
 /* ============================================================= */
 
-function Wizard({ mode }: { mode?: string }) {
+function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any }) {
   const navigate = useNavigate();
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
@@ -184,13 +184,13 @@ function Wizard({ mode }: { mode?: string }) {
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
   }>({ 
-    unidades: [], 
-    cargos: [], 
-    vinculos: [], 
-    status: [], 
-    faixaBase: { min: "", max: "" }, 
-    faixaBruto: { min: "", max: "" }, 
-    faixaLiquido: { min: "", max: "" } 
+    unidades: initialFilters?.unidades ?? [], 
+    cargos: initialFilters?.cargos ?? [], 
+    vinculos: initialFilters?.vinculos ?? [], 
+    status: initialFilters?.status ?? [], 
+    faixaBase: initialFilters?.faixaBase ?? { min: "", max: "" }, 
+    faixaBruto: initialFilters?.faixaBruto ?? { min: "", max: "" }, 
+    faixaLiquido: initialFilters?.faixaLiquido ?? { min: "", max: "" } 
   });
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
@@ -217,6 +217,12 @@ function Wizard({ mode }: { mode?: string }) {
     setBlocks(m.blocks);
     setTextFilter(m.textFilter ?? "");
     setFormato((m.formato as Formato) ?? "pdf");
+    
+    // Suporte a filtros salvos (se houver no JSON)
+    if (m.filtrosAvancados) {
+      setFiltrosAvancados(m.filtrosAvancados as any);
+    }
+    
     setModeloAtualId(m.id);
     setModeloAtualNome(m.nome);
     toast.success(`Modelo "${m.nome}" carregado.`);
@@ -225,7 +231,7 @@ function Wizard({ mode }: { mode?: string }) {
   return (
     <div className="space-y-4">
       <ModelosBar
-        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome }}
+        current={{ tipo, blocks, textFilter, formato, id: modeloAtualId, nome: modeloAtualNome, filtrosAvancados }}
         onLoad={carregarModelo}
         onSaved={(m) => {
           setModeloAtualId(m.id);

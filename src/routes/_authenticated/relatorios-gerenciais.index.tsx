@@ -15,7 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { BotaoRelatorioSalarialRapido } from "@/components/relatorios/BotaoRelatorioSalarialRapido";
 
-export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({ errorComponent: ErrorComponent,
+export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({
   component: HubGerenciais,
 });
 
