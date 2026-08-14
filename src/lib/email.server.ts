@@ -25,13 +25,23 @@ export async function sendEmail({
   const from = process.env.SMTP_FROM || user;
 
   if (!host || !user || !pass) {
+    const missing = [];
+    if (!host) missing.push("SMTP_HOST");
+    if (!user) missing.push("SMTP_USER");
+    if (!pass) missing.push("SMTP_PASSWORD");
+    
     logger.warn("email.send.skipped", {
-      reason: "SMTP credentials not configured in environment",
+      reason: `SMTP credentials missing: ${missing.join(", ")}`,
       to,
       subject,
     });
-    return { skipped: true };
+    return { 
+      success: false, 
+      skipped: true, 
+      error: new Error(`Configuração SMTP incompleta. Faltando: ${missing.join(", ")}`) 
+    };
   }
+
 
   const transporter = nodemailer.createTransport({
     host,

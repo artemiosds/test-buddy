@@ -88,9 +88,11 @@ function SmtpTestPage() {
           </div>
         )}
 
-        <div className="pt-4 text-[10px] text-slate-500 text-center">
-          Esta tela é exclusiva para depuração de SMTP.
+        <div className="pt-4 text-[10px] text-slate-500 text-center flex flex-col gap-1">
+          <p>Esta tela é exclusiva para depuração de SMTP.</p>
+          <p className="font-mono text-blue-500 opacity-50 italic">Após configurar os segredos, clique em disparar.</p>
         </div>
+
       </div>
     </div>
   );
