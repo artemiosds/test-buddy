@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/smtp-test")({
   component: SmtpTestPage,
 });
 
@@ -88,8 +88,8 @@ function SmtpTestPage() {
           </div>
         )}
 
-        <div className="pt-4 text-[10px] text-slate-500 text-center">
-          Esta tela é exclusiva para depuração de SMTP.
+        <div className="pt-4 text-[10px] text-slate-500 text-center font-mono">
+          Route: /smtp-test
         </div>
       </div>
     </div>
@@ -104,5 +104,3 @@ function Badge({ label, active }: { label: string; active: boolean | undefined }
     </div>
   );
 }
-
-
