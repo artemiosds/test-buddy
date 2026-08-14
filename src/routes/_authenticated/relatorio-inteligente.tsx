@@ -105,7 +105,7 @@ export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
 });
 
 function RelatorioInteligenteWrapper() {
-  const search = Route.useSearch() as any;
+  const search = Route.useSearch();
   return <RelatorioInteligentePage mode={search?.mode} />;
 }
 
