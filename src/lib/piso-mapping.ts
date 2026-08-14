@@ -255,7 +255,6 @@ const ALIASES: Partial<Record<PisoDestino, string[]>> = {
   valor_liquido_folha: ["valor liquido folha"],
   adn_informativo: ["adn informativo", "base patronal rgps", "adn"],
   ferias_normais: ["ferias normais", "ferias"],
-  pensao_alimenticia: ["pensao alimenticia", "pensao", "desc pensao", "desconto pensao"],
   pensao_alimenticia: ["pensao alimenticia", "pensao", "desc pensao", "desconto pensao", "pensaoalimenticia"],
   conta_bancaria: ["conta", "conta bancaria", "conta corrente", "c c"],
 };
