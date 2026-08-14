@@ -110,13 +110,13 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-export function RelatorioInteligentePage({ mode: modeProp, initialFilters }: { mode?: string, initialFilters?: any }) {
+export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filtersProp }: { mode?: string, initialFilters?: any }) {
   // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
   // com a rota /relatorio-inteligente — o componente também é usado em
   // /relatorios-gerenciais/salarios.
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
-  const initialFilters = search?.filtrosAvancados;
+  const initialFilters = filtersProp || search?.filtrosAvancados;
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">

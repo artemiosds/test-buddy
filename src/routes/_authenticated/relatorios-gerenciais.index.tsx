@@ -71,7 +71,8 @@ const CARDS: Card[] = [
     icon: ShieldCheck,
   },
   {
-    to: "/relatorios-gerenciais/salarios",
+    to: "/relatorio-inteligente",
+    search: { mode: "salarios" },
     title: "Dados Salariais",
     desc: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
     icon: Coins,
