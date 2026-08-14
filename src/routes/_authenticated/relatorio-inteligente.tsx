@@ -781,7 +781,7 @@ function useBuiltBlocks(
           };
 
           if (filtrosAvancados.faixaBase.min || filtrosAvancados.faixaBase.max) {
-            rows = rows.filter(r => filterRange(r.salario_base, filtrosAvancados.faixaBase));
+            rows = rows.filter(r => filterRange(r.salario_base || r.valor_piso, filtrosAvancados.faixaBase));
           }
           if (filtrosAvancados.faixaBruto.min || filtrosAvancados.faixaBruto.max) {
             rows = rows.filter(r => filterRange(r.salario_bruto || r.valor_bruto || r.remuneracao_bruta, filtrosAvancados.faixaBruto));
