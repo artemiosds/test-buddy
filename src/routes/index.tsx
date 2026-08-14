@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { testSmtpConnection } from "@/lib/smtp-test.functions";
 import { getSmtpEnvStatus } from "@/lib/smtp-debug.functions";
@@ -89,7 +89,6 @@ function SmtpTestPage() {
         )}
 
         <div className="pt-4 text-[10px] text-slate-500 text-center">
-          O sistema redirecionará para /analitico em produção. 
           Esta tela é exclusiva para depuração de SMTP.
         </div>
       </div>
@@ -105,4 +104,5 @@ function Badge({ label, active }: { label: string; active: boolean | undefined }
     </div>
   );
 }
+
 
