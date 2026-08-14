@@ -246,6 +246,40 @@ export type FinalizarPdfOpts = {
 export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<void> {
   const filename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
 
+  // Persiste o registro do documento no banco para permitir validação futura
+  let documentoId: string | null = null;
+  try {
+    const { data: userCtx } = await supabase.rpc("get_my_user_context");
+    const me = userCtx as any;
+    
+    const { data: newDoc } = await supabase
+      .from("documentos_assinados")
+      .insert({
+        tipo_documento: opts.tipo || "relatorio",
+        unidade_id: opts.unidadeId || null,
+        secretaria_id: opts.secretariaId || null,
+        criado_por: me?.id || null,
+        metadata: {
+          filename,
+          competencia: (opts as any).competencia,
+        }
+      })
+      .select("id")
+      .single();
+    
+    if (newDoc) {
+      documentoId = newDoc.id;
+      // Injeta o ID nas assinaturas para o drawAssinaturasBlock desenhar o selo
+      if (opts.assinaturas) {
+        opts.assinaturas.forEach((a: any) => { a.documento_id = documentoId; });
+      }
+    }
+  } catch (err) {
+    console.warn("Erro ao registrar documento para validação:", err);
+  }
+
+  const filename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
+
   const baixar = async () => {
     if (opts.onBlob) {
       try {
@@ -346,5 +380,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       pageHeightMm,
     );
   }
+  // Se temos um ID de documento e o PDF foi gerado com sucesso, 
+  // poderíamos fazer o upload do PDF aqui se desejado (onBlob já trata isso).
   await baixar();
 }
+
