@@ -689,7 +689,7 @@ function LinhasAnaliseDialog({
   });
 
   const { data: linhas, isLoading } = useQuery({
-    queryKey: ["frequencia-linhas-analise", freqId, freqBase?.tipo],
+    queryKey: ["frequencia-linhas-analise", freqId, freqBase?.tipo, freqBase?.setor_id],
     enabled: !!freqId && !!freqBase,
     queryFn: async () => {
       if (freqBase?.tipo === "contratados") {
@@ -700,7 +700,7 @@ function LinhasAnaliseDialog({
             id:profissional_id, profissional_id, status:status, observacoes, 
             dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, 
             plantoes, sobreaviso, incentivo, 
-            profissionais:profissional_id(nome_completo, matricula, setor_id)
+            profissionais:profissional_id!inner(nome_completo, matricula, setor_id)
           `)
           .eq("competencia_id", cu.competencia_id)
           .eq("unidade_id", cu.unidade_id)
@@ -715,7 +715,7 @@ function LinhasAnaliseDialog({
           rows = rows.filter((d: any) => d.profissionais?.setor_id === freqBase.setor_id);
         }
 
-        return (data ?? []).map(d => ({
+        return rows.map(d => ({
           ...d,
           id: d.profissional_id, 
           status_linha: (d.status === "aprovada" || d.status === "rejeitada") ? d.status : "pendente",
