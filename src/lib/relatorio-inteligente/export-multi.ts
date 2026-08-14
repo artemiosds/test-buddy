@@ -85,7 +85,7 @@ export async function exportarPdfMulti(opts: {
       autoTable(doc, {
         startY: y + 2,
         head: [b.colunas.map((c) => c.header)],
-        body: b.linhas.map((r) => b.colunas.map((c) => cellStr(r[c.key]))),
+        body: b.linhas.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key))),
         styles: { fontSize: 7, cellPadding: 1.2 },
         headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [250, 246, 240] },
@@ -118,9 +118,16 @@ export async function exportarPdfMulti(opts: {
   });
 }
 
-function cellStr(v: unknown): string {
-  if (v == null) return "";
-  return typeof v === "number" ? v.toLocaleString("pt-BR") : String(v);
+function cellStr(v: unknown, fieldId?: string): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "number") {
+    const k = fieldId?.toLowerCase() || "";
+    if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto")) {
+      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    return v.toLocaleString("pt-BR");
+  }
+  return String(v);
 }
 
 function rodape(doc: jsPDF) {
@@ -164,7 +171,7 @@ function renderGruposPdf(doc: jsPDF, b: BlocoExport, startY: number): number {
         autoTable(doc, {
           startY: y + 2,
           head: [b.colunas.map((c) => c.header)],
-          body: n.rows.map((r) => b.colunas.map((c) => cellStr(r[c.key]))),
+          body: n.rows.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key))),
           foot: buildFootRow(b, n),
           styles: { fontSize: 7, cellPadding: 1.1 },
           headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
@@ -193,7 +200,7 @@ function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
         if (c === b.colunas[0]) return "Subtotal";
         return "";
       }
-      return s.soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      return cellStr(s.soma, c.key);
     }),
   ];
 }
