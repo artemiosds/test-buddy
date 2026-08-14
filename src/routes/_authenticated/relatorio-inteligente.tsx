@@ -864,7 +864,9 @@ function StepPrevia({
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase text-muted-foreground">Etapa 6 · Prévia</h2>
         <div className="flex items-center gap-2">
-          <Label htmlFor="resumido-toggle" className="text-xs cursor-pointer">Visão Resumida (Apenas Totais)</Label>
+          <Label htmlFor="resumido-toggle" className="text-xs cursor-pointer flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" /> Visão Resumida (Totais)
+          </Label>
           <Checkbox 
             id="resumido-toggle" 
             checked={resumido} 
