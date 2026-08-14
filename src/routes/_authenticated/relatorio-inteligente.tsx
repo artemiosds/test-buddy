@@ -1458,6 +1458,7 @@ function StepExportar({
   gerando,
   setGerando,
   nomeAtual,
+  isSalarial,
 }: {
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
