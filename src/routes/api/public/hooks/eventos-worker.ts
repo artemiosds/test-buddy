@@ -84,6 +84,41 @@ async function notificar(
     return;
   }
   await supa.from("notificacoes").insert(rows);
+  
+  // Disparo de E-mail Assíncrono para eventos críticos
+  // Nota: Importamos dinamicamente para manter o worker leve se não houver e-mails
+  if (input.prioridade === "urgente" || input.prioridade === "alta" || input.tipo === "aprovacao" || input.tipo === "pendencia") {
+    try {
+      const { sendEmail, generateEmailTemplate } = await import("@/lib/email.server");
+      
+      // Busca e-mails dos destinatários
+      const { data: users } = await supa
+        .from("profiles")
+        .select("email")
+        .in("id", ids)
+        .is("deleted_at", null);
+        
+      const emails = (users ?? []).map(u => u.email).filter(Boolean);
+      
+      if (emails.length > 0) {
+        const html = generateEmailTemplate({
+          title: input.titulo,
+          message: input.mensagem,
+          ctaLabel: "Abrir no Sistema",
+          ctaUrl: input.link ? `${process.env.APP_URL || 'https://hsm-gestao.lovable.app'}${input.link}` : undefined
+        });
+
+        await sendEmail({
+          to: emails as string[],
+          subject: `[HSM Gestão] ${input.titulo}`,
+          html
+        });
+      }
+    } catch (err) {
+      console.error("Falha ao disparar e-mail no worker:", err);
+      // Não falhamos o worker por erro de e-mail
+    }
+  }
 }
 
 async function loadPendencia(supa: Supa, id: string) {

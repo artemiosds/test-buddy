@@ -19,10 +19,13 @@ export async function sendEmail({
   text?: string;
 }) {
   const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 587);
+  const portStr = process.env.SMTP_PORT || process.env.VITE_SMTP_PORT;
   const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
   const pass = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD;
   const from = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user;
+
+  // Gmail especifico: Se for smtp.gmail.com, forçamos porta 587 se não definida
+  const port = Number(portStr || (host?.includes("gmail.com") ? 587 : 465));
 
   if (!host || !user || !pass) {
     const missing = [];
@@ -42,15 +45,18 @@ export async function sendEmail({
     };
   }
 
-
   const transporter = nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: port === 465, // SSL para 465, STARTTLS para 587
     auth: {
       user,
       pass,
     },
+    // Otimização para Gmail e servidores modernos
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 
   try {
@@ -66,7 +72,6 @@ export async function sendEmail({
     return { success: true, messageId: info.messageId };
   } catch (error) {
     logger.error("email.send.error", { error, to, subject });
-    // Não lançamos o erro para não quebrar a transação do banco, conforme especificação.
     return { success: false, error };
   }
 }
