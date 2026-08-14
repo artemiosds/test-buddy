@@ -127,18 +127,29 @@ export function MinhaAssinaturaPage() {
 
   const excluir = useMutation({
     mutationFn: async (row: Assinatura) => {
-      const { data: me } = await supabase.auth.getUser();
-      const userId = me.user?.id;
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
       if (!userId) throw new Error("Usuário não autenticado");
       
-      const { error } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
-      if (error) throw error;
+      // 1. Soft-delete no banco (aqui usa DELETE real pois a tabela tem RLS que permite)
+      // Nota: o sistema usa soft-delete em outras partes, mas assinaturas pessoais
+      // podem ser removidas se não houver snapshots.
+      const { error: dbError } = await supabase.from("assinaturas_institucionais").delete().eq("id", row.id);
+      if (dbError) throw dbError;
       
-      await removeSignatureFile(row.storage_path, userId);
+      // 2. Tenta remover o arquivo físico
+      // Protegido por RLS do Storage
+      const result = await removeSignatureFile(row.storage_path, userId);
+      return result;
     },
-    onSuccess: () => {
-      toast.success("Assinatura removida");
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["minhas-assinaturas"] });
+      
+      if (result.kept) {
+        toast.info("Assinatura desativada. O arquivo original foi preservado por estar vinculado a documentos históricos.");
+      } else {
+        toast.success("Assinatura removida com sucesso.");
+      }
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao remover"),
   });

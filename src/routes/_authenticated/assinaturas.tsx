@@ -435,16 +435,28 @@ function CadastroTab({
 
   const remove = useMutation({
     mutationFn: async (row: NonNullable<typeof rows>[number]) => {
-      const { error } = await supabase
+      // 1. Soft-delete no banco (sempre acontece para desativar a regra)
+      const { error: dbError } = await supabase
         .from("assinaturas_institucionais")
         .update({ deleted_at: new Date().toISOString(), deleted_by: me?.id, ativa: false })
         .eq("id", row.id);
-      if (error) throw error;
-      await removeSignatureFile(row.storage_path, me?.id);
+      if (dbError) throw dbError;
+      
+      // 2. Tenta remover o arquivo físico
+      // removeSignatureFile agora retorna status e é bloqueado pela RLS se em uso histórico.
+      const result = await removeSignatureFile(row.storage_path, me?.id);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["assinaturas-list"] });
-      toast.success("Assinatura removida");
+      
+      if (result.kept) {
+        toast.info("Assinatura desativada. O arquivo foi preservado por estar vinculado a documentos históricos.");
+      } else if (!result.success && result.error) {
+        toast.warning(`Assinatura desativada, mas o arquivo físico não pôde ser removido: ${result.error}`);
+      } else {
+        toast.success("Assinatura removida com sucesso.");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
