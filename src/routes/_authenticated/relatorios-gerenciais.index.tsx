@@ -89,7 +89,6 @@ function HubGerenciais() {
         <Link
           key={c.to}
           to={c.to}
-          from="/relatorios-gerenciais"
           className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-muted/50"
         >
           <div className="mb-2 flex items-center gap-2">

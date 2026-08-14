@@ -27,7 +27,7 @@ import {
   Filter,
   TrendingUp,
 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,10 +116,10 @@ type TipoRelatorio = keyof typeof PRESETS;
 /* ============================================================= */
 
 export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
-  const search: any = (Route as any).useSearch({
-    from: "/_authenticated/relatorio-inteligente",
-    shouldThrow: false
-  });
+  // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
+  // com a rota /relatorio-inteligente — o componente também é usado em
+  // /relatorios-gerenciais/salarios.
+  const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
   return (
     <PermissionGate permission="relatorio.visualizar">
@@ -139,11 +139,6 @@ export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) 
 
 function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
-  // Safe search access inside the Wizard that can be rendered from different routes
-  const search: any = (Route as any).useSearch({
-    from: "/_authenticated/relatorio-inteligente",
-    shouldThrow: false
-  });
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
