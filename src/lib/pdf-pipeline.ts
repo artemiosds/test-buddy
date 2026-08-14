@@ -268,12 +268,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       .select("id")
       .single();
 
-    
     if (newDoc) {
       documentoId = newDoc.id;
       // Injeta o ID nas assinaturas para o drawAssinaturasBlock desenhar o selo
       if (opts.assinaturas) {
-        opts.assinaturas.forEach((a: any) => { a.documento_id = documentoId; });
+        opts.assinaturas.forEach((a: any) => { (a as any).documento_id = documentoId; });
       }
     }
   } catch (err) {
@@ -289,16 +288,6 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       }
     }
     doc.save(finalFilename);
-  };
-
-    if (opts.onBlob) {
-      try {
-        await opts.onBlob(doc.output("blob"));
-      } catch {
-        /* best effort */
-      }
-    }
-    doc.save(filename);
   };
 
   let assinatura: AssinaturaResolvida | null = null;
@@ -362,7 +351,6 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     filename: finalFilename,
   });
 
-
   // Modal indisponível → posição padrão (nunca quebra o download)
   if (escolha === undefined) {
     desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
@@ -395,4 +383,3 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   // poderíamos fazer o upload do PDF aqui se desejado (onBlob já trata isso).
   await baixar();
 }
-
