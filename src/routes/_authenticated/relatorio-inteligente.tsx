@@ -1478,7 +1478,7 @@ function StepExportar({
   nomeAtual?: string;
   isSalarial?: boolean;
 }) {
-  const isSalarios = tipo === "rh" || mode === "salarios";
+  const isSalarios = tipo === "rh" || isSalarial;
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
   const ger = useGerencial();
 
