@@ -921,7 +921,12 @@ function StepPrevia({
         return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
       } catch (e) {
         console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
-        return { blockId: b.block.id, frases: [], destaques: [] };
+        return { 
+          blockId: b.block.id, 
+          titulo: b.block.label,
+          frases: [], 
+          destaques: [] 
+        };
       }
     }),
     [built],
@@ -1542,7 +1547,12 @@ function StepExportar({
         return parecerPorBloco(b.block, b.rawRows, b.cfg.fields);
       } catch (e) {
         console.error(`Erro ao gerar parecer para bloco ${b.block.id}:`, e);
-        return { blockId: b.block.id, frases: [], destaques: [] };
+        return { 
+          blockId: b.block.id, 
+          titulo: b.block.label,
+          frases: [], 
+          destaques: [] 
+        };
       }
     }),
     [built],
