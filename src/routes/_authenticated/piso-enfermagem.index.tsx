@@ -819,7 +819,7 @@ function PisoIndex() {
 
 
           <a
-            href="https://gemini.google.com/spark"
+            href="https://gemini.google.com/app"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-medium cursor-pointer transition-[background-color,transform,box-shadow] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
