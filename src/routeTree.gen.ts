@@ -53,6 +53,7 @@ import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './ro
 import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
+import { Route as ApiPublicValidarDocumentoRouteImport } from './routes/api/public/validar-documento'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -333,6 +334,12 @@ const AuthenticatedConfiguracaoIndexRoute =
     path: '/configuracao/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicValidarDocumentoRoute =
+  ApiPublicValidarDocumentoRouteImport.update({
+    id: '/api/public/validar-documento',
+    path: '/api/public/validar-documento',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -607,6 +614,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -686,6 +694,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -768,6 +777,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -850,6 +860,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/validar-documento'
     | '/configuracao/'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/validar-documento'
     | '/configuracao'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
@@ -1010,6 +1022,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/api/public/validar-documento'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
@@ -1030,6 +1043,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SmtpTestRoute: typeof SmtpTestRoute
   ValidarIdRoute: typeof ValidarIdRoute
+  ApiPublicValidarDocumentoRoute: typeof ApiPublicValidarDocumentoRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
@@ -1345,6 +1359,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/configuracao/'
       preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/validar-documento': {
+      id: '/api/public/validar-documento'
+      path: '/api/public/validar-documento'
+      fullPath: '/api/public/validar-documento'
+      preLoaderRoute: typeof ApiPublicValidarDocumentoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/usuarios/$id': {
       id: '/_authenticated/usuarios/$id'
@@ -1842,6 +1863,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SmtpTestRoute: SmtpTestRoute,
   ValidarIdRoute: ValidarIdRoute,
+  ApiPublicValidarDocumentoRoute: ApiPublicValidarDocumentoRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
