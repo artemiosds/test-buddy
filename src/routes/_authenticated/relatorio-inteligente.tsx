@@ -105,9 +105,6 @@ export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({
 });
 
 function RelatorioInteligenteWrapper() {
-  // Use useSearch hook from @tanstack/react-router directly instead of Route.useSearch()
-  // to avoid issues when the route might not be the exact active match in the context
-  // of sub-components or nested layouts.
   const search = Route.useSearch();
   return <RelatorioInteligentePage mode={search?.mode} />;
 }
