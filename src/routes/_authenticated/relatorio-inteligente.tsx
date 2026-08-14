@@ -114,7 +114,9 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 /* ============================================================= */
 
-export function RelatorioInteligentePage({ mode }: { mode?: string }) {
+export function RelatorioInteligentePage({ mode: modeProp }: { mode?: string }) {
+  const search = Route.useSearch();
+  const mode = modeProp || search.mode;
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
