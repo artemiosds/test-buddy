@@ -275,6 +275,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             gerando={gerando}
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
+            isSalarial={isSalarios}
           />
         )}
       </div>
@@ -1474,8 +1475,9 @@ function StepExportar({
   gerando: boolean;
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
+  isSalarial?: boolean;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
