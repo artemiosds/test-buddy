@@ -133,7 +133,8 @@ export function RelatorioInteligentePage({ mode }: { mode?: string }) {
 
 function Wizard({ mode }: { mode?: string }) {
   const navigate = useNavigate();
-  const search = Route.useSearch();
+  // Safe search access inside the Wizard that can be rendered from different routes
+  const search = (Route.useSearch() || {}) as any;
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
