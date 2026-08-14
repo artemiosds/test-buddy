@@ -774,9 +774,9 @@ function useBuiltBlocks(
           
           // Filtros de faixa salarial
           const filterRange = (val: any, range: { min: string; max: string }) => {
-            const numVal = Number(val || 0);
-            const min = range.min ? Number(range.min) : -Infinity;
-            const max = range.max ? Number(range.max) : Infinity;
+            const numVal = typeof val === 'number' ? val : parseFloat(String(val || 0).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+            const min = range.min ? parseFloat(range.min.replace(',', '.')) : -Infinity;
+            const max = range.max ? parseFloat(range.max.replace(',', '.')) : Infinity;
             return numVal >= min && numVal <= max;
           };
 
@@ -784,10 +784,10 @@ function useBuiltBlocks(
             rows = rows.filter(r => filterRange(r.salario_base, filtrosAvancados.faixaBase));
           }
           if (filtrosAvancados.faixaBruto.min || filtrosAvancados.faixaBruto.max) {
-            rows = rows.filter(r => filterRange(r.salario_bruto, filtrosAvancados.faixaBruto));
+            rows = rows.filter(r => filterRange(r.salario_bruto || r.valor_bruto || r.remuneracao_bruta, filtrosAvancados.faixaBruto));
           }
           if (filtrosAvancados.faixaLiquido.min || filtrosAvancados.faixaLiquido.max) {
-            rows = rows.filter(r => filterRange(r.salario_liquido, filtrosAvancados.faixaLiquido));
+            rows = rows.filter(r => filterRange(r.salario_liquido || r.valor_liquido || r.remuneracao_liquida, filtrosAvancados.faixaLiquido));
           }
         }
         rows = applySort(rows, cfg.sort);
