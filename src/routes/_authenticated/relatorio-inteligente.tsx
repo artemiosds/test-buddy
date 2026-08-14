@@ -722,7 +722,15 @@ function StepOrdenacao({
 function useBuiltBlocks(
   blocks: BlockConfig[], 
   textFilter: string,
-  filtrosAvancados?: { unidades: string[]; cargos: string[]; vinculos: string[] }
+  filtrosAvancados?: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  }
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
