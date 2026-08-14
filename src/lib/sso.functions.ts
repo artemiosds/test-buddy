@@ -301,12 +301,10 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       throw new Error("Sistema em manutenção: SSO temporariamente indisponível.");
     }
 
-    if (!sistema.issuer) {
-      throw new Error(`Configuração inválida: Issuer não definido para o sistema ${sistema.nome}`);
-    }
-
-    if (!sistema.audience) {
-      throw new Error(`Configuração inválida: Audience não definida para o sistema ${sistema.nome}`);
+    // Issuer e Audience são obrigatórios para a assinatura do token
+    if (!sistema.issuer || !sistema.audience) {
+      console.error(`[SSO][${correlationId}] Configuração incompleta para o sistema ${sistema.nome}:`, { issuer: sistema.issuer, audience: sistema.audience });
+      throw new Error(`Configuração incompleta: Preencha os campos 'Issuer' e 'Audience' na aba 'Segurança/SSO' para o sistema ${sistema.nome}.`);
     }
 
     // 3. Buscar contexto do usuário via RPC (que retorna um JSONB direto)
