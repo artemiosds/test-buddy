@@ -1477,7 +1477,9 @@ function StepExportar({
   nomeAtual?: string;
   isSalarial?: boolean;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
+  const isSalarios = tipo === "rh" || mode === "salarios";
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
+  const ger = useGerencial();
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);
