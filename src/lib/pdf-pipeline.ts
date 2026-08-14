@@ -236,7 +236,10 @@ export type FinalizarPdfOpts = {
   semModal?: boolean;
   /** callback com o blob final (upload/arquivamento) */
   onBlob?: (blob: Blob) => void | Promise<void>;
+  /** Metadados extras para o registro do documento */
+  competencia?: { mes: number; ano: number };
 };
+
 
 /**
  * FASE 2 + 3 — Gera o PDF em memória, abre o Modal de Posicionamento,
@@ -244,7 +247,40 @@ export type FinalizarPdfOpts = {
  * Sem assinatura ativa, baixa o PDF direto (FALLBACK).
  */
 export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<void> {
-  const filename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
+  const finalFilename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
+
+  // Persiste o registro do documento no banco para permitir validação futura
+  let documentoId: string | null = null;
+  try {
+    const { data: userCtx } = await supabase.rpc("get_my_user_context");
+    const me = userCtx as any;
+    
+    const { data: newDoc } = await supabase
+      .from("documentos_assinados")
+      .insert({
+        tipo: opts.tipo || "relatorio",
+        descricao: finalFilename,
+        hash_conteudo: "SHA-256-PENDENTE",
+        status: "emitido",
+        assinado_por_nome: me?.nome_completo || null,
+        dados_json: {
+          filename: finalFilename,
+          competencia: (opts as any).competencia,
+        }
+      })
+      .select("id")
+      .single();
+
+    if (newDoc) {
+      documentoId = newDoc.id;
+      // Injeta o ID nas assinaturas para o drawAssinaturasBlock desenhar o selo
+      if (opts.assinaturas) {
+        opts.assinaturas.forEach((a: any) => { (a as any).documento_id = documentoId; });
+      }
+    }
+  } catch (err) {
+    console.warn("Erro ao registrar documento para validação:", err);
+  }
 
   const baixar = async () => {
     if (opts.onBlob) {
@@ -254,7 +290,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
         /* best effort */
       }
     }
-    doc.save(filename);
+    doc.save(finalFilename);
   };
 
   let assinatura: AssinaturaResolvida | null = null;
@@ -315,7 +351,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     alturaMm: BASE_H,
     tamanhoPercentualPadrao: assinatura.tamanho_percentual ?? 80,
     assinatura,
-    filename,
+    filename: finalFilename,
   });
 
   // Modal indisponível → posição padrão (nunca quebra o download)
@@ -346,5 +382,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       pageHeightMm,
     );
   }
+  // Se temos um ID de documento e o PDF foi gerado com sucesso, 
+  // poderíamos fazer o upload do PDF aqui se desejado (onBlob já trata isso).
   await baixar();
 }

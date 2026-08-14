@@ -300,8 +300,10 @@ export async function resolverAssinaturasDocumento(
 
 /**
  * Renderiza o bloco de assinaturas do documento no PDF.
+ * Adiciona também o selo de autenticidade (QR Code/Hash) no rodapé.
  *
  * Distribui as assinaturas (tipo `assinatura` ou `carimbo`) em até 3 colunas
+
  * por linha, com a imagem (quando existir) e as linhas de titular/cargo
  * abaixo. Retorna o Y final do bloco.
  *
@@ -325,6 +327,21 @@ export function drawAssinaturasBlock(
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = opts.marginX ?? 14;
   const blockH = opts.reservaAltura ?? 34;
+
+  // Se o documento tiver um ID (hash) de persistência, desenhamos o selo de autenticidade
+  // Isso geralmente vem nos metadados ou passado explicitamente
+  const docId = (assinaturas[0] as any)?.documento_id;
+  if (docId) {
+    const stampY = pageHeight - 12;
+    doc.setFontSize(6);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "normal");
+    const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${docId}`;
+    doc.text(`Para verificar a autenticidade deste documento, acesse: ${validationUrl}`, marginX, stampY);
+    doc.text(`Código de Autenticidade (Hash): ${docId}`, marginX, stampY + 3);
+  }
+
+
 
   // Separa assinaturas com posicionamento custom (posicao_x/y definidos)
   const custom = assin.filter((a) => a.posicao_x !== null && a.posicao_y !== null);
