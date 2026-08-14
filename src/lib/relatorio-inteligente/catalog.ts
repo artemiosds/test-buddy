@@ -391,9 +391,11 @@ export const CATALOG: BlockDef[] = [
     label: "Dados Salariais",
     categoria: "Cadastros",
     descricao: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
+    icone: "Coins",
     fields: [
       { id: "nome_completo", label: "Nome", default: true, groupable: true },
       { id: "matricula", label: "Matrícula", default: true },
+      { id: "cpf", label: "CPF", default: true },
       { id: "cargo", label: "Cargo", default: true, groupable: true },
       { id: "unidade", label: "Unidade", default: true, groupable: true },
       { id: "setor", label: "Setor", default: true, groupable: true },
@@ -407,7 +409,17 @@ export const CATALOG: BlockDef[] = [
       { id: "vencimento_liquido", label: "Venc. Líquido", default: true, tipo: "number" },
       { id: "status", label: "Situação", groupable: true },
     ],
-    build: ({ profissionais }) => profissionais ?? [],
+    graficos: ["barra", "pizza"],
+    build: ({ profissionais }) => (profissionais ?? []).map(p => ({
+      ...p,
+      salario_base: Number(p.salario_base || 0),
+      salario_bruto: Number(p.salario_bruto || 0),
+      salario_liquido: Number(p.salario_liquido || 0),
+      horas_extras: Number(p.horas_extras || 0),
+      adicional_noturno: Number(p.adicional_noturno || 0),
+      gratificacao_incentivo: Number(p.gratificacao_incentivo || 0),
+      vencimento_liquido: Number(p.vencimento_liquido || 0),
+    })),
   },
 ];
 

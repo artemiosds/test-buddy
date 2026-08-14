@@ -678,22 +678,43 @@ function useBuiltBlocks(
         let rows: Row[] = b.build({ aggregate: ger.data, profissionais: prof.data });
         if (textFilter.trim()) {
           const q = textFilter.toLowerCase();
-            rows = rows.filter((r) =>
-              Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
-            );
-          }
+          rows = rows.filter((r) =>
+            Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
+          );
+        }
 
-          if (filtrosAvancados) {
-            if (filtrosAvancados.unidades.length > 0) {
-              rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
-            }
-            if (filtrosAvancados.cargos.length > 0) {
-              rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
-            }
-            if (filtrosAvancados.vinculos.length > 0) {
-              rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
-            }
+        if (filtrosAvancados) {
+          if (filtrosAvancados.unidades.length > 0) {
+            rows = rows.filter(r => r.unidade && filtrosAvancados.unidades.includes(String(r.unidade)));
           }
+          if (filtrosAvancados.cargos.length > 0) {
+            rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
+          }
+          if (filtrosAvancados.vinculos.length > 0) {
+            rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
+          }
+          if (filtrosAvancados.status.length > 0) {
+            rows = rows.filter(r => r.status && filtrosAvancados.status.includes(String(r.status)));
+          }
+          
+          // Filtros de faixa salarial
+          const filterRange = (val: any, range: { min: string; max: string }) => {
+            const numVal = Number(val || 0);
+            const min = range.min ? Number(range.min) : -Infinity;
+            const max = range.max ? Number(range.max) : Infinity;
+            return numVal >= min && numVal <= max;
+          };
+
+          if (filtrosAvancados.faixaBase.min || filtrosAvancados.faixaBase.max) {
+            rows = rows.filter(r => filterRange(r.salario_base, filtrosAvancados.faixaBase));
+          }
+          if (filtrosAvancados.faixaBruto.min || filtrosAvancados.faixaBruto.max) {
+            rows = rows.filter(r => filterRange(r.salario_bruto, filtrosAvancados.faixaBruto));
+          }
+          if (filtrosAvancados.faixaLiquido.min || filtrosAvancados.faixaLiquido.max) {
+            rows = rows.filter(r => filterRange(r.salario_liquido, filtrosAvancados.faixaLiquido));
+          }
+        }
         rows = applySort(rows, cfg.sort);
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
@@ -720,7 +741,16 @@ function StepPrevia({
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
-  filtrosAvancados: { unidades: string[]; cargos: string[]; vinculos: string[] };
+  filtrosAvancados: { 
+    unidades: string[]; 
+    cargos: string[]; 
+    vinculos: string[]; 
+    status: string[];
+    faixaBase: { min: string; max: string };
+    faixaBruto: { min: string; max: string };
+    faixaLiquido: { min: string; max: string };
+  };
+  isSalarial?: boolean;
 }) {
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
   const ger = useGerencial();
