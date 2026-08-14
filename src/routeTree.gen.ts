@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SmtpTestRouteImport } from './routes/smtp-test'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -87,6 +88,11 @@ import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/pu
 import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
+const SmtpTestRoute = SmtpTestRouteImport.update({
+  id: '/smtp-test',
+  path: '/smtp-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -530,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/smtp-test': typeof SmtpTestRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -608,6 +615,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/smtp-test': typeof SmtpTestRoute
   '/analitico': typeof AuthenticatedAnaliticoRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -687,6 +695,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/smtp-test': typeof SmtpTestRoute
   '/_authenticated/analitico': typeof AuthenticatedAnaliticoRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/assinar-pdf': typeof AuthenticatedAssinarPdfRoute
@@ -767,6 +776,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/smtp-test'
     | '/analitico'
     | '/aprovacoes'
     | '/assinar-pdf'
@@ -845,6 +855,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/smtp-test'
     | '/analitico'
     | '/aprovacoes'
     | '/assinar-pdf'
@@ -923,6 +934,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/reset-password'
+    | '/smtp-test'
     | '/_authenticated/analitico'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/assinar-pdf'
@@ -1003,6 +1015,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SmtpTestRoute: typeof SmtpTestRoute
   ValidarIdRoute: typeof ValidarIdRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
@@ -1012,6 +1025,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/smtp-test': {
+      id: '/smtp-test'
+      path: '/smtp-test'
+      fullPath: '/smtp-test'
+      preLoaderRoute: typeof SmtpTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1797,6 +1817,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SmtpTestRoute: SmtpTestRoute,
   ValidarIdRoute: ValidarIdRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
