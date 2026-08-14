@@ -33,7 +33,7 @@ import {
   Wrench,
   HeartPulse,
   BadgeCheck,
-  
+  Sparkles,
   History,
   ShieldCheck,
   FileSpreadsheet,
@@ -816,6 +816,22 @@ function PisoIndex() {
               </Link>
             </Button>
           </PermissionGate>
+
+
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            aria-label="Abrir chat de IA em nova aba"
+          >
+            <a
+              href="https://gemini.google.com/spark/chat/efafafc04fd74247?utm_source=app_launcher&utm_medium=owned&utm_campaign=base_all"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Sparkles className="mr-2 h-4 w-4" /> Chat IA
+            </a>
+          </Button>
 
           <Select value={modeloSel} onValueChange={setModeloSel}>
             <SelectTrigger className="h-9 w-[230px]">
