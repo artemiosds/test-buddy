@@ -117,6 +117,7 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
   const initialFilters = filtersProp || search?.filtrosAvancados;
+
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -138,8 +139,12 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1);
-  const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido || isSalarios ? "rh" : "executivo");
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(
+    isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1
+  );
+  const [tipo, setTipo] = useState<TipoRelatorio>(
+    isSalarialRapido || isSalarios ? "rh" : "executivo"
+  );
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
     return [
@@ -270,6 +275,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             gerando={gerando}
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
+            isSalarial={isSalarios}
           />
         )}
       </div>
@@ -760,7 +766,8 @@ function useBuiltBlocks(
     faixaBase: { min: string; max: string };
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
-  }
+  },
+  isSalarios?: boolean
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
@@ -794,9 +801,19 @@ function useBuiltBlocks(
           
           // Filtros de faixa salarial
           const filterRange = (val: any, range: { min: string; max: string }) => {
-            const numVal = typeof val === 'number' ? val : parseFloat(String(val || 0).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-            const min = range.min ? parseFloat(range.min.replace(',', '.')) : -Infinity;
-            const max = range.max ? parseFloat(range.max.replace(',', '.')) : Infinity;
+            if (!range.min && !range.max) return true;
+            
+            const parseMoney = (s: string) => {
+              if (!s) return null;
+              // Remove R$, pontos de milhar e troca vírgula por ponto
+              const clean = s.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+              return parseFloat(clean);
+            };
+
+            const numVal = typeof val === 'number' ? val : (parseMoney(String(val || "0")) || 0);
+            const min = range.min ? (parseMoney(range.min) ?? -Infinity) : -Infinity;
+            const max = range.max ? (parseMoney(range.max) ?? Infinity) : Infinity;
+            
             return numVal >= min && numVal <= max;
           };
 
@@ -811,6 +828,12 @@ function useBuiltBlocks(
           }
         }
         rows = applySort(rows, cfg.sort);
+        
+        // Se estiver em modo salarial, garante que a ordenação padrão seja pelo nome se nada estiver definido
+        if (isSalarios && !cfg.sort) {
+          rows = applySort(rows, { fieldId: "nome_completo", dir: "asc" });
+        }
+        
         const projected = projectFields(rows, cfg.fields);
         const numFieldsIds = cfg.fields.filter(
           (id) => b.fields.find((f) => f.id === id)?.tipo === "number",
@@ -825,14 +848,15 @@ function useBuiltBlocks(
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarios]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
 function StepPrevia({ 
   blocks, 
   textFilter,
-  filtrosAvancados
+  filtrosAvancados,
+  isSalarial
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
@@ -847,7 +871,7 @@ function StepPrevia({
   };
   isSalarial?: boolean;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
   const ger = useGerencial();
   const indice: IndiceAutomatico | null = useMemo(() => {
     if (!ger.data || !built.length) return null;
@@ -1434,6 +1458,7 @@ function StepExportar({
   gerando,
   setGerando,
   nomeAtual,
+  isSalarial,
 }: {
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
@@ -1452,8 +1477,10 @@ function StepExportar({
   gerando: boolean;
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
+  isSalarial?: boolean;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados);
+  const isSalarios = tipo === "rh" || isSalarial;
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
   const ger = useGerencial();
 
   const parecer = useMemo(() => (ger.data ? ger.data.resumoExecutivo : []), [ger.data]);

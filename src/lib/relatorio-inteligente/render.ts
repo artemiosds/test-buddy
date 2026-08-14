@@ -28,7 +28,7 @@ export function projectFields(rows: Row[], fieldIds: string[]): Row[] {
 export function fmtCell(v: unknown, fieldId?: string): string {
   if (v == null || v === "") return "—";
   if (typeof v === "number") {
-    // Se for um campo de salário/valor, formata como R$
+    // Se for um campo de salário/valor ou se o valor for alto o suficiente para ser monetário
     const salariais = [
       "salario_base",
       "salario_bruto",
@@ -37,9 +37,16 @@ export function fmtCell(v: unknown, fieldId?: string): string {
       "adicional_noturno",
       "gratificacao_incentivo",
       "vencimento_liquido",
+      "valor_piso",
+      "valor_bruto",
+      "valor_liquido",
     ];
-    if (fieldId && salariais.includes(fieldId)) {
+    if (fieldId && (salariais.includes(fieldId) || fieldId.includes("salario") || fieldId.includes("valor"))) {
       return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    // Para valores grandes que não estão na lista mas parecem monetários (heurística)
+    if (v > 100) {
+       return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
     return v.toLocaleString("pt-BR");
   }

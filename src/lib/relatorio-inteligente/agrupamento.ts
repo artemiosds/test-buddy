@@ -25,8 +25,6 @@ function normalizeLabel(v: unknown): string {
   const s = String(v).trim();
   
   // Normalização agressiva de cargos para evitar fragmentação
-  // ENFERMEIRO(A), Enfermeiro, Enfermeira -> Enfermeiro
-  // AUX. SERV.GERAIS(I), Auxiliar de Serviços Gerais -> Auxiliar de Serviços Gerais
   const upper = s.toUpperCase();
   if (upper.includes("ENFERMEIR")) return "Enfermeiro(a)";
   if (upper.includes("AUX") && upper.includes("GERAIS")) return "Auxiliar de Serviços Gerais";
@@ -40,6 +38,12 @@ function normalizeLabel(v: unknown): string {
   if (upper.includes("OPERACIONAL")) return "Apoio Operacional";
   if (upper.includes("SERVICO") && upper.includes("GERAL")) return "Serviços Gerais";
   if (upper.includes("VIGIA")) return "Vigia";
+  if (upper.includes("PSICOLOG")) return "Psicólogo(a)";
+  if (upper.includes("ODONTOLOG") || upper.includes("DENTISTA")) return "Odontólogo(a)";
+  if (upper.includes("FISIOTERAP")) return "Fisioterapeuta";
+  if (upper.includes("ASSISTENTE SOCIAL")) return "Assistente Social";
+  if (upper.includes("COZINHEIR") || upper.includes("MERENDEIR")) return "Cozinheiro(a) / Merendeiro(a)";
+  if (upper.includes("ZELADOR") || upper.includes("LIMPEZA")) return "Zelador(a) / Limpeza";
   
   return s;
 }

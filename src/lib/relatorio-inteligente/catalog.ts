@@ -410,16 +410,23 @@ export const CATALOG: BlockDef[] = [
       { id: "status", label: "Situação", groupable: true },
     ],
     graficos: ["barra", "pizza"],
-    build: ({ profissionais }) => (profissionais ?? []).map(p => ({
-      ...p,
-      salario_base: Number(p.salario_base || 0),
-      salario_bruto: Number(p.salario_bruto || 0),
-      salario_liquido: Number(p.salario_liquido || 0),
-      horas_extras: Number(p.horas_extras || 0),
-      adicional_noturno: Number(p.adicional_noturno || 0),
-      gratificacao_incentivo: Number(p.gratificacao_incentivo || 0),
-      vencimento_liquido: Number(p.vencimento_liquido || 0),
-    })),
+    build: ({ profissionais }) => (profissionais ?? []).map(p => {
+      // Normalização: salario_base e valor_piso são a mesma coisa para o gestor
+      const base = Number(p.salario_base || p.valor_piso || 0);
+      const bruto = Number(p.salario_bruto || p.valor_bruto || p.remuneracao_bruta || 0);
+      const liquido = Number(p.salario_liquido || p.valor_liquido || p.remuneracao_liquida || 0);
+      
+      return {
+        ...p,
+        salario_base: isNaN(base) ? 0 : base,
+        salario_bruto: isNaN(bruto) ? 0 : bruto,
+        salario_liquido: isNaN(liquido) ? 0 : liquido,
+        horas_extras: Number(p.horas_extras || 0),
+        adicional_noturno: Number(p.adicional_noturno || 0),
+        gratificacao_incentivo: Number(p.gratificacao_incentivo || 0),
+        vencimento_liquido: Number(p.vencimento_liquido || 0),
+      };
+    }),
   },
 ];
 
