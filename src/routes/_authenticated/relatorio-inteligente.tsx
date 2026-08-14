@@ -116,7 +116,9 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
   // com a rota /relatorio-inteligente.
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
-  const initialFilters = filtersProp || search?.filtrosAvancados;
+  const initialFilters = useMemo(() => {
+    return filtersProp || search?.filtrosAvancados;
+  }, [filtersProp, search?.filtrosAvancados]);
 
   return (
     <PermissionGate permission="relatorio.visualizar">
@@ -180,7 +182,8 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
 
   const [blocks, setBlocks] = useState<BlockConfig[]>(() => {
     if (isSalarialRapido || isSalarios) return salarialBlocks;
-    return PRESETS.executivo.map(defaultBlockCfg).filter(Boolean) as BlockConfig[];
+    const p = PRESETS[tipo] || PRESETS.executivo;
+    return p.map(defaultBlockCfg).filter(Boolean) as BlockConfig[];
   });
 
   const [textFilter, setTextFilter] = useState("");
@@ -201,6 +204,23 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
     faixaBruto: initialFilters?.faixaBruto ?? { min: "", max: "" }, 
     faixaLiquido: initialFilters?.faixaLiquido ?? { min: "", max: "" } 
   });
+
+  // Efeito para sincronizar filtros iniciais vindos da URL
+  useEffect(() => {
+    if (initialFilters) {
+      setFiltrosAvancados(prev => ({
+        ...prev,
+        ...initialFilters
+      }));
+    }
+  }, [initialFilters]);
+
+  // Efeito para sincronizar blocos salariais
+  useEffect(() => {
+    if (isSalarios || isSalarialRapido) {
+      setBlocks(salarialBlocks);
+    }
+  }, [isSalarios, isSalarialRapido, salarialBlocks]);
   const [formato, setFormato] = useState<Formato>("pdf");
   const [gerando, setGerando] = useState(false);
   const [modeloAtualId, setModeloAtualId] = useState<string | null>(null);
@@ -263,7 +283,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
         )}
         {step === 4 && <StepOrdenacao blocks={blocks} update={updateBlock} />}
         {step === 5 && <StepGruposGraficos blocks={blocks} update={updateBlock} />}
-        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} />}
+        {step === 6 && <StepPrevia blocks={blocks} textFilter={textFilter} filtrosAvancados={filtrosAvancados} isSalarial={isSalarios} mode={mode} />}
         {step === 7 && (
           <StepExportar
             tipo={tipo}
@@ -276,6 +296,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
             setGerando={setGerando}
             nomeAtual={modeloAtualNome}
             isSalarial={isSalarios}
+            mode={mode}
           />
         )}
       </div>
@@ -767,7 +788,7 @@ function useBuiltBlocks(
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
   },
-  isSalarios?: boolean
+  isSalarial?: boolean
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
@@ -777,7 +798,13 @@ function useBuiltBlocks(
       .map((cfg) => {
         const b = findBlock(cfg.blockId);
         if (!b) return null;
-        let rows: Row[] = b.build({ aggregate: ger.data, profissionais: prof.data });
+        let rows: Row[] = [];
+        try {
+          rows = b.build({ aggregate: ger.data, profissionais: prof.data });
+        } catch (e) {
+          console.error(`Erro ao buildar bloco ${cfg.blockId}:`, e);
+          rows = [];
+        }
         if (textFilter.trim()) {
           const q = textFilter.toLowerCase();
           rows = rows.filter((r) =>
@@ -830,7 +857,7 @@ function useBuiltBlocks(
         rows = applySort(rows, cfg.sort);
         
         // Se estiver em modo salarial, garante que a ordenação padrão seja pelo nome se nada estiver definido
-        if (isSalarios && !cfg.sort) {
+        if (isSalarial && !cfg.sort) {
           rows = applySort(rows, { fieldId: "nome_completo", dir: "asc" });
         }
         
@@ -838,7 +865,12 @@ function useBuiltBlocks(
         const numFieldsIds = cfg.fields.filter(
           (id) => b.fields.find((f) => f.id === id)?.tipo === "number",
         );
-        const grupos = cfg.groupBy?.length ? agrupar(projected, cfg.groupBy, numFieldsIds) : null;
+        let grupos = null;
+        try {
+          grupos = cfg.groupBy?.length ? agrupar(projected, cfg.groupBy, numFieldsIds) : null;
+        } catch (e) {
+          console.error(`Erro ao agrupar bloco ${cfg.blockId}:`, e);
+        }
         return { cfg, block: b, rows: projected, rawRows: rows, grupos };
       })
       .filter(Boolean) as Array<{
@@ -848,7 +880,7 @@ function useBuiltBlocks(
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarios]);
+  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarial]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 
@@ -856,7 +888,8 @@ function StepPrevia({
   blocks, 
   textFilter,
   filtrosAvancados,
-  isSalarial
+  isSalarial,
+  mode
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
@@ -870,8 +903,9 @@ function StepPrevia({
     faixaLiquido: { min: string; max: string };
   };
   isSalarial?: boolean;
+  mode?: string;
 }) {
-  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial);
+  const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarial || mode === "salarial_rapido");
   const ger = useGerencial();
   const indice: IndiceAutomatico | null = useMemo(() => {
     if (!ger.data || !built.length) return null;
@@ -1459,6 +1493,7 @@ function StepExportar({
   setGerando,
   nomeAtual,
   isSalarial,
+  mode
 }: {
   tipo: TipoRelatorio;
   blocks: BlockConfig[];
@@ -1478,8 +1513,9 @@ function StepExportar({
   setGerando: (b: boolean) => void;
   nomeAtual?: string;
   isSalarial?: boolean;
+  mode?: string;
 }) {
-  const isSalarios = tipo === "rh" || isSalarial;
+  const isSalarios = tipo === "rh" || isSalarial || mode === "salarial_rapido";
   const { built, loading, error } = useBuiltBlocks(blocks, textFilter, filtrosAvancados, isSalarios);
   const ger = useGerencial();
 

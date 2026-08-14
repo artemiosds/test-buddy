@@ -158,7 +158,16 @@ export async function exportarPdfAbnt(opts: {
       body: b.linhas.map((r) =>
         b.colunas.map((c) => {
           const v = r[c.key];
-          return v == null ? "" : typeof v === "number" ? v.toLocaleString("pt-BR") : String(v);
+          if (v == null || v === "") return "";
+          if (typeof v === "number") {
+             // Formatação BRL para campos salariais no PDF
+             const k = c.key.toLowerCase();
+             if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto")) {
+               return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+             }
+             return v.toLocaleString("pt-BR");
+          }
+          return String(v);
         }),
       ),
       styles: { font: "times", fontSize: 10, cellPadding: 1.5 },
