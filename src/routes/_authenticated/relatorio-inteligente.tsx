@@ -855,7 +855,8 @@ function useBuiltBlocks(
 function StepPrevia({ 
   blocks, 
   textFilter,
-  filtrosAvancados
+  filtrosAvancados,
+  isSalarial
 }: { 
   blocks: BlockConfig[]; 
   textFilter: string;
