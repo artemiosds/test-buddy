@@ -202,11 +202,13 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     const allRows: Record<string, unknown>[] = [];
 
+    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
+
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
-      if (ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
+      if (!isMaster && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
