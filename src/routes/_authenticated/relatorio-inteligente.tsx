@@ -116,6 +116,7 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters }: { m
   // /relatorios-gerenciais/salarios.
   const search: any = useSearch({ strict: false });
   const mode = modeProp || search?.mode;
+  const initialFilters = search?.filtrosAvancados;
   return (
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
@@ -137,7 +138,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
   const isSalarialRapido = mode === "salarial_rapido";
   const isSalarios = mode === "salarios";
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios ? 6 : 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(isSalarialRapido || isSalarios || mode === "preset" ? 6 : 1);
   const [tipo, setTipo] = useState<TipoRelatorio>(isSalarialRapido || isSalarios ? "rh" : "executivo");
 
   const salarialBlocks: BlockConfig[] = useMemo(() => {
