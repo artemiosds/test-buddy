@@ -690,7 +690,7 @@ function LinhasAnaliseDialog({
     queryFn: async () => {
       if (freqBase?.tipo === "contratados") {
         const cu = freqBase.competencia_unidades as any;
-        const { data, error } = await supabase
+        let q = supabase
           .from("frequencias_contratados")
           .select(
             "id:profissional_id, profissional_id, status:status, observacoes, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, profissionais:profissional_id(nome_completo, matricula)",
@@ -698,6 +698,12 @@ function LinhasAnaliseDialog({
           .eq("competencia_id", cu.competencia_id)
           .eq("unidade_id", cu.unidade_id)
           .is("deleted_at", null);
+        
+        if (freqBase.setor_id) {
+          q = q.eq("setor_id", freqBase.setor_id);
+        }
+
+        const { data, error } = await q;
         
         if (error) throw error;
         return (data ?? []).map(d => ({
