@@ -70,6 +70,12 @@ const CARDS: Card[] = [
     desc: "Quem alterou cadastro, unidade, setor, cargo, função, usuário, importou/recalculou piso, excluiu.",
     icon: ShieldCheck,
   },
+  {
+    to: "/relatorios-gerenciais/salarios",
+    title: "Dados Salariais",
+    desc: "Salário base, bruto, líquido e demais rubricas cadastrais por profissional.",
+    icon: Coins,
+  },
 ];
 
 function HubGerenciais() {

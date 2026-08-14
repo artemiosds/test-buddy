@@ -94,7 +94,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Star, StarOff, Save, FolderOpen, History, Trash2, Upload, FileDown } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ errorComponent: ErrorComponent,
+import { z } from "zod";
+
+export const Route = createFileRoute("/_authenticated/relatorio-inteligente")({ 
+  errorComponent: ErrorComponent,
+  validateSearch: (search) => z.object({
+    mode: z.string().optional(),
+  }).parse(search),
   component: RelatorioInteligenteWrapper,
 });
 
