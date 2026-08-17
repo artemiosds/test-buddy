@@ -9,6 +9,8 @@ import { testarConfiguracaoSSO, gerarTokenSSO } from "@/lib/sso.functions";
 import { removerSistema, duplicarSistema } from "@/lib/sistemas-externos-admin.functions";
 import { toast } from "sonner";
 import { SistemaExternoDialog } from "./SistemaExternoDialog";
+import { verificarPermissaoMaster } from "@/lib/sistemas-externos-admin.functions";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 import {
   DropdownMenu,
@@ -30,6 +32,8 @@ export function SistemasExternosGrid() {
   const [selectedSistema, setSelectedSistema] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { data: userContext } = useCurrentUser();
+  const isMaster = userContext?.is_master;
 
   const { data: sistemas, isLoading } = useQuery({
     queryKey: ["sistemas-externos"],
@@ -209,22 +213,31 @@ export function SistemasExternosGrid() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(sistema)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(sistema.id)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(sistema.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {isMaster && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleEdit(sistema)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(sistema.id)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Duplicar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDelete(sistema.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {!isMaster && (
+                          <DropdownMenuItem disabled>
+                            Somente Administradores Master podem editar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
