@@ -8,6 +8,8 @@ import { SistemaExternoDialog } from "@/components/sistemas-externos/SistemaExte
 import { GeradorChavesSSO } from "@/components/sistemas-externos/GeradorChavesSSO";
 import { AuditSSOView } from "@/components/sistemas-externos/AuditSSOView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 
 export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({ errorComponent: ErrorComponent,
@@ -16,9 +18,11 @@ export const Route = createFileRoute("/_authenticated/administracao/sistemas-ext
 
 function SistemasExternosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const form = useForm();
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <Form {...form}>
+      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -63,6 +67,7 @@ function SistemasExternosPage() {
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
       />
-    </div>
+      </div>
+    </Form>
   );
 }
