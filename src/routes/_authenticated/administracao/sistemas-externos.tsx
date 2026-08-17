@@ -12,8 +12,8 @@ import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/use-session";
 import { verificarPermissaoMaster } from "@/lib/sistemas-externos-admin.functions";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 
 export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({ errorComponent: ErrorComponent,

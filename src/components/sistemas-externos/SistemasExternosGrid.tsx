@@ -9,8 +9,8 @@ import { testarConfiguracaoSSO, gerarTokenSSO } from "@/lib/sso.functions";
 import { removerSistema, duplicarSistema } from "@/lib/sistemas-externos-admin.functions";
 import { toast } from "sonner";
 import { SistemaExternoDialog } from "./SistemaExternoDialog";
-import { useSession } from "@/hooks/use-session";
 import { verificarPermissaoMaster } from "@/lib/sistemas-externos-admin.functions";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 import {
   DropdownMenu,
@@ -32,17 +32,8 @@ export function SistemasExternosGrid() {
   const [selectedSistema, setSelectedSistema] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { user } = useSession();
-
-  const { data: isMaster } = useQuery({
-    queryKey: ["is-master", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return false;
-      const { isMaster } = await verificarPermissaoMaster(user.id, user.email);
-      return isMaster;
-    },
-    enabled: !!user?.id,
-  });
+  const { data: userContext } = useCurrentUser();
+  const isMaster = userContext?.is_master;
 
   const { data: sistemas, isLoading } = useQuery({
     queryKey: ["sistemas-externos"],
