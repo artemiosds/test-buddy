@@ -414,6 +414,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     try {
       // Forçar HS256 conforme solicitado, ignorando private_key/RS256
       const secretKey = new TextEncoder().encode(ssoSecret!);
+      console.log(`[SSO][${correlationId}] Assinando com HS256 e secret: ${ssoSecret!.substring(0, 4)}... (Tamanho: ${ssoSecret!.length})`);
       const alg = "HS256"; 
 
       token = await new SignJWT(payload)
