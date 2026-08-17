@@ -249,10 +249,11 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       }
     }
 
+    const isMaster = context.claims?.is_master === true;
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
-      .select("id, profissional_id, status_linha")
+      .select("id, profissional_id, status_linha, updated_at")
       .eq("frequencia_id", frequencia_id)
       .in("profissional_id", profIds)
       .is("deleted_at", null);
@@ -275,7 +276,9 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      if (!isMaster && ex && ex.status_linha === "aprovada") continue;
+      if (ex && ex.status_linha === "aprovada" && !isMaster) {
+        throw new Error("Não é possível alterar uma linha que já foi aprovada.");
+      }
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
