@@ -308,7 +308,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     const normalizedSecret = ssoSecret?.trim() || "";
 
 
-    if (!ssoSecret) {
+    if (!normalizedSecret) {
       console.error(`[SSO][${correlationId}] ERRO: Nem private_key no sistema nem SSO_JWT_SECRET configurada.`);
       throw new Error("Configuração de segurança ausente: Defina a 'Chave Privada/Secret' no cadastro do sistema.");
     }
@@ -428,7 +428,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       // precisamos garantir que o sistema externo esteja esperando a string exata (com ou sem headers)
       console.log(`[SSO][${correlationId}] Assinando com HS256. Raw secret prefix: ${finalSecret.substring(0, 20)}...`);
       
-      const secretKey = new TextEncoder().encode(finalSecret);
+      const secretKey = new TextEncoder().encode(normalizedSecret);
       const alg = "HS256"; 
 
 
