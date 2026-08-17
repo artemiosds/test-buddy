@@ -74,17 +74,6 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
         throw new Error(`Usuário sem permissão para executar diagnóstico. (Detectado: ${role || 'Nenhum'})`);
       }
 
-      // 3. Variável de Ambiente SSO_JWT_SECRET
-      const secret = process.env.SSO_JWT_SECRET;
-      diagnostico.passos.push({ 
-        nome: "Variável SSO_JWT_SECRET", 
-        status: !!process.env.SSO_JWT_SECRET,
-        mensagem: process.env.SSO_JWT_SECRET ? "Configurada" : "Utilizando chave de contingência (Aviso: configure SSO_JWT_SECRET no ambiente para maior segurança)" 
-      });
-      
-      if (!process.env.SSO_JWT_SECRET) {
-        await logAudit("env_var", false, "SSO_JWT_SECRET ausente, usando fallback.");
-      }
 
       // 4. SERVICE_ROLE_KEY (Implícito se o supabaseAdmin funcionar)
       const hasAdmin = !!supabaseAdmin;
@@ -126,6 +115,20 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
         throw new Error("Sistema externo não encontrado.");
       }
 
+      // 6. Variável de Ambiente SSO_JWT_SECRET (Global Fallback)
+      const globalSecret = process.env.SSO_JWT_SECRET;
+      diagnostico.passos.push({ 
+        nome: "Segredo de Assinatura (Secret)", 
+        status: !!(sistema.private_key || globalSecret),
+        mensagem: sistema.private_key 
+          ? "Utilizando chave específica do sistema (Recomendado)" 
+          : (globalSecret ? "Utilizando fallback global (SSO_JWT_SECRET)" : "ERRO: Nenhuma chave configurada")
+      });
+      
+      if (!sistema.private_key && !globalSecret) {
+        await logAudit("env_var", false, "Nenhum segredo (private_key ou SSO_JWT_SECRET) encontrado.");
+      }
+
       // 6. Configurações de Payload
       diagnostico.passos.push({ 
         nome: "Validação de Configurações (iss/aud)", 
@@ -140,9 +143,10 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
       }
 
       // 7. Teste de Assinatura e Validação Local
-      if (secret) {
+      const testSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
+      if (testSecret) {
         try {
-          const key = new TextEncoder().encode(secret);
+          const key = new TextEncoder().encode(testSecret);
           const signJwt = new SignJWT({ test: true, diag: correlationId })
             .setProtectedHeader({ alg: "HS256" })
             .setIssuer(sistema.issuer)
@@ -164,7 +168,7 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
           diagnostico.passos.push({ 
             nome: "Geração e Assinatura JWT", 
             status: true,
-            mensagem: "Token assinado e validado localmente"
+            mensagem: `Token assinado via HS256 e validado localmente (${sistema.private_key ? 'Chave do Sistema' : 'Chave Global'})`
           });
         } catch (e: any) {
           diagnostico.passos.push({ 
@@ -294,11 +298,13 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
 
 
     // 2. Validar Configurações Obrigatórias e definir Secret
-    const ssoSecret = process.env.SSO_JWT_SECRET;
+    // O segredo deve vir preferencialmente do cadastro do sistema (private_key se for chave simétrica)
+    // Se não houver no sistema, usamos a variável global SSO_JWT_SECRET como fallback.
+    const ssoSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
 
     if (!ssoSecret) {
-      console.error(`[SSO][${correlationId}] ERRO: SSO_JWT_SECRET não configurada.`);
-      throw new Error("Sistema em manutenção: SSO temporariamente indisponível.");
+      console.error(`[SSO][${correlationId}] ERRO: Nem private_key no sistema nem SSO_JWT_SECRET configurada.`);
+      throw new Error("Configuração de segurança ausente: Defina a 'Chave Privada/Secret' no cadastro do sistema.");
     }
 
     // Issuer e Audience são obrigatórios para a assinatura do token
@@ -408,16 +414,21 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     try {
       // Forçar HS256 conforme solicitado, ignorando private_key/RS256
       const secretKey = new TextEncoder().encode(ssoSecret!);
+      console.log(`[SSO][${correlationId}] Assinando com HS256 e secret: ${ssoSecret!.substring(0, 4)}... (Tamanho: ${ssoSecret!.length})`);
       const alg = "HS256"; 
 
-      token = await new SignJWT(payload)
+      const jwtSigner = new SignJWT(payload)
         .setProtectedHeader({ alg })
         .setIssuer(payload.iss)
         .setAudience(payload.aud)
         .setIssuedAt(now)
-        .setExpirationTime(exp)
-        .setJti(payload.jti || crypto.randomUUID())
-        .sign(secretKey);
+        .setExpirationTime(exp);
+
+      if (payload.jti) {
+        jwtSigner.setJti(payload.jti);
+      }
+
+      token = await jwtSigner.sign(secretKey);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",
