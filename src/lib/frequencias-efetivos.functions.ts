@@ -236,10 +236,11 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       data.setor_id
     );
 
+    const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
-    const isMaster = isMasterRPC === true || context.claims?.is_master === true;
+    const isMasterFinal = isMaster || isMasterRPC === true;
 
-    if (!isMaster) {
+    if (!isMasterFinal) {
       // 1. Bloqueio por status da folha (Bypass Protection)
       if (
         frequencia_status !== "rascunho" &&
@@ -276,8 +277,17 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      if (ex && ex.status_linha === "aprovada" && !isMaster) {
+      if (ex && ex.status_linha === "aprovada" && !isMasterFinal) {
         throw new Error("Não é possível alterar uma linha que já foi aprovada.");
+      }
+
+      // Concorrência Otimista: Verifica se a linha foi alterada por outro usuário
+      if (ex?.updated_at && (l as any).updated_at) {
+        const bancoTime = new Date(ex.updated_at).getTime();
+        const clientTime = new Date((l as any).updated_at).getTime();
+        if (bancoTime > clientTime) {
+          throw new Error(`Conflito de edição: o profissional ${l.profissional_id} foi atualizado por outro usuário. Recarregue a página.`);
+        }
       }
 
       // Validação de segurança: limite de dias no mês

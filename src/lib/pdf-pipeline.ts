@@ -266,7 +266,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       .insert({
         tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
-        hash_conteudo: hashHex, // Agora com hash real
+        hash_conteudo: hashHex,
         status: "emitido",
         assinado_por_nome: me?.nome_completo || null,
         dados_json: {
