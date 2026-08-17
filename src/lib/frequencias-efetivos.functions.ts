@@ -238,13 +238,15 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
 
-    if (
-      !isMaster &&
-      frequencia_status !== "rascunho" &&
-      frequencia_status !== "com_pendencias" &&
-      frequencia_status !== "rejeitada"
-    ) {
-      throw new Error("Folha já enviada — não é possível editar.");
+    if (!isMaster) {
+      // 1. Bloqueio por status da folha (Bypass Protection)
+      if (
+        frequencia_status !== "rascunho" &&
+        frequencia_status !== "com_pendencias" &&
+        frequencia_status !== "rejeitada"
+      ) {
+        throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master.");
+      }
     }
 
     const profIds = data.linhas.map((l) => l.profissional_id);
