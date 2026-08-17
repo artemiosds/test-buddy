@@ -417,14 +417,18 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       console.log(`[SSO][${correlationId}] Assinando com HS256 e secret: ${ssoSecret!.substring(0, 4)}... (Tamanho: ${ssoSecret!.length})`);
       const alg = "HS256"; 
 
-      token = await new SignJWT(payload)
+      const jwtSigner = new SignJWT(payload)
         .setProtectedHeader({ alg })
         .setIssuer(payload.iss)
         .setAudience(payload.aud)
         .setIssuedAt(now)
-        .setExpirationTime(exp)
-        .setJti(payload.jti || crypto.randomUUID())
-        .sign(secretKey);
+        .setExpirationTime(exp);
+
+      if (payload.jti) {
+        jwtSigner.setJti(payload.jti);
+      }
+
+      token = await jwtSigner.sign(secretKey);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",
