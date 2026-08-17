@@ -23,17 +23,8 @@ export const Route = createFileRoute("/_authenticated/administracao/sistemas-ext
 function SistemasExternosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const form = useForm();
-  const { user } = useSession();
-
-  const { data: isMaster } = useQuery({
-    queryKey: ["is-master", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return false;
-      const { isMaster } = await verificarPermissaoMaster(user.id, user.email);
-      return isMaster;
-    },
-    enabled: !!user?.id,
-  });
+  const { data: userContext } = useCurrentUser();
+  const isMaster = userContext?.is_master;
 
   return (
     <Form {...form}>
