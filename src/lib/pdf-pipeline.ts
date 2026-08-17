@@ -287,16 +287,27 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   } catch (err) {
     console.warn("Erro ao registrar documento para validação:", err);
   }
-
-  const baixar = async () => {
-    if (opts.onBlob) {
-      try {
-        await opts.onBlob(doc.output("blob"));
-      } catch {
-        /* best effort */
-      }
+  /** Calcula o hash SHA-256 real do conteúdo do PDF */
+  const calcularHashPdf = async (pdfDoc: jsPDF): Promise<string> => {
+    try {
+      const buffer = pdfDoc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    } catch (err) {
+      console.error("Erro ao calcular hash do PDF:", err);
+      return "SHA-256-ERRO";
     }
-    doc.save(finalFilename);
+  };
+
+  const baixar = async (pdfDoc: jsPDF = doc) => {
+    const hash = await calcularHashPdf(pdfDoc);
+    if (opts.onBlob) {
+      const blob = pdfDoc.output("blob");
+      await opts.onBlob(blob, finalFilename, hash);
+    } else {
+      pdfDoc.save(finalFilename);
+    }
   };
 
   let assinatura: AssinaturaResolvida | null = null;
