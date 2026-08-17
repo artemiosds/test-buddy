@@ -255,12 +255,18 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const { data: userCtx } = await supabase.rpc("get_my_user_context");
     const me = userCtx as any;
     
+    // Cálculo real do Hash SHA-256 do documento
+    const pdfBuffer = doc.output("arraybuffer");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
     const { data: newDoc } = await supabase
       .from("documentos_assinados")
       .insert({
         tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
-        hash_conteudo: "SHA-256-PENDENTE",
+        hash_conteudo: hashHex, // Agora com hash real
         status: "emitido",
         assinado_por_nome: me?.nome_completo || null,
         dados_json: {

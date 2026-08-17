@@ -208,7 +208,9 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       const ex = byProf.get(l.profissional_id);
       
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
-      if (!isMaster && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") continue;
+      if (!isMaster && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
+         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master.");
+      }
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
