@@ -429,6 +429,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       }
 
       token = await jwtSigner.sign(secretKey);
+      console.log(`[SSO][${correlationId}] Token gerado: ${token}`);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",
