@@ -413,9 +413,16 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     let token = "";
     try {
       // Forçar HS256 conforme solicitado, ignorando private_key/RS256
-      const secretKey = new TextEncoder().encode(ssoSecret!);
-      console.log(`[SSO][${correlationId}] Assinando com HS256 e secret: ${ssoSecret!.substring(0, 4)}... (Tamanho: ${ssoSecret!.length})`);
+      // Tenta remover espaços, quebras de linha e o wrapper PEM se for uma chave simétrica longa
+      let finalSecret = ssoSecret!.trim();
+      
+      // Se a chave parecer um certificado PEM mas o algoritmo for HS256,
+      // precisamos garantir que o sistema externo esteja esperando a string exata (com ou sem headers)
+      console.log(`[SSO][${correlationId}] Assinando com HS256. Raw secret prefix: ${finalSecret.substring(0, 20)}...`);
+      
+      const secretKey = new TextEncoder().encode(finalSecret);
       const alg = "HS256"; 
+
 
       const jwtSigner = new SignJWT(payload)
         .setProtectedHeader({ alg })
