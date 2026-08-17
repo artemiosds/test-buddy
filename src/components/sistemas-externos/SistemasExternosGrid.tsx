@@ -247,7 +247,7 @@ export function SistemasExternosGrid() {
                             Somente Administradores Master podem editar
                           </DropdownMenuItem>
                         )}
-                      </DropdownContent>
+                      </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
