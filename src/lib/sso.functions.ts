@@ -74,19 +74,6 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
         throw new Error(`Usuário sem permissão para executar diagnóstico. (Detectado: ${role || 'Nenhum'})`);
       }
 
-      // 3. Variável de Ambiente SSO_JWT_SECRET (Global Fallback)
-      const globalSecret = process.env.SSO_JWT_SECRET;
-      diagnostico.passos.push({ 
-        nome: "Segredo de Assinatura (Secret)", 
-        status: !!(sistema.private_key || globalSecret),
-        mensagem: sistema.private_key 
-          ? "Utilizando chave específica do sistema (Recomendado)" 
-          : (globalSecret ? "Utilizando fallback global (SSO_JWT_SECRET)" : "ERRO: Nenhuma chave configurada")
-      });
-      
-      if (!sistema.private_key && !globalSecret) {
-        await logAudit("env_var", false, "Nenhum segredo (private_key ou SSO_JWT_SECRET) encontrado.");
-      }
 
       // 4. SERVICE_ROLE_KEY (Implícito se o supabaseAdmin funcionar)
       const hasAdmin = !!supabaseAdmin;
@@ -126,6 +113,20 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
       if (!sistema) {
         await logAudit("system_lookup", false, "Sistema externo não encontrado.");
         throw new Error("Sistema externo não encontrado.");
+      }
+
+      // 6. Variável de Ambiente SSO_JWT_SECRET (Global Fallback)
+      const globalSecret = process.env.SSO_JWT_SECRET;
+      diagnostico.passos.push({ 
+        nome: "Segredo de Assinatura (Secret)", 
+        status: !!(sistema.private_key || globalSecret),
+        mensagem: sistema.private_key 
+          ? "Utilizando chave específica do sistema (Recomendado)" 
+          : (globalSecret ? "Utilizando fallback global (SSO_JWT_SECRET)" : "ERRO: Nenhuma chave configurada")
+      });
+      
+      if (!sistema.private_key && !globalSecret) {
+        await logAudit("env_var", false, "Nenhum segredo (private_key ou SSO_JWT_SECRET) encontrado.");
       }
 
       // 6. Configurações de Payload
