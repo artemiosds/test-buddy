@@ -176,11 +176,14 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       throw new Error("Competência encerrada — folha de contratados em modo somente leitura.");
     }
 
+    const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
+    const isMaster = isMasterRPC === true || context.claims?.is_master === true;
+
     // Existentes
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencias_contratados")
-      .select("id, profissional_id, status")
+      .select("id, profissional_id, status, updated_at")
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
       .in("profissional_id", profIds)

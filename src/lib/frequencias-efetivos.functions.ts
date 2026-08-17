@@ -236,7 +236,8 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       data.setor_id
     );
 
-    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
+    const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
+    const isMaster = isMasterRPC === true || context.claims?.is_master === true;
 
     if (!isMaster) {
       // 1. Bloqueio por status da folha (Bypass Protection)
@@ -249,7 +250,6 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       }
     }
 
-    const isMaster = context.claims?.is_master === true;
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
