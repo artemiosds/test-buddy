@@ -205,8 +205,6 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     const allRows: Record<string, unknown>[] = [];
 
-    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
-
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       
