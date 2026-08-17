@@ -370,6 +370,8 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     const payload: any = {
       sub: user?.id,
       email: user?.email,
+      cpf: (context as any).claims?.cpf || profile?.cpf || null,
+      matricula: (context as any).claims?.matricula || profile?.matricula || null,
       nome: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       name: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       secretaria_id: profile?.secretaria_id || null,
