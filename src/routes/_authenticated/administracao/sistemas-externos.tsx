@@ -10,6 +10,10 @@ import { AuditSSOView } from "@/components/sistemas-externos/AuditSSOView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/use-session";
+import { verificarPermissaoMaster } from "@/lib/sistemas-externos-admin.functions";
 
 
 export const Route = createFileRoute("/_authenticated/administracao/sistemas-externos")({ errorComponent: ErrorComponent,
@@ -19,6 +23,17 @@ export const Route = createFileRoute("/_authenticated/administracao/sistemas-ext
 function SistemasExternosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const form = useForm();
+  const { user } = useSession();
+
+  const { data: isMaster } = useQuery({
+    queryKey: ["is-master", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { isMaster } = await verificarPermissaoMaster(user.id, user.email);
+      return isMaster;
+    },
+    enabled: !!user?.id,
+  });
 
   return (
     <Form {...form}>
@@ -35,10 +50,12 @@ function SistemasExternosPage() {
         </div>
         <div className="flex items-center gap-2">
           <GeradorChavesSSO />
-          <OfflineButton size="sm" onClick={() => setDialogOpen(true)} requireOnline>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Sistema
-          </OfflineButton>
+          {isMaster && (
+            <OfflineButton size="sm" onClick={() => setDialogOpen(true)} requireOnline>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Sistema
+            </OfflineButton>
+          )}
         </div>
       </div>
 
