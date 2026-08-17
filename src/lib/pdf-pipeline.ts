@@ -234,8 +234,8 @@ export type FinalizarPdfOpts = {
   pagina?: number;
   /** desliga o modal (ex.: exportações em lote) */
   semModal?: boolean;
-  /** callback com o blob final (upload/arquivamento) */
-  onBlob?: (blob: Blob) => void | Promise<void>;
+  /** callback com o blob final (upload/arquivamento). O terceiro argumento é o hash SHA-256 real. */
+  onBlob?: (blob: Blob, filename: string, hash: string) => void | Promise<void>;
   /** Metadados extras para o registro do documento */
   competencia?: { mes: number; ano: number };
 };
