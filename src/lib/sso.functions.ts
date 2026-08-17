@@ -117,15 +117,22 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
 
       // 6. Variável de Ambiente SSO_JWT_SECRET (Global Fallback)
       const globalSecret = process.env.SSO_JWT_SECRET;
+      let checkSecret = sistema.private_key || globalSecret;
+      
+      // Normalização idêntica à do gerador de token
+      if (checkSecret && !checkSecret.includes("-----BEGIN")) {
+        checkSecret = checkSecret.trim().replace(/\s/g, '');
+      }
+
       diagnostico.passos.push({ 
         nome: "Segredo de Assinatura (Secret)", 
-        status: !!(sistema.private_key || globalSecret),
+        status: !!checkSecret,
         mensagem: sistema.private_key 
           ? "Utilizando chave específica do sistema (Recomendado)" 
           : (globalSecret ? "Utilizando fallback global (SSO_JWT_SECRET)" : "ERRO: Nenhuma chave configurada")
       });
       
-      if (!sistema.private_key && !globalSecret) {
+      if (!checkSecret) {
         await logAudit("env_var", false, "Nenhum segredo (private_key ou SSO_JWT_SECRET) encontrado.");
       }
 
@@ -143,7 +150,11 @@ export const testarConfiguracaoSSO = createServerFn({ method: "POST" })
       }
 
       // 7. Teste de Assinatura e Validação Local
-      const testSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
+      let testSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
+      if (testSecret && !testSecret.includes("-----BEGIN")) {
+        testSecret = testSecret.trim().replace(/\s/g, '');
+      }
+
       if (testSecret) {
         try {
           const key = new TextEncoder().encode(testSecret);
@@ -302,11 +313,15 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     // Se não houver no sistema, usamos a variável global SSO_JWT_SECRET como fallback.
     const ssoSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
     
-    // Verificação de segurança: se a chave começar com -----BEGIN, tratamos como PEM, 
-    // mas se o algoritmo for HS256, precisamos saber se o destino espera o corpo da chave ou o PEM inteiro.
-    // Por padrão no HSM Gestão, usamos a string exata do campo private_key (com trim).
-    const normalizedSecret = ssoSecret?.trim() || "";
-
+    // Verificação de segurança e normalização robusta
+    // Se for uma chave RSA/PEM, não aplicamos trim() agressivo que possa quebrar o formato,
+    // mas se for uma string simples (HS256), removemos espaços e quebras de linha acidentais.
+    let normalizedSecret = ssoSecret || "";
+    
+    // Se não começar com o cabeçalho PEM, é provavelmente uma chave simétrica (HS256)
+    if (normalizedSecret && !normalizedSecret.includes("-----BEGIN")) {
+      normalizedSecret = normalizedSecret.trim().replace(/\s/g, '');
+    }
 
     if (!normalizedSecret) {
       console.error(`[SSO][${correlationId}] ERRO: Nem private_key no sistema nem SSO_JWT_SECRET configurada.`);
