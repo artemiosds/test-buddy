@@ -236,9 +236,11 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       data.setor_id
     );
 
-    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
+    const isMaster = context.claims?.is_master === true;
+    const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
+    const isMasterFinal = isMaster || isMasterRPC === true;
 
-    if (!isMaster) {
+    if (!isMasterFinal) {
       // 1. Bloqueio por status da folha (Bypass Protection)
       if (
         frequencia_status !== "rascunho" &&
@@ -252,7 +254,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
-      .select("id, profissional_id, status_linha")
+      .select("id, profissional_id, status_linha, updated_at")
       .eq("frequencia_id", frequencia_id)
       .in("profissional_id", profIds)
       .is("deleted_at", null);
@@ -275,7 +277,18 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      if (!isMaster && ex && ex.status_linha === "aprovada") continue;
+      if (ex && ex.status_linha === "aprovada" && !isMasterFinal) {
+        throw new Error("Não é possível alterar uma linha que já foi aprovada.");
+      }
+
+      // Concorrência Otimista: Verifica se a linha foi alterada por outro usuário
+      if (ex?.updated_at && (l as any).updated_at) {
+        const bancoTime = new Date(ex.updated_at).getTime();
+        const clientTime = new Date((l as any).updated_at).getTime();
+        if (bancoTime > clientTime) {
+          throw new Error(`Conflito de edição: o profissional ${l.profissional_id} foi atualizado por outro usuário. Recarregue a página.`);
+        }
+      }
 
       // Validação de segurança: limite de dias no mês
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();

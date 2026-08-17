@@ -176,11 +176,15 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       throw new Error("Competência encerrada — folha de contratados em modo somente leitura.");
     }
 
+    const isMaster = context.claims?.is_master === true;
+    const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
+    const isMasterFinal = isMaster || isMasterRPC === true;
+
     // Existentes
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencias_contratados")
-      .select("id, profissional_id, status")
+      .select("id, profissional_id, status, updated_at")
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
       .in("profissional_id", profIds)
@@ -202,14 +206,21 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     const allRows: Record<string, unknown>[] = [];
 
-    const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
-
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
-      if (!isMaster && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
+      if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
          throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master.");
+      }
+
+      // Concorrência Otimista
+      if (ex?.updated_at && (l as any).updated_at) {
+        const bancoTime = new Date(ex.updated_at).getTime();
+        const clientTime = new Date((l as any).updated_at).getTime();
+        if (bancoTime > clientTime) {
+          throw new Error(`Conflito de edição: o registro do profissional foi atualizado por outro usuário. Recarregue a página.`);
+        }
       }
 
       // Validação de segurança: limite de dias no mês

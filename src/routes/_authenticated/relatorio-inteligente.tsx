@@ -799,14 +799,19 @@ function useBuiltBlocks(
   const ger = useGerencial();
   const prof = useProfissionaisLista();
   const built = useMemo(() => {
-    if (!ger.data) return [];
+    if (!ger.data || !prof.data) return [];
+    
+    // Memoize the mapping to avoid repeated lookups if somehow this rerenders
+    const profData = prof.data;
+    const gerData = ger.data;
+
     return blocks
       .map((cfg) => {
         const b = findBlock(cfg.blockId);
         if (!b) return null;
         let rows: Row[] = [];
         try {
-          rows = b.build({ aggregate: ger.data, profissionais: prof.data });
+          rows = b.build({ aggregate: gerData, profissionais: profData });
         } catch (e) {
           console.error(`Erro ao buildar bloco ${cfg.blockId}:`, e);
           rows = [];

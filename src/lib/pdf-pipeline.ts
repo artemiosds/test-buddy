@@ -234,8 +234,8 @@ export type FinalizarPdfOpts = {
   pagina?: number;
   /** desliga o modal (ex.: exportações em lote) */
   semModal?: boolean;
-  /** callback com o blob final (upload/arquivamento) */
-  onBlob?: (blob: Blob) => void | Promise<void>;
+  /** callback com o blob final (upload/arquivamento). O terceiro argumento é o hash SHA-256 real. */
+  onBlob?: (blob: Blob, filename: string, hash: string) => void | Promise<void>;
   /** Metadados extras para o registro do documento */
   competencia?: { mes: number; ano: number };
 };
@@ -266,7 +266,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       .insert({
         tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
-        hash_conteudo: hashHex, // Agora com hash real
+        hash_conteudo: hashHex,
         status: "emitido",
         assinado_por_nome: me?.nome_completo || null,
         dados_json: {
@@ -287,16 +287,27 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   } catch (err) {
     console.warn("Erro ao registrar documento para validação:", err);
   }
-
-  const baixar = async () => {
-    if (opts.onBlob) {
-      try {
-        await opts.onBlob(doc.output("blob"));
-      } catch {
-        /* best effort */
-      }
+  /** Calcula o hash SHA-256 real do conteúdo do PDF */
+  const calcularHashPdf = async (pdfDoc: jsPDF): Promise<string> => {
+    try {
+      const buffer = pdfDoc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    } catch (err) {
+      console.error("Erro ao calcular hash do PDF:", err);
+      return "SHA-256-ERRO";
     }
-    doc.save(finalFilename);
+  };
+
+  const baixar = async (pdfDoc: jsPDF = doc) => {
+    const hash = await calcularHashPdf(pdfDoc);
+    if (opts.onBlob) {
+      const blob = pdfDoc.output("blob");
+      await opts.onBlob(blob, finalFilename, hash);
+    } else {
+      pdfDoc.save(finalFilename);
+    }
   };
 
   let assinatura: AssinaturaResolvida | null = null;
