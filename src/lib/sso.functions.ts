@@ -301,8 +301,14 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     // O segredo deve vir preferencialmente do cadastro do sistema (private_key se for chave simétrica)
     // Se não houver no sistema, usamos a variável global SSO_JWT_SECRET como fallback.
     const ssoSecret = sistema.private_key || process.env.SSO_JWT_SECRET;
+    
+    // Verificação de segurança: se a chave começar com -----BEGIN, tratamos como PEM, 
+    // mas se o algoritmo for HS256, precisamos saber se o destino espera o corpo da chave ou o PEM inteiro.
+    // Por padrão no HSM Gestão, usamos a string exata do campo private_key (com trim).
+    const normalizedSecret = ssoSecret?.trim() || "";
 
-    if (!ssoSecret) {
+
+    if (!normalizedSecret) {
       console.error(`[SSO][${correlationId}] ERRO: Nem private_key no sistema nem SSO_JWT_SECRET configurada.`);
       throw new Error("Configuração de segurança ausente: Defina a 'Chave Privada/Secret' no cadastro do sistema.");
     }
@@ -370,6 +376,8 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     const payload: any = {
       sub: user?.id,
       email: user?.email,
+      cpf: (context as any).claims?.cpf || profile?.cpf || null,
+      matricula: (context as any).claims?.matricula || profile?.matricula || null,
       nome: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       name: profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário',
       secretaria_id: profile?.secretaria_id || null,
@@ -412,10 +420,13 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
     // 8. Assinar JWT
     let token = "";
     try {
-      // Forçar HS256 conforme solicitado, ignorando private_key/RS256
-      const secretKey = new TextEncoder().encode(ssoSecret!);
-      console.log(`[SSO][${correlationId}] Assinando com HS256 e secret: ${ssoSecret!.substring(0, 4)}... (Tamanho: ${ssoSecret!.length})`);
+      // O normalizedSecret já foi tratado no início do handler
+      console.log(`[SSO][${correlationId}] Assinando com HS256. Secret size: ${normalizedSecret.length}`);
+      
+      const secretKey = new TextEncoder().encode(normalizedSecret);
       const alg = "HS256"; 
+
+
 
       const jwtSigner = new SignJWT(payload)
         .setProtectedHeader({ alg })
@@ -429,6 +440,7 @@ export const gerarTokenSSO = createServerFn({ method: "POST" })
       }
 
       token = await jwtSigner.sign(secretKey);
+      console.log(`[SSO][${correlationId}] Token gerado: ${token}`);
     } catch (e: any) {
       await supabaseAdmin.from("audit_log").insert({
         tabela: "sistemas_externos",
