@@ -158,7 +158,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     },
   });
 
-  const summary = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ["analytics", "summary", competenciaId, filters.unidadeId],
     staleTime,
     gcTime,
@@ -295,7 +295,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     },
   });
 
-  const rhKpis = summary.data?.rh_kpis || {
+  const rhKpis = summaryQuery.data?.rh_kpis || {
     enviadas: 0,
     pendentes: 0,
     aprovadas: 0,
@@ -304,41 +304,41 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   };
 
   const statusBreakdown = {
-    data: summary.data?.status_breakdown ?? {
+    data: summaryQuery.data?.status_breakdown ?? {
       afastado: 0,
       ativo: 0,
       desligado: 0,
       ferias: 0,
       licenca: 0,
     },
-    isLoading: summary.isLoading,
-    isSuccess: summary.isSuccess,
-    isError: summary.isError,
+    isLoading: summaryQuery.isLoading,
+    isSuccess: summaryQuery.isSuccess,
+    isError: summaryQuery.isError,
   };
 
   const vinculoBreakdown = {
-    data: summary.data?.vinculo_breakdown ?? {},
-    isLoading: summary.isLoading,
-    isSuccess: summary.isSuccess,
-    isError: summary.isError,
+    data: summaryQuery.data?.vinculo_breakdown ?? {},
+    isLoading: summaryQuery.isLoading,
+    isSuccess: summaryQuery.isSuccess,
+    isError: summaryQuery.isError,
   };
 
   const distribuicaoUnidade = {
-    data: summary.data?.top_unidades ?? [],
-    isLoading: summary.isLoading,
-    isSuccess: summary.isSuccess,
-    isError: summary.isError,
+    data: summaryQuery.data?.top_unidades ?? [],
+    isLoading: summaryQuery.isLoading,
+    isSuccess: summaryQuery.isSuccess,
+    isError: summaryQuery.isError,
   };
 
   const distribuicaoCargo = {
-    data: summary.data?.top_cargos ?? [],
-    isLoading: summary.isLoading,
-    isSuccess: summary.isSuccess,
-    isError: summary.isError,
+    data: summaryQuery.data?.top_cargos ?? [],
+    isLoading: summaryQuery.isLoading,
+    isSuccess: summaryQuery.isSuccess,
+    isError: summaryQuery.isError,
   };
 
   const summary = summaryQuery;
-  
+
   const previousCompetenciaId = useQuery({
     queryKey: ["analytics", "prevCompetencia", competenciaId],
     staleTime,
