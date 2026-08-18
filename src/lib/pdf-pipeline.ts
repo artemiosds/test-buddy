@@ -178,7 +178,8 @@ export async function drawSignatureStamp(
   marginX = 14,
   qrDataUrl?: string
 ) {
-  console.log(`[PDF] Gerando rodapé universal com QR Code para documento: ${validationCode}`);
+  console.log(`[PDF] Forçando rodapé universal em todas as páginas: ${validationCode}`);
+
 
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -224,14 +225,17 @@ export async function drawSignatureStamp(
     doc.text(systemText, marginX, yAudit + 8);
     
     // NOVO: Linha de Rodapé Adicional (Fixa e Centralizada conforme solicitado)
+    // Força a exibição centralizada na base absoluta
     const footerText = `HSM GESTÃO - Documento emitido eletronicamente em ${dataFormatada} por ${emitidoPor.toUpperCase()}`;
-    doc.setFontSize(6);
-    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(6.5);
+    doc.setTextColor(120, 120, 120);
+    doc.setFont("helvetica", "bold");
     doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: "center" });
 
     // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
     const usableWidth = pageWidth - marginX * 2;
     const yBlocks = pageHeight - 28;
+
     const colWidth = usableWidth / 2;
 
     // Lado Direito: Bloco de Conformidade Legal
@@ -397,9 +401,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     
     // Gerar um código único amigável conforme solicitado
     const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
-    validationCode = `HSM-2026-${randomSuffix}`;
+    const validationCodeGenerated = `HSM-2026-${randomSuffix}`;
+    validationCode = validationCodeGenerated;
 
     const { data: newDoc } = await supabase
+
       .from("documentos_assinados")
       .insert({
         documento_tipo: opts.tipo || "relatorio",
