@@ -855,7 +855,7 @@ function PisoIndex() {
             <Download className="mr-2 h-4 w-4" />
             {gerarMut.isPending && gerarMut.variables === "contratados"
               ? "Gerando..."
-              : "Baixar Planilha (3)"}
+              : `Baixar Planilha (${(resumo?.contratados ?? 0).toLocaleString("pt-BR")})`}
           </Button>
           <Button
             size="sm"
@@ -893,7 +893,7 @@ function PisoIndex() {
                 <DropdownMenuSubTrigger>Todas as unidades</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onClick={() => baixarPorUnidade("contratados")}>
-                    Planilha (3)
+                    Planilha ({(resumo?.contratados ?? 0).toLocaleString("pt-BR")})
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => baixarPorUnidade("efetivos")}>
                     FOPAG
@@ -911,7 +911,7 @@ function PisoIndex() {
                     <DropdownMenuItem
                       onClick={() => baixarPorUnidade("contratados", { id: u.id, nome: u.nome })}
                     >
-                      Planilha (3)
+                      Planilha
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => baixarPorUnidade("efetivos", { id: u.id, nome: u.nome })}
