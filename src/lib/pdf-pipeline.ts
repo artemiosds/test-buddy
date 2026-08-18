@@ -183,95 +183,100 @@ export async function drawSignatureStamp(
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Posicionamento do rodapé superior (Linha de Auditoria)
-  // Ocupa ~10mm acima do bloco de assinaturas
-  const yAudit = pageHeight - 38;
-  const usableWidth = pageWidth - marginX * 2;
-  
-  // Recupera o contexto do usuário para o "Emitido por"
-  let emitidoPor = nome || "Sistema";
-  try {
-    const { data: userCtx } = await supabase.rpc("get_my_user_context");
-    const me = userCtx as any;
-    if (me?.nome_completo) emitidoPor = me.nome_completo;
-  } catch (err) {
-    console.warn("Falha ao obter contexto para rodapé:", err);
-  }
+  const totalPages = doc.getNumberOfPages();
+  const originalPage = doc.getCurrentPageInfo().pageNumber;
 
-  const pagAtual = doc.getCurrentPageInfo().pageNumber;
-  const pagTotal = doc.getNumberOfPages();
-  const dataFormatada = new Date().toLocaleString("pt-BR");
-  
-  // 1. Linha de Auditoria e Metadados (Superior)
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.1);
-  doc.line(marginX, yAudit, pageWidth - marginX, yAudit);
-  
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-  
-  // Linha de Auditoria: Emissão, Página e Emitido por
-  // OBS: O usuário solicitou explicitamente que essas informações estivessem presentes.
-  const auditText = `Emissão: ${dataFormatada} | Página ${pagAtual} de ${pagTotal} | Emitido por: ${emitidoPor.toUpperCase()}`;
-  doc.text(auditText, marginX, yAudit + 4);
-  
-  // Linha de Sistema (conforme solicitação do usuário)
-  const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
-  doc.text(systemText, marginX, yAudit + 8);
-
-  // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
-  const yBlocks = pageHeight - 28;
-  const colWidth = usableWidth / 2;
-
-  // Lado Esquerdo / Central: Quadros de Assinatura (injetados externamente via drawAssinaturasBlock se houver)
-  // Se esta função for chamada isoladamente (fallback), apenas o lado direito é preenchido aqui.
-
-  // Lado Direito: Bloco de Conformidade Legal
-  const rightColX = marginX + colWidth + 5;
-  const blockW = colWidth - 5;
-  
-  // Fundo discreto para o bloco de conformidade
-  doc.setDrawColor(240, 240, 240);
-  doc.setFillColor(252, 252, 252);
-  doc.roundedRect(rightColX, yBlocks, blockW, 26, 1, 1, "FD");
-
-  // QR Code (22x22mm)
-  if (qrDataUrl) {
+  // Percorre todas as páginas para garantir que o rodapé esteja em todas
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    
+    // Posicionamento do rodapé superior (Linha de Auditoria)
+    // Ocupa ~10mm acima do bloco de assinaturas
+    const yAudit = pageHeight - 38;
+    const usableWidth = pageWidth - marginX * 2;
+    
+    // Recupera o contexto do usuário para o "Emitido por"
+    let emitidoPor = nome || "Sistema";
     try {
-      doc.addImage(qrDataUrl, "PNG", rightColX + 2, yBlocks + 2, 22, 22);
-    } catch (e) {
-      console.warn("Falha ao adicionar QR Code no rodapé", e);
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const me = userCtx as any;
+      if (me?.nome_completo) emitidoPor = me.nome_completo;
+    } catch (err) {
+      // Fallback silencioso se o RPC falhar
     }
+
+    const dataFormatada = new Date().toLocaleString("pt-BR");
+    
+    // 1. Linha de Auditoria e Metadados (Superior)
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.1);
+    doc.line(marginX, yAudit, pageWidth - marginX, yAudit);
+    
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    
+    // Linha de Auditoria: Emissão, Página e Emitido por
+    const auditText = `Emissão: ${dataFormatada} | Página ${p} de ${totalPages} | Emitido por: ${emitidoPor.toUpperCase()}`;
+    doc.text(auditText, marginX, yAudit + 4);
+    
+    // Linha de Sistema (conforme solicitação do usuário)
+    const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
+    doc.text(systemText, marginX, yAudit + 8);
+
+    // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
+    const yBlocks = pageHeight - 28;
+    const colWidth = usableWidth / 2;
+
+    // Lado Direito: Bloco de Conformidade Legal
+    const rightColX = marginX + colWidth + 5;
+    const blockW = colWidth - 5;
+    
+    // Fundo discreto para o bloco de conformidade
+    doc.setDrawColor(240, 240, 240);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(rightColX, yBlocks, blockW, 26, 1, 1, "FD");
+
+    // QR Code (22x22mm)
+    if (qrDataUrl) {
+      try {
+        doc.addImage(qrDataUrl, "PNG", rightColX + 2, yBlocks + 2, 22, 22);
+      } catch (e) {
+        console.warn("Falha ao adicionar QR Code no rodapé", e);
+      }
+    }
+
+    const infoX = rightColX + 26;
+    doc.setTextColor(60, 60, 60);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("VERIFICAÇÃO DE AUTENTICIDADE", infoX, yBlocks + 6);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    let ty = yBlocks + 10;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Código: ${validationCode}`, infoX, ty);
+    doc.setFont("helvetica", "normal");
+    ty += 3.5;
+    doc.text(`Hash: ${hash.slice(0, 24)}...`, infoX, ty);
+    ty += 4.5;
+    doc.setFontSize(6);
+    doc.setTextColor(80, 80, 80);
+    const legalText = "Assinado digitalmente nos termos da\nLei Federal nº 14.063/2020.";
+    doc.text(legalText, infoX, ty);
+
+    // Link de validação
+    ty += 5.5;
+    const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(5.5);
+    doc.text("Validar em:", infoX, ty);
+    doc.text(validationUrl, infoX + 11, ty);
   }
 
-  const infoX = rightColX + 26;
-  doc.setTextColor(60, 60, 60);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.text("VERIFICAÇÃO DE AUTENTICIDADE", infoX, yBlocks + 6);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  let ty = yBlocks + 10;
-  doc.setFont("helvetica", "bold");
-  doc.text(`Código: ${validationCode}`, infoX, ty);
-  doc.setFont("helvetica", "normal");
-  ty += 3.5;
-  doc.text(`Hash: ${hash.slice(0, 24)}...`, infoX, ty);
-  ty += 4.5;
-  doc.setFontSize(6);
-  doc.setTextColor(80, 80, 80);
-  const legalText = "Assinado digitalmente nos termos da\nLei Federal nº 14.063/2020.";
-  doc.text(legalText, infoX, ty);
-
-  // Link de validação
-  ty += 5.5;
-  const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
-  doc.setTextColor(37, 99, 235);
-  doc.setFontSize(5.5);
-  doc.text("Validar em:", infoX, ty);
-  doc.text(validationUrl, infoX + 11, ty);
+  // Restaura a página original
+  doc.setPage(originalPage);
 }
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
