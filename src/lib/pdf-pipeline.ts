@@ -129,12 +129,20 @@ function formatoImagem(dataUri: string): "PNG" | "JPEG" | "WEBP" {
 export async function garantirImagemAssinatura(
   a: AssinaturaResolvida,
 ): Promise<AssinaturaResolvida> {
-  if (a.imageData?.startsWith("data:")) return a;
+  const { removerFundoTransparente } = await import("./pdf-assinaturas");
+  
+  if (a.imageData?.startsWith("data:")) {
+    const cleanImg = await removerFundoTransparente(a.imageData);
+    return { ...a, imageData: cleanImg };
+  }
 
   // Caso a imagem tenha chegado como URL direta
   if (a.imageData && /^(https?:|blob:)/.test(a.imageData)) {
     const dataUri = await preCarregarImagem(a.imageData);
-    if (dataUri) return { ...a, imageData: dataUri };
+    if (dataUri) {
+      const cleanImg = await removerFundoTransparente(dataUri);
+      return { ...a, imageData: cleanImg };
+    }
   }
 
   if (a.storage_path) {
@@ -142,7 +150,10 @@ export async function garantirImagemAssinatura(
       const signed = await getSignatureSignedUrl(a.storage_path, null, 300);
       if (signed) {
         const dataUri = await preCarregarImagem(signed);
-        if (dataUri) return { ...a, imageData: dataUri };
+        if (dataUri) {
+          const cleanImg = await removerFundoTransparente(dataUri);
+          return { ...a, imageData: cleanImg };
+        }
       }
     } catch {
       /* segue com bloco textual */
@@ -401,7 +412,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       
-      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+      const QRCode = await import("qrcode");
+      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+
+      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
     }
     await baixar();
     return;
@@ -470,7 +485,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+    const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+    const QRCode = await import("qrcode");
+    const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+
+    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
   }
 
   desenharAssinaturaEm(doc, assinatura, {
