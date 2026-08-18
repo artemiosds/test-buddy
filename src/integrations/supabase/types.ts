@@ -5579,6 +5579,10 @@ export type Database = {
         }[]
       }
       get_cargos_funcoes_uso: { Args: never; Returns: Json }
+      get_dashboard_monthly_evolution: {
+        Args: { p_ano: number; p_unidade_id?: string }
+        Returns: Json
+      }
       get_dashboard_summary: {
         Args: { p_competencia_id: string; p_unidade_id?: string }
         Returns: Json
