@@ -16,6 +16,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import { TrendingUp, BarChart3, PieChart as PieIcon, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +40,40 @@ const COLORS = [
   "#ec4899",
   "#84cc16",
 ];
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    const mapping: Record<string, string> = {
+      "Jan": "Janeiro", "Feb": "Fevereiro", "Mar": "Março", "Apr": "Abril", "May": "Maio", "Jun": "Junho",
+      "Jul": "Julho", "Aug": "Agosto", "Set": "Setembro", "Oct": "Outubro", "Nov": "Novembro", "Dec": "Dezembro"
+    };
+    const translatedLabel = mapping[label] || label;
+
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-sm">
+        <p className="text-sm font-semibold mb-2">{translatedLabel}</p>
+        <div className="space-y-1">
+          {payload.map((item: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.fill || item.stroke }} />
+                <span className="text-muted-foreground">{item.name}:</span>
+              </div>
+              <span className="font-medium">{item.value}{item.unit || ""}</span>
+            </div>
+          ))}
+          {payload.length > 1 && (
+            <div className="pt-1 mt-1 border-t flex items-center justify-between gap-4 text-xs font-semibold">
+              <span>Total:</span>
+              <span>{payload.reduce((acc: number, item: any) => acc + (item.value || 0), 0)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
 
 function DashboardAnalitico() {
   const [ano, setAno] = useState(new Date().getFullYear());
@@ -169,10 +205,12 @@ function DashboardAnalitico() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={evolucao}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
                     <XAxis 
                       dataKey="mes" 
                       fontSize={12}
+                      axisLine={false}
+                      tickLine={false}
                       tickFormatter={(val) => {
                         const mapping: Record<string, string> = {
                           "Jan": "Jan", "Feb": "Fev", "Mar": "Mar", "Apr": "Abr", "May": "Mai", "Jun": "Jun",
@@ -181,20 +219,12 @@ function DashboardAnalitico() {
                         return mapping[val] || val;
                       }}
                     />
-                    <YAxis fontSize={12} allowDecimals={false} />
-                    <Tooltip 
-                      labelFormatter={(label) => {
-                        const mapping: Record<string, string> = {
-                          "Jan": "Janeiro", "Feb": "Fevereiro", "Mar": "Março", "Apr": "Abril", "May": "Maio", "Jun": "Junho",
-                          "Jul": "Julho", "Aug": "Agosto", "Sep": "Setembro", "Oct": "Outubro", "Nov": "Novembro", "Dec": "Dezembro"
-                        };
-                        return mapping[label] || label;
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="rascunho" name="Rascunho" fill="#94a3b8" stackId="a" />
-                    <Bar dataKey="em_analise" name="Em análise" fill="#f59e0b" stackId="a" />
-                    <Bar dataKey="aprovadas" name="Aprovadas" fill="#10b981" stackId="a" />
+                    <YAxis fontSize={12} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconType="circle" />
+                    <Bar dataKey="rascunho" name="Rascunho" fill="#cbd5e1" stackId="a" radius={[0, 0, 0, 0]} isAnimationActive={true} animationDuration={1000} />
+                    <Bar dataKey="em_analise" name="Em análise" fill="#fbbf24" stackId="a" radius={[0, 0, 0, 0]} isAnimationActive={true} animationDuration={1000} />
+                    <Bar dataKey="aprovadas" name="Aprovadas" fill="#10b981" stackId="a" radius={[4, 4, 0, 0]} isAnimationActive={true} animationDuration={1000} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
