@@ -841,6 +841,25 @@ function ProfissionaisPage() {
     if (fCargo.length) out = out.in("cargo_id", fCargo);
     if (fFuncao.length) out = out.in("funcao_id", fFuncao);
     if (fSetor.length) out = out.in("setor_id", fSetor);
+
+    if (categoriaIds) {
+      const ors: string[] = [];
+      if (categoriaIds.cargos.length) ors.push(`cargo_id.in.(${categoriaIds.cargos.join(",")})`);
+      if (categoriaIds.funcoes.length)
+        ors.push(`funcao_id.in.(${categoriaIds.funcoes.join(",")})`);
+      if (ors.length > 0) {
+        out = out.or(ors.join(","));
+      }
+    }
+
+    if (fGestor === "sim") {
+      const ids = gestorIds ?? [];
+      if (ids.length > 0) out = out.in("id", ids);
+    } else if (fGestor === "nao") {
+      const ids = gestorIds ?? [];
+      if (ids.length > 0) out = out.not("id", "in", `(${ids.join(",")})`);
+    }
+
     return out;
   };
 
