@@ -297,8 +297,8 @@ export function FrequenciasEfetivosPage() {
   const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
   const isOperacional = perfilCodigo === "OPERACIONAL_ADM" || isMaster;
 
-  const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
-  const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+  const canEdit = !compFechada && has("frequencia.editar") && (folhaEditavel || isMaster) && (isDiretor || isOperacional || isMaster);
+  const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || (isMaster && folhaStatus === "aprovada")) && has("frequencia.enviar") && (isDiretor || isGestorPerfil || isMaster);
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);

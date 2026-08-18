@@ -224,15 +224,14 @@ export async function drawSignatureStamp(
     const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
     doc.text(systemText, marginX, yAudit + 8);
     
-    // NOVO: Linha de Rodapé Adicional (Fixa e Centralizada conforme solicitado)
-    // Força a exibição centralizada na base absoluta
+    // 2. Linha de Rodapé Adicional (Fixa e Centralizada na base absoluta)
     const footerText = `HSM GESTÃO - Documento emitido eletronicamente em ${dataFormatada} por ${emitidoPor.toUpperCase()}`;
     doc.setFontSize(6.5);
     doc.setTextColor(120, 120, 120);
     doc.setFont("helvetica", "bold");
     doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: "center" });
 
-    // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
+    // 3. Organização em 2 Colunas (Assinaturas vs Conformidade)
     const usableWidth = pageWidth - marginX * 2;
     const yBlocks = pageHeight - 28;
 
@@ -330,7 +329,7 @@ export function desenharAssinaturaEm(
     ty += 3.2;
   }
   const matricula = a.metadata?.matricula as string | undefined;
-  if (matricula) {
+  if (matricula && a.mostrar_cargo) {
     doc.setFontSize(6.5);
     doc.text(`Matrícula: ${matricula}`, x + w / 2, ty, { align: "center", maxWidth: w });
   }
