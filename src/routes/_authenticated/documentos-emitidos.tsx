@@ -55,27 +55,32 @@ function DocumentosEmitidosPage() {
   const [desde, setDesde] = useState<string>("");
   const [ate, setAte] = useState<string>("");
 
-  const [revogar, setRevogar] = useState<DocRow | null>(null);
-  const [motivo, setMotivo] = useState("");
-
   const { data = [], isLoading } = useQuery({
     queryKey: ["documentos-emitidos", tipo, status, desde, ate],
     enabled: canView,
     queryFn: async () => {
       let q = supabase
-        .from("documentos_assinados_publico")
+        .from("documentos_assinados")
         .select(
-          "id, tipo, descricao, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, hash_conteudo",
+          "id, documento_tipo, descricao, nome_assinante, assinado_em, hash_sha256, metadata",
         )
         .order("assinado_em", { ascending: false })
         .limit(500);
-      if (tipo !== "all") q = q.eq("tipo", tipo);
-      if (status !== "all") q = q.eq("status", status);
-      if (desde) q = q.gte("assinado_em", desde);
-      if (ate) q = q.lte("assinado_em", `${ate}T23:59:59`);
+
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as DocRow[];
+      
+      return (data ?? []).map(d => ({
+        id: d.id,
+        tipo: d.documento_tipo,
+        descricao: d.descricao,
+        assinado_por_nome: d.nome_assinante,
+        assinado_em: d.assinado_em,
+        status: (d.metadata as any)?.revogado ? "revogado" : "ativo",
+        revogado_em: (d.metadata as any)?.revogado_em || null,
+        motivo_revogacao: (d.metadata as any)?.motivo_revogacao || null,
+        hash_conteudo: d.hash_sha256
+      })) as DocRow[];
     },
   });
 
