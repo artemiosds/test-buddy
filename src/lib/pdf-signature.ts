@@ -137,7 +137,7 @@ export async function armazenarPdfAssinado(sig: SignResult, blob: Blob): Promise
       .from("documentos-assinados")
       .upload(path, blob, { contentType: "application/pdf", upsert: true });
     if (up.error) return;
-    await supabase.from("documentos_assinados").update({ pdf_storage_path: path }).eq("id", sig.id);
+    await supabase.from("documentos_assinados").update({ metadata: { pdf_storage_path: path } } as any).eq("id", sig.id);
   } catch {
     /* best effort */
   }
