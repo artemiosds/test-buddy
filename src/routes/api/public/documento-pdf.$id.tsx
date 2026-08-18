@@ -10,18 +10,20 @@ export const Route = createFileRoute('/api/public/documento-pdf/$id')({
         // 1. Busca os metadados do documento
         const { data: doc, error } = await supabaseAdmin
           .from('documentos_assinados')
-          .select('tipo, pdf_storage_path')
+          .select('documento_tipo, metadata')
           .eq('id', id)
           .single()
 
-        if (error || !doc?.pdf_storage_path) {
+        const storagePath = (doc?.metadata as any)?.pdf_storage_path;
+
+        if (error || !storagePath) {
           return new Response('PDF não encontrado', { status: 404 })
         }
 
         // 2. Valida se o documento exige autenticação (LGPD)
         // Documentos de Frequência, Folha e Piso contêm CPFs e dados salariais sensíveis.
         const tiposSensiveis = ['frequencia', 'folha_efetivos', 'folha_contratados', 'piso'];
-        const isSensivel = tiposSensiveis.includes(doc.tipo);
+        const isSensivel = tiposSensiveis.includes(doc.documento_tipo);
 
         if (isSensivel) {
           // Verifica se o usuário está autenticado
@@ -41,7 +43,7 @@ export const Route = createFileRoute('/api/public/documento-pdf/$id')({
         // 3. Download do PDF do storage
         const { data, error: downloadError } = await supabaseAdmin.storage
           .from('documentos-assinados')
-          .download(doc.pdf_storage_path)
+          .download(storagePath)
 
         if (downloadError || !data) {
           return new Response('Erro ao baixar PDF do storage', { status: 500 })

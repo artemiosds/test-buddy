@@ -40,6 +40,7 @@ type DocRow = {
   revogado_em: string | null;
   motivo_revogacao: string | null;
   hash_conteudo: string;
+  codigo_validacao?: string;
 };
 
 function DocumentosEmitidosPage() {
@@ -63,19 +64,34 @@ function DocumentosEmitidosPage() {
     enabled: canView,
     queryFn: async () => {
       let q = supabase
-        .from("documentos_assinados_publico")
-        .select(
-          "id, tipo, descricao, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, hash_conteudo",
-        )
+        .from("documentos_assinados")
+        .select("*")
         .order("assinado_em", { ascending: false })
         .limit(500);
-      if (tipo !== "all") q = q.eq("tipo", tipo);
-      if (status !== "all") q = q.eq("status", status);
+
       if (desde) q = q.gte("assinado_em", desde);
       if (ate) q = q.lte("assinado_em", `${ate}T23:59:59`);
+      
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as DocRow[];
+      
+      let rows = (data ?? []).map(d => ({
+        id: d.id,
+        tipo: d.documento_tipo,
+        descricao: d.nome_assinante + " - " + d.documento_tipo,
+        assinado_por_nome: d.nome_assinante,
+        assinado_em: d.assinado_em,
+        status: (d.metadata as any)?.revogado ? "revogado" : "ativo",
+        revogado_em: (d.metadata as any)?.revogado_em || null,
+        motivo_revogacao: (d.metadata as any)?.motivo_revogacao || null,
+        hash_conteudo: d.hash_sha256,
+        codigo_validacao: d.codigo_validacao
+      })) as DocRow[];
+
+      if (tipo !== "all") rows = rows.filter(r => r.tipo === tipo);
+      if (status !== "all") rows = rows.filter(r => r.status === status);
+
+      return rows;
     },
   });
 
@@ -97,10 +113,9 @@ function DocumentosEmitidosPage() {
 
   const revogarMut = useMutation({
     mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
-      const { error } = await supabase.rpc("revogar_documento_assinado", {
-        _id: id,
-        _motivo: motivo,
-      });
+      const { data: current } = await supabase.from("documentos_assinados").select("metadata").eq("id", id).single();
+      const metadata = { ...(current?.metadata as any || {}), revogado: true, revogado_em: new Date().toISOString(), motivo_revogacao: motivo };
+      const { error } = await supabase.from("documentos_assinados").update({ metadata } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -242,7 +257,7 @@ function DocumentosEmitidosPage() {
                         </Link>
                       </Button>
                       <Button asChild size="sm" variant="ghost">
-                        <Link to="/validar/$id" params={{ id: d.id }} target="_blank">
+                        <Link to="/validar/$id" params={{ id: d.codigo_validacao || d.id }} target="_blank">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>

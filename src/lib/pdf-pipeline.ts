@@ -153,6 +153,41 @@ export async function garantirImagemAssinatura(
 
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
+export function drawSignatureStamp(
+  doc: jsPDF, 
+  id: string, 
+  hash: string, 
+  nome: string, 
+  data: string, 
+  validationCode: string,
+  marginX = 14
+) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const y = pageHeight - 20;
+  
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.1);
+  doc.line(marginX, y - 2, pageWidth - marginX, y - 2);
+
+  doc.setFontSize(7);
+  doc.setTextColor(80, 80, 80);
+  doc.setFont("helvetica", "bold");
+  doc.text("ASSINADO DIGITALMENTE NOS TERMOS DA LEI FEDERAL Nº 14.063/2020", marginX, y + 2);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  let ty = y + 5;
+  doc.text(`Signatário: ${nome} | Data: ${new Date(data).toLocaleString("pt-BR")}`, marginX, ty);
+  ty += 3;
+  doc.text(`Código: ${validationCode} | Hash SHA-256: ${hash.slice(0, 32)}...`, marginX, ty);
+  ty += 3;
+  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+  doc.setTextColor(37, 99, 235);
+  doc.text(`Valide em: ${validationUrl}`, marginX, ty);
+}
+
+/** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
 export function desenharAssinaturaEm(
   doc: jsPDF,
   a: AssinaturaResolvida,
@@ -251,38 +286,40 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   // Persiste o registro do documento no banco para permitir validação futura
   let documentoId: string | null = null;
+  let validationCode: string | null = null;
   try {
     const { data: userCtx } = await supabase.rpc("get_my_user_context");
     const me = userCtx as any;
     
-    // Cálculo real do Hash SHA-256 do documento
+    // Cálculo real do Hash SHA-256 do documento ANTES da assinatura visual
     const pdfBuffer = doc.output("arraybuffer");
     const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
+    // Gerar um código único amigável conforme solicitado
+    const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
+    validationCode = `HSM-2026-${randomSuffix}`;
+
     const { data: newDoc } = await supabase
       .from("documentos_assinados")
       .insert({
-        tipo: opts.tipo || "relatorio",
+        documento_tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
-        hash_conteudo: hashHex,
-        status: "emitido",
-        assinado_por_nome: me?.nome_completo || null,
-        dados_json: {
+        hash_sha256: hashHex,
+        codigo_validacao: validationCode,
+        nome_assinante: me?.nome_completo || "Sistema",
+        assinado_por_id: me?.id || null,
+        metadata: {
           filename: finalFilename,
           competencia: (opts as any).competencia,
         }
-      })
+      } as any)
       .select("id")
       .single();
 
     if (newDoc) {
       documentoId = newDoc.id;
-      // Injeta o ID nas assinaturas para o drawAssinaturasBlock desenhar o selo
-      if (opts.assinaturas) {
-        opts.assinaturas.forEach((a: any) => { (a as any).documento_id = documentoId; });
-      }
     }
   } catch (err) {
     console.warn("Erro ao registrar documento para validação:", err);
@@ -323,6 +360,16 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   }
 
   if (!assinatura) {
+    if (documentoId && validationCode) {
+      // Mesmo sem assinatura visual, injeta o selo de autenticidade no rodapé
+      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const pdfBuffer = doc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+    }
     await baixar();
     return;
   }
@@ -380,6 +427,18 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   // Usuário cancelou
   if (escolha === null) return;
+
+  // Antes de desenhar a assinatura visual, injetamos o carimbo de autenticidade (Selo Verde)
+  if (documentoId && validationCode) {
+    const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+    // Recalcula o hash final antes da assinatura (o hash registrado no banco é do PDF base)
+    const pdfBuffer = doc.output("arraybuffer");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+  }
 
   desenharAssinaturaEm(doc, assinatura, {
     xMm: escolha.xMm,

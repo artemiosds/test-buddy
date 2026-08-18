@@ -23,9 +23,9 @@ function ValidarDocumentoPage() {
     queryFn: async () => {
       if (!hashToSearch) return null;
       const { data, error } = await supabase
-        .from("documentos_assinados_publico")
+        .from("documentos_assinados")
         .select("*")
-        .eq("id", hashToSearch)
+        .or(`codigo_validacao.eq."${hashToSearch}",id.eq."${hashToSearch}"`)
         .maybeSingle();
       
       if (error) throw error;
@@ -117,7 +117,7 @@ function ValidarDocumentoPage() {
                     <User className="w-4 h-4 text-blue-500" />
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400">Assinado por</p>
-                      <p className="font-medium">{doc.assinado_por_nome || "Assinatura Institucional"}</p>
+                      <p className="font-medium">{doc.nome_assinante || "Assinatura Institucional"}</p>
                     </div>
                   </div>
                 </div>
@@ -125,15 +125,15 @@ function ValidarDocumentoPage() {
                   <div className="flex items-center gap-3 text-slate-600">
                     <Clock className="w-4 h-4 text-blue-500" />
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Status do Registro</p>
-                      <p className="font-medium capitalize">{doc.status}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Tipo de Documento</p>
+                      <p className="font-medium capitalize">{doc.documento_tipo}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-slate-600">
                     <ExternalLink className="w-4 h-4 text-blue-500" />
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Identificador Digital</p>
-                      <p className="font-mono text-[11px] break-all">{doc.id}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Código de Validação</p>
+                      <p className="font-mono text-[11px] break-all">{doc.codigo_validacao}</p>
                     </div>
                   </div>
                 </div>
@@ -148,12 +148,12 @@ function ValidarDocumentoPage() {
                 </div>
 
                 {doc.id && (
-                  <Link to="/api/public/documento-pdf/$id" params={{ id: doc.id }}>
+                  <a href={`/api/public/documento-pdf/${doc.id}`} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="gap-2 border-slate-300 hover:bg-slate-50 rounded-xl px-8 h-12">
                       <ExternalLink className="w-4 h-4" />
                       Visualizar Documento Original
                     </Button>
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
