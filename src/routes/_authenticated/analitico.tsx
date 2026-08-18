@@ -361,12 +361,12 @@ function DashboardAnalitico() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topUnidades} layout="vertical" margin={{ left: 60 }}>
+                <BarChart data={topUnidades} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis type="number" fontSize={12} allowDecimals={false} />
-                  <YAxis type="category" dataKey="nome" fontSize={11} width={150} />
-                  <Tooltip />
-                  <Bar dataKey="total" name="Profissionais" fill="hsl(var(--primary))" />
+                  <YAxis type="category" dataKey="nome" fontSize={12} width={180} />
+                  <Tooltip cursor={{fill: 'transparent'}} />
+                  <Bar dataKey="total" name="Profissionais" fill="#3b82f6" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 10 }} />
                 </BarChart>
               </ResponsiveContainer>
             )}
