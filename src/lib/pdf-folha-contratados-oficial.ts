@@ -381,7 +381,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     head,
     body,
     startY: 52,
-    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 40 },
+    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 42 },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
