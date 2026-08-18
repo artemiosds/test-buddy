@@ -40,6 +40,7 @@ type DocRow = {
   revogado_em: string | null;
   motivo_revogacao: string | null;
   hash_conteudo: string;
+  codigo_validacao?: string;
 };
 
 function DocumentosEmitidosPage() {
