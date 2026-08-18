@@ -172,19 +172,37 @@ export function DashboardClassico() {
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
+                    innerRadius={75}
+                    outerRadius={105}
+                    paddingAngle={8}
                     dataKey="value"
+                    animationBegin={200}
+                    animationDuration={1200}
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]} 
+                        stroke="var(--color-card)" 
+                        strokeWidth={4}
+                      />
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: '1px solid var(--color-border)', 
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                      backgroundColor: 'var(--color-card)',
+                      color: 'var(--color-foreground)'
+                    }}
                   />
-                  <Legend verticalAlign="bottom" height={36}/>
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs font-medium text-text-secondary">{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
