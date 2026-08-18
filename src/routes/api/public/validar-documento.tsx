@@ -148,7 +148,7 @@ function ValidarDocumentoPage() {
                 </div>
 
                 {doc.id && (
-                  <Link to="/api/public/documento-pdf/$id" params={{ id: doc.id }}>
+                  <a href={`/api/public/documento-pdf/${doc.id}`} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="gap-2 border-slate-300 hover:bg-slate-50 rounded-xl px-8 h-12">
                       <ExternalLink className="w-4 h-4" />
                       Visualizar Documento Original
