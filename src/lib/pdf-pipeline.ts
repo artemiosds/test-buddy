@@ -466,7 +466,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     : (opts.xPadraoMm ?? pageWidthMm - 14 - w);
   const yPadrao = temPadraoSalvo
     ? ((assinatura.posicao_y as number) / REF_H) * pageHeightMm
-    : (opts.yPadraoMm ?? pageHeightMm - 42);
+    : (opts.yPadraoMm ?? pageHeightMm - 32); // Ajustado para alinhar com o novo rodapé inferior (40mm de margem)
   const pagina = Math.min(Math.max(opts.pagina ?? pageCount, 1), pageCount);
 
   if (opts.semModal) {
