@@ -496,7 +496,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   if (opts.semModal) {
     // Injeta o carimbo de autenticidade no rodapé (2 colunas)
     if (documentoId && validationCode) {
-      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const me = userCtx as any;
       const pdfBuffer = doc.output("arraybuffer");
       const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
