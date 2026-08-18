@@ -257,7 +257,7 @@ function DocumentosEmitidosPage() {
                         </Link>
                       </Button>
                       <Button asChild size="sm" variant="ghost">
-                        <Link to="/validar/$id" params={{ id: d.id }} target="_blank">
+                        <Link to="/validar/$id" params={{ id: d.codigo_validacao || d.id }} target="_blank">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
