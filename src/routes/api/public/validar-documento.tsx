@@ -25,7 +25,7 @@ function ValidarDocumentoPage() {
       const { data, error } = await supabase
         .from("documentos_assinados")
         .select("*")
-        .eq("codigo_validacao", hashToSearch)
+        .or(`codigo_validacao.eq."${hashToSearch}",id.eq."${hashToSearch}"`)
         .maybeSingle();
       
       if (error) throw error;
