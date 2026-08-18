@@ -204,10 +204,10 @@ export function drawSignatureStamp(
   doc.setFontSize(6);
   let ty = y + 6;
   doc.text(`Código: ${validationCode}`, textX, ty);
-  ty += 3;
+  ty += 2.8;
   doc.text(`Hash SHA-256: ${hash.slice(0, 32)}...`, textX, ty);
-  ty += 3;
-  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+  ty += 2.8;
+  const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
   doc.setTextColor(37, 99, 235);
   doc.text("Valide em:", textX, ty);
   doc.text(validationUrl, textX + 10, ty);
@@ -222,13 +222,13 @@ export function drawSignatureStamp(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   ty = y + 6;
-  doc.text("ASSINADO DIGITALMENTE NOS TERMOS DA", rightColX, ty);
+  doc.text("Documento assinado digitalmente nos termos da", rightColX, ty);
   ty += 2.5;
-  doc.text("LEI FEDERAL Nº 14.063/2020", rightColX, ty);
+  doc.text("Lei Federal nº 14.063/2020.", rightColX, ty);
   ty += 3.5;
-  doc.text(`Emitido por: ${nome}`, rightColX, ty);
+  doc.text("A autenticidade pode ser conferida via QR Code", rightColX, ty);
   ty += 2.5;
-  doc.text(`Data/Hora: ${new Date(data).toLocaleString("pt-BR")}`, rightColX, ty);
+  doc.text("ou no portal de validação.", rightColX, ty);
 }
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
