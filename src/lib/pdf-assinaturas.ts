@@ -328,15 +328,15 @@ export function drawAssinaturasBlock(
   const marginX = opts.marginX ?? 14;
   const blockH = opts.reservaAltura ?? 34;
 
-  // Se o documento tiver um ID (hash) de persistência, desenhamos o selo de autenticidade
-  // Isso geralmente vem nos metadados ou passado explicitamente
-  const docId = (assinaturas[0] as any)?.documento_id;
+  // O selo agora é desenhado via drawSignatureStamp no pipeline, 
+  // mas mantemos este fallback se o ID estiver disponível e for um fluxo legado
+  const docId = (opts as any)?.documentoId || (assinaturas[0] as any)?.documento_id;
   if (docId) {
     const stampY = pageHeight - 12;
     doc.setFontSize(6);
     doc.setTextColor(150, 150, 150);
     doc.setFont("helvetica", "normal");
-    const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${docId}`;
+    const validationUrl = `${window.location.origin}/validar/${docId}`;
     doc.text(`Para verificar a autenticidade deste documento, acesse: ${validationUrl}`, marginX, stampY);
     doc.text(`Código de Autenticidade (Hash): ${docId}`, marginX, stampY + 3);
   }
