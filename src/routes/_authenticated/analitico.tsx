@@ -50,7 +50,18 @@ function DashboardAnalitico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("competencias")
-        .select("id, mes, ano, frequencias:frequencias(id, status)")
+        .select(`
+          id, 
+          mes, 
+          ano, 
+          frequencias:frequencias(
+            id, 
+            status,
+            competencia_unidade:competencia_unidades(
+              competencia:competencias(id, ano, mes)
+            )
+          )
+        `)
         .eq("ano", ano)
         .is("deleted_at", null);
       if (error) throw error;
@@ -81,7 +92,13 @@ function DashboardAnalitico() {
       if (ids.length === 0) return [];
       const { data, error } = await supabase
         .from("frequencias")
-        .select("status, competencia_unidades!inner(competencia_id)")
+        .select(`
+          status, 
+          competencia_unidades!inner(
+            competencia_id,
+            competencia:competencias(mes, ano)
+          )
+        `)
         .in("competencia_unidades.competencia_id", ids);
       if (error) throw error;
       const counts: Record<string, number> = {};
