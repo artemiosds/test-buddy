@@ -360,6 +360,16 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   }
 
   if (!assinatura) {
+    if (documentoId && validationCode) {
+      // Mesmo sem assinatura visual, injeta o selo de autenticidade no rodapé
+      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const pdfBuffer = doc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+    }
     await baixar();
     return;
   }
