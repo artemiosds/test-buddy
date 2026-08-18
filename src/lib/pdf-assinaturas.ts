@@ -392,22 +392,22 @@ export function drawAssinaturasBlock(
     // Dados dinâmicos do titular
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     const nome = a.titular_nome ?? (a.obrigatoria ? "___________________" : "NÃO IDENTIFICADO");
-    doc.text(nome.toUpperCase(), cx, lineY + 3.5, { align: "center", maxWidth: colW - 8 });
+    doc.text(nome.toUpperCase(), cx, lineY + 3, { align: "center", maxWidth: colW - 4 });
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(80, 80, 80);
     
     const cargo = (a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "CARGO NÃO INFORMADO").toUpperCase();
-    doc.text(cargo, cx, lineY + 6.8, { align: "center", maxWidth: colW - 8 });
+    doc.text(cargo, cx, lineY + 6, { align: "center", maxWidth: colW - 4 });
 
     const metadata = a.metadata;
     const ato = metadata?.ato_ou_decreto || metadata?.decreto || "";
     if (ato) {
-      doc.setFontSize(6);
-      doc.text(String(ato).toUpperCase(), cx, lineY + 9.5, { align: "center", maxWidth: colW - 8 });
+      doc.setFontSize(5.5);
+      doc.text(String(ato).toUpperCase(), cx, lineY + 8.5, { align: "center", maxWidth: colW - 4 });
     }
 
     if (a.escopo === "ausente" && a.obrigatoria) {
