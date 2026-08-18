@@ -14,7 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
@@ -114,10 +114,10 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const ValidarIdRoute = ValidarIdRouteImport.update({
   id: '/validar/$id',
@@ -546,7 +546,7 @@ const AuthenticatedConfiguracaoPerfisIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -627,7 +627,6 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -664,6 +663,7 @@ export interface FileRoutesByTo {
   '/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/': typeof AuthenticatedIndexRoute
   '/administracao/mural': typeof AuthenticatedAdministracaoMuralRoute
   '/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/cargos/$id': typeof AuthenticatedCargosIdRoute
@@ -708,7 +708,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
@@ -747,6 +746,7 @@ export interface FileRoutesById {
   '/_authenticated/tipos-unidade': typeof AuthenticatedTiposUnidadeRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRouteWithChildren
   '/validar/$id': typeof ValidarIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/administracao/mural': typeof AuthenticatedAdministracaoMuralRoute
   '/_authenticated/administracao/sistemas-externos': typeof AuthenticatedAdministracaoSistemasExternosRoute
   '/_authenticated/cargos/$id': typeof AuthenticatedCargosIdRoute
@@ -873,7 +873,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/purgar-documentos'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/auth'
     | '/login'
     | '/reset-password'
@@ -910,6 +909,7 @@ export interface FileRouteTypes {
     | '/tipos-unidade'
     | '/usuarios'
     | '/validar/$id'
+    | '/'
     | '/administracao/mural'
     | '/administracao/sistemas-externos'
     | '/cargos/$id'
@@ -953,7 +953,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/purgar-documentos'
   id:
     | '__root__'
-    | '/'
     | '/_authenticated'
     | '/auth'
     | '/login'
@@ -992,6 +991,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tipos-unidade'
     | '/_authenticated/usuarios'
     | '/validar/$id'
+    | '/_authenticated/'
     | '/_authenticated/administracao/mural'
     | '/_authenticated/administracao/sistemas-externos'
     | '/_authenticated/cargos/$id'
@@ -1036,7 +1036,6 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
@@ -1087,12 +1086,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/validar/$id': {
       id: '/validar/$id'
@@ -1757,6 +1756,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSetoresRoute: typeof AuthenticatedSetoresRouteWithChildren
   AuthenticatedTiposUnidadeRoute: typeof AuthenticatedTiposUnidadeRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRouteWithChildren
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdministracaoMuralRoute: typeof AuthenticatedAdministracaoMuralRoute
   AuthenticatedAdministracaoSistemasExternosRoute: typeof AuthenticatedAdministracaoSistemasExternosRoute
   AuthenticatedCargosIdRoute: typeof AuthenticatedCargosIdRoute
@@ -1818,6 +1818,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSetoresRoute: AuthenticatedSetoresRouteWithChildren,
   AuthenticatedTiposUnidadeRoute: AuthenticatedTiposUnidadeRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRouteWithChildren,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdministracaoMuralRoute: AuthenticatedAdministracaoMuralRoute,
   AuthenticatedAdministracaoSistemasExternosRoute:
     AuthenticatedAdministracaoSistemasExternosRoute,
@@ -1856,7 +1857,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
