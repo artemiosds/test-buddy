@@ -222,6 +222,12 @@ export async function drawSignatureStamp(
     // Linha de Sistema (conforme solicitação do usuário)
     const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
     doc.text(systemText, marginX, yAudit + 8);
+    
+    // NOVO: Linha de Rodapé Adicional (Fixa e Centralizada conforme solicitado)
+    const footerText = `HSM GESTÃO - Documento emitido eletronicamente em ${dataFormatada} por ${emitidoPor.toUpperCase()}`;
+    doc.setFontSize(6);
+    doc.setTextColor(150, 150, 150);
+    doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: "center" });
 
     // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
     const usableWidth = pageWidth - marginX * 2;
@@ -455,7 +461,9 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   if (!assinatura) {
     if (documentoId && validationCode) {
       // Mesmo sem assinatura visual, injeta o selo de autenticidade no rodapé
-      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const me = userCtx as any;
+      
       const pdfBuffer = doc.output("arraybuffer");
       const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -488,7 +496,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   if (opts.semModal) {
     // Injeta o carimbo de autenticidade no rodapé (2 colunas)
     if (documentoId && validationCode) {
-      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const me = userCtx as any;
       const pdfBuffer = doc.output("arraybuffer");
       const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
