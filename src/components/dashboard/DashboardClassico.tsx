@@ -174,18 +174,39 @@ export function DashboardClassico() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                   <Pie
                     data={pieData}
-                    cx="40%"
+                    cx="35%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
+                    innerRadius={65}
+                    outerRadius={95}
+                    paddingAngle={4}
                     dataKey="value"
                     animationBegin={200}
                     animationDuration={1200}
-                    label={({ name, value, percent }) => `${name}: ${value}`}
+                    labelLine={false}
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      
+                      // Only show label inside if it's large enough (optional, but let's show value)
+                      return (
+                        <text 
+                          x={x} 
+                          y={y} 
+                          fill="white" 
+                          textAnchor={x > cx ? 'start' : 'end'} 
+                          dominantBaseline="central"
+                          fontSize={10}
+                          fontWeight="bold"
+                        >
+                          {value}
+                        </text>
+                      );
+                    }}
                   >
                     {pieData.map((entry, index) => (
                       <Cell 
@@ -211,12 +232,13 @@ export function DashboardClassico() {
                     verticalAlign="middle" 
                     align="right"
                     iconType="circle"
+                    wrapperStyle={{ paddingLeft: "10px", right: 0 }}
                     formatter={(value, entry: any) => {
                       const { payload } = entry;
                       const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
                       const percent = ((payload.value / total) * 100).toFixed(1);
                       return (
-                        <span className="text-xs font-medium text-text-secondary ml-2">
+                        <span className="text-[11px] font-medium text-text-secondary leading-relaxed">
                           <span className="text-foreground font-bold">{value}:</span> {payload.value} ({percent}%)
                         </span>
                       );
