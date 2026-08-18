@@ -31,14 +31,9 @@ export const Route = createFileRoute("/_authenticated/analitico")({ errorCompone
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const COLORS = [
-  "hsl(var(--primary))",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#ec4899",
-  "#84cc16",
+  "#10b981", // Aprovadas
+  "#f59e0b", // Em análise / Enviada
+  "#94a3b8", // Rascunho
 ];
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -308,7 +303,7 @@ function DashboardAnalitico() {
                     <span className="text-2xl font-bold">
                       {statusDist.reduce((acc, curr) => acc + curr.value, 0)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Folhas Totais</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">FOLHAS TOTAIS</span>
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -318,7 +313,7 @@ function DashboardAnalitico() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
+                        innerRadius={70}
                         outerRadius={85}
                         paddingAngle={5}
                         isAnimationActive={true}
@@ -366,12 +361,12 @@ function DashboardAnalitico() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topUnidades} layout="vertical" margin={{ left: 60 }}>
+                <BarChart data={topUnidades} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis type="number" fontSize={12} allowDecimals={false} />
-                  <YAxis type="category" dataKey="nome" fontSize={11} width={150} />
-                  <Tooltip />
-                  <Bar dataKey="total" name="Profissionais" fill="hsl(var(--primary))" />
+                  <YAxis type="category" dataKey="nome" fontSize={12} width={180} />
+                  <Tooltip cursor={{fill: 'transparent'}} />
+                  <Bar dataKey="total" name="Profissionais" fill="#3b82f6" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 10 }} />
                 </BarChart>
               </ResponsiveContainer>
             )}
