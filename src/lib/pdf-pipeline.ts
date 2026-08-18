@@ -164,7 +164,10 @@ export async function garantirImagemAssinatura(
 }
 
 
-/** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
+/** 
+ * FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF.
+ * Esta função desenha o rodapé oficial em TODAS as páginas do documento.
+ */
 export async function drawSignatureStamp(
   doc: jsPDF,
   id: string,
