@@ -58,9 +58,10 @@ function DashboardAnalitico() {
       for (let m = 1; m <= 12; m++) map[m] = { enviadas: 0, aprovadas: 0, rascunho: 0 };
       (data ?? []).forEach((c: any) => {
         (c.frequencias ?? []).forEach((f: any) => {
-          if (f.status === "aprovada" || f.status === "arquivada") map[c.mes].aprovadas++;
-          else if (["enviada", "em_analise"].includes(f.status)) map[c.mes].enviadas++;
-          else if (f.status === "rascunho") map[c.mes].rascunho++;
+          const status = String(f.status || "").toLowerCase();
+          if (status === "aprovada" || status === "aprovadas" || status === "arquivada") map[c.mes].aprovadas++;
+          else if (["enviada", "em_analise"].includes(status)) map[c.mes].enviadas++;
+          else if (status === "rascunho") map[c.mes].rascunho++;
         });
       });
       return MESES.map((label, i) => ({ mes: label, ...map[i + 1] }));
@@ -85,7 +86,10 @@ function DashboardAnalitico() {
       if (error) throw error;
       const counts: Record<string, number> = {};
       (data ?? []).forEach((f: any) => {
-        counts[f.status] = (counts[f.status] ?? 0) + 1;
+        let status = String(f.status || "").toLowerCase();
+        // Normaliza "aprovada" -> "aprovadas" para a legenda do gráfico de pizza
+        if (status === "aprovada") status = "aprovadas";
+        counts[status] = (counts[status] ?? 0) + 1;
       });
       return Object.entries(counts).map(([name, value]) => ({ name, value }));
     },
