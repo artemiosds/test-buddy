@@ -278,7 +278,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
           filename: finalFilename,
           competencia: (opts as any).competencia,
         }
-      })
+      } as any)
       .select("id")
       .single();
 
