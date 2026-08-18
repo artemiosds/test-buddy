@@ -39,6 +39,8 @@ export function DashboardClassico() {
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
   const unidadesTop = a.distribuicaoUnidade.data ?? [];
+  const isLoading = a.summary.isLoading;
+  const error = a.summary.error;
 
   const n = (v: number | undefined | null) => (v ?? 0).toLocaleString("pt-BR");
   
@@ -69,27 +71,27 @@ export function DashboardClassico() {
         <KpiCard
           label="Total de Profissionais"
           value={n(a.totalProfessionals.data)}
-          loading={a.totalProfessionals.isLoading}
+          loading={a.totalProfessionals.isLoading || isLoading}
           icon={<Users className="h-4 w-4" />}
         />
         <KpiCard
           label="Ativos"
           value={n(status["ativo"])}
-          loading={a.statusBreakdown.isLoading}
+          loading={isLoading}
           tone="success"
           icon={<UserCheck className="h-4 w-4" />}
         />
         <KpiCard
           label="Afastados"
-          value={n(status["afastado"])}
-          loading={a.statusBreakdown.isLoading}
+          value={n(Object.entries(status).reduce((acc, [k, v]) => k !== 'ativo' && k !== 'desligado' ? acc + (v as number) : acc, 0))}
+          loading={isLoading}
           tone="warning"
           icon={<UserMinus className="h-4 w-4" />}
         />
         <KpiCard
           label="Férias"
           value={n(status["ferias"])}
-          loading={a.statusBreakdown.isLoading}
+          loading={isLoading}
           icon={<Calendar className="h-4 w-4" />}
         />
         <KpiCard
@@ -111,53 +113,63 @@ export function DashboardClassico() {
             <h3 className="font-semibold text-foreground">Top 5 Unidades (Profissionais)</h3>
           </div>
           <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.1} />
-                <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="nome" 
-                  type="category" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  fontSize={12}
-                  width={110}
-                  tick={{ fill: 'var(--color-text-secondary)', fontWeight: 500 }}
-                />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
-                  formatter={(v: any) => [v, "Profissionais"]}
-                  contentStyle={{ 
-                    borderRadius: '16px', 
-                    border: '1px solid var(--color-border)', 
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                    backgroundColor: 'var(--color-card)',
-                    color: 'var(--color-foreground)'
-                  }}
-                  itemStyle={{ color: 'var(--color-primary)', fontWeight: 600 }}
-                />
-                <Bar 
-                  dataKey="total" 
-                  fill="url(#barGradient)" 
-                  radius={[0, 8, 8, 0]} 
-                  barSize={24}
-                  animationDuration={1500}
-                  label={{ 
-                    position: 'right', 
-                    fill: 'var(--color-primary)', 
-                    fontSize: 12, 
-                    fontWeight: 700,
-                    offset: 8
-                  }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground animate-pulse">
+                Carregando unidades...
+              </div>
+            ) : barData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground italic">
+                Nenhuma unidade ativa encontrada
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.1} />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="nome" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    fontSize={12}
+                    width={110}
+                    tick={{ fill: 'currentColor', opacity: 0.7, fontWeight: 500 }}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                    formatter={(v: any) => [v, "Profissionais"]}
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: '1px solid var(--color-border)', 
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                      backgroundColor: 'var(--color-card)',
+                      color: 'var(--color-foreground)'
+                    }}
+                    itemStyle={{ color: 'var(--color-primary)', fontWeight: 600 }}
+                  />
+                  <Bar 
+                    dataKey="total" 
+                    fill="url(#barGradient)" 
+                    radius={[0, 8, 8, 0]} 
+                    barSize={24}
+                    animationDuration={1500}
+                    label={{ 
+                      position: 'right', 
+                      fill: 'var(--color-primary)', 
+                      fontSize: 12, 
+                      fontWeight: 700,
+                      offset: 8
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
