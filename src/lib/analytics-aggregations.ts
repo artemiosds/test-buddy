@@ -17,7 +17,7 @@ export type FrequenciaRow = {
   } | null;
 };
 
-export const STATUS_APROVADAS = ["aprovada", "arquivada"];
+export const STATUS_APROVADAS = ["aprovada", "aprovadas", "arquivada"];
 export const STATUS_ENVIADAS = ["enviada", "em_analise"];
 export const STATUS_PENDENTES = ["enviada", "em_analise", "com_pendencias", "devolvida"];
 

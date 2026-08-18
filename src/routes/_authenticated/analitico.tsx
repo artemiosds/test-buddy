@@ -50,7 +50,18 @@ function DashboardAnalitico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("competencias")
-        .select("id, mes, ano, frequencias:frequencias(id, status)")
+        .select(`
+          id, 
+          mes, 
+          ano, 
+          frequencias:frequencias(
+            id, 
+            status,
+            competencia_unidade:competencia_unidades(
+              competencia:competencias(id, ano, mes)
+            )
+          )
+        `)
         .eq("ano", ano)
         .is("deleted_at", null);
       if (error) throw error;
@@ -58,9 +69,10 @@ function DashboardAnalitico() {
       for (let m = 1; m <= 12; m++) map[m] = { enviadas: 0, aprovadas: 0, rascunho: 0 };
       (data ?? []).forEach((c: any) => {
         (c.frequencias ?? []).forEach((f: any) => {
-          if (f.status === "aprovada" || f.status === "arquivada") map[c.mes].aprovadas++;
-          else if (["enviada", "em_analise"].includes(f.status)) map[c.mes].enviadas++;
-          else if (f.status === "rascunho") map[c.mes].rascunho++;
+          const status = String(f.status || "").toLowerCase();
+          if (status === "aprovada" || status === "aprovadas" || status === "arquivada") map[c.mes].aprovadas++;
+          else if (["enviada", "em_analise"].includes(status)) map[c.mes].enviadas++;
+          else if (status === "rascunho") map[c.mes].rascunho++;
         });
       });
       return MESES.map((label, i) => ({ mes: label, ...map[i + 1] }));
@@ -80,12 +92,21 @@ function DashboardAnalitico() {
       if (ids.length === 0) return [];
       const { data, error } = await supabase
         .from("frequencias")
-        .select("status, competencia_unidades!inner(competencia_id)")
+        .select(`
+          status, 
+          competencia_unidades!inner(
+            competencia_id,
+            competencia:competencias(mes, ano)
+          )
+        `)
         .in("competencia_unidades.competencia_id", ids);
       if (error) throw error;
       const counts: Record<string, number> = {};
       (data ?? []).forEach((f: any) => {
-        counts[f.status] = (counts[f.status] ?? 0) + 1;
+        let status = String(f.status || "").toLowerCase();
+        // Normaliza "aprovada" -> "aprovadas" para a legenda do gráfico de pizza
+        if (status === "aprovada") status = "aprovadas";
+        counts[status] = (counts[status] ?? 0) + 1;
       });
       return Object.entries(counts).map(([name, value]) => ({ name, value }));
     },
