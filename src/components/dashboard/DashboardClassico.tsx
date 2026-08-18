@@ -197,7 +197,7 @@ export function DashboardClassico() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number) => [value, "Profissionais"]}
+                    formatter={(value: any) => [value, "Profissionais"]}
                     contentStyle={{ 
                       borderRadius: '16px', 
                       border: '1px solid var(--color-border)', 
