@@ -24,7 +24,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLORS = [
+  "#2563eb", // Royal Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#6366f1", // Indigo
+  "#ec4899", // Rose
+  "#8b5cf6", // Violet
+];
 
 export function DashboardClassico() {
   const a = useAnalytics({});
