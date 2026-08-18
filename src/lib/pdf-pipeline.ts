@@ -174,6 +174,8 @@ export function drawSignatureStamp(
   marginX = 14,
   qrDataUrl?: string
 ) {
+  console.log(`[PDF] Gerando rodapé universal com QR Code para documento: ${validationCode}`);
+
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
   const y = pageHeight - 24;
@@ -382,6 +384,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   };
 
   const baixar = async (pdfDoc: jsPDF = doc) => {
+    console.log(`[PDF] Finalizando documento "${finalFilename}" e preparando download...`);
     const hash = await calcularHashPdf(pdfDoc);
     if (opts.onBlob) {
       const blob = pdfDoc.output("blob");
