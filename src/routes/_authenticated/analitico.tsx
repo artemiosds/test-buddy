@@ -44,38 +44,22 @@ function DashboardAnalitico() {
 
   useFrequencyRealtime({}); // Contexto global (assina eventos de todas as frequências)
 
-  // Evolução mensal: frequências enviadas / aprovadas por mês
+  // Evolução mensal: frequências enviadas / aprovadas por mês via RPC
   const { data: evolucao = [] } = useQuery({
     queryKey: ["analitico", "evolucao", ano],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("competencias")
-        .select(`
-          id, 
-          mes, 
-          ano, 
-          frequencias:frequencias(
-            id, 
-            status,
-            competencia_unidade:competencia_unidades(
-              competencia:competencias(id, ano, mes)
-            )
-          )
-        `)
-        .eq("ano", ano)
-        .is("deleted_at", null);
-      if (error) throw error;
-      const map: Record<number, { enviadas: number; aprovadas: number; rascunho: number }> = {};
-      for (let m = 1; m <= 12; m++) map[m] = { enviadas: 0, aprovadas: 0, rascunho: 0 };
-      (data ?? []).forEach((c: any) => {
-        (c.frequencias ?? []).forEach((f: any) => {
-          const status = String(f.status || "").toLowerCase();
-          if (status === "aprovada" || status === "aprovadas" || status === "arquivada") map[c.mes].aprovadas++;
-          else if (["enviada", "em_analise"].includes(status)) map[c.mes].enviadas++;
-          else if (status === "rascunho") map[c.mes].rascunho++;
-        });
+      const { data, error } = await supabase.rpc("get_dashboard_monthly_evolution", {
+        p_ano: ano,
       });
-      return MESES.map((label, i) => ({ mes: label, ...map[i + 1] }));
+      if (error) throw error;
+      return (data || []) as Array<{
+        mes: string;
+        aprovadas: number;
+        em_analise: number;
+        rascunho: number;
+        total: number;
+        taxa_aprovacao: number;
+      }>;
     },
   });
 
@@ -132,15 +116,12 @@ function DashboardAnalitico() {
     },
   });
 
-  // Taxa de aprovação mensal
+  // Taxa de aprovação mensal (usando valor pré-calculado da RPC)
   const taxaAprovacao = useMemo(() => {
-    return evolucao.map((e: any) => {
-      const total = e.enviadas + e.aprovadas + e.rascunho;
-      return {
-        mes: e.mes,
-        taxa: total > 0 ? Math.round((e.aprovadas / total) * 100) : 0,
-      };
-    });
+    return evolucao.map((e) => ({
+      mes: e.mes,
+      taxa: e.taxa_aprovacao,
+    }));
   }, [evolucao]);
 
   const anoAtual = new Date().getFullYear();
@@ -194,7 +175,7 @@ function DashboardAnalitico() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="rascunho" name="Rascunho" fill="#94a3b8" stackId="a" />
-                    <Bar dataKey="enviadas" name="Em análise" fill="#f59e0b" stackId="a" />
+                    <Bar dataKey="em_analise" name="Em análise" fill="#f59e0b" stackId="a" />
                     <Bar dataKey="aprovadas" name="Aprovadas" fill="#10b981" stackId="a" />
                   </BarChart>
                 </ResponsiveContainer>
