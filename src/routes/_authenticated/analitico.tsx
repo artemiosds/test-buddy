@@ -31,14 +31,9 @@ export const Route = createFileRoute("/_authenticated/analitico")({ errorCompone
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const COLORS = [
-  "hsl(var(--primary))",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#ec4899",
-  "#84cc16",
+  "#10b981", // Aprovadas
+  "#f59e0b", // Em análise / Enviada
+  "#94a3b8", // Rascunho
 ];
 
 function CustomTooltip({ active, payload, label }: any) {
