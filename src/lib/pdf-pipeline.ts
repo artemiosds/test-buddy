@@ -19,6 +19,7 @@ import { requestPdfPosicao } from "@/lib/pdf-posicao-bus";
 /** Dimensões de referência usadas pelo editor visual (A4 retrato em px) */
 const REF_W = 400;
 const REF_H = 560;
+export const MARGEM_INFERIOR_PDF = 40; // Margem fixa de 40mm para o rodapé
 
 /** Largura/altura base do bloco de assinatura em mm (100%) */
 const BASE_W = 75;
@@ -164,7 +165,7 @@ export async function garantirImagemAssinatura(
 
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
-export function drawSignatureStamp(
+export async function drawSignatureStamp(
   doc: jsPDF,
   id: string,
   hash: string,
@@ -178,59 +179,89 @@ export function drawSignatureStamp(
 
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const y = pageHeight - 24;
+  
+  // Posicionamento do rodapé superior (Linha de Auditoria)
+  // Ocupa ~10mm acima do bloco de assinaturas
+  const yAudit = pageHeight - 38;
   const usableWidth = pageWidth - marginX * 2;
+  
+  // Recupera o contexto do usuário para o "Emitido por"
+  let emitidoPor = nome || "Sistema";
+  try {
+    const { data: userCtx } = await supabase.rpc("get_my_user_context");
+    const me = userCtx as any;
+    if (me?.nome_completo) emitidoPor = me.nome_completo;
+  } catch (err) {
+    console.warn("Falha ao obter contexto para rodapé:", err);
+  }
+
+  const pagAtual = doc.getCurrentPageInfo().pageNumber;
+  const pagTotal = doc.getNumberOfPages();
+  const dataFormatada = new Date().toLocaleString("pt-BR");
+  
+  // 1. Linha de Auditoria e Metadados (Superior)
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.1);
+  doc.line(marginX, yAudit, pageWidth - marginX, yAudit);
+  
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.setFont("helvetica", "normal");
+  const auditText = `Emissão: ${dataFormatada} | Página ${pagAtual} de ${pagTotal} | Emitido por: ${emitidoPor.toUpperCase()}`;
+  doc.text(auditText, marginX, yAudit + 4);
+
+  // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
+  const yBlocks = pageHeight - 30;
   const colWidth = usableWidth / 2;
 
-  // Linha superior do rodapé
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.1);
-  doc.line(marginX, y - 2, pageWidth - marginX, y - 2);
+  // Lado Esquerdo / Central: Quadros de Assinatura (injetados externamente via drawAssinaturasBlock se houver)
+  // Se esta função for chamada isoladamente (fallback), apenas o lado direito é preenchido aqui.
 
-  // Bloco 1: QR Code e Texto de Autenticidade (Esquerda)
+  // Lado Direito: Bloco de Conformidade Legal
+  const rightColX = marginX + colWidth + 5;
+  const blockW = colWidth - 5;
+  
+  // Fundo discreto para o bloco de conformidade
+  doc.setDrawColor(240, 240, 240);
+  doc.setFillColor(252, 252, 252);
+  doc.roundedRect(rightColX, yBlocks, blockW, 26, 1, 1, "FD");
+
+  // QR Code (22x22mm)
   if (qrDataUrl) {
     try {
-      doc.addImage(qrDataUrl, "PNG", marginX, y, 18, 18);
+      doc.addImage(qrDataUrl, "PNG", rightColX + 2, yBlocks + 2, 22, 22);
     } catch (e) {
       console.warn("Falha ao adicionar QR Code no rodapé", e);
     }
   }
 
-  const textX = marginX + (qrDataUrl ? 22 : 0);
-  doc.setFontSize(7);
-  doc.setTextColor(80, 80, 80);
+  const infoX = rightColX + 26;
+  doc.setTextColor(60, 60, 60);
   doc.setFont("helvetica", "bold");
-  doc.text("VALIDAÇÃO INSTITUCIONAL", textX, y + 3);
+  doc.setFontSize(7.5);
+  doc.text("VERIFICAÇÃO DE AUTENTICIDADE", infoX, yBlocks + 6);
 
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  let ty = yBlocks + 10;
+  doc.setFont("helvetica", "bold");
+  doc.text(`Código: ${validationCode}`, infoX, ty);
+  doc.setFont("helvetica", "normal");
+  ty += 3.5;
+  doc.text(`Hash: ${hash.slice(0, 24)}...`, infoX, ty);
+  ty += 4.5;
   doc.setFontSize(6);
-  let ty = y + 6;
-  doc.text(`Código: ${validationCode}`, textX, ty);
-  ty += 2.8;
-  doc.text(`Hash SHA-256: ${hash.slice(0, 32)}...`, textX, ty);
-  ty += 2.8;
+  doc.setTextColor(80, 80, 80);
+  const legalText = "Assinado digitalmente nos termos da\nLei Federal nº 14.063/2020.";
+  doc.text(legalText, infoX, ty);
+
+  // Link de validação
+  ty += 5.5;
   const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
   doc.setTextColor(37, 99, 235);
-  doc.text("Valide em:", textX, ty);
-  doc.text(validationUrl, textX + 10, ty);
-
-  // Bloco 2: Conformidade Legal (Direita)
-  const rightColX = marginX + colWidth;
-  doc.setTextColor(80, 80, 80);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("CONFORMIDADE LEGAL", rightColX, y + 3);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  ty = y + 6;
-  doc.text("Documento assinado digitalmente nos termos da", rightColX, ty);
-  ty += 2.5;
-  doc.text("Lei Federal nº 14.063/2020.", rightColX, ty);
-  ty += 3.5;
-  doc.text("A autenticidade pode ser conferida via QR Code", rightColX, ty);
-  ty += 2.5;
-  doc.text("ou no portal de validação.", rightColX, ty);
+  doc.setFontSize(5.5);
+  doc.text("Validar em:", infoX, ty);
+  doc.text(validationUrl, infoX + 11, ty);
 }
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
@@ -415,11 +446,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       
-      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+      const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
       const QRCode = await import("qrcode");
-      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 220 });
 
-      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
+      await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
     }
     await baixar();
     return;
@@ -436,10 +467,26 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     : (opts.xPadraoMm ?? pageWidthMm - 14 - w);
   const yPadrao = temPadraoSalvo
     ? ((assinatura.posicao_y as number) / REF_H) * pageHeightMm
-    : (opts.yPadraoMm ?? pageHeightMm - 42);
+    : (opts.yPadraoMm ?? pageHeightMm - 32); // Ajustado para alinhar com o novo rodapé inferior (40mm de margem)
   const pagina = Math.min(Math.max(opts.pagina ?? pageCount, 1), pageCount);
 
   if (opts.semModal) {
+    // Injeta o carimbo de autenticidade no rodapé (2 colunas)
+    if (documentoId && validationCode) {
+      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const pdfBuffer = doc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
+      const QRCode = await import("qrcode");
+      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 220 });
+
+      await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
+    }
+    
+    // Injeta a assinatura visual na posição padrão
     desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
     await baixar();
     return;
@@ -488,11 +535,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+    const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
     const QRCode = await import("qrcode");
-    const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+    const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 220 });
 
-    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
+    await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
   }
 
   desenharAssinaturaEm(doc, assinatura, {

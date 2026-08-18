@@ -168,7 +168,7 @@ export async function gerarFolhaContratadosModeloCer(
     head,
     body,
     startY: 52,
-    margin: { left: MARGEM, right: MARGEM, top: 52, bottom: 12 },
+    margin: { left: MARGEM, right: MARGEM, top: 52, bottom: 42 },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
