@@ -303,7 +303,7 @@ function DashboardAnalitico() {
                     <span className="text-2xl font-bold">
                       {statusDist.reduce((acc, curr) => acc + curr.value, 0)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Folhas Totais</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">FOLHAS TOTAIS</span>
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
