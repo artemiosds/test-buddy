@@ -153,7 +153,7 @@ function ValidarDocumentoPage() {
                       <ExternalLink className="w-4 h-4" />
                       Visualizar Documento Original
                     </Button>
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
