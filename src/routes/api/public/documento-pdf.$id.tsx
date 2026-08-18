@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/public/documento-pdf/$id')({
         // 1. Busca os metadados do documento
         const { data: doc, error } = await supabaseAdmin
           .from('documentos_assinados')
-          .select('tipo, pdf_storage_path')
+          .select('documento_tipo, metadata')
           .eq('id', id)
           .single()
 
