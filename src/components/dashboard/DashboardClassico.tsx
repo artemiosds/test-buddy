@@ -168,9 +168,13 @@ export function DashboardClassico() {
             <h3 className="font-semibold text-foreground">Distribuição por Vínculo</h3>
           </div>
           <div className="h-80 w-full">
-            {pieData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
+            {a.summary.isLoading ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground animate-pulse">
                 Carregando dados...
+              </div>
+            ) : pieData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground italic">
+                Nenhum dado de vínculo disponível
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
