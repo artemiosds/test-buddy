@@ -461,7 +461,9 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   if (!assinatura) {
     if (documentoId && validationCode) {
       // Mesmo sem assinatura visual, injeta o selo de autenticidade no rodapé
-      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const me = userCtx as any;
+      
       const pdfBuffer = doc.output("arraybuffer");
       const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
