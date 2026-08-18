@@ -91,7 +91,7 @@ export const Route = createFileRoute("/_authenticated")({
       return { user: null };
     }
   },
-  component: AuthenticatedGuard,
+  component: AuthenticatedLayout,
 });
 
 function AuthenticatedGuard() {
@@ -109,7 +109,7 @@ function AuthenticatedGuard() {
   }, [user, navigate]);
 
   if (!user) return null;
-  return <AuthenticatedLayout />;
+  return <Outlet />;
 }
 
 
