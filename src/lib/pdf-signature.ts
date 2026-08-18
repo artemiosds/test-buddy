@@ -79,24 +79,30 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
   });
   const hash = await sha256Hex(payload);
 
+  // Gerar um código único amigável
+  const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const codigoValidacao = `HSM-2026-${randomSuffix}`;
+
   const { data, error } = await supabase
     .from("documentos_assinados")
     .insert({
-      tipo: input.tipo,
-      referencia_id: input.referencia_id ?? null,
+      documento_tipo: input.tipo,
       descricao: input.descricao,
-      hash_conteudo: hash,
-      dados_json: input.dados as never,
-      assinado_por: user.id,
-      assinado_por_nome: perfil?.nome_completo ?? user.email ?? null,
+      hash_sha256: hash,
+      codigo_validacao: codigoValidacao,
+      assinado_por_id: user.id,
+      nome_assinante: perfil?.nome_completo ?? user.email ?? "Signatário",
       assinado_em: assinadoEm,
-      ip_origem: meta.ip,
+      ip_address: meta.ip,
       user_agent: userAgent,
-      termo_aceite: input.termoAceite ?? true,
-      timestamp_confiavel: meta.timestampConfiavel,
-      timestamp_fonte: meta.timestampFonte,
-    })
-    .select("id, assinado_em, assinado_por_nome")
+      metadata: {
+        termo_aceite: input.termoAceite ?? true,
+        timestamp_confiavel: meta.timestampConfiavel,
+        timestamp_fonte: meta.timestampFonte,
+        dados_originais: input.dados
+      }
+    } as any)
+    .select("id, assinado_em, nome_assinante")
     .single();
 
   if (error || !data) throw error ?? new Error("Falha ao registrar documento");
