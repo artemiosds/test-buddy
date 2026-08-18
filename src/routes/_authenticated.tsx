@@ -135,7 +135,7 @@ const GROUPS: NavGroup[] = [
     label: "Operação",
     icon: Activity,
     items: [
-      { to: "/dashboard-classico", label: "Resumo Estrutural", icon: LayoutDashboard },
+      { to: "/", label: "Resumo Estrutural", icon: LayoutDashboard },
       { to: "/analitico", label: "Dashboard Analítico", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
       {
         to: "/competencias",
@@ -523,7 +523,7 @@ function AuthenticatedLayoutInner() {
   // Auto-abre grupo da rota ativa (ou todos, se houver busca)
   const activeGroupId = useMemo(() => {
     for (const g of GROUPS) {
-      if (g.items.some((it) => (it.to === "/dashboard-classico" ? pathname === "/" || pathname === "/dashboard-classico" : pathname.startsWith(it.to)))) {
+      if (g.items.some((it) => (it.to === "/" ? pathname === "/" : pathname.startsWith(it.to)))) {
         return g.id;
       }
     }
@@ -540,7 +540,7 @@ function AuthenticatedLayoutInner() {
   const toggleGroup = (id: string) => setOpenGroups((p) => ({ ...p, [id]: !p[id] }));
 
   const isItemActive = (to: string) =>
-    to === "/dashboard-classico" ? pathname === "/" || pathname === "/dashboard-classico" : pathname === to || pathname.startsWith(to + "/");
+    to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
 
   // ---- Breadcrumbs ----
   // Constrói mapa plano rota -> label a partir dos GROUPS declarados acima.
@@ -564,7 +564,7 @@ function AuthenticatedLayoutInner() {
         if (!best || to.length > best.to.length) best = { to, label };
       }
     }
-    if (pathname === "/" || pathname === "/dashboard-classico") return "Dashboard";
+    if (pathname === "/") return "Dashboard";
     return best?.label ?? "Página";
   }, [pathname, routeLabelMap]);
 
@@ -572,7 +572,7 @@ function AuthenticatedLayoutInner() {
     for (const g of GROUPS) {
       if (
         g.items.some((it) =>
-          it.to === "/dashboard-classico" ? pathname === "/" || pathname === "/dashboard-classico" : pathname === it.to || pathname.startsWith(it.to + "/"),
+          it.to === "/" ? pathname === "/" : pathname === it.to || pathname.startsWith(it.to + "/"),
         )
       ) {
         return g.label;
@@ -882,7 +882,7 @@ function TopBar({
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard-classico" className="text-muted-foreground transition hover:text-foreground">
+                  <Link to="/" className="text-muted-foreground transition hover:text-foreground">
                     Início
                   </Link>
                 </BreadcrumbLink>
