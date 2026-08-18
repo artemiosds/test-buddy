@@ -169,10 +169,28 @@ function DashboardAnalitico() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={evolucao}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="mes" fontSize={12} />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey="mes" 
+                      fontSize={12}
+                      tickFormatter={(val) => {
+                        const mapping: Record<string, string> = {
+                          "Jan": "Jan", "Feb": "Fev", "Mar": "Mar", "Apr": "Abr", "May": "Mai", "Jun": "Jun",
+                          "Jul": "Jul", "Aug": "Ago", "Set": "Set", "Oct": "Out", "Nov": "Nov", "Dec": "Dez"
+                        };
+                        return mapping[val] || val;
+                      }}
+                    />
                     <YAxis fontSize={12} allowDecimals={false} />
-                    <Tooltip />
+                    <Tooltip 
+                      labelFormatter={(label) => {
+                        const mapping: Record<string, string> = {
+                          "Jan": "Janeiro", "Feb": "Fevereiro", "Mar": "Março", "Apr": "Abril", "May": "Maio", "Jun": "Junho",
+                          "Jul": "Julho", "Aug": "Agosto", "Sep": "Setembro", "Oct": "Outubro", "Nov": "Novembro", "Dec": "Dezembro"
+                        };
+                        return mapping[label] || label;
+                      }}
+                    />
                     <Legend />
                     <Bar dataKey="rascunho" name="Rascunho" fill="#94a3b8" stackId="a" />
                     <Bar dataKey="em_analise" name="Em análise" fill="#f59e0b" stackId="a" />
@@ -195,19 +213,39 @@ function DashboardAnalitico() {
               <h2 className="text-sm font-semibold">Taxa de aprovação (%)</h2>
             </div>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={taxaAprovacao}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="mes" fontSize={12} />
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={taxaAprovacao} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                  <XAxis 
+                    dataKey="mes" 
+                    fontSize={12} 
+                    tickFormatter={(val) => {
+                      const mapping: Record<string, string> = {
+                        "Jan": "Jan", "Feb": "Fev", "Mar": "Mar", "Apr": "Abr", "May": "Mai", "Jun": "Jun",
+                        "Jul": "Jul", "Aug": "Ago", "Sep": "Set", "Oct": "Out", "Nov": "Nov", "Dec": "Dez"
+                      };
+                      return mapping[val] || val;
+                    }}
+                  />
                   <YAxis fontSize={12} domain={[0, 100]} unit="%" />
-                  <Tooltip formatter={(v: any) => `${v}%`} />
+                  <Tooltip 
+                    formatter={(v: any) => [`${v}%`, "Taxa de Aprovação"]}
+                    labelFormatter={(label) => {
+                      const mapping: Record<string, string> = {
+                        "Jan": "Janeiro", "Feb": "Fevereiro", "Mar": "Março", "Apr": "Abril", "May": "Maio", "Jun": "Junho",
+                        "Jul": "Julho", "Aug": "Agosto", "Sep": "Setembro", "Oct": "Outubro", "Nov": "Novembro", "Dec": "Dezembro"
+                      };
+                      return mapping[label] || label;
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="taxa"
-                    name="Aprovadas / Total"
-                    stroke="hsl(var(--primary))"
+                    name="Taxa de Aprovação"
+                    stroke="#10b981"
                     strokeWidth={2}
-                    dot={{ r: 4 }}
+                    dot={{ r: 4, fill: "#10b981" }}
+                    activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
