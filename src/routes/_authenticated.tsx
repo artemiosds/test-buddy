@@ -138,7 +138,7 @@ const GROUPS: NavGroup[] = [
     label: "Operação",
     icon: Activity,
     items: [
-      { to: "/", label: "Resumo Estrutural", icon: LayoutDashboard },
+      { to: "/dashboard-classico", label: "Resumo Estrutural", icon: LayoutDashboard },
       { to: "/analitico", label: "Dashboard Analítico", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
       {
         to: "/competencias",
@@ -526,7 +526,7 @@ function AuthenticatedLayoutInner() {
   // Auto-abre grupo da rota ativa (ou todos, se houver busca)
   const activeGroupId = useMemo(() => {
     for (const g of GROUPS) {
-      if (g.items.some((it) => (it.to === "/" ? pathname === "/" : pathname.startsWith(it.to)))) {
+      if (g.items.some((it) => (it.to === "/dashboard-classico" ? pathname === "/" || pathname === "/dashboard-classico" : pathname.startsWith(it.to)))) {
         return g.id;
       }
     }
