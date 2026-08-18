@@ -91,10 +91,10 @@ export const Route = createFileRoute("/_authenticated")({
       return { user: null };
     }
   },
-  component: AuthenticatedLayout,
+  component: AuthenticatedGuard,
 });
 
-function AuthenticatedGuard({ children }: { children: React.ReactNode }) {
+function AuthenticatedGuard() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
 
@@ -106,7 +106,7 @@ function AuthenticatedGuard({ children }: { children: React.ReactNode }) {
   }, [user, navigate]);
 
   if (!user) return null;
-  return <>{children}</>;
+  return <AuthenticatedLayout />;
 }
 
 
@@ -323,11 +323,9 @@ const GROUPS: NavGroup[] = [
 
 function AuthenticatedLayout() {
   return (
-    <AuthenticatedGuard>
-      <ManutencaoProvider>
-        <AuthenticatedLayoutInner />
-      </ManutencaoProvider>
-    </AuthenticatedGuard>
+    <ManutencaoProvider>
+      <AuthenticatedLayoutInner />
+    </ManutencaoProvider>
   );
 }
 
