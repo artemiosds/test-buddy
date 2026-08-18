@@ -209,7 +209,6 @@ export async function gerarFolhaContratadosModeloCer(
       drawHeader();
     },
   });
-  });
 
   let assinaturaBaseY: number | undefined;
   if (assinaturas.length > 0) {
