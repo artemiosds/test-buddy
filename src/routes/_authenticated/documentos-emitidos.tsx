@@ -77,7 +77,7 @@ function DocumentosEmitidosPage() {
       let rows = (data ?? []).map(d => ({
         id: d.id,
         tipo: d.documento_tipo,
-        descricao: d.descricao,
+        descricao: d.nome_assinante + " - " + d.documento_tipo,
         assinado_por_nome: d.nome_assinante,
         assinado_em: d.assinado_em,
         status: (d.metadata as any)?.revogado ? "revogado" : "ativo",
