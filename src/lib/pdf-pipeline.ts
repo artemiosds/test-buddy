@@ -485,8 +485,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
     }
     
-    // Injeta a assinatura visual na coluna da esquerda
-    desenharAssinaturaEm(doc, assinatura, { xMm: escolha.xMm, yMm: escolha.yMm, pagina });
+    // Injeta a assinatura visual na posição padrão
+    desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
     await baixar();
     return;
   }
