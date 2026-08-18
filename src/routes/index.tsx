@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { DashboardClassico } from "@/components/dashboard/DashboardClassico";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: DashboardClassico,
+  beforeLoad: () => {
+    throw redirect({ to: "/_authenticated/" });
+  },
 });
