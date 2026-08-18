@@ -107,7 +107,7 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
 
   if (error || !data) throw error ?? new Error("Falha ao registrar documento");
 
-  const validationUrl = `${window.location.origin}/validar/${data.id}`;
+  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${codigoValidacao}`;
   const qrDataUrl = await createQrDataUrl(validationUrl);
 
   return {
@@ -116,7 +116,7 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
     validationUrl,
     qrDataUrl,
     assinadoEm: data.assinado_em,
-    assinadoPorNome: data.assinado_por_nome,
+    assinadoPorNome: data.nome_assinante,
     timestampConfiavel: meta.timestampConfiavel,
     timestampFonte: meta.timestampFonte,
   };
