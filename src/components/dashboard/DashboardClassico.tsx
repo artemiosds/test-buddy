@@ -44,10 +44,10 @@ export function DashboardClassico() {
   
   const pieData = React.useMemo(() => {
     if (!vinc) return [];
-    return [
-      { name: "Efetivos", value: vinc.efetivos },
-      { name: "Temporários", value: vinc.temporarios },
-    ].filter(i => i.value > 0);
+    return Object.entries(vinc)
+      .map(([name, value]) => ({ name, value }))
+      .filter(i => i.value > 0)
+      .sort((a, b) => b.value - a.value);
   }, [vinc]);
 
   const barData = React.useMemo(() => {
@@ -148,6 +148,13 @@ export function DashboardClassico() {
                   radius={[0, 8, 8, 0]} 
                   barSize={24}
                   animationDuration={1500}
+                  label={{ 
+                    position: 'right', 
+                    fill: 'var(--color-primary)', 
+                    fontSize: 12, 
+                    fontWeight: 700,
+                    offset: 8
+                  }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -170,25 +177,27 @@ export function DashboardClassico() {
                 <PieChart>
                   <Pie
                     data={pieData}
-                    cx="50%"
+                    cx="40%"
                     cy="50%"
-                    innerRadius={75}
-                    outerRadius={105}
-                    paddingAngle={8}
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
                     dataKey="value"
                     animationBegin={200}
                     animationDuration={1200}
+                    label={({ name, value, percent }) => `${name}: ${value}`}
                   >
                     {pieData.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={COLORS[index % COLORS.length]} 
                         stroke="var(--color-card)" 
-                        strokeWidth={4}
+                        strokeWidth={2}
                       />
                     ))}
                   </Pie>
                   <Tooltip 
+                    formatter={(value: number) => [value, "Profissionais"]}
                     contentStyle={{ 
                       borderRadius: '16px', 
                       border: '1px solid var(--color-border)', 
@@ -198,10 +207,20 @@ export function DashboardClassico() {
                     }}
                   />
                   <Legend 
-                    verticalAlign="bottom" 
-                    height={36}
+                    layout="vertical" 
+                    verticalAlign="middle" 
+                    align="right"
                     iconType="circle"
-                    formatter={(value) => <span className="text-xs font-medium text-text-secondary">{value}</span>}
+                    formatter={(value, entry: any) => {
+                      const { payload } = entry;
+                      const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
+                      const percent = ((payload.value / total) * 100).toFixed(1);
+                      return (
+                        <span className="text-xs font-medium text-text-secondary ml-2">
+                          <span className="text-foreground font-bold">{value}:</span> {payload.value} ({percent}%)
+                        </span>
+                      );
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
