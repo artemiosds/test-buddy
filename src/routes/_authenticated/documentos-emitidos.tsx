@@ -55,22 +55,26 @@ function DocumentosEmitidosPage() {
   const [desde, setDesde] = useState<string>("");
   const [ate, setAte] = useState<string>("");
 
+  const [revogar, setRevogar] = useState<DocRow | null>(null);
+  const [motivo, setMotivo] = useState("");
+
   const { data = [], isLoading } = useQuery({
     queryKey: ["documentos-emitidos", tipo, status, desde, ate],
     enabled: canView,
     queryFn: async () => {
       let q = supabase
         .from("documentos_assinados")
-        .select(
-          "id, documento_tipo, descricao, nome_assinante, assinado_em, hash_sha256, metadata",
-        )
+        .select("*")
         .order("assinado_em", { ascending: false })
         .limit(500);
 
+      if (desde) q = q.gte("assinado_em", desde);
+      if (ate) q = q.lte("assinado_em", `${ate}T23:59:59`);
+      
       const { data, error } = await q;
       if (error) throw error;
       
-      return (data ?? []).map(d => ({
+      let rows = (data ?? []).map(d => ({
         id: d.id,
         tipo: d.documento_tipo,
         descricao: d.descricao,
@@ -81,6 +85,11 @@ function DocumentosEmitidosPage() {
         motivo_revogacao: (d.metadata as any)?.motivo_revogacao || null,
         hash_conteudo: d.hash_sha256
       })) as DocRow[];
+
+      if (tipo !== "all") rows = rows.filter(r => r.tipo === tipo);
+      if (status !== "all") rows = rows.filter(r => r.status === status);
+
+      return rows;
     },
   });
 
@@ -102,10 +111,9 @@ function DocumentosEmitidosPage() {
 
   const revogarMut = useMutation({
     mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
-      const { error } = await supabase.rpc("revogar_documento_assinado", {
-        _id: id,
-        _motivo: motivo,
-      });
+      const { data: current } = await supabase.from("documentos_assinados").select("metadata").eq("id", id).single();
+      const metadata = { ...(current?.metadata as any || {}), revogado: true, revogado_em: new Date().toISOString(), motivo_revogacao: motivo };
+      const { error } = await supabase.from("documentos_assinados").update({ metadata } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
