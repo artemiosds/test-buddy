@@ -73,7 +73,7 @@ function ValidarPage() {
       }
       const { data: doc, error } = await supabase
         .from("documentos_assinados")
-        .select("pdf_storage_path, assinado_por")
+        .select("id, metadata, assinado_por_id")
         .eq("id", id)
         .maybeSingle();
       if (error || !doc) {
