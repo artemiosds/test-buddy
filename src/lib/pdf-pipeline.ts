@@ -207,8 +207,14 @@ export async function drawSignatureStamp(
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
+  
+  // Linha de Auditoria: Emissão, Página e Emitido por
   const auditText = `Emissão: ${dataFormatada} | Página ${pagAtual} de ${pagTotal} | Emitido por: ${emitidoPor.toUpperCase()}`;
   doc.text(auditText, marginX, yAudit + 4);
+  
+  // Linha de Sistema (conforme solicitação do usuário)
+  const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
+  doc.text(systemText, marginX, yAudit + 8);
 
   // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
   const yBlocks = pageHeight - 30;
