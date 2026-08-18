@@ -871,6 +871,8 @@ function ProfissionaisPage() {
     fCargo.join(","),
     fFuncao.join(","),
     fSetor.join(","),
+    fCategorias.join(","),
+    fGestor,
   ];
 
   const kpiTotal = useQuery({
