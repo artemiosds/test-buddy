@@ -470,7 +470,23 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   const pagina = Math.min(Math.max(opts.pagina ?? pageCount, 1), pageCount);
 
   if (opts.semModal) {
-    desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
+    // Injeta o carimbo de autenticidade no rodapé (2 colunas)
+    if (documentoId && validationCode) {
+      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+      const pdfBuffer = doc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
+      const QRCode = await import("qrcode");
+      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 220 });
+
+      await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
+    }
+    
+    // Injeta a assinatura visual na coluna da esquerda
+    desenharAssinaturaEm(doc, assinatura, { xMm: escolha.xMm, yMm: escolha.yMm, pagina });
     await baixar();
     return;
   }
