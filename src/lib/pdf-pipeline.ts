@@ -222,6 +222,12 @@ export async function drawSignatureStamp(
     // Linha de Sistema (conforme solicitação do usuário)
     const systemText = "Sistema HSM Gestão — Relatórios Oficiais Oriximiná-PA";
     doc.text(systemText, marginX, yAudit + 8);
+    
+    // NOVO: Linha de Rodapé Adicional (Fixa e Centralizada conforme solicitado)
+    const footerText = `HSM GESTÃO - Documento emitido eletronicamente em ${dataFormatada} por ${emitidoPor.toUpperCase()}`;
+    doc.setFontSize(6);
+    doc.setTextColor(150, 150, 150);
+    doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: "center" });
 
     // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
     const usableWidth = pageWidth - marginX * 2;
