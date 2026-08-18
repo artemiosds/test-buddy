@@ -344,6 +344,8 @@ function ControleForcaTrabalhoPage() {
           value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}
           icon={<Layers className="h-4 w-4" />}
           loading={a.totalSetores.isLoading}
+          className="cursor-pointer"
+          onClick={() => navigate({ to: "/setores" })}
         />
       </section>
 

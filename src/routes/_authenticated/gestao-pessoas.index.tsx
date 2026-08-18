@@ -326,6 +326,8 @@ function DashboardExecutivo() {
             value={n(a.totalSetores.data)}
             loading={a.totalSetores.isLoading}
             icon={<Network className="h-4 w-4" />}
+            className="cursor-pointer"
+            onClick={() => navigate({ to: "/setores" })}
           />
           <KpiCard
             label="Total de cargos"
