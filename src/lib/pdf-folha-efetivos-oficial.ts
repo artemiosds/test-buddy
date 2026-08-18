@@ -438,8 +438,6 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     }
   }
 
-  drawFooter(doc, input.emitidoPor, emissaoStr);
-
   const compStr = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
   await finalizarPdf(doc, {
     filename: `folha-efetivos-oficial-${compStr}.pdf`,
@@ -447,9 +445,9 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     unidadeId: input.unidadeId ?? null,
     secretariaId: input.secretariaId ?? null,
     assinaturas,
-    yPadraoMm: pageHeight - 60,
+    yPadraoMm: undefined,
     xPadraoMm: MARGEM,
-    competencia: input.competencia, // Passa a competência para o metadado
+    competencia: input.competencia,
   });
 
 }
