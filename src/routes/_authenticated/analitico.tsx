@@ -244,40 +244,49 @@ function DashboardAnalitico() {
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={taxaAprovacao} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                <AreaChart data={taxaAprovacao} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTaxa" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
                   <XAxis 
                     dataKey="mes" 
                     fontSize={12} 
+                    axisLine={false}
+                    tickLine={false}
                     tickFormatter={(val) => {
                       const mapping: Record<string, string> = {
                         "Jan": "Jan", "Feb": "Fev", "Mar": "Mar", "Apr": "Abr", "May": "Mai", "Jun": "Jun",
-                        "Jul": "Jul", "Aug": "Ago", "Sep": "Set", "Oct": "Out", "Nov": "Nov", "Dec": "Dez"
+                        "Jul": "Jul", "Aug": "Ago", "Set": "Set", "Oct": "Out", "Nov": "Nov", "Dec": "Dez"
                       };
                       return mapping[val] || val;
                     }}
                   />
-                  <YAxis fontSize={12} domain={[0, 100]} unit="%" />
-                  <Tooltip 
-                    formatter={(v: any) => [`${v}%`, "Taxa de Aprovação"]}
-                    labelFormatter={(label) => {
-                      const mapping: Record<string, string> = {
-                        "Jan": "Janeiro", "Feb": "Fevereiro", "Mar": "Março", "Apr": "Abril", "May": "Maio", "Jun": "Junho",
-                        "Jul": "Julho", "Aug": "Agosto", "Sep": "Setembro", "Oct": "Outubro", "Nov": "Novembro", "Dec": "Dezembro"
-                      };
-                      return mapping[label] || label;
-                    }}
-                  />
-                  <Line
+                  <YAxis fontSize={12} axisLine={false} tickLine={false} domain={[0, 100]} unit="%" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
                     type="monotone"
                     dataKey="taxa"
                     name="Taxa de Aprovação"
                     stroke="#10b981"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#10b981" }}
-                    activeDot={{ r: 6 }}
+                    fillOpacity={1}
+                    fill="url(#colorTaxa)"
+                    unit="%"
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    dot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      return (
+                        <circle key={`dot-${payload.mes}`} cx={cx} cy={cy} r={4} fill="#10b981" stroke="#fff" strokeWidth={2} />
+                      );
+                    }}
+                    activeDot={{ r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
