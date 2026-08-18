@@ -398,12 +398,20 @@ function DocumentosContainer({ profissionalId }: { profissionalId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documentos_assinados")
-        .select("id, tipo, descricao, assinado_em, assinado_por_nome")
-        .eq("referencia_id", profissionalId)
+        .select("*")
         .order("assinado_em", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
-      return (data ?? []) as unknown as DossieDocumento[];
+      
+      const filtered = (data ?? []).filter(d => (d.metadata as any)?.profissional_id === profissionalId);
+      
+      return filtered.map(d => ({
+        id: d.id,
+        tipo: d.documento_tipo,
+        descricao: d.descricao,
+        assinado_em: d.assinado_em,
+        assinado_por_nome: d.nome_assinante
+      })) as unknown as DossieDocumento[];
     },
   });
   return <DossieDocumentosTab docs={data ?? []} loading={isLoading} />;
