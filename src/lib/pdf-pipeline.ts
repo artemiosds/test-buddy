@@ -154,37 +154,70 @@ export async function garantirImagemAssinatura(
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
 export function drawSignatureStamp(
-  doc: jsPDF, 
-  id: string, 
-  hash: string, 
-  nome: string, 
-  data: string, 
+  doc: jsPDF,
+  id: string,
+  hash: string,
+  nome: string,
+  data: string,
   validationCode: string,
-  marginX = 14
+  marginX = 14,
+  qrDataUrl?: string
 ) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const y = pageHeight - 20;
-  
+  const y = pageHeight - 24;
+  const usableWidth = pageWidth - marginX * 2;
+  const colWidth = usableWidth / 2;
+
+  // Linha superior do rodapé
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.1);
   doc.line(marginX, y - 2, pageWidth - marginX, y - 2);
 
+  // Bloco 1: QR Code e Texto de Autenticidade (Esquerda)
+  if (qrDataUrl) {
+    try {
+      doc.addImage(qrDataUrl, "PNG", marginX, y, 18, 18);
+    } catch (e) {
+      console.warn("Falha ao adicionar QR Code no rodapé", e);
+    }
+  }
+
+  const textX = marginX + (qrDataUrl ? 22 : 0);
   doc.setFontSize(7);
   doc.setTextColor(80, 80, 80);
   doc.setFont("helvetica", "bold");
-  doc.text("ASSINADO DIGITALMENTE NOS TERMOS DA LEI FEDERAL Nº 14.063/2020", marginX, y + 2);
-  
+  doc.text("VALIDAÇÃO INSTITUCIONAL", textX, y + 3);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
-  let ty = y + 5;
-  doc.text(`Signatário: ${nome} | Data: ${new Date(data).toLocaleString("pt-BR")}`, marginX, ty);
+  let ty = y + 6;
+  doc.text(`Código: ${validationCode}`, textX, ty);
   ty += 3;
-  doc.text(`Código: ${validationCode} | Hash SHA-256: ${hash.slice(0, 32)}...`, marginX, ty);
+  doc.text(`Hash SHA-256: ${hash.slice(0, 32)}...`, textX, ty);
   ty += 3;
   const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
   doc.setTextColor(37, 99, 235);
-  doc.text(`Valide em: ${validationUrl}`, marginX, ty);
+  doc.text("Valide em:", textX, ty);
+  doc.text(validationUrl, textX + 10, ty);
+
+  // Bloco 2: Conformidade Legal (Direita)
+  const rightColX = marginX + colWidth;
+  doc.setTextColor(80, 80, 80);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text("CONFORMIDADE LEGAL", rightColX, y + 3);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  ty = y + 6;
+  doc.text("ASSINADO DIGITALMENTE NOS TERMOS DA", rightColX, ty);
+  ty += 2.5;
+  doc.text("LEI FEDERAL Nº 14.063/2020", rightColX, ty);
+  ty += 3.5;
+  doc.text(`Emitido por: ${nome}`, rightColX, ty);
+  ty += 2.5;
+  doc.text(`Data/Hora: ${new Date(data).toLocaleString("pt-BR")}`, rightColX, ty);
 }
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
