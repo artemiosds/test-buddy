@@ -193,7 +193,6 @@ export async function drawSignatureStamp(
     // Posicionamento do rodapé superior (Linha de Auditoria)
     // Ocupa ~10mm acima do bloco de assinaturas
     const yAudit = pageHeight - 38;
-    const usableWidth = pageWidth - marginX * 2;
     
     // Recupera o contexto do usuário para o "Emitido por"
     let emitidoPor = nome || "Sistema";
@@ -225,6 +224,7 @@ export async function drawSignatureStamp(
     doc.text(systemText, marginX, yAudit + 8);
 
     // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
+    const usableWidth = pageWidth - marginX * 2;
     const yBlocks = pageHeight - 28;
     const colWidth = usableWidth / 2;
 
