@@ -186,19 +186,19 @@ export function DashboardClassico() {
                     animationBegin={200}
                     animationDuration={1200}
                     labelLine={false}
-                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value }) => {
+                      if (midAngle === undefined) return null;
                       const RADIAN = Math.PI / 180;
                       const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                       const x = cx + radius * Math.cos(-midAngle * RADIAN);
                       const y = cy + radius * Math.sin(-midAngle * RADIAN);
                       
-                      // Only show label inside if it's large enough (optional, but let's show value)
                       return (
                         <text 
                           x={x} 
                           y={y} 
                           fill="white" 
-                          textAnchor={x > cx ? 'start' : 'end'} 
+                          textAnchor="middle" 
                           dominantBaseline="central"
                           fontSize={10}
                           fontWeight="bold"
