@@ -313,7 +313,7 @@ function DashboardAnalitico() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
+                        innerRadius={70}
                         outerRadius={85}
                         paddingAngle={5}
                         isAnimationActive={true}
