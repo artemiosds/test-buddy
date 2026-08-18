@@ -826,83 +826,55 @@ export type Database = {
       documentos_assinados: {
         Row: {
           assinado_em: string
-          assinado_por: string | null
-          assinado_por_nome: string | null
+          assinado_por_id: string | null
+          cargo_assinante: string | null
+          codigo_validacao: string
           created_at: string
-          dados_json: Json
-          descricao: string
-          hash_conteudo: string
+          documento_tipo: string
+          frequencia_id: string | null
+          hash_sha256: string
           id: string
-          ip_origem: unknown
-          motivo_revogacao: string | null
-          pdf_storage_path: string | null
-          referencia_id: string | null
-          revogado_em: string | null
-          revogado_por: string | null
-          status: string
-          termo_aceite: boolean
-          timestamp_confiavel: string | null
-          timestamp_fonte: string | null
-          tipo: string
+          ip_address: string | null
+          metadata: Json | null
+          nome_assinante: string
           user_agent: string | null
         }
         Insert: {
           assinado_em?: string
-          assinado_por?: string | null
-          assinado_por_nome?: string | null
+          assinado_por_id?: string | null
+          cargo_assinante?: string | null
+          codigo_validacao: string
           created_at?: string
-          dados_json?: Json
-          descricao: string
-          hash_conteudo: string
+          documento_tipo?: string
+          frequencia_id?: string | null
+          hash_sha256: string
           id?: string
-          ip_origem?: unknown
-          motivo_revogacao?: string | null
-          pdf_storage_path?: string | null
-          referencia_id?: string | null
-          revogado_em?: string | null
-          revogado_por?: string | null
-          status?: string
-          termo_aceite?: boolean
-          timestamp_confiavel?: string | null
-          timestamp_fonte?: string | null
-          tipo: string
+          ip_address?: string | null
+          metadata?: Json | null
+          nome_assinante: string
           user_agent?: string | null
         }
         Update: {
           assinado_em?: string
-          assinado_por?: string | null
-          assinado_por_nome?: string | null
+          assinado_por_id?: string | null
+          cargo_assinante?: string | null
+          codigo_validacao?: string
           created_at?: string
-          dados_json?: Json
-          descricao?: string
-          hash_conteudo?: string
+          documento_tipo?: string
+          frequencia_id?: string | null
+          hash_sha256?: string
           id?: string
-          ip_origem?: unknown
-          motivo_revogacao?: string | null
-          pdf_storage_path?: string | null
-          referencia_id?: string | null
-          revogado_em?: string | null
-          revogado_por?: string | null
-          status?: string
-          termo_aceite?: boolean
-          timestamp_confiavel?: string | null
-          timestamp_fonte?: string | null
-          tipo?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          nome_assinante?: string
           user_agent?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "documentos_assinados_assinado_por_fkey"
-            columns: ["assinado_por"]
+            foreignKeyName: "documentos_assinados_frequencia_id_fkey"
+            columns: ["frequencia_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documentos_assinados_revogado_por_fkey"
-            columns: ["revogado_por"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "frequencias"
             referencedColumns: ["id"]
           },
         ]
@@ -5417,48 +5389,6 @@ export type Database = {
       }
     }
     Views: {
-      documentos_assinados_publico: {
-        Row: {
-          assinado_em: string | null
-          assinado_por_nome: string | null
-          descricao: string | null
-          hash_conteudo: string | null
-          id: string | null
-          motivo_revogacao: string | null
-          revogado_em: string | null
-          status: string | null
-          termo_aceite: boolean | null
-          timestamp_confiavel: string | null
-          tipo: string | null
-        }
-        Insert: {
-          assinado_em?: string | null
-          assinado_por_nome?: string | null
-          descricao?: string | null
-          hash_conteudo?: string | null
-          id?: string | null
-          motivo_revogacao?: string | null
-          revogado_em?: string | null
-          status?: string | null
-          termo_aceite?: boolean | null
-          timestamp_confiavel?: string | null
-          tipo?: string | null
-        }
-        Update: {
-          assinado_em?: string | null
-          assinado_por_nome?: string | null
-          descricao?: string | null
-          hash_conteudo?: string | null
-          id?: string | null
-          motivo_revogacao?: string | null
-          revogado_em?: string | null
-          status?: string | null
-          termo_aceite?: boolean | null
-          timestamp_confiavel?: string | null
-          tipo?: string | null
-        }
-        Relationships: []
-      }
       v_integridade_profissionais: {
         Row: {
           cadastros_incompletos: number | null
