@@ -138,13 +138,8 @@ const GROUPS: NavGroup[] = [
     label: "Operação",
     icon: Activity,
     items: [
-      { to: "/analitico", label: "Dashboard", icon: LayoutDashboard },
-      {
-        to: "/analitico",
-        label: "Dashboard Analítico",
-        icon: BarChart3,
-        perm: ["relatorio.visualizar", "relatorio.exportar"],
-      },
+      { to: "/", label: "Resumo Estrutural", icon: LayoutDashboard },
+      { to: "/analitico", label: "Dashboard Analítico", icon: BarChart3, perm: ["relatorio.visualizar", "relatorio.exportar"] },
       {
         to: "/competencias",
         label: "Competências",
