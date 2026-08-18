@@ -209,6 +209,7 @@ export async function drawSignatureStamp(
   doc.setFont("helvetica", "normal");
   
   // Linha de Auditoria: Emissão, Página e Emitido por
+  // OBS: O usuário solicitou explicitamente que essas informações estivessem presentes.
   const auditText = `Emissão: ${dataFormatada} | Página ${pagAtual} de ${pagTotal} | Emitido por: ${emitidoPor.toUpperCase()}`;
   doc.text(auditText, marginX, yAudit + 4);
   
