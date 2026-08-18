@@ -428,6 +428,18 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   // Usuário cancelou
   if (escolha === null) return;
 
+  // Antes de desenhar a assinatura visual, injetamos o carimbo de autenticidade (Selo Verde)
+  if (documentoId && validationCode) {
+    const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+    // Recalcula o hash final antes da assinatura (o hash registrado no banco é do PDF base)
+    const pdfBuffer = doc.output("arraybuffer");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode);
+  }
+
   desenharAssinaturaEm(doc, assinatura, {
     xMm: escolha.xMm,
     yMm: escolha.yMm,
