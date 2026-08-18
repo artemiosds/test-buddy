@@ -90,7 +90,7 @@ export function DashboardClassico() {
           label="Estimativa de Folha"
           value={`R$ ${n((a.totalProfessionals.data ?? 0) * 2850)}`}
           loading={a.totalProfessionals.isLoading}
-          tone="info"
+          iconTone="info"
           icon={<Wallet className="h-4 w-4" />}
         />
       </div>
