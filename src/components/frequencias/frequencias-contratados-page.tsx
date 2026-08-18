@@ -371,13 +371,13 @@ export function FrequenciasContratadosPage() {
   const isMaster = !!me?.is_master;
   const perfilCodigo = me?.perfil_codigo || "";
   const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
-  const canEdit = !compFechada && has("frequencia.editar") || isMaster;
+  const canEdit = !compFechada && has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
     if (!canEdit) return true;
     // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida" || isMaster);
+    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
   }
 
   const salvarFn = useServerFn(salvarFolhaContratados);

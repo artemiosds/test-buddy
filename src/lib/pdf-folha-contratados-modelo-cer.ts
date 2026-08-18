@@ -168,7 +168,7 @@ export async function gerarFolhaContratadosModeloCer(
     head,
     body,
     startY: 52,
-    margin: { left: MARGEM, right: MARGEM, top: 52, bottom: 42 },
+    margin: { left: MARGEM, right: MARGEM, top: 52, bottom: 12 },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
@@ -207,6 +207,16 @@ export async function gerarFolhaContratadosModeloCer(
     },
     didDrawPage: () => {
       drawHeader();
+      // rodapé
+      const emissao = new Date().toLocaleString("pt-BR");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Emissão: ${emissao}`, MARGEM, pageH - 5);
+      doc.text(`Emitido por: ${input.emitidoPor}`, pageW - MARGEM, pageH - 5, { align: "right" });
+      const pageNum = doc.getCurrentPageInfo().pageNumber;
+      const pageTotal = doc.getNumberOfPages();
+      doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
     },
   });
 

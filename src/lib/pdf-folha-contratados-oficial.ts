@@ -254,9 +254,6 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const MARGEM_PDF = 10;
-  const rodapeReserva = 42; // Reserva espaço para o rodapé do pipeline
-  const limiteBaixo = pageH - rodapeReserva;
-
 
   const logoPrefeitura = LOGO_PREFEITURA;
   const logoBrasaoAlt = LOGO_BRASAO;
@@ -384,7 +381,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     head,
     body,
     startY: 52,
-    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: rodapeReserva },
+    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 40 },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
@@ -423,6 +420,14 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     },
     didDrawPage: (data) => {
       drawHeader();
+      const emissao = new Date().toLocaleString("pt-BR");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Emissão: ${emissao} | Emitido por: ${input.emitidoPor}`, MARGEM_PDF, pageH - 5);
+      const pageNum = data.pageNumber;
+      const pageTotal = doc.getNumberOfPages();
+      doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
     },
   });
 

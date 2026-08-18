@@ -328,7 +328,15 @@ export async function resolverAssinaturasDocumento(
 
 
 /**
- * Renderiza o rodapé institucional dinâmico com quadros padronizados.
+ * Renderiza o bloco de assinaturas do documento no PDF.
+ * Adiciona também o selo de autenticidade (QR Code/Hash) no rodapé.
+ *
+ * Distribui as assinaturas (tipo `assinatura` ou `carimbo`) em até 3 colunas
+
+ * por linha, com a imagem (quando existir) e as linhas de titular/cargo
+ * abaixo. Retorna o Y final do bloco.
+ *
+ * Se `startY` não couber, adiciona uma nova página.
  */
 export function drawAssinaturasBlock(
   doc: jsPDF,
@@ -347,85 +355,147 @@ export function drawAssinaturasBlock(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = opts.marginX ?? 14;
-  const blockH = opts.reservaAltura ?? 28; // Reduzido para caber melhor na grade de 2 colunas
-  const usableW = pageWidth - marginX * 2;
-  const colWidthLeft = (usableW / 2); // Ocupa apenas a coluna da esquerda
+  const blockH = opts.reservaAltura ?? 34;
 
-  let y = opts.startY ?? pageHeight - 32;
+  // O selo agora é desenhado via drawSignatureStamp no pipeline, 
+  // mas mantemos este fallback se o ID estiver disponível e for um fluxo legado
+  const docId = (opts as any)?.documentoId || (assinaturas[0] as any)?.documento_id;
+  if (docId) {
+    const stampY = pageHeight - 12;
+    doc.setFontSize(6);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "normal");
+    const validationUrl = `${window.location.origin}/validar/${docId}`;
+    doc.text(`Para verificar a autenticidade deste documento, acesse: ${validationUrl}`, marginX, stampY);
+    doc.text(`Código de Autenticidade (Hash): ${docId}`, marginX, stampY + 3);
+  }
 
-  // Se não couber, adiciona nova página
-  if (y + blockH > pageHeight - 10) {
+
+
+  // Separa assinaturas com posicionamento custom (posicao_x/y definidos)
+  const custom = assin.filter((a) => a.posicao_x !== null && a.posicao_y !== null);
+  const fluxo = assin.filter((a) => a.posicao_x === null || a.posicao_y === null);
+
+  // ---- Assinaturas com posição custom (coordenadas absolutas na página) ----
+  const baseImgW = 75; // largura base em mm (100%) - Aumentado de 55 para 75
+  const baseImgH = 30; // altura base em mm - Aumentado de 22 para 30
+  for (const a of custom) {
+    const scaleX = pageWidth / REF_W;
+    const scaleY = pageHeight / REF_H;
+    const factor = (a.tamanho_percentual ?? 80) / 100;
+    const imgW = baseImgW * factor;
+    const imgH = baseImgH * factor;
+    const px = (a.posicao_x ?? 0) * scaleX;
+    const py = (a.posicao_y ?? 0) * scaleY;
+    if (a.imageData) {
+      desenharImagemProporcional(doc, a.imageData, px, py, imgW, imgH);
+    }
+
+    const lineY = py + imgH + 1.5;
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.2);
+    doc.line(px, lineY, px + imgW, lineY);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    if (a.mostrar_nome && a.titular_nome) {
+      doc.text(a.titular_nome, px + imgW / 2, lineY + 3.5, {
+        align: "center",
+        maxWidth: imgW,
+      });
+    }
+    const metadata = (a as any).metadata;
+    if (a.mostrar_cargo) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(90, 90, 90);
+      
+      const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
+      const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
+      const cpf = metadata?.cpf_mascarado || (metadata?.cpf ? `${metadata.cpf.slice(0, 3)}.***.***-${metadata.cpf.slice(-2)}` : "");
+      const cpfLabel = cpf ? `CPF: ${cpf}` : "";
+      
+      let extraLines = [cargo, matricula, cpfLabel].filter(Boolean);
+      extraLines.forEach((line, idx) => {
+        doc.text(line, px + imgW / 2, lineY + 6.8 + idx * 3, {
+          align: "center",
+          maxWidth: imgW,
+        });
+      });
+    }
+  }
+
+  if (fluxo.length === 0) return opts.startY ?? 0;
+
+  let y = opts.startY ?? pageHeight - blockH - 22;
+
+  if (y + blockH > pageHeight - 18) {
     doc.addPage();
     y = 24;
   }
 
-  const perRow = Math.min(assin.length, 2); // No máximo 2 assinaturas lado a lado na coluna da esquerda
-  const colW = colWidthLeft / perRow;
+  const perRow = Math.min(fluxo.length, 3);
+  const usableW = pageWidth - marginX * 2;
+  const colW = usableW / perRow;
 
-  for (let i = 0; i < assin.length; i++) {
-    const a = assin[i];
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.2);
+
+  for (let i = 0; i < fluxo.length; i++) {
+    const a = fluxo[i];
+    const factor = (a.tamanho_percentual ?? 80) / 100;
+    const imgH = 30 * factor;
+    const imgW = Math.min(colW - 8, 75 * factor);
     const row = Math.floor(i / perRow);
     const col = i % perRow;
-    
-    const factor = (a.tamanho_percentual ?? 80) / 100;
-    const boxW = Math.min(colW - 4, 75 * factor);
-    const boxH = 22 * factor;
-    
-    const cx = marginX + col * colW + colW / 2;
+    // alinhamento dentro da coluna
+    let cx = marginX + col * colW + colW / 2;
+    if (a.alinhamento === "esquerda") cx = marginX + col * colW + imgW / 2 + 4;
+    else if (a.alinhamento === "direita") cx = marginX + (col + 1) * colW - imgW / 2 - 4;
     const cy = y + row * (blockH + 4);
 
-    // Quadro padronizado com borda suave
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.05);
-    doc.roundedRect(cx - colW / 2 + 1, cy - 2, colW - 2, blockH + 2, 0.5, 0.5, "S");
-
-    // Imagem da assinatura (tratada com fundo branco)
     if (a.imageData) {
-      desenharImagemProporcional(doc, a.imageData, cx - boxW / 2, cy, boxW, boxH);
+      desenharImagemProporcional(doc, a.imageData, cx - imgW / 2, cy, imgW, imgH);
     }
 
-    const lineY = cy + boxH + 2;
-    doc.setDrawColor(180, 180, 180);
-    doc.setLineWidth(0.2);
-    doc.line(cx - boxW / 2, lineY, cx + boxW / 2, lineY);
 
-    // Dados dinâmicos do titular
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    const nome = a.titular_nome ?? (a.obrigatoria ? "___________________" : "NÃO IDENTIFICADO");
-    doc.text(nome.toUpperCase(), cx, lineY + 3, { align: "center", maxWidth: colW - 4 });
+    const lineY = cy + imgH + 2;
+    doc.line(cx - colW / 2 + 6, lineY, cx + colW / 2 - 6, lineY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(80, 80, 80);
-    
-    const cargo = (a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "CARGO NÃO INFORMADO").toUpperCase();
-    doc.text(cargo, cx, lineY + 6, { align: "center", maxWidth: colW - 4 });
-
-    const metadata = a.metadata;
-    const matricula = metadata?.matricula;
-    if (matricula && a.mostrar_cargo) {
-      doc.setFontSize(5.5);
-      doc.text(`MATRÍCULA: ${matricula}`, cx, lineY + 8.5, { align: "center", maxWidth: colW - 4 });
+    if (a.mostrar_nome) {
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      const nome = a.titular_nome ?? (a.obrigatoria ? "___________________" : "-");
+      doc.text(nome, cx, lineY + 4, { align: "center", maxWidth: colW - 4 });
     }
 
-    const ato = metadata?.ato_ou_decreto || metadata?.decreto || "";
-    if (ato) {
-      doc.setFontSize(5.5);
-      const atoY = (matricula && a.mostrar_cargo) ? lineY + 11 : lineY + 8.5;
-      doc.text(String(ato).toUpperCase(), cx, atoY, { align: "center", maxWidth: colW - 4 });
+    if (a.mostrar_cargo) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(90, 90, 90);
+      
+      const cargo = a.titular_cargo ?? cargoDoPerfil(a.perfil_codigo) ?? "";
+      const metadata = a.metadata;
+      const matricula = metadata?.matricula ? `Matrícula: ${metadata.matricula}` : "";
+      const cpf = metadata?.cpf_mascarado || (metadata?.cpf ? `${metadata.cpf.slice(0, 3)}.***.***-${metadata.cpf.slice(-2)}` : "");
+      const cpfLabel = cpf ? `CPF: ${cpf}` : "";
+      
+      const extraLines = [cargo, matricula, cpfLabel].filter(Boolean);
+      extraLines.forEach((line, idx) => {
+        doc.text(line, cx, lineY + 8 + idx * 3.5, { align: "center", maxWidth: colW - 4 });
+      });
     }
 
     if (a.escopo === "ausente" && a.obrigatoria) {
       doc.setTextColor(200, 60, 60);
       doc.setFontSize(7);
-      doc.text("(ASSINATURA PENDENTE)", cx, cy + blockH / 2, { align: "center" });
+      doc.text("(assinatura pendente)", cx, lineY + 12, { align: "center" });
     }
   }
 
-  const rowsN = Math.ceil(assin.length / perRow);
-  return y + rowsN * (blockH + 8);
+  const rowsN = Math.ceil(fluxo.length / perRow);
+  return y + rowsN * (blockH + 4);
 }
 
 /**
