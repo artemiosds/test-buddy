@@ -6,7 +6,7 @@ import {
   UserCheck, 
   UserMinus, 
   Calendar,
-  Wallet,
+  Building2,
   BarChart3,
   PieChart as PieIcon
 } from "lucide-react";
@@ -31,6 +31,7 @@ export function DashboardClassico() {
   
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
+  const unidadesTop = a.distribuicaoUnidade.data ?? [];
 
   const n = (v: number | undefined | null) => (v ?? 0).toLocaleString("pt-BR");
   
@@ -42,14 +43,12 @@ export function DashboardClassico() {
     ].filter(i => i.value > 0);
   }, [vinc]);
 
-  // Simulando dados de evolução de gastos baseados no total (visão simplificada)
-  const gastosData = React.useMemo(() => {
-    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
-    return meses.map(m => ({
-      mes: m,
-      valor: (a.totalProfessionals.data ?? 0) * 2500 + (Math.random() * 50000)
+  const barData = React.useMemo(() => {
+    return unidadesTop.map(u => ({
+      nome: u.sigla || u.nome.substring(0, 15),
+      total: u.total
     }));
-  }, [a.totalProfessionals.data]);
+  }, [unidadesTop]);
 
   return (
     <div className="space-y-8 p-4 md:p-6 animate-in fade-in duration-500">
@@ -87,38 +86,41 @@ export function DashboardClassico() {
           icon={<Calendar className="h-4 w-4" />}
         />
         <KpiCard
-          label="Estimativa de Folha"
-          value={`R$ ${n((a.totalProfessionals.data ?? 0) * 2850)}`}
-          loading={a.totalProfessionals.isLoading}
+          label="Unidades Ativas"
+          value={n(a.totalUnidades.data)}
+          loading={a.totalUnidades.isLoading}
           iconTone="info"
-          icon={<Wallet className="h-4 w-4" />}
+          icon={<Building2 className="h-4 w-4" />}
+          onClick={() => window.location.href = "/unidades"}
         />
       </div>
 
       {/* Gráficos Principais */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Gráfico de Gastos Mensais */}
+        {/* Gráfico de Profissionais por Unidade */}
         <div className="rounded-xl border bg-card p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-foreground">Evolução de Gastos (Estimativa)</h3>
+            <Building2 className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Top 5 Unidades (Profissionais)</h3>
           </div>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={gastosData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-                <XAxis dataKey="mes" axisLine={false} tickLine={false} fontSize={12} />
+              <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.2} />
+                <XAxis type="number" hide />
                 <YAxis 
+                  dataKey="nome" 
+                  type="category" 
                   axisLine={false} 
                   tickLine={false} 
-                  fontSize={12} 
-                  tickFormatter={(v) => `R$ ${v/1000}k`}
+                  fontSize={11}
+                  width={100}
                 />
                 <Tooltip 
-                  formatter={(v: any) => [`R$ ${v.toLocaleString("pt-BR")}`, "Valor"]}
+                  formatter={(v: any) => [v, "Profissionais"]}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 />
-                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
+                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
