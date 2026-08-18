@@ -445,11 +445,11 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       
-      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+      const validationUrl = `${window.location.origin}/validar-documento?codigo=${validationCode}`;
       const QRCode = await import("qrcode");
-      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 220 });
 
-      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
+      await drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
     }
     await baixar();
     return;
