@@ -19,6 +19,7 @@ import { requestPdfPosicao } from "@/lib/pdf-posicao-bus";
 /** Dimensões de referência usadas pelo editor visual (A4 retrato em px) */
 const REF_W = 400;
 const REF_H = 560;
+export const MARGEM_INFERIOR_PDF = 40; // Margem fixa de 40mm para o rodapé
 
 /** Largura/altura base do bloco de assinatura em mm (100%) */
 const BASE_W = 75;
