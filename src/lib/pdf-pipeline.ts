@@ -261,15 +261,20 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
+    // Gerar um código único amigável conforme solicitado
+    const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const codigoValidacao = `HSM-2026-${randomSuffix}`;
+
     const { data: newDoc } = await supabase
       .from("documentos_assinados")
       .insert({
-        tipo: opts.tipo || "relatorio",
+        documento_tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
-        hash_conteudo: hashHex,
-        status: "emitido",
-        assinado_por_nome: me?.nome_completo || null,
-        dados_json: {
+        hash_sha256: hashHex,
+        codigo_validacao: codigoValidacao,
+        nome_assinante: me?.nome_completo || "Sistema",
+        assinado_por_id: me?.id || null,
+        metadata: {
           filename: finalFilename,
           competencia: (opts as any).competencia,
         }
