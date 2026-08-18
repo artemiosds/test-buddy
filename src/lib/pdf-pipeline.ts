@@ -251,11 +251,12 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   // Persiste o registro do documento no banco para permitir validação futura
   let documentoId: string | null = null;
+  let validationCode: string | null = null;
   try {
     const { data: userCtx } = await supabase.rpc("get_my_user_context");
     const me = userCtx as any;
     
-    // Cálculo real do Hash SHA-256 do documento
+    // Cálculo real do Hash SHA-256 do documento ANTES da assinatura visual
     const pdfBuffer = doc.output("arraybuffer");
     const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -263,7 +264,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     
     // Gerar um código único amigável conforme solicitado
     const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const codigoValidacao = `HSM-2026-${randomSuffix}`;
+    validationCode = `HSM-2026-${randomSuffix}`;
 
     const { data: newDoc } = await supabase
       .from("documentos_assinados")
@@ -271,7 +272,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
         documento_tipo: opts.tipo || "relatorio",
         descricao: finalFilename,
         hash_sha256: hashHex,
-        codigo_validacao: codigoValidacao,
+        codigo_validacao: validationCode,
         nome_assinante: me?.nome_completo || "Sistema",
         assinado_por_id: me?.id || null,
         metadata: {
@@ -284,10 +285,6 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
     if (newDoc) {
       documentoId = newDoc.id;
-      // Injeta o ID nas assinaturas para o drawAssinaturasBlock desenhar o selo
-      if (opts.assinaturas) {
-        opts.assinaturas.forEach((a: any) => { (a as any).documento_id = documentoId; });
-      }
     }
   } catch (err) {
     console.warn("Erro ao registrar documento para validação:", err);
