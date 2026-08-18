@@ -174,6 +174,8 @@ export function drawSignatureStamp(
   marginX = 14,
   qrDataUrl?: string
 ) {
+  console.log(`[PDF] Gerando rodapé universal com QR Code para documento: ${validationCode}`);
+
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
   const y = pageHeight - 24;
