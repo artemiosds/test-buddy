@@ -337,6 +337,8 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     isError: summary.isError,
   };
 
+  const summary = summaryQuery;
+  
   const previousCompetenciaId = useQuery({
     queryKey: ["analytics", "prevCompetencia", competenciaId],
     staleTime,
