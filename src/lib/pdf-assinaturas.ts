@@ -347,13 +347,14 @@ export function drawAssinaturasBlock(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = opts.marginX ?? 14;
-  const blockH = opts.reservaAltura ?? 36;
+  const blockH = opts.reservaAltura ?? 28; // Reduzido para caber melhor na grade de 2 colunas
   const usableW = pageWidth - marginX * 2;
+  const colW = (usableW / 2); // Ocupa apenas a coluna da esquerda
 
-  let y = opts.startY ?? pageHeight - blockH - 28;
+  let y = opts.startY ?? pageHeight - 32;
 
   // Se não couber, adiciona nova página
-  if (y + blockH > pageHeight - 24) {
+  if (y + blockH > pageHeight - 10) {
     doc.addPage();
     y = 24;
   }
