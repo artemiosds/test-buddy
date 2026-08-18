@@ -47,7 +47,7 @@ function ValidarPage() {
       return {
         id: data.id,
         tipo: data.documento_tipo,
-        descricao: data.descricao,
+        descricao: data.nome_assinante + " - " + data.documento_tipo,
         hash_conteudo: data.hash_sha256,
         assinado_por_nome: data.nome_assinante,
         assinado_em: data.assinado_em,
