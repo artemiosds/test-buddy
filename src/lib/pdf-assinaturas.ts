@@ -349,7 +349,7 @@ export function drawAssinaturasBlock(
   const marginX = opts.marginX ?? 14;
   const blockH = opts.reservaAltura ?? 28; // Reduzido para caber melhor na grade de 2 colunas
   const usableW = pageWidth - marginX * 2;
-  const colW = (usableW / 2); // Ocupa apenas a coluna da esquerda
+  const colWidthLeft = (usableW / 2); // Ocupa apenas a coluna da esquerda
 
   let y = opts.startY ?? pageHeight - 32;
 
@@ -359,8 +359,8 @@ export function drawAssinaturasBlock(
     y = 24;
   }
 
-  const perRow = Math.min(assin.length, 3);
-  const colW = usableW / perRow;
+  const perRow = Math.min(assin.length, 2); // No máximo 2 assinaturas lado a lado na coluna da esquerda
+  const colW = colWidthLeft / perRow;
 
   for (let i = 0; i < assin.length; i++) {
     const a = assin[i];
@@ -368,16 +368,16 @@ export function drawAssinaturasBlock(
     const col = i % perRow;
     
     const factor = (a.tamanho_percentual ?? 80) / 100;
-    const boxW = Math.min(colW - 8, 75 * factor);
-    const boxH = 30 * factor;
+    const boxW = Math.min(colW - 4, 75 * factor);
+    const boxH = 22 * factor;
     
     const cx = marginX + col * colW + colW / 2;
-    const cy = y + row * (blockH + 8);
+    const cy = y + row * (blockH + 4);
 
     // Quadro padronizado com borda suave
     doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.1);
-    doc.roundedRect(cx - colW / 2 + 2, cy - 2, colW - 4, blockH + 4, 1, 1, "S");
+    doc.setLineWidth(0.05);
+    doc.roundedRect(cx - colW / 2 + 1, cy - 2, colW - 2, blockH + 2, 0.5, 0.5, "S");
 
     // Imagem da assinatura (tratada com fundo branco)
     if (a.imageData) {
