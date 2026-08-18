@@ -104,17 +104,46 @@ export function desenharImagemProporcional(
 }
 
 
+/**
+ * Converte qualquer imagem (Data URL) para PNG com fundo branco se houver transparência.
+ * Isso evita o "fundo preto" em imagens com canal alpha no jsPDF.
+ */
+export async function removerFundoTransparente(dataUri: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(dataUri);
+        return;
+      }
+      // Fundo branco
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Desenha a imagem por cima
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(dataUri);
+    img.src = dataUri;
+  });
+}
+
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url, { cache: 'no-cache' });
+    const res = await fetch(url, { cache: "no-cache" });
     if (!res.ok) return null;
     const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
+    const dataUri = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(String(r.result));
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
+    return await removerFundoTransparente(dataUri);
   } catch {
     return null;
   }
