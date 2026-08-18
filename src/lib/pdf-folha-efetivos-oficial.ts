@@ -192,35 +192,6 @@ function drawHierBar(
   return y + h;
 }
 
-function drawFooter(doc: jsPDF, emitidoPor: string, emissaoStr: string) {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const total = doc.getNumberOfPages();
-  const y1 = pageHeight - 12;
-  const y2 = pageHeight - 7;
-
-  doc.setDrawColor(...COR_BORDA);
-  doc.setLineWidth(0.2);
-  doc.line(MARGEM, y1 - 3, pageWidth - MARGEM, y1 - 3);
-
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i);
-    doc.setTextColor(...COR_TEXTO);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(`Data: ${emissaoStr}`, MARGEM, y1);
-    doc.text(`Página: ${i} de ${total}`, pageWidth / 2, y1, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(90, 90, 90);
-    doc.text(`Data da emissão: ${emissaoStr}`, MARGEM, y2);
-    doc.text("ÁGILIBlue Recursos Humanos - Ágili Software Brasil", pageWidth / 2, y2, {
-      align: "center",
-    });
-    doc.text(`Emitido por: ${emitidoPor}`, pageWidth - MARGEM, y2, { align: "right" });
-  }
-}
 
 /* -------------------- Cabeçalho da tabela -------------------- */
 
@@ -467,8 +438,6 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     }
   }
 
-  drawFooter(doc, input.emitidoPor, emissaoStr);
-
   const compStr = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
   await finalizarPdf(doc, {
     filename: `folha-efetivos-oficial-${compStr}.pdf`,
@@ -476,9 +445,9 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     unidadeId: input.unidadeId ?? null,
     secretariaId: input.secretariaId ?? null,
     assinaturas,
-    yPadraoMm: pageHeight - 60,
+    yPadraoMm: undefined,
     xPadraoMm: MARGEM,
-    competencia: input.competencia, // Passa a competência para o metadado
+    competencia: input.competencia,
   });
 
 }
