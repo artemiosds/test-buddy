@@ -254,6 +254,9 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const MARGEM_PDF = 10;
+  const rodapeReserva = 42; // Reserva espaço para o rodapé do pipeline
+  const limiteBaixo = pageH - rodapeReserva;
+
 
   const logoPrefeitura = LOGO_PREFEITURA;
   const logoBrasaoAlt = LOGO_BRASAO;
@@ -381,7 +384,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     head,
     body,
     startY: 52,
-    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 42 },
+    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: rodapeReserva },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 8,
