@@ -23,9 +23,9 @@ function ValidarDocumentoPage() {
     queryFn: async () => {
       if (!hashToSearch) return null;
       const { data, error } = await supabase
-        .from("documentos_assinados_publico")
+        .from("documentos_assinados")
         .select("*")
-        .eq("id", hashToSearch)
+        .eq("codigo_validacao", hashToSearch)
         .maybeSingle();
       
       if (error) throw error;
