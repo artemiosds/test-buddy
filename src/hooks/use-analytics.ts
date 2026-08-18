@@ -173,7 +173,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         status_breakdown: Record<string, number>;
         top_unidades: Array<{ id: string; nome: string; sigla: string | null; total: number }>;
         top_cargos: Array<{ id: string; nome: string; total: number }>;
-        vinculo_breakdown: { efetivos: number; temporarios: number; outros: number };
+        vinculo_breakdown: Record<string, number>;
         rh_kpis: {
           enviadas: number;
           pendentes: number;
@@ -317,11 +317,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   };
 
   const vinculoBreakdown = {
-    data: summary.data?.vinculo_breakdown ?? {
-      efetivos: 0,
-      temporarios: 0,
-      outros: 0,
-    },
+    data: summary.data?.vinculo_breakdown ?? {},
     isLoading: summary.isLoading,
     isSuccess: summary.isSuccess,
     isError: summary.isError,
