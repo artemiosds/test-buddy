@@ -37,6 +37,7 @@ type Props = {
   /** Cor do círculo que envolve o ícone. Default: "primary". */
   iconTone?: KpiIconTone;
   className?: string;
+  onClick?: () => void;
 };
 
 const TONE_VALUE: Record<KpiTone, string> = {
@@ -87,11 +88,16 @@ export function KpiCard({
   tone = "default",
   iconTone = "primary",
   className,
+  onClick,
 }: Props) {
   const foot = description ?? hint;
   const TrendIcon = trend ? TREND_ICON[trend.direction] : null;
   return (
-    <Card className={cn("hover-lift p-4", className)} title={tooltip}>
+    <Card 
+      className={cn("hover-lift p-4", onClick && "cursor-pointer", className)} 
+      title={tooltip}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="kpi-title text-xs font-semibold uppercase tracking-wide text-muted-foreground">

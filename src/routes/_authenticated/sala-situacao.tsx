@@ -493,6 +493,14 @@ function SalaSituacaoPage() {
           loading={a.statusBreakdown.isLoading}
         />
         <KpiCard
+          label="Setores"
+          value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}
+          icon={<Network className="h-4 w-4" />}
+          loading={a.totalSetores.isLoading}
+          className="cursor-pointer"
+          onClick={() => navigate({ to: "/setores" })}
+        />
+        <KpiCard
           label="Afastados"
           value={kpiAfast.toLocaleString("pt-BR")}
           icon={<UserMinus className="h-4 w-4" />}
