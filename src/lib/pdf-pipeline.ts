@@ -153,6 +153,41 @@ export async function garantirImagemAssinatura(
 
 
 /** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
+export function drawSignatureStamp(
+  doc: jsPDF, 
+  id: string, 
+  hash: string, 
+  nome: string, 
+  data: string, 
+  validationCode: string,
+  marginX = 14
+) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const y = pageHeight - 20;
+  
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.1);
+  doc.line(marginX, y - 2, pageWidth - marginX, y - 2);
+
+  doc.setFontSize(7);
+  doc.setTextColor(80, 80, 80);
+  doc.setFont("helvetica", "bold");
+  doc.text("ASSINADO DIGITALMENTE NOS TERMOS DA LEI FEDERAL Nº 14.063/2020", marginX, y + 2);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  let ty = y + 5;
+  doc.text(`Signatário: ${nome} | Data: ${new Date(data).toLocaleString("pt-BR")}`, marginX, ty);
+  ty += 3;
+  doc.text(`Código: ${validationCode} | Hash SHA-256: ${hash.slice(0, 32)}...`, marginX, ty);
+  ty += 3;
+  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+  doc.setTextColor(37, 99, 235);
+  doc.text(`Valide em: ${validationUrl}`, marginX, ty);
+}
+
+/** FASE 3 — Injeta a assinatura (imagem ou bloco institucional textual) no PDF. */
 export function desenharAssinaturaEm(
   doc: jsPDF,
   a: AssinaturaResolvida,
