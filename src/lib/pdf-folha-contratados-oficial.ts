@@ -420,14 +420,6 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     },
     didDrawPage: (data) => {
       drawHeader();
-      const emissao = new Date().toLocaleString("pt-BR");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(90, 90, 90);
-      doc.text(`Emissão: ${emissao} | Emitido por: ${input.emitidoPor}`, MARGEM_PDF, pageH - 5);
-      const pageNum = data.pageNumber;
-      const pageTotal = doc.getNumberOfPages();
-      doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
     },
   });
 
