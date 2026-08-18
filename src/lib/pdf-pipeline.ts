@@ -217,7 +217,7 @@ export async function drawSignatureStamp(
   doc.text(systemText, marginX, yAudit + 8);
 
   // 2. Organização em 2 Colunas (Assinaturas vs Conformidade)
-  const yBlocks = pageHeight - 30;
+  const yBlocks = pageHeight - 28;
   const colWidth = usableWidth / 2;
 
   // Lado Esquerdo / Central: Quadros de Assinatura (injetados externamente via drawAssinaturasBlock se houver)
