@@ -818,15 +818,21 @@ function PisoIndex() {
           </PermissionGate>
 
 
-          <a
-            href="https://gemini.google.com/spark"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-3"
-            aria-label="Abrir chat de IA em nova aba"
-          >
-            <Sparkles className="mr-2 h-4 w-4" /> Chat IA
-          </a>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Keywords: FOPAG, PRESTADORES
+            </span>
+            <a
+              href="https://gemini.google.com/spark"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-3"
+              aria-label="Abrir chat de IA em nova aba"
+            >
+              <Sparkles className="mr-2 h-4 w-4" /> Chat IA
+            </a>
+          </div>
+
 
           <Select value={modeloSel} onValueChange={setModeloSel}>
             <SelectTrigger className="h-9 w-[230px]">
