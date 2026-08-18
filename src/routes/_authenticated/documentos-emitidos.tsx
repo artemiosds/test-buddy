@@ -84,7 +84,8 @@ function DocumentosEmitidosPage() {
         status: (d.metadata as any)?.revogado ? "revogado" : "ativo",
         revogado_em: (d.metadata as any)?.revogado_em || null,
         motivo_revogacao: (d.metadata as any)?.motivo_revogacao || null,
-        hash_conteudo: d.hash_sha256
+        hash_conteudo: d.hash_sha256,
+        codigo_validacao: d.codigo_validacao
       })) as DocRow[];
 
       if (tipo !== "all") rows = rows.filter(r => r.tipo === tipo);
