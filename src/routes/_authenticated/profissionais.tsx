@@ -827,6 +827,7 @@ function ProfissionaisPage() {
     T extends {
       in: (col: string, vals: readonly string[]) => T;
       or: (expr: string) => T;
+      not: (col: string, op: string, val: string) => T;
     },
   >(
     q: T,
