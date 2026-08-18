@@ -408,7 +408,7 @@ function DocumentosContainer({ profissionalId }: { profissionalId: string }) {
       return filtered.map(d => ({
         id: d.id,
         tipo: d.documento_tipo,
-        descricao: d.descricao,
+        descricao: d.nome_assinante + " - " + d.documento_tipo,
         assinado_em: d.assinado_em,
         assinado_por_nome: d.nome_assinante
       })) as unknown as DossieDocumento[];
