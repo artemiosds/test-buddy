@@ -175,6 +175,11 @@ function ValidarPage() {
                   ) : null}
                 </dd>
 
+                <dt className="font-medium text-muted-foreground">Código de Validação</dt>
+                <dd className="sm:col-span-2 font-mono text-xs text-foreground break-all">
+                  {(data as any).metadata?.codigo_validacao || (data as any).codigo_validacao || data.id}
+                </dd>
+
                 <dt className="font-medium text-muted-foreground">Identificador</dt>
                 <dd className="sm:col-span-2 font-mono text-xs text-foreground break-all">
                   {data.id}
