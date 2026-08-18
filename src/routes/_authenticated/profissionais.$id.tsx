@@ -411,7 +411,7 @@ function DocumentosContainer({ profissionalId }: { profissionalId: string }) {
         descricao: d.nome_assinante + " - " + d.documento_tipo,
         assinado_em: d.assinado_em,
         assinado_por_nome: d.nome_assinante
-      })) as unknown as DossieDocumento[];
+      })) as DossieDocumento[];
     },
   });
   return <DossieDocumentosTab docs={data ?? []} loading={isLoading} />;
