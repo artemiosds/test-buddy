@@ -80,13 +80,14 @@ function ValidarPage() {
         toast.error("Acesso restrito ao autor do documento.");
         return;
       }
-      if (!doc.pdf_storage_path) {
+      const storagePath = (doc.metadata as any)?.pdf_storage_path;
+      if (!storagePath) {
         toast.error("PDF original não disponível para este documento.");
         return;
       }
       const signed = await supabase.storage
         .from("documentos-assinados")
-        .createSignedUrl(doc.pdf_storage_path, 60);
+        .createSignedUrl(storagePath, 60);
       if (signed.error || !signed.data?.signedUrl) {
         toast.error("Não foi possível gerar o link de download.");
         return;
