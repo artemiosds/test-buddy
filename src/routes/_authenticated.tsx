@@ -100,9 +100,6 @@ function AuthenticatedGuard() {
 
   useEffect(() => {
     if (user) return;
-    // Redirecionamento "hard" para /auth: garante que o documento seja
-    // renderizado do zero, sem trocar o match do router durante a hidratação
-    // (o que causava "Hydration failed" em deep links sem sessão).
     if (typeof window !== "undefined" && window.location.pathname !== "/auth") {
       window.location.replace("/auth");
     }
