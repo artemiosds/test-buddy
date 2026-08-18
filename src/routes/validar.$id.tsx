@@ -34,43 +34,30 @@ function ValidarPage() {
     queryKey: ["validar-doc", id],
     queryFn: async () => {
       // Consulta a VIEW pública restrita — NÃO expõe dados_json nem outros campos sensíveis.
-      const { data, error } = await (
-        supabase as unknown as {
-          from: (t: string) => {
-            select: (c: string) => {
-              eq: (
-                col: string,
-                val: string,
-              ) => {
-                maybeSingle: () => Promise<{
-                  data: {
-                    id: string;
-                    tipo: string;
-                    descricao: string;
-                    hash_conteudo: string;
-                    assinado_por_nome: string | null;
-                    assinado_em: string;
-                    status: string | null;
-                    revogado_em: string | null;
-                    motivo_revogacao: string | null;
-                    timestamp_confiavel: string | null;
-                    termo_aceite: boolean | null;
-                  } | null;
-                  error: Error | null;
-                }>;
-              };
-            };
-          };
-        }
-      )
-        .from("documentos_assinados_publico")
-        .select(
-          "id, tipo, descricao, hash_conteudo, assinado_por_nome, assinado_em, status, revogado_em, motivo_revogacao, timestamp_confiavel, termo_aceite",
-        )
+      const { data, error } = await supabase
+        .from("documentos_assinados")
+        .select("*")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      
+      if (!data) return null;
+
+      // Mapear para o formato da UI
+      return {
+        id: data.id,
+        tipo: data.documento_tipo,
+        descricao: data.descricao,
+        hash_conteudo: data.hash_sha256,
+        assinado_por_nome: data.nome_assinante,
+        assinado_em: data.assinado_em,
+        status: (data.metadata as any)?.revogado ? "revogado" : "ativo",
+        revogado_em: (data.metadata as any)?.revogado_em || null,
+        motivo_revogacao: (data.metadata as any)?.motivo_revogacao || null,
+        timestamp_confiavel: (data.metadata as any)?.timestamp_confiavel || null,
+        termo_aceite: (data.metadata as any)?.termo_aceite ?? true,
+        metadata: data.metadata
+      };
     },
   });
 
