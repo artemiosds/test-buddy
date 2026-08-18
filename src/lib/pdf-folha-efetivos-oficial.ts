@@ -362,7 +362,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
 
 
   const pageHeight = doc.internal.pageSize.getHeight();
-  const rodapeReserva = 18;
+  const rodapeReserva = 42;
   const limiteBaixo = pageHeight - rodapeReserva;
 
   const emissaoStr = new Date().toLocaleString("pt-BR");
