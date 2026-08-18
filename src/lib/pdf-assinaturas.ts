@@ -404,10 +404,17 @@ export function drawAssinaturasBlock(
     doc.text(cargo, cx, lineY + 6, { align: "center", maxWidth: colW - 4 });
 
     const metadata = a.metadata;
+    const matricula = metadata?.matricula;
+    if (matricula && a.mostrar_cargo) {
+      doc.setFontSize(5.5);
+      doc.text(`MATRÍCULA: ${matricula}`, cx, lineY + 8.5, { align: "center", maxWidth: colW - 4 });
+    }
+
     const ato = metadata?.ato_ou_decreto || metadata?.decreto || "";
     if (ato) {
       doc.setFontSize(5.5);
-      doc.text(String(ato).toUpperCase(), cx, lineY + 8.5, { align: "center", maxWidth: colW - 4 });
+      const atoY = (matricula && a.mostrar_cargo) ? lineY + 11 : lineY + 8.5;
+      doc.text(String(ato).toUpperCase(), cx, atoY, { align: "center", maxWidth: colW - 4 });
     }
 
     if (a.escopo === "ausente" && a.obrigatoria) {
