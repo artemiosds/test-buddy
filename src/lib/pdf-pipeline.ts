@@ -384,6 +384,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   };
 
   const baixar = async (pdfDoc: jsPDF = doc) => {
+    console.log(`[PDF] Finalizando documento "${finalFilename}" e preparando download...`);
     const hash = await calcularHashPdf(pdfDoc);
     if (opts.onBlob) {
       const blob = pdfDoc.output("blob");
