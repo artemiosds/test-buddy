@@ -288,30 +288,57 @@ function DashboardAnalitico() {
               <PieIcon className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Distribuição por status — {ano}</h2>
             </div>
-            <div className="h-72">
+            <div className="h-72 relative">
               {statusDist.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                   Sem dados neste ano.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusDist}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label={(e: any) => `${e.name}: ${e.value}`}
-                    >
-                      {statusDist.map((_: any, i: number) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
+                    <span className="text-2xl font-bold">
+                      {statusDist.reduce((acc, curr) => acc + curr.value, 0)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Folhas Totais</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusDist}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={85}
+                        paddingAngle={5}
+                        isAnimationActive={true}
+                        animationDuration={1000}
+                      >
+                        {statusDist.map((_: any, i: number) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        align="center"
+                        iconType="circle"
+                        formatter={(value, entry: any) => {
+                          const { payload } = entry;
+                          const total = statusDist.reduce((acc, curr) => acc + curr.value, 0);
+                          const percentage = ((payload.value / total) * 100).toFixed(1);
+                          const label = value.charAt(0).toUpperCase() + value.slice(1);
+                          return (
+                            <span className="text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">{label}</span>: {payload.value} ({percentage}%)
+                            </span>
+                          );
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </>
               )}
             </div>
           </div>
