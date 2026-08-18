@@ -177,8 +177,8 @@ export function DashboardClassico() {
                 <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                   <Pie
                     data={pieData}
-                    cx="35%"
-                    cy="50%"
+                    cx="50%"
+                    cy="40%"
                     innerRadius={65}
                     outerRadius={95}
                     paddingAngle={4}
@@ -228,17 +228,17 @@ export function DashboardClassico() {
                     }}
                   />
                   <Legend 
-                    layout="vertical" 
-                    verticalAlign="middle" 
-                    align="right"
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
                     iconType="circle"
-                    wrapperStyle={{ paddingLeft: "10px", right: 0 }}
+                    wrapperStyle={{ paddingTop: "20px" }}
                     formatter={(value, entry: any) => {
                       const { payload } = entry;
                       const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
                       const percent = ((payload.value / total) * 100).toFixed(1);
                       return (
-                        <span className="text-[11px] font-medium text-text-secondary leading-relaxed">
+                        <span className="text-[11px] font-medium text-text-secondary">
                           <span className="text-foreground font-bold">{value}:</span> {payload.value} ({percent}%)
                         </span>
                       );
