@@ -386,7 +386,8 @@ function ProfissionaisPage() {
       fGestor !== "todos" ? (gestorIds?.length ?? 0) : 0,
       page,
       pageSize,
-      me?.unidades, // Adicionado para reagir a mudanças no contexto de unidades
+      me?.unidades,
+      me?.perfil_codigo,
     ],
     placeholderData: keepPreviousData,
     enabled:

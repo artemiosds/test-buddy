@@ -22,7 +22,7 @@ export function normalizarPerfil(codigo?: string | null): PerfilCodigo | string 
   const c = codigo.trim().toUpperCase().replace(/\s+/g, '_');
   
   // Mapeamento de variações conhecidas
-  if (c === "DIRETOR_DE_UNIDADE") return PERFIS.DIRETOR_UNIDADE;
+  if (c === "DIRETOR_DE_UNIDADE" || c === "DIRETOR_UNIDADE") return PERFIS.DIRETOR_UNIDADE;
   if (c === "ADMINISTRADOR") return PERFIS.GESTOR;
   
   return c;
