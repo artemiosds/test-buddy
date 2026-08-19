@@ -657,6 +657,7 @@ function LinhasAnaliseDialog({
   freqId,
   onClose,
   meId,
+  me,
   canAprovar,
   canRejeitar,
   isMaster,
@@ -664,6 +665,7 @@ function LinhasAnaliseDialog({
   freqId: string | null;
   onClose: () => void;
   meId: string | undefined;
+  me: any;
   canAprovar: boolean;
   canRejeitar: boolean;
   isMaster: boolean;
