@@ -477,7 +477,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     secretariaId: input.secretariaId ?? null,
     assinaturas,
     yPadraoMm: pageHeight - 65,
-    xPadraoMm: pageWidth - 75 - MARGEM,
+    xPadraoMm: doc.internal.pageSize.getWidth() - 75 - MARGEM,
     competencia: input.competencia, // Passa a competência para o metadado
   });
 
