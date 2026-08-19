@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, StatusBadge } from "@/components/shared";
+import { salvarFolhaEfetivos } from "@/lib/frequencias-efetivos.functions";
+import { salvarFolhaContratados } from "@/lib/frequencias-contratados.functions";
 import { statusLabel } from "@/lib/status";
 import {
   Select,
@@ -820,11 +822,84 @@ function LinhasAnaliseDialog({
       return map;
     },
   });
-
   
-  // Idempotente: aprovação/rejeição de linha é UPDATE por id com campos determinísticos.
+  // Handlers para edição direta
+  const handleUpdateLinha = async (pid: string, campo: string, valor: any) => {
+    if (!freqBase) return;
+    const cu = freqBase.competencia_unidades as any;
+    
+    // Atualiza estado local otimista
+    const originalLinha = linhasArr.find(l => l.profissional_id === pid);
+    if (!originalLinha) return;
 
+    const payloadBase = {
+      ...originalLinha,
+      ...editMap[pid],
+      [campo]: valor
+    };
 
+    try {
+      if (freqBase.tipo === "efetivos") {
+        await salvarEfetivosFn({
+          data: {
+            competencia_id: cu.competencia_id,
+            unidade_id: cu.unidade_id,
+            linhas: [{
+              profissional_id: pid,
+              dias_trabalhados: payloadBase.dias_trabalhados,
+              faltas_injustificadas: payloadBase.faltas_injustificadas,
+              atestado: payloadBase.atestado,
+              he_50: payloadBase.he_50,
+              he_100: payloadBase.he_100,
+              ferias_terco: payloadBase.ferias_terco,
+              ferias_integral: payloadBase.ferias_integral,
+              sal_sub_h: payloadBase.sal_sub_h,
+              adicional_noturno: payloadBase.adicional_noturno,
+              aulas_suplementares: payloadBase.aulas_suplementares,
+              sobreaviso: payloadBase.sobreaviso,
+              plantoes_extras: payloadBase.plantoes_extras,
+              incentivo: payloadBase.incentivo,
+              ferias: payloadBase.ferias,
+              licenca_premio: payloadBase.licenca_premio,
+              status_linha: payloadBase.status_linha,
+              observacoes: payloadBase.observacoes
+            }]
+          }
+        });
+      } else {
+        await salvarContratadosFn({
+          data: {
+            competencia_id: cu.competencia_id,
+            unidade_id: cu.unidade_id,
+            linhas: [{
+              profissional_id: pid,
+              dias_trabalhados: payloadBase.dias_trabalhados,
+              dias_falta: payloadBase.faltas_injustificadas || payloadBase.dias_falta,
+              atestado: payloadBase.atestado,
+              he_50: payloadBase.he_50,
+              he_100: payloadBase.he_100,
+              adn: payloadBase.adn || payloadBase.adicional_noturno,
+              plantoes: payloadBase.plantoes || payloadBase.plantoes_extras,
+              sobreaviso: payloadBase.sobreaviso,
+              incentivo: payloadBase.incentivo,
+              status: payloadBase.status || payloadBase.status_linha,
+              observacoes: payloadBase.observacoes
+            }]
+          }
+        });
+      }
+      
+      setEditMap(prev => ({ ...prev, [pid]: { ...prev[pid], [campo]: valor } }));
+      toast.success("Alteração salva");
+      
+      // Invalida para refletir no resumo e auditoria
+      qc.invalidateQueries({ queryKey: ["frequencia-linhas-analise", freqId] });
+      qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
+      
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    }
+  };
 
   const mut = useRetryMutation({
     retry: { operation: "frequencia_linha.aprovar_rejeitar" },
