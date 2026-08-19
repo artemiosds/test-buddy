@@ -1,32 +1,37 @@
-# Missão: Correção Forense de Autorização (RBAC)
+# Missão: Correção Forense de Autorização (RBAC) - DIAGNÓSTICO E PROVA
 
-## 1. Auditoria Estrutural (Estrutura REAL)
-- **Tabelas de Vínculo**: `usuario_unidades` (Master tem 13 vínculos), `usuario_secretarias`.
-- **Hierarquia**: Determinada por `perfis.codigo` ('MASTER', 'GESTOR', 'DIRETOR_UNIDADE') e flags `acesso_todas_unidades`/`secretarias`.
-- **Funções de Decisão**: `is_master_db`, `has_permission_core`, `user_has_unit`, `user_has_secretaria`.
-- **RLS**: Utiliza `is_master(auth.uid())` como bypass principal em `SELECT`.
+## 1. FASE 1 & 2 — PROVA DA CAUSA E COMPARAÇÃO
+Realizei a auditoria das funções `is_master` (SQL) e `is_master_db` (PL/pgSQL).
 
-## 2. Diagnóstico de Bloqueio (Matriz Forense)
+### Comparação de Determinação de MASTER
 
-| Camada | Status | Observação |
+| REGRA | is_master (SQL/RLS) | is_master_db (PL/pgSQL) |
 | :--- | :--- | :--- |
-| **A) auth.uid()** | OK | Identificado corretamente nas RPCs. |
-| **B) Perfil** | OK | Usuário `artemiosouza99@gmail.com` é 'MASTER'. |
-| **C) is_master_db** | **FALHA** | **Causa Raiz 1**: A função `is_master_db` exige que `(acesso_todas_secretarias AND acesso_todas_unidades)` sejam TRUE **OU** que o código seja exatamente 'MASTER'. Se o cache ou o JOIN falhar, o bypass em RPCs de escrita é ignorado. |
-| **D) mfa_exigido_core** | **RISCO** | Identificada lógica que bloqueia usuários com `acesso_todas_unidades` se não tiverem MFA verificado e o JWT estiver em `aal1`. |
-| **E) RLS** | **CONFLITO** | **Causa Raiz 2**: A política `freq_prof_update` não possui o bypass `is_master(auth.uid())`. Ela depende exclusivamente de `has_permission(..., 'frequencia.editar', cu.unidade_id)`. Se o vínculo de unidade falhar ou o cache de permissão expirar, o Master é bloqueado. |
-| **F) RPC `save_...`** | **CRÍTICO** | A RPC `save_profissional_complete` usa `is_master_db` na linha 18. Se retornar FALSE, cai nas validações restritivas de unidade/secretaria. |
+| Perfil 'MASTER' | SIM | SIM |
+| Perfil 'ADMINISTRADOR_MASTER' | SIM | **NÃO** |
+| acesso_todas_unidades = TRUE | SIM | **CONDICIONAL** (precisa de todas_secretarias) |
+| acesso_todas_secretarias = TRUE | **NÃO** | **CONDICIONAL** (precisa de todas_unidades) |
+| Fallback E-mail | SIM ('artemiosouza99...') | **NÃO** |
+| Segurança | SECURITY DEFINER | SECURITY DEFINER |
 
-## 3. Plano de Correção
+**CAUSA RAIZ EXATA 1**: A função `is_master_db` (usada em RPCs de escrita como `save_profissional_complete`) é muito mais restritiva que a `is_master` (usada no RLS de leitura). Um usuário Master com perfil 'ADMINISTRADOR_MASTER' ou que não tenha ambas as flags ativas é barrado na escrita, mas vê os dados na leitura.
 
-### Fase A: Unificação de `is_master`
-- Atualizar `is_master_db` para ser idêntica à `is_master` (SQL), incluindo o fail-safe por e-mail e garantindo que o bypass seja absoluto.
+## 2. FASE 5 — AUDITORIA DE RLS (CRÍTICO)
 
-### Fase B: Endurecimento de RLS
-- Adicionar `is_master(auth.uid()) OR ...` explicitamente em **todas** as políticas de `UPDATE` e `DELETE` das tabelas de Frequência e Profissionais, onde hoje falta o bypass.
+Identifiquei bloqueios silenciosos no RLS de escrita:
 
-### Fase C: Sincronização de Cache
-- Ajustar `rls_cache_put` para garantir que a invalidação ocorra ao alterar perfis, evitando que um estado "Não-Master" persista na sessão.
+- **Tabela `frequencia_profissional`**: As policies `freq_prof_insert`, `freq_prof_update` e `freq_prof_delete` **NÃO possuem bypass para MASTER**. Elas dependem exclusivamente de `has_permission(..., 'frequencia.editar', ...)`. Se o Master não tiver o vínculo explícito na tabela `usuario_unidades` para a unidade da frequência, ele é bloqueado pelo RLS mesmo que a RPC permita a execução.
+
+**CAUSA RAIZ EXATA 2**: O RLS de escrita de frequências não reconhece a autoridade global do MASTER.
+
+## 3. FASE 3 — CACHE
+O cache utiliza `set_config(..., true)`, o que significa que ele é resetado ao fim da transação. No entanto, se múltiplas operações ocorrerem na mesma transação com contextos de unidade diferentes, o cache `hp` (has_permission) pode retornar um valor incorreto se a chave não for suficientemente única. A chave atual inclui `unidade_id`, o que é bom, mas a invalidação manual não existe.
+
+## 4. PLANO DE AÇÃO (MIGRATION CONTROLADA)
+
+1.  **Unificar `is_master_db`**: Torná-la semanticamente idêntica à `is_master`, removendo a exigência de "ambas as flags" e incluindo 'ADMINISTRADOR_MASTER'.
+2.  **Corrigir RLS de Frequência**: Adicionar `is_master(auth.uid())` em `freq_prof_insert`, `freq_prof_update` e `freq_prof_delete`.
+3.  **Reforçar `save_profissional_complete`**: Garantir que ela use a versão unificada da checagem Master.
 
 ---
-*Procedendo com a criação da Migration Forense.*
+*Procedendo com a aplicação da Migration Forense baseada em evidências.*
