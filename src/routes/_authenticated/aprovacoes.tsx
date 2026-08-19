@@ -512,6 +512,7 @@ function AprovacoesPage() {
           qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
         }}
         meId={me?.id}
+        me={me}
         canAprovar={canAprovar}
         canRejeitar={canRejeitar}
         isMaster={!!me?.is_master}
