@@ -1252,7 +1252,7 @@ function LinhasAnaliseDialog({
                     </tr>
                   );
                 })}
-              </tbody>
+              </ErpTbody>
             </table>
             </ErpGridProvider>
           </div>
