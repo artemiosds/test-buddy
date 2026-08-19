@@ -668,7 +668,10 @@ function LinhasAnaliseDialog({
   const qc = useQueryClient();
   const [obsMap, setObsMap] = useState<Record<string, string>>({});
   const [soExcecoes, setSoExcecoes] = useState(false);
+  const [editMap, setEditMap] = useState<Record<string, any>>({});
   const { data: parametros } = useMunicipioParametros();
+  const salvarEfetivosFn = useServerFn(salvarFolhaEfetivos);
+  const salvarContratadosFn = useServerFn(salvarFolhaContratados);
 
   const { data: freqBase } = useQuery({
     queryKey: ["frequencia-base", freqId],
