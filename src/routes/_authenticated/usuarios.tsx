@@ -421,7 +421,7 @@ function UsuariosList() {
         )}
       </div>
 
-      {!isMaster && (
+      {!isLoading && !isMaster && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Acesso administrativo restrito</AlertTitle>
