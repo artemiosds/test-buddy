@@ -5469,6 +5469,7 @@ export type Database = {
         Args: { _competencia_id?: string; _unidade_id?: string }
         Returns: Json
       }
+      debug_rbac_caller: { Args: never; Returns: Json }
       desativar_modo_manutencao_emergencia: { Args: never; Returns: undefined }
       descartar_evento_dominio: {
         Args: { _id: string; _motivo?: string }
