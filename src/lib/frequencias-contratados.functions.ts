@@ -178,8 +178,16 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
-    const { data: isGestor } = await supabase.rpc("has_role", { _user_id: userId, _role: 'gestor' });
-    const isMasterFinal = isMaster || isMasterRPC === true || isGestor === true;
+    
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('perfil:perfis(codigo)')
+      .eq('id', userId)
+      .maybeSingle();
+    const role = (profile?.perfil as any)?.codigo || "";
+    const isGestor = role === "GESTOR" || role === "MASTER" || role === "ADMINISTRADOR_MASTER";
+
+    const isMasterFinal = isMaster || isMasterRPC === true || isGestor;
 
     // Existentes
     const profIds = data.linhas.map((l) => l.profissional_id);

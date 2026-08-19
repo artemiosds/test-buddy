@@ -238,9 +238,17 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
-    // Gestor também deve poder editar em Aprovações se necessário
-    const { data: isGestor } = await supabase.rpc("has_role", { _user_id: userId, _role: 'gestor' });
-    const isMasterFinal = isMaster || isMasterRPC === true || isGestor === true;
+    
+    // Fallback para Gestor através da tabela perfis caso has_role falhe tipagem ou não exista o enum gestor
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('perfil:perfis(codigo)')
+      .eq('id', userId)
+      .maybeSingle();
+    const role = (profile?.perfil as any)?.codigo || "";
+    const isGestor = role === "GESTOR" || role === "MASTER" || role === "ADMINISTRADOR_MASTER";
+    
+    const isMasterFinal = isMaster || isMasterRPC === true || isGestor;
 
     if (!isMasterFinal) {
       // 1. Bloqueio por status da folha (Bypass Protection)
