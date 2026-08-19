@@ -168,9 +168,10 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                     left: xMm * scale,
                     top: yMm * scale,
                     width: req.larguraMm * (tamanho / 100) * scale,
-                    height: (req.alturaMm * (tamanho / 100) + 12) * scale,
+                    height: req.alturaMm * (tamanho / 100) * scale,
                     touchAction: "none",
                   }}
+
                 >
                   {req.assinatura.imageData ? (
                     <img

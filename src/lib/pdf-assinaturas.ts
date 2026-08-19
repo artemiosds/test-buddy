@@ -96,9 +96,10 @@ export function desenharImagemProporcional(
       w = h * ratio;
     }
     const ox = x + (boxW - w) / 2;
-    const oy = y + (boxH - h);
+    const oy = y + (boxH - h) / 2;
     doc.addImage(dataUri, fmtImagem(dataUri), ox, oy, w, h, undefined, "FAST");
   } catch {
+
     /* imagem inválida — ignora */
   }
 }
