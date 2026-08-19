@@ -1254,6 +1254,7 @@ function LinhasAnaliseDialog({
                 })}
               </tbody>
             </table>
+            </ErpGridProvider>
           </div>
         )}
       </DialogContent>
