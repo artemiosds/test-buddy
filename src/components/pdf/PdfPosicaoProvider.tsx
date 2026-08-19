@@ -73,7 +73,7 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
       const h = req.alturaMm * factor;
       return {
         x: Math.max(0, Math.min(x, req.pageWidthMm - w)),
-        y: Math.max(0, Math.min(y, req.pageHeightMm - h - 10)),
+        y: Math.max(0, Math.min(y, req.pageHeightMm - h - 5)),
       };
     },
     [req],
@@ -229,7 +229,7 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                   <Label className="text-xs">Vertical (Y): {Math.round(yMm)} mm</Label>
                   <Slider
                     min={0}
-                    max={Math.max(1, Math.round(req.pageHeightMm - req.alturaMm - 10))}
+                    max={Math.max(1, Math.round(req.pageHeightMm - req.alturaMm - 5))}
                     step={1}
                     value={[Math.round(yMm)]}
                     onValueChange={(v) => setYMm(v[0] ?? 0)}
