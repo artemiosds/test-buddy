@@ -238,7 +238,9 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
-    const isMasterFinal = isMaster || isMasterRPC === true;
+    // Gestor também deve poder editar em Aprovações se necessário
+    const { data: isGestor } = await supabase.rpc("has_role", { _user_id: userId, _role: 'gestor' });
+    const isMasterFinal = isMaster || isMasterRPC === true || isGestor === true;
 
     if (!isMasterFinal) {
       // 1. Bloqueio por status da folha (Bypass Protection)
@@ -247,7 +249,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         frequencia_status !== "com_pendencias" &&
         frequencia_status !== "rejeitada"
       ) {
-        throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master.");
+        throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
     }
 

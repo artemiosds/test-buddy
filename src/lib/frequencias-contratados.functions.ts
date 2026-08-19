@@ -178,7 +178,8 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
-    const isMasterFinal = isMaster || isMasterRPC === true;
+    const { data: isGestor } = await supabase.rpc("has_role", { _user_id: userId, _role: 'gestor' });
+    const isMasterFinal = isMaster || isMasterRPC === true || isGestor === true;
 
     // Existentes
     const profIds = data.linhas.map((l) => l.profissional_id);
@@ -211,7 +212,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
       if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
-         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master.");
+         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
 
       // Concorrência Otimista
