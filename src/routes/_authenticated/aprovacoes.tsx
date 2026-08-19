@@ -979,33 +979,33 @@ function LinhasAnaliseDialog({
                 <tr className="text-left text-[10px] uppercase tracking-wider">
                   <th className="p-2 border-r bg-muted/95 sticky left-0 z-20 min-w-[180px]">Profissional / Matrícula</th>
                   <th className="p-2 border-r text-center bg-muted/95">Status</th>
-                  <th className="p-2 border-r text-center w-12 bg-muted/95">Dias</th>
-                  <th className="p-2 border-r text-center w-12 bg-muted/95">Faltas</th>
-                  <th className="p-2 border-r text-center w-12 bg-muted/95">ATT</th>
-                  <th className="p-2 border-r text-center w-12 bg-amber-500/10">50%</th>
-                  <th className="p-2 border-r text-center w-12 bg-amber-600/10">100%</th>
+                  <th className="p-2 border-r text-center w-16 bg-muted/95">Dias</th>
+                  <th className="p-2 border-r text-center w-16 bg-muted/95">Faltas</th>
+                  <th className="p-2 border-r text-center w-16 bg-muted/95">ATT</th>
+                  <th className="p-2 border-r text-center w-16 bg-amber-500/10">50%</th>
+                  <th className="p-2 border-r text-center w-16 bg-amber-600/10">100%</th>
                   {freqBase?.tipo === "efetivos" && (
                     <>
-                      <th className="p-2 border-r text-center w-12 bg-blue-500/10">1/3</th>
-                      <th className="p-2 border-r text-center w-12 bg-blue-600/10">Int.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Not.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Plat.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sob.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Inc.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sub.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Aul.</th>
+                      <th className="p-2 border-r text-center w-16 bg-blue-500/10">1/3</th>
+                      <th className="p-2 border-r text-center w-16 bg-blue-600/10">Int.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Not.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Plat.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sob.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Inc.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sub.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Aul.</th>
                     </>
                   )}
                   {freqBase?.tipo === "contratados" && (
                     <>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">ADN</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Plat.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Sob.</th>
-                      <th className="p-2 border-r text-center w-12 bg-muted/95">Inc.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">ADN</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Plat.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sob.</th>
+                      <th className="p-2 border-r text-center w-16 bg-muted/95">Inc.</th>
                     </>
                   )}
-                  <th className="p-2 border-r text-center w-24 bg-muted/95">Obs / Justif</th>
-                  <th className="p-2 text-right w-32 bg-muted/95">Decisão</th>
+                  <th className="p-2 border-r text-center w-24 bg-muted/95">Obs</th>
+                  <th className="p-2 text-right w-20 bg-muted/95">Decisão</th>
                 </tr>
               </thead>
               <tbody>
