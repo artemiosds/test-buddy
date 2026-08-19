@@ -39,9 +39,16 @@ export function useCurrentUser() {
           if (!row) return null;
 
           // Normaliza o perfil_codigo para garantir consistência no frontend
+          const normalizedPerfil = normalizarPerfil(row.perfil_codigo);
+          
+          // Fail-safe Master check: se o RPC não marcou como master mas o código do perfil é MASTER, force true.
+          // Isso evita falhas de sincronização entre claims de auth e o banco.
+          const isMaster = row.is_master || normalizedPerfil === "MASTER" || normalizedPerfil === "ADMINISTRADOR_MASTER";
+
           return {
             ...row,
-            perfil_codigo: normalizarPerfil(row.perfil_codigo)
+            perfil_codigo: normalizedPerfil,
+            is_master: isMaster
           };
         },
         { fallback: () => null },
