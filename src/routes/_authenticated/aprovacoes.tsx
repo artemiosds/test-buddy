@@ -1143,61 +1143,163 @@ function LinhasAnaliseDialog({
                         </div>
                       </td>
                       <td className="p-2 border-r text-center font-medium bg-muted/10">
-                        {String((l as any).dias_trabalhados ?? 0)}
+                        <NumberCell
+                          rowId={l.profissional_id}
+                          colKey="dias_trabalhados"
+                          value={(editMap[l.profissional_id]?.dias_trabalhados ?? (l as any).dias_trabalhados ?? 0)}
+                          onChange={(v) => handleUpdateLinha(l.profissional_id, "dias_trabalhados", v)}
+                          disabled={bloqueado}
+                        />
                       </td>
                       <td className="p-2 border-r text-center font-medium text-destructive/80">
-                        {String((l as any).faltas_injustificadas ?? (l as any).dias_falta ?? 0)}
+                        <NumberCell
+                          rowId={l.profissional_id}
+                          colKey="faltas_injustificadas"
+                          value={(editMap[l.profissional_id]?.faltas_injustificadas ?? (l as any).faltas_injustificadas ?? (l as any).dias_falta ?? 0)}
+                          onChange={(v) => handleUpdateLinha(l.profissional_id, "faltas_injustificadas", v)}
+                          disabled={bloqueado}
+                        />
                       </td>
                       <td className="p-2 border-r text-center font-medium text-blue-600/80">
-                        {String((l as any).atestado ?? 0)}
+                        <NumberCell
+                          rowId={l.profissional_id}
+                          colKey="atestado"
+                          value={(editMap[l.profissional_id]?.atestado ?? (l as any).atestado ?? 0)}
+                          onChange={(v) => handleUpdateLinha(l.profissional_id, "atestado", v)}
+                          disabled={bloqueado}
+                        />
                       </td>
                       <td className="p-2 border-r text-center font-bold text-amber-600 bg-amber-500/5">
-                        {String(l.he_50 ?? 0)}
+                        <NumberCell
+                          rowId={l.profissional_id}
+                          colKey="he_50"
+                          value={(editMap[l.profissional_id]?.he_50 ?? l.he_50 ?? 0)}
+                          onChange={(v) => handleUpdateLinha(l.profissional_id, "he_50", v)}
+                          disabled={bloqueado}
+                        />
                       </td>
                       <td className="p-2 border-r text-center font-bold text-amber-700 bg-amber-600/5">
-                        {String(l.he_100 ?? 0)}
+                        <NumberCell
+                          rowId={l.profissional_id}
+                          colKey="he_100"
+                          value={(editMap[l.profissional_id]?.he_100 ?? l.he_100 ?? 0)}
+                          onChange={(v) => handleUpdateLinha(l.profissional_id, "he_100", v)}
+                          disabled={bloqueado}
+                        />
                       </td>
                       {freqBase?.tipo === "efetivos" && (
                         <>
                           <td className="p-2 border-r text-center font-medium text-blue-700 bg-blue-500/5">
-                            {String((l as any).ferias_terco ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="ferias_terco"
+                              value={(editMap[l.profissional_id]?.ferias_terco ?? (l as any).ferias_terco ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "ferias_terco", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium text-blue-800 bg-blue-600/5">
-                            {String((l as any).ferias_integral ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="ferias_integral"
+                              value={(editMap[l.profissional_id]?.ferias_integral ?? (l as any).ferias_integral ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "ferias_integral", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).adicional_noturno ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="adicional_noturno"
+                              value={(editMap[l.profissional_id]?.adicional_noturno ?? (l as any).adicional_noturno ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "adicional_noturno", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String(l.plantoes_extras ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="plantoes_extras"
+                              value={(editMap[l.profissional_id]?.plantoes_extras ?? l.plantoes_extras ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "plantoes_extras", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).sobreaviso ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="sobreaviso"
+                              value={(editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sobreaviso", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).incentivo ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="incentivo"
+                              value={(editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "incentivo", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).sal_sub_h ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="sal_sub_h"
+                              value={(editMap[l.profissional_id]?.sal_sub_h ?? (l as any).sal_sub_h ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sal_sub_h", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).aulas_suplementares ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="aulas_suplementares"
+                              value={(editMap[l.profissional_id]?.aulas_suplementares ?? (l as any).aulas_suplementares ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "aulas_suplementares", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                         </>
                       )}
                       {freqBase?.tipo === "contratados" && (
                         <>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).adn ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="adn"
+                              value={(editMap[l.profissional_id]?.adn ?? (l as any).adn ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "adn", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).plantoes ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="plantoes"
+                              value={(editMap[l.profissional_id]?.plantoes ?? (l as any).plantoes ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "plantoes", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).sobreaviso ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="sobreaviso"
+                              value={(editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sobreaviso", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                           <td className="p-2 border-r text-center font-medium">
-                            {String((l as any).incentivo ?? 0)}
+                            <NumberCell
+                              rowId={l.profissional_id}
+                              colKey="incentivo"
+                              value={(editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? 0)}
+                              onChange={(v) => handleUpdateLinha(l.profissional_id, "incentivo", v)}
+                              disabled={bloqueado}
+                            />
                           </td>
                         </>
                       )}
