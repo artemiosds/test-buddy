@@ -512,6 +512,7 @@ function AprovacoesPage() {
           qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
         }}
         meId={me?.id}
+        me={me}
         canAprovar={canAprovar}
         canRejeitar={canRejeitar}
         isMaster={!!me?.is_master}
@@ -657,6 +658,7 @@ function LinhasAnaliseDialog({
   freqId,
   onClose,
   meId,
+  me,
   canAprovar,
   canRejeitar,
   isMaster,
@@ -664,6 +666,7 @@ function LinhasAnaliseDialog({
   freqId: string | null;
   onClose: () => void;
   meId: string | undefined;
+  me: any;
   canAprovar: boolean;
   canRejeitar: boolean;
   isMaster: boolean;
@@ -1034,8 +1037,8 @@ function LinhasAnaliseDialog({
               )}
               {" · "}
               <strong>{totalExcecoes}</strong> exceção(ões)
-              {!isMaster && totalExcecoes > 0 && (
-                <span className="ml-1 text-destructive">— aprovação restrita ao MASTER</span>
+              {!isMaster && me?.perfil_codigo !== 'GESTOR' && totalExcecoes > 0 && (
+                <span className="ml-1 text-destructive">— aprovação restrita ao MASTER ou GESTOR</span>
               )}
             </div>
             <Button
@@ -1111,7 +1114,7 @@ function LinhasAnaliseDialog({
                   const motivos = motivosExcecao(l);
                   const excecao = motivos.length > 0;
                   // Bloqueio permanece só quando ultrapassa limite fixo (variação é apenas sinal).
-                  const bloqueado = excede && !isMaster;
+                  const bloqueado = excede && !isMaster && !(me?.perfil_codigo === 'GESTOR');
                   return (
                     <tr
                       key={l.id}
@@ -1319,7 +1322,7 @@ function LinhasAnaliseDialog({
                               variant={l.status_linha === "aprovada" ? "secondary" : "default"}
                               className="h-7 w-7 p-0"
                               disabled={mut.isPending || bloqueado}
-                              title={bloqueado ? "Exceção: só MASTER aprova." : "Aprovar linha"}
+                              title={bloqueado ? "Exceção: só MASTER ou GESTOR aprova." : "Aprovar linha"}
                               onClick={() =>
                                 mut.mutate({
                                   id: l.id,
