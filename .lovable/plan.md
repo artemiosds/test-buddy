@@ -1,37 +1,30 @@
-# Missão: Correção Forense de Autorização (RBAC) - DIAGNÓSTICO E PROVA
+# Missão: Correção Forense de Autorização (RBAC) - EVIDÊNCIA E SEGURANÇA
 
-## 1. FASE 1 & 2 — PROVA DA CAUSA E COMPARAÇÃO
-Realizei a auditoria das funções `is_master` (SQL) e `is_master_db` (PL/pgSQL).
+## 1. FASE 4 — PROVA DA CAUSA (save_profissional_complete)
+Auditei a implementação da RPC `save_profissional_complete` e cruzei com as funções de autorização.
 
-### Comparação de Determinação de MASTER
+**CAUSA RAIZ IDENTIFICADA:**
+O bloqueio ocorre na **Linha 49** da RPC `save_profissional_complete`:
+```sql
+IF NOT COALESCE(v_is_master, false) THEN ...
+```
+Esta variável `v_is_master` é populada chamando `public.is_master_db(v_caller_id)`.
+Conforme a auditoria anterior, `is_master_db` falha em reconhecer o MASTER caso ele não tenha **ambas** as flags (`acesso_todas_secretarias` AND `acesso_todas_unidades`) marcadas como TRUE, ou se o perfil dele não for exatamente 'MASTER'.
 
-| REGRA | is_master (SQL/RLS) | is_master_db (PL/pgSQL) |
-| :--- | :--- | :--- |
-| Perfil 'MASTER' | SIM | SIM |
-| Perfil 'ADMINISTRADOR_MASTER' | SIM | **NÃO** |
-| acesso_todas_unidades = TRUE | SIM | **CONDICIONAL** (precisa de todas_secretarias) |
-| acesso_todas_secretarias = TRUE | **NÃO** | **CONDICIONAL** (precisa de todas_unidades) |
-| Fallback E-mail | SIM ('artemiosouza99...') | **NÃO** |
-| Segurança | SECURITY DEFINER | SECURITY DEFINER |
+**DIVERGÊNCIA DE RBAC:**
+- `is_master` (SQL/RLS) -> Permite se `perfil IN ('MASTER', 'ADMINISTRADOR_MASTER')` **OU** flag unitária.
+- `is_master_db` (PL/pgSQL/RPC) -> Exige `perfil = 'MASTER'` **OU** flags duplas.
 
-**CAUSA RAIZ EXATA 1**: A função `is_master_db` (usada em RPCs de escrita como `save_profissional_complete`) é muito mais restritiva que a `is_master` (usada no RLS de leitura). Um usuário Master com perfil 'ADMINISTRADOR_MASTER' ou que não tenha ambas as flags ativas é barrado na escrita, mas vê os dados na leitura.
+## 2. FASE 2 — AUDITORIA DE GRANTS
+Conforme instrução, os grants atuais foram mantidos. O problema não é falta de permissão de execução (GRANT), mas a lógica de autorização interna da função.
 
-## 2. FASE 5 — AUDITORIA DE RLS (CRÍTICO)
+## 3. FASE 3 — RLS FREQUENCIA_PROFISSIONAL
+Confirmei que as policies de `INSERT/UPDATE/DELETE` na tabela `frequencia_profissional` **não** possuem bypass para MASTER. Elas exigem `has_permission(..., 'frequencia.editar', ...)`.
 
-Identifiquei bloqueios silenciosos no RLS de escrita:
+## 4. PLANO DE MIGRATION SEGURA (SEM EMAIL BYPASS)
 
-- **Tabela `frequencia_profissional`**: As policies `freq_prof_insert`, `freq_prof_update` e `freq_prof_delete` **NÃO possuem bypass para MASTER**. Elas dependem exclusivamente de `has_permission(..., 'frequencia.editar', ...)`. Se o Master não tiver o vínculo explícito na tabela `usuario_unidades` para a unidade da frequência, ele é bloqueado pelo RLS mesmo que a RPC permita a execução.
-
-**CAUSA RAIZ EXATA 2**: O RLS de escrita de frequências não reconhece a autoridade global do MASTER.
-
-## 3. FASE 3 — CACHE
-O cache utiliza `set_config(..., true)`, o que significa que ele é resetado ao fim da transação. No entanto, se múltiplas operações ocorrerem na mesma transação com contextos de unidade diferentes, o cache `hp` (has_permission) pode retornar um valor incorreto se a chave não for suficientemente única. A chave atual inclui `unidade_id`, o que é bom, mas a invalidação manual não existe.
-
-## 4. PLANO DE AÇÃO (MIGRATION CONTROLADA)
-
-1.  **Unificar `is_master_db`**: Torná-la semanticamente idêntica à `is_master`, removendo a exigência de "ambas as flags" e incluindo 'ADMINISTRADOR_MASTER'.
-2.  **Corrigir RLS de Frequência**: Adicionar `is_master(auth.uid())` em `freq_prof_insert`, `freq_prof_update` e `freq_prof_delete`.
-3.  **Reforçar `save_profissional_complete`**: Garantir que ela use a versão unificada da checagem Master.
+1.  **Sincronizar `is_master_db` e `is_master`**: Ambas usarão a mesma lógica de RBAC baseada em códigos de perfil ('MASTER', 'ADMINISTRADOR_MASTER') e flags de acesso global, **removendo o bypass de email**.
+2.  **Ajustar bypass de MASTER em RLS de Escrita**: Adicionar `is_master(auth.uid())` nas policies de modificação de frequência para garantir que o administrador global possa atuar em qualquer unidade sem precisar de um registro manual na tabela `usuario_unidades`.
 
 ---
-*Procedendo com a aplicação da Migration Forense baseada em evidências.*
+*Procedendo com a aplicação da Migration Controlada.*
