@@ -47,6 +47,7 @@ import { Input } from "@/components/ui/input";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
+import { NumberCell, ErpGridProvider, ErpTbody } from "@/components/erp-grid";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
