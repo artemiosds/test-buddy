@@ -1105,7 +1105,7 @@ function LinhasAnaliseDialog({
                   <th className="p-2 text-right w-20 bg-muted/95">Decisão</th>
                 </tr>
               </thead>
-              <tbody>
+              <ErpTbody>
                 {linhasVisiveis.map((l) => {
                   const excede = excedeLimite(l);
                   const motivos = motivosExcecao(l);
