@@ -391,7 +391,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
 
 
   const pageHeight = doc.internal.pageSize.getHeight();
-  const rodapeReserva = 18;
+  const rodapeReserva = 55;
   const limiteBaixo = pageHeight - rodapeReserva;
 
   const emissaoStr = new Date().toLocaleString("pt-BR");
@@ -476,8 +476,8 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     unidadeId: input.unidadeId ?? null,
     secretariaId: input.secretariaId ?? null,
     assinaturas,
-    yPadraoMm: pageHeight - 65,
-    xPadraoMm: doc.internal.pageSize.getWidth() - 75 - MARGEM,
+    yPadraoMm: pageHeight - 50,
+    xPadraoMm: MARGEM,
     competencia: input.competencia, // Passa a competência para o metadado
   });
 
