@@ -5,6 +5,7 @@ import { Building2, Users, Layers, AlertCircle, ArrowUp, ArrowDown } from "lucid
 
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useUnidadesLookup, useSetoresLookup, useCargosLookup } from "@/hooks/use-lookups";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import { PermissionGate } from "@/components/permission-gate";
 import {
   EmptyState,
@@ -72,6 +73,8 @@ export type QuadroLotacaoRow = {
 type SortKey = "unidade" | "setor" | "cargo" | "funcao" | "total";
 
 function QuadroLotacaoPage() {
+  const { data: userCtx } = useCurrentUser();
+  const isMaster = !!userCtx?.is_master;
   const [unidadeId, setUnidadeId] = useState<string>("__all__");
   const [setorId, setSetorId] = useState<string>("__all__");
   const [cargoId, setCargoId] = useState<string>("__all__");
@@ -79,7 +82,10 @@ function QuadroLotacaoPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const unidades = useUnidadesLookup();
-  const setores = useSetoresLookup({ unidadeId: unidadeId === "__all__" ? null : unidadeId });
+  const setores = useSetoresLookup({ 
+    unidadeId: unidadeId === "__all__" ? null : unidadeId,
+    isMaster: isMaster && unidadeId === "__all__"
+  });
   const cargos = useCargosLookup();
 
   const a = useAnalytics({

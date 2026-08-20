@@ -25,6 +25,7 @@ import {
   CalendarDays,
   Megaphone,
   Menu,
+  Mail,
   PanelLeftOpen,
   PanelLeftClose,
   Search,
@@ -46,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { auditClient } from "@/lib/audit-client";
 import { trackPageView } from "@/lib/usage-tracker";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import { useTheme } from "@/hooks/use-theme";
@@ -82,9 +84,20 @@ export const Route = createFileRoute("/_authenticated")({
       if (error || !data.user) return { user: null };
       
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
+      const { data: ctx } = await supabase.rpc("get_my_user_context");
+      const userCtx = ctx as any;
+      const mfaRequired = !!userCtx && (userCtx.perfil_admin_2fa_required === true || userCtx.perfil_codigo === "ADMIN_SMS");
+
+      console.log("STATUS GUARDA DE ROTA:", { 
+        aal: aal, 
+        mfaObrigatorio: userCtx?.perfil_admin_2fa_required,
+        perfil: userCtx?.perfil_codigo
+      });
+
+      if (mfaRequired && aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
         return { user: null };
       }
+
       
       return { user: data.user };
     } catch {
@@ -297,7 +310,7 @@ const GROUPS: NavGroup[] = [
         masterOnly: true,
       },
       { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, perm: "auditoria.visualizar" },
-
+      { to: "/relatorio-notificacoes", label: "Notificações (Logs)", icon: Mail, masterOnly: true },
       { to: "/saude", label: "Saúde do Sistema", icon: Activity, masterOnly: true },
       {
         to: "/configuracao",
@@ -339,6 +352,16 @@ function AuthenticatedLayoutInner() {
   const { data: competencia } = useCompetenciaAtiva();
   const { data: parametros } = useMunicipioParametros();
   const { theme, toggle: toggleTheme } = useTheme();
+
+  const { unidadePadraoId, unidadesList, isMaster, isLoading: isScopeLoading } = useUnitScope();
+  const activeUnitName = useMemo(() => {
+    if (isMaster) return "Acesso Global";
+    if (isScopeLoading) return "Carregando...";
+    
+    // Tenta encontrar o nome da primeira unidade vinculada (selecionada automaticamente)
+    if (!unidadePadraoId) return "";
+    return unidadesList.find(u => u.id === unidadePadraoId)?.nome || "Unidade Não Localizada";
+  }, [isMaster, isScopeLoading, unidadePadraoId, unidadesList]);
 
   const { data: unreadCount = 0, refetch: refetchUnread } = useQuery({
     queryKey: ["notificacoes-unread", userCtx?.id],
@@ -449,10 +472,7 @@ function AuthenticatedLayoutInner() {
   // Mantemos o fallback para perfis MASTER / ADMIN_SMS caso o backend ainda não
   // tenha refletido a nova coluna (por exemplo, cache de RPC antigo).
   const mfaRequired =
-    !!userCtx &&
-    (userCtx.perfil_admin_2fa_required ||
-      userCtx.is_master ||
-      userCtx.perfil_codigo === "ADMIN_SMS");
+    !!userCtx && (userCtx.perfil_admin_2fa_required === true || userCtx.perfil_codigo === "ADMIN_SMS");
 
   // Guard 5D: administradores só acessam rotas fora de /seguranca depois de
   // ativar o segundo fator. Executado no render para não bloquear a própria
@@ -481,7 +501,7 @@ function AuthenticatedLayoutInner() {
   };
 
   const nome = userCtx?.nome_completo ?? user?.email ?? "Usuário";
-  const perfil = userCtx?.perfil_nome ?? (userCtx?.is_master ? "MASTER" : "—");
+  const perfil = userCtx?.perfil_nome ?? userCtx?.perfil_codigo ?? (userCtx?.is_master ? "MASTER" : "—");
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isSegurancaRoute = pathname === "/seguranca";
@@ -769,6 +789,7 @@ function AuthenticatedLayoutInner() {
           collapsed={collapsed}
           nome={nome}
           perfil={perfil}
+          activeUnitName={activeUnitName}
           competencia={competencia}
           unreadCount={unreadCount}
           currentPageLabel={currentPageLabel}
@@ -812,6 +833,7 @@ type TopBarProps = {
   collapsed: boolean;
   nome: string;
   perfil: string;
+  activeUnitName?: string | null;
   competencia: { label: string; status: string } | null | undefined;
   unreadCount: number;
   currentPageLabel: string;
@@ -827,6 +849,7 @@ function TopBar({
   collapsed,
   nome,
   perfil,
+  activeUnitName,
   competencia,
   unreadCount,
   currentPageLabel,
@@ -905,6 +928,20 @@ function TopBar({
           </Breadcrumb>
           <h1 className="truncate text-base font-semibold md:hidden">{currentPageLabel}</h1>
         </div>
+
+        {/* Escopo de Unidade (Badge) */}
+        {activeUnitName && (
+          <div className="hidden items-center gap-1.5 rounded-full border bg-accent/30 px-3 py-1 text-xs font-medium lg:flex">
+            {activeUnitName === "Acesso Global" ? (
+              <Globe className="h-3.5 w-3.5 text-primary" strokeWidth={2} />
+            ) : (
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+            )}
+            <span className={activeUnitName === "Acesso Global" ? "text-primary" : "text-muted-foreground"}>
+              {activeUnitName}
+            </span>
+          </div>
+        )}
 
         {/* Competência (chip) — recolhida em mobile */}
         {competencia ? (

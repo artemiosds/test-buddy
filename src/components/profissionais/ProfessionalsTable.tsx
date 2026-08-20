@@ -1,5 +1,6 @@
 import React from "react";
 import { useProfissionais } from "@/hooks/use-profissionais";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import { useProfessionalFilters } from "@/context/professional-filter-context";
 import { Link } from "@tanstack/react-router";
 
@@ -13,7 +14,8 @@ export default function ProfessionalsTable({
   pageSize?: number;
 }) {
   const { filters } = useProfessionalFilters();
-  const { data, isLoading, error } = useProfissionais(filters, page, pageSize);
+  const { data: userCtx } = useCurrentUser();
+  const { data, isLoading, error } = useProfissionais(filters, page, pageSize, !!userCtx?.is_master);
 
   const total = data?.count ?? 0;
   const rows = data?.rows ?? [];

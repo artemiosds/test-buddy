@@ -405,9 +405,14 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
       unidade_id: uid,
       is_principal: uid === principal,
       created_by: userId,
+      deleted_at: null,
+      deleted_by: null,
     }));
-    const { error: insErr } = await supabase.from("usuario_unidades").insert(rows as never);
+    const { error: insErr } = await supabase
+      .from("usuario_unidades")
+      .upsert(rows as never, { onConflict: "usuario_id,unidade_id" });
     if (insErr) throw new Error(insErr.message);
+
 
     // Propaga secretarias
     const { data: unidadesInfo, error: unErr } = await supabase
@@ -436,9 +441,14 @@ export const definirVinculosUsuario = createServerFn({ method: "POST" })
         secretaria_id: sid,
         is_principal: sid === secPrincipal,
         created_by: userId,
+        deleted_at: null,
+        deleted_by: null,
       }));
-      const { error: sErr } = await supabase.from("usuario_secretarias").insert(secRows as never);
+      const { error: sErr } = await supabase
+        .from("usuario_secretarias")
+        .upsert(secRows as never, { onConflict: "usuario_id,secretaria_id" });
       if (sErr) throw new Error(sErr.message);
+
       if (secPrincipal) {
         await supabase
           .from("usuarios")

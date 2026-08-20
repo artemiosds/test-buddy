@@ -1,5 +1,6 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+
 import { useEffect, useRef, useState } from "react";
 import {
   ShieldCheck,
@@ -29,13 +30,15 @@ export const Route = createFileRoute("/_authenticated/seguranca")({ errorCompone
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
 function SegurancaPage() {
+  const navigate = useNavigate();
   const [factors, setFactors] = useState<Factor[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const askConfirm = useConfirm();
   const { data: userCtx } = useCurrentUser();
-  const mfaRequired = !!userCtx?.perfil_admin_2fa_required || !!userCtx?.is_master;
+  const mfaRequired = userCtx?.perfil_admin_2fa_required === true;
 
   const [enroll, setEnroll] = useState<{ id: string; qr: string; secret: string } | null>(null);
   const [code, setCode] = useState("");
@@ -66,8 +69,14 @@ function SegurancaPage() {
   }
 
   useEffect(() => {
+    if (!loading && !mfaRequired && factors.length > 0) {
+      console.log("2FA OPCIONAL: Redirecionando para dashboard");
+      navigate({ to: "/", replace: true });
+      return;
+    }
     load();
-  }, []);
+  }, [mfaRequired, loading]);
+
 
   // Avisa antes de sair da página com códigos exibidos e ainda não guardados.
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sendEmail, generateEmailTemplate } from "./email.server";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 
 const CriarSchema = z.object({
@@ -74,6 +75,50 @@ export const criarCompetencia = createServerFn({ method: "POST" })
       mes: data.mes,
       secretaria_id: data.secretaria_id,
     });
+    
+    // Notificação SMTP de Nova Competência
+    try {
+      const { data: sec } = await context.supabase
+        .from("secretarias")
+        .select("nome")
+        .eq("id", data.secretaria_id)
+        .single();
+        
+      const { data: gestores } = await context.supabase
+        .from("unidades")
+        .select("email_institucional, nome")
+        .eq("secretaria_id", data.secretaria_id)
+        .eq("status", "ativa")
+        .not("email_institucional", "is", null);
+
+      if (gestores && gestores.length > 0) {
+        const competenciaStr = `${data.mes.toString().padStart(2, '0')}/${data.ano}`;
+        const emails = [...new Set(gestores.map(g => g.email_institucional))];
+        const baseUrl = process.env.VITE_APP_URL || "http://localhost:8080";
+
+        for (const email of emails) {
+          const html = generateEmailTemplate({
+            title: "Nova Competência Aberta",
+            message: `A competência ${competenciaStr} foi aberta para a secretaria ${sec?.nome || ''}. O prazo para envio das folhas é até ${data.prazo_envio ? new Date(data.prazo_envio).toLocaleDateString('pt-BR') : 'não definido'}.`,
+            ctaLabel: "Acessar Sistema",
+            ctaUrl: `${baseUrl}/frequencias`,
+            details: [
+              { label: "Competência", value: competenciaStr },
+              { label: "Secretaria", value: sec?.nome || "SMS" },
+              { label: "Prazo de Envio", value: data.prazo_envio || "A definir" }
+            ]
+          });
+
+          await sendEmail({
+            to: email as string,
+            subject: `[Aviso] Nova Competência Aberta: ${competenciaStr}`,
+            html
+          });
+        }
+      }
+    } catch (mailErr) {
+      console.error("Erro ao enviar notificações de nova competência:", mailErr);
+    }
 
     return { id };
   });

@@ -89,6 +89,7 @@ import {
 import { downloadXlsx, type XlsxColumn } from "@/lib/xlsx-export";
 import { formatCPF, formatDateTime } from "@/lib/formatters";
 import { useUnidadesLookup, useCargosLookup, useVinculosLookup } from "@/hooks/use-lookups";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   listPisoElegiveis,
   getPisoDashboardGestao,
@@ -160,6 +161,8 @@ function StatusPiso({ r }: { r: LinhaGrid }) {
 }
 
 function PisoIndex() {
+  const { data: userCtx } = useCurrentUser();
+  const isMaster = !!userCtx?.is_master;
   // ----------------------------- estado de filtros -----------------------------
   const [competencia, setCompetencia] = useState<string | null>(null);
   const [unidadeId, setUnidadeId] = useState("");
@@ -179,7 +182,7 @@ function PisoIndex() {
   const [detalhe, setDetalhe] = useState<LinhaPiso | null>(null);
   const [detalheOpen, setDetalheOpen] = useState(false);
 
-  const unidadesQ = useUnidadesLookup({ ativasOnly: true });
+  const unidadesQ = useUnidadesLookup({ ativasOnly: true, isMaster });
   const cargosQ = useCargosLookup();
   const vinculosQ = useVinculosLookup();
 
@@ -210,7 +213,7 @@ function PisoIndex() {
         data: {
           competencia: competenciaAtiva,
           categoria: categoria || null,
-          unidade_id: unidadeId || null,
+          unidade_id: (!isMaster && unidadeId) ? unidadeId : null,
           cargo_id: cargoId || null,
           vinculo_id: vinculoId || null,
           situacao: situacao || null,

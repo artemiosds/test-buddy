@@ -2610,6 +2610,33 @@ export type Database = {
         }
         Relationships: []
       }
+      logs_notificacoes: {
+        Row: {
+          assunto: string
+          data_envio: string | null
+          destinatario: string
+          detalhe_erro: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          assunto: string
+          data_envio?: string | null
+          destinatario: string
+          detalhe_erro?: string | null
+          id?: string
+          status: string
+        }
+        Update: {
+          assunto?: string
+          data_envio?: string | null
+          destinatario?: string
+          detalhe_erro?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       municipio_config: {
         Row: {
           brasao_url: string | null
@@ -5469,6 +5496,8 @@ export type Database = {
         Args: { _competencia_id?: string; _unidade_id?: string }
         Returns: Json
       }
+      current_user_is_master: { Args: never; Returns: boolean }
+      current_user_unidades: { Args: never; Returns: string[] }
       debug_rbac_caller: { Args: never; Returns: Json }
       desativar_modo_manutencao_emergencia: { Args: never; Returns: undefined }
       descartar_evento_dominio: {
@@ -5518,6 +5547,7 @@ export type Database = {
         Args: { p_competencia_id: string; p_unidade_id?: string }
         Returns: Json
       }
+      get_minhas_unidades_ids: { Args: never; Returns: string[] }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_user_context: { Args: never; Returns: Json }
       get_quadro_lotacao: {
@@ -5618,7 +5648,7 @@ export type Database = {
       }
       hsm_estatisticas: { Args: { _dias?: number }; Returns: Json }
       is_aviso_gestor: { Args: { _user_id: string }; Returns: boolean }
-      is_master: { Args: { _user_id: string }; Returns: boolean }
+      is_master: { Args: { _user_id?: string }; Returns: boolean }
       is_master_core: { Args: { _user_id: string }; Returns: boolean }
       is_master_db: { Args: { _user_id: string }; Returns: boolean }
       jwt_has_permission: { Args: { _perm: string }; Returns: boolean }

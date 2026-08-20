@@ -398,7 +398,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
 
         if (details) {
           const det = details as any;
-          const gestorEmail = det.unidades?.gestor_email;
+          const gestorEmail = (det.unidades as any)?.email_institucional;
           const solicitanteEmail = det.perfis?.user_email;
           const unidadeNome = det.unidades?.nome || "Unidade não identificada";
           const competenciaStr = `${det.competencias?.mes}/${det.competencias?.ano}`;
@@ -669,7 +669,7 @@ export const registrarAnexoLinha = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id ?? null,
         secretaria_id: data.secretaria_id ?? null,
         categoria_id: data.categoria_id ?? null,
-        setor_id: data.setor_id ?? null,
+        
         nome: data.nome,
         storage_path: data.storage_path,
         mime_type: data.mime_type,

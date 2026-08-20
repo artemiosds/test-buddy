@@ -139,8 +139,6 @@ export const updatePerfil = createServerFn({ method: "POST" })
     }
 
     if (data.admin_2fa_required !== undefined) {
-      if (atual.codigo === "MASTER" && data.admin_2fa_required === false)
-        throw new Error("MASTER deve manter 2FA obrigatório.");
       patch.admin_2fa_required = data.admin_2fa_required;
     }
 

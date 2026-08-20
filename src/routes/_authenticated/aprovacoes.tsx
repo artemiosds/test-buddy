@@ -5,7 +5,7 @@ import { UploadAnexoModal } from "@/components/aprovacoes/UploadAnexoModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRetryMutation } from "@/lib/retry-mutation";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
 import { OfflineButton } from "@/components/shared/OfflineButton";
@@ -125,7 +125,7 @@ function AprovacoesPage() {
   const canRejeitar = has("frequencia.rejeitar");
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["aprovacoes-list", filtro],
+    queryKey: ["aprovacoes-list", filtro, me?.is_master, me?.unidades],
     queryFn: async () => {
       let q = supabase
         .from("frequencias")
@@ -148,10 +148,16 @@ function AprovacoesPage() {
 
       if (filtro === "pendentes") q = q.in("status", ["enviada", "em_analise"]);
       else if (filtro !== "todas") q = q.eq("status", filtro as StatusFreq);
+
+      if (me && !me.is_master && me.unidades?.length > 0) {
+        q = q.in("competencia_unidades.unidade_id" as any, me.unidades);
+      }
+
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!me,
   });
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
@@ -678,6 +684,111 @@ function LinhasAnaliseDialog({
   const { data: parametros } = useMunicipioParametros();
   const salvarEfetivosFn = useServerFn(salvarFolhaEfetivos);
   const salvarContratadosFn = useServerFn(salvarFolhaContratados);
+  const pendingUpdates = useRef<Record<string, { pid: string; campo: string; valor: any }>>({});
+  const timeoutRef = useRef<any>(null);
+
+  // Efeito para processar updates em background (debounce)
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const parseInputValue = (val: string | number | null | undefined) => {
+    if (val === "" || val === null || val === undefined) return 0;
+    const parsed = Number(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const flushUpdates = async () => {
+    const updates = { ...pendingUpdates.current };
+    pendingUpdates.current = {};
+    
+    for (const key in updates) {
+      const { pid, campo, valor } = updates[key];
+      await persistirUpdate(pid, campo, valor);
+    }
+  };
+
+  const persistirUpdate = async (pid: string, campo: string, valor: string | number) => {
+    if (!freqBase) return;
+    const cu = freqBase.competencia_unidades as any;
+    const originalLinha = (linhas ?? []).find(l => l.profissional_id === pid);
+    if (!originalLinha) return;
+
+    const currentEdit = editMap[pid] || {};
+    // O merge deve priorizar o que está no editMap (incluindo zeros), 
+    // mas o persistirUpdate recebe o 'valor' mais recente do evento que disparou o debounce.
+    const payloadBase = {
+      ...originalLinha,
+      ...currentEdit,
+      [campo]: valor
+    };
+
+    try {
+      if (freqBase.tipo === "efetivos") {
+        await salvarEfetivosFn({
+          data: {
+            competencia_id: cu.competencia_id,
+            unidade_id: cu.unidade_id,
+            linhas: [{
+              profissional_id: pid,
+              dias_trabalhados: parseInputValue(payloadBase.dias_trabalhados),
+              faltas_injustificadas: parseInputValue(payloadBase.faltas_injustificadas),
+              atestado: parseInputValue(payloadBase.atestado),
+              he_50: parseInputValue(payloadBase.he_50),
+              he_100: parseInputValue(payloadBase.he_100),
+              ferias_terco: parseInputValue(payloadBase.ferias_terco),
+              ferias_integral: parseInputValue(payloadBase.ferias_integral),
+              sal_sub_h: parseInputValue(payloadBase.sal_sub_h),
+              adicional_noturno: parseInputValue(payloadBase.adicional_noturno),
+              aulas_suplementares: parseInputValue(payloadBase.aulas_suplementares),
+              sobreaviso: parseInputValue(payloadBase.sobreaviso),
+              plantoes_extras: parseInputValue(payloadBase.plantoes_extras),
+              incentivo: parseInputValue(payloadBase.incentivo),
+              ferias: parseInputValue(payloadBase.ferias),
+              licenca_premio: parseInputValue(payloadBase.licenca_premio),
+              status_linha: payloadBase.status_linha,
+              observacoes: payloadBase.observacoes
+            }]
+          }
+        });
+      } else {
+        await salvarContratadosFn({
+          data: {
+            competencia_id: cu.competencia_id,
+            unidade_id: cu.unidade_id,
+            linhas: [{
+              profissional_id: pid,
+              dias_trabalhados: parseInputValue(payloadBase.dias_trabalhados),
+              dias_falta: parseInputValue(payloadBase.faltas_injustificadas || (payloadBase as any).dias_falta),
+              atestado: parseInputValue(payloadBase.atestado),
+              he_50: parseInputValue(payloadBase.he_50),
+              he_100: parseInputValue(payloadBase.he_100),
+              adn: parseInputValue((payloadBase as any).adn || payloadBase.adicional_noturno),
+              plantoes: parseInputValue((payloadBase as any).plantoes || payloadBase.plantoes_extras),
+              sobreaviso: parseInputValue(payloadBase.sobreaviso),
+              incentivo: parseInputValue(payloadBase.incentivo),
+              status: (payloadBase as any).status || payloadBase.status_linha,
+              observacoes: payloadBase.observacoes
+            }]
+          }
+        });
+      }
+      
+      // Invalida caches para refletir os dados salvos e manter a consistência
+      qc.invalidateQueries({ queryKey: ['frequencias'] });
+      qc.invalidateQueries({ queryKey: ['frequencia_profissional'] });
+      qc.invalidateQueries({ queryKey: ['frequencias_contratados'] });
+      qc.invalidateQueries({ queryKey: ["frequencia-linhas-analise", freqId] });
+
+    } catch (err) {
+      console.error("Erro ao persistir alteração:", err);
+      toast.error("Erro ao salvar alteração. Tente novamente.");
+    }
+  };
+
+
 
   const { data: freqBase } = useQuery({
     queryKey: ["frequencia-base", freqId],
@@ -828,82 +939,26 @@ function LinhasAnaliseDialog({
   });
   
   // Handlers para edição direta
-  const handleUpdateLinha = async (pid: string, campo: string, valor: any) => {
-    if (!freqBase) return;
-    const cu = freqBase.competencia_unidades as any;
-    
-    // Atualiza estado local otimista
-    const originalLinha = linhasArr.find(l => l.profissional_id === pid);
-    if (!originalLinha) return;
-
-    const payloadBase = {
-      ...originalLinha,
-      ...editMap[pid],
-      [campo]: valor
-    };
-
-    try {
-      if (freqBase.tipo === "efetivos") {
-        await salvarEfetivosFn({
-          data: {
-            competencia_id: cu.competencia_id,
-            unidade_id: cu.unidade_id,
-            linhas: [{
-              profissional_id: pid,
-              dias_trabalhados: payloadBase.dias_trabalhados,
-              faltas_injustificadas: payloadBase.faltas_injustificadas,
-              atestado: payloadBase.atestado,
-              he_50: payloadBase.he_50,
-              he_100: payloadBase.he_100,
-              ferias_terco: payloadBase.ferias_terco,
-              ferias_integral: payloadBase.ferias_integral,
-              sal_sub_h: payloadBase.sal_sub_h,
-              adicional_noturno: payloadBase.adicional_noturno,
-              aulas_suplementares: payloadBase.aulas_suplementares,
-              sobreaviso: payloadBase.sobreaviso,
-              plantoes_extras: payloadBase.plantoes_extras,
-              incentivo: payloadBase.incentivo,
-              ferias: payloadBase.ferias,
-              licenca_premio: payloadBase.licenca_premio,
-              status_linha: payloadBase.status_linha,
-              observacoes: payloadBase.observacoes
-            }]
-          }
-        });
-      } else {
-        await salvarContratadosFn({
-          data: {
-            competencia_id: cu.competencia_id,
-            unidade_id: cu.unidade_id,
-            linhas: [{
-              profissional_id: pid,
-              dias_trabalhados: payloadBase.dias_trabalhados,
-              dias_falta: payloadBase.faltas_injustificadas || payloadBase.dias_falta,
-              atestado: payloadBase.atestado,
-              he_50: payloadBase.he_50,
-              he_100: payloadBase.he_100,
-              adn: payloadBase.adn || payloadBase.adicional_noturno,
-              plantoes: payloadBase.plantoes || payloadBase.plantoes_extras,
-              sobreaviso: payloadBase.sobreaviso,
-              incentivo: payloadBase.incentivo,
-              status: payloadBase.status || payloadBase.status_linha,
-              observacoes: payloadBase.observacoes
-            }]
-          }
-        });
+  const handleUpdateLinha = (pid: string, campo: string, valor: string | number) => {
+    // 1. Update visual imediato no estado
+    setEditMap(prev => ({
+      ...prev,
+      [pid]: {
+        ...(prev[pid] || {}),
+        [campo]: valor
       }
-      
-      setEditMap(prev => ({ ...prev, [pid]: { ...prev[pid], [campo]: valor } }));
-      toast.success("Alteração salva");
-      
-      // Invalida para refletir no resumo e auditoria
-      qc.invalidateQueries({ queryKey: ["frequencia-linhas-analise", freqId] });
-      qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
-      
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar");
-    }
+    }));
+
+    // 2. Debounce da persistência para não travar a UI com chamadas de rede
+    const key = `${pid}-${campo}`;
+    pendingUpdates.current[key] = { pid, campo, valor };
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      flushUpdates();
+    }, 800);
   };
+
 
   const mut = useRetryMutation({
     retry: { operation: "frequencia_linha.aprovar_rejeitar" },
@@ -1074,40 +1129,41 @@ function LinhasAnaliseDialog({
                 });
               }}
             >
-            <table className="w-full text-xs border-collapse">
-              <thead className="sticky top-0 border-b bg-muted/90 backdrop-blur-sm z-10">
-                <tr className="text-left text-[10px] uppercase tracking-wider">
-                  <th className="p-2 border-r bg-muted/95 sticky left-0 z-20 min-w-[180px]">Profissional / Matrícula</th>
-                  <th className="p-2 border-r text-center bg-muted/95">Status</th>
-                  <th className="p-2 border-r text-center w-16 bg-muted/95">Dias</th>
-                  <th className="p-2 border-r text-center w-16 bg-muted/95">Faltas</th>
-                  <th className="p-2 border-r text-center w-16 bg-muted/95">ATT</th>
-                  <th className="p-2 border-r text-center w-16 bg-amber-500/10">50%</th>
-                  <th className="p-2 border-r text-center w-16 bg-amber-600/10">100%</th>
-                  {freqBase?.tipo === "efetivos" && (
-                    <>
-                      <th className="p-2 border-r text-center w-16 bg-blue-500/10">1/3</th>
-                      <th className="p-2 border-r text-center w-16 bg-blue-600/10">Int.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Not.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Plat.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sob.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Inc.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sub.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Aul.</th>
-                    </>
-                  )}
-                  {freqBase?.tipo === "contratados" && (
-                    <>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">ADN</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Plat.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Sob.</th>
-                      <th className="p-2 border-r text-center w-16 bg-muted/95">Inc.</th>
-                    </>
-                  )}
-                  <th className="p-2 border-r text-center w-24 bg-muted/95">Obs</th>
-                  <th className="p-2 text-right w-20 bg-muted/95">Decisão</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-xs border-collapse table-fixed min-w-[1000px]">
+                <thead className="sticky top-0 border-b bg-muted/90 backdrop-blur-sm z-10">
+                  <tr className="text-left text-[10px] uppercase tracking-wider">
+                    <th className="p-2 border-r bg-muted/95 sticky left-0 z-20 w-[260px] min-w-[220px]">Profissional / Matrícula</th>
+                    <th className="p-2 border-r text-center bg-muted/95 w-[100px]">Status</th>
+                    <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">DIAS</th>
+                    <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">FALTAS</th>
+                    <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">ATT</th>
+                    <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-amber-500/10">50%</th>
+                    <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-amber-600/10">100%</th>
+                    {freqBase?.tipo === "efetivos" && (
+                      <>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-blue-500/10">1/3</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-blue-600/10">INT.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">NOT.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">PLAT.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">SOB.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">INC.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">SUB.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">AUL.</th>
+                      </>
+                    )}
+                    {freqBase?.tipo === "contratados" && (
+                      <>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">ADN</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">PLAT.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">SOB.</th>
+                        <th className="p-2 border-r text-center w-[50px] min-w-[48px] bg-muted/95">INC.</th>
+                      </>
+                    )}
+                    <th className="p-2 border-r text-left min-w-[180px] bg-muted/95">OBS</th>
+                    <th className="p-2 text-center w-[90px] min-w-[85px] bg-muted/95">DECISÃO</th>
+                  </tr>
+                </thead>
               <ErpTbody>
                 {linhasVisiveis.map((l) => {
                   const excede = excedeLimite(l);
@@ -1118,10 +1174,10 @@ function LinhasAnaliseDialog({
                   return (
                     <tr
                       key={l.id}
-                      className={`border-b last:border-0 align-top ${excecao ? "bg-destructive/5" : ""}`}
+                      className={`border-b last:border-0 items-center ${excecao ? "bg-destructive/5" : ""}`}
                     >
-                      <td className="p-3 border-r sticky left-0 bg-background/95 z-10">
-                        <div className="font-semibold text-sm">{l.profissionais?.nome_completo ?? "—"}</div>
+                      <td className="p-3 border-r sticky left-0 bg-background/95 z-10 w-[260px] min-w-[220px] align-middle">
+                        <div className="font-semibold text-sm truncate" title={l.profissionais?.nome_completo ?? ""}>{l.profissionais?.nome_completo ?? "—"}</div>
                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
                           <span className="bg-muted px-1 rounded font-mono">Mat. {l.profissionais?.matricula ?? "—"}</span>
                           {l.analisado_em && (
@@ -1133,7 +1189,7 @@ function LinhasAnaliseDialog({
                           )}
                         </div>
                       </td>
-                      <td className="p-3 border-r text-center">
+                      <td className="p-3 border-r text-center align-middle w-[100px]">
                         <div className="flex flex-col items-center gap-1">
                           <Badge variant={STATUS_LINHA_VARIANT[l.status_linha]} className="text-[10px] px-1.5 py-0 h-5">
                             {STATUS_LINHA_LABEL[l.status_linha]}
@@ -1145,177 +1201,163 @@ function LinhasAnaliseDialog({
                           )}
                         </div>
                       </td>
-                      <td className="p-2 border-r text-center font-medium bg-muted/10">
-                        <NumberCell
-                          rowId={l.profissional_id}
-                          colKey="dias_trabalhados"
-                          value={(editMap[l.profissional_id]?.dias_trabalhados ?? (l as any).dias_trabalhados ?? 0)}
-                          onChange={(v) => handleUpdateLinha(l.profissional_id, "dias_trabalhados", v)}
-                          disabled={bloqueado}
+                      <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                        <input
+                          type="text"
+                          value={editMap[l.profissional_id]?.dias_trabalhados ?? (l as any).dias_trabalhados ?? ""}
+                          onChange={(e) => handleUpdateLinha(l.profissional_id, "dias_trabalhados", e.target.value)}
+                          className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                         />
                       </td>
-                      <td className="p-2 border-r text-center font-medium text-destructive/80">
-                        <NumberCell
-                          rowId={l.profissional_id}
-                          colKey="faltas_injustificadas"
-                          value={(editMap[l.profissional_id]?.faltas_injustificadas ?? (l as any).faltas_injustificadas ?? (l as any).dias_falta ?? 0)}
-                          onChange={(v) => handleUpdateLinha(l.profissional_id, "faltas_injustificadas", v)}
-                          disabled={bloqueado}
+                      <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                        <input
+                          type="text"
+                          value={editMap[l.profissional_id]?.faltas_injustificadas ?? (l as any).faltas_injustificadas ?? (l as any).dias_falta ?? ""}
+                          onChange={(e) => handleUpdateLinha(l.profissional_id, "faltas_injustificadas", e.target.value)}
+                          className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                         />
                       </td>
-                      <td className="p-2 border-r text-center font-medium text-blue-600/80">
-                        <NumberCell
-                          rowId={l.profissional_id}
-                          colKey="atestado"
-                          value={(editMap[l.profissional_id]?.atestado ?? (l as any).atestado ?? 0)}
-                          onChange={(v) => handleUpdateLinha(l.profissional_id, "atestado", v)}
-                          disabled={bloqueado}
+                      <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                        <input
+                          type="text"
+                          value={editMap[l.profissional_id]?.atestado ?? (l as any).atestado ?? ""}
+                          onChange={(e) => handleUpdateLinha(l.profissional_id, "atestado", e.target.value)}
+                          className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                         />
                       </td>
-                      <td className="p-2 border-r text-center font-bold text-amber-600 bg-amber-500/5">
-                        <NumberCell
-                          rowId={l.profissional_id}
-                          colKey="he_50"
-                          value={(editMap[l.profissional_id]?.he_50 ?? l.he_50 ?? 0)}
-                          onChange={(v) => handleUpdateLinha(l.profissional_id, "he_50", v)}
-                          disabled={bloqueado}
+                      <td className="p-2 border-r text-center bg-amber-500/5 align-middle w-[50px] min-w-[48px]">
+                        <input
+                          type="text"
+                          value={editMap[l.profissional_id]?.he_50 ?? l.he_50 ?? ""}
+                          onChange={(e) => handleUpdateLinha(l.profissional_id, "he_50", e.target.value)}
+                          className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                         />
                       </td>
-                      <td className="p-2 border-r text-center font-bold text-amber-700 bg-amber-600/5">
-                        <NumberCell
-                          rowId={l.profissional_id}
-                          colKey="he_100"
-                          value={(editMap[l.profissional_id]?.he_100 ?? l.he_100 ?? 0)}
-                          onChange={(v) => handleUpdateLinha(l.profissional_id, "he_100", v)}
-                          disabled={bloqueado}
+                      <td className="p-2 border-r text-center bg-amber-600/5 align-middle w-[50px] min-w-[48px]">
+                        <input
+                          type="text"
+                          value={editMap[l.profissional_id]?.he_100 ?? l.he_100 ?? ""}
+
+                          onChange={(e) => handleUpdateLinha(l.profissional_id, "he_100", e.target.value)}
+                          className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                         />
                       </td>
                       {freqBase?.tipo === "efetivos" && (
                         <>
-                          <td className="p-2 border-r text-center font-medium text-blue-700 bg-blue-500/5">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="ferias_terco"
-                              value={(editMap[l.profissional_id]?.ferias_terco ?? (l as any).ferias_terco ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "ferias_terco", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center bg-blue-500/5 align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.ferias_terco ?? (l as any).ferias_terco ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "ferias_terco", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium text-blue-800 bg-blue-600/5">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="ferias_integral"
-                              value={(editMap[l.profissional_id]?.ferias_integral ?? (l as any).ferias_integral ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "ferias_integral", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center bg-blue-600/5 align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.ferias_integral ?? (l as any).ferias_integral ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "ferias_integral", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="adicional_noturno"
-                              value={(editMap[l.profissional_id]?.adicional_noturno ?? (l as any).adicional_noturno ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "adicional_noturno", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.adicional_noturno ?? (l as any).adicional_noturno ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "adicional_noturno", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="plantoes_extras"
-                              value={(editMap[l.profissional_id]?.plantoes_extras ?? l.plantoes_extras ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "plantoes_extras", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.plantoes_extras ?? l.plantoes_extras ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "plantoes_extras", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="sobreaviso"
-                              value={(editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sobreaviso", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "sobreaviso", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="incentivo"
-                              value={(editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "incentivo", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "incentivo", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="sal_sub_h"
-                              value={(editMap[l.profissional_id]?.sal_sub_h ?? (l as any).sal_sub_h ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sal_sub_h", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.sal_sub_h ?? (l as any).sal_sub_h ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "sal_sub_h", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="aulas_suplementares"
-                              value={(editMap[l.profissional_id]?.aulas_suplementares ?? (l as any).aulas_suplementares ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "aulas_suplementares", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.aulas_suplementares ?? (l as any).aulas_suplementares ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "aulas_suplementares", e.target.value)}
+
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
                         </>
                       )}
                       {freqBase?.tipo === "contratados" && (
                         <>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="adn"
-                              value={(editMap[l.profissional_id]?.adn ?? (l as any).adn ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "adn", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.adn ?? (l as any).adn ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "adn", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="plantoes"
-                              value={(editMap[l.profissional_id]?.plantoes ?? (l as any).plantoes ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "plantoes", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.plantoes ?? (l as any).plantoes ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "plantoes", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="sobreaviso"
-                              value={(editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "sobreaviso", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.sobreaviso ?? (l as any).sobreaviso ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "sobreaviso", e.target.value)}
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
-                          <td className="p-2 border-r text-center font-medium">
-                            <NumberCell
-                              rowId={l.profissional_id}
-                              colKey="incentivo"
-                              value={(editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? 0)}
-                              onChange={(v) => handleUpdateLinha(l.profissional_id, "incentivo", v)}
-                              disabled={bloqueado}
+                          <td className="p-2 border-r text-center align-middle w-[50px] min-w-[48px]">
+                            <input
+                              type="text"
+                              value={editMap[l.profissional_id]?.incentivo ?? (l as any).incentivo ?? ""}
+                              onChange={(e) => handleUpdateLinha(l.profissional_id, "incentivo", e.target.value)}
+
+                              className="w-11 h-7 text-center text-xs font-medium text-slate-800 bg-white hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors outline-none"
                             />
                           </td>
                         </>
                       )}
-                      <td className="p-3 border-r">
+                      <td className="p-3 border-r align-middle flex-1 min-w-[180px]">
                         <Input
                           placeholder="Motivo da decisão..."
                           defaultValue={l.observacao_analise ?? ""}
                           onChange={(e) => setObsMap((m) => ({ ...m, [l.id]: e.target.value }))}
-                          className="h-7 text-[11px] min-w-[150px]"
+                          className="h-7 text-[11px] w-full"
                         />
                       </td>
-                      <td className="p-3">
-                        <div className="flex justify-end gap-1">
+                      <td className="p-3 align-middle w-[90px] min-w-[85px]">
+                        <div className="flex justify-center gap-1.5">
                           {canAprovar && (
                             <Button
                               size="sm"
@@ -1359,6 +1401,7 @@ function LinhasAnaliseDialog({
                 })}
               </ErpTbody>
             </table>
+          </div>
             </ErpGridProvider>
           </div>
         )}

@@ -2,7 +2,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfessionalFilters } from "@/context/professional-filter-context";
 
-export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSize = 25) {
+export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSize = 25, isMaster = false) {
   const offset = (page - 1) * pageSize;
   return useQuery({
     queryKey: [
@@ -11,6 +11,7 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
       filters.cpf ?? null,
       filters.matricula ?? null,
       filters.unidadeId ?? null,
+      !!isMaster,
       filters.setorId ?? null,
       filters.cargoId ?? null,
       filters.funcaoId ?? null,
@@ -22,6 +23,11 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
     placeholderData: keepPreviousData,
     staleTime: 30_000,
     queryFn: async () => {
+      // Aguarda a unidade ser definida para não Master/Global
+      if (!isMaster && !filters.unidadeId) {
+        return { rows: [], count: 0 };
+      }
+
       // build base query
       let query = supabase
         .from("profissionais")
@@ -38,7 +44,7 @@ export function useProfissionais(filters: ProfessionalFilters, page = 1, pageSiz
 
       if (filters.cpf) query = query.eq("cpf", filters.cpf);
       if (filters.matricula) query = query.eq("matricula", filters.matricula);
-      if (filters.unidadeId) query = query.eq("unidade_id", filters.unidadeId);
+      if (!isMaster && filters.unidadeId) query = query.eq("unidade_id", filters.unidadeId);
       if (filters.setorId) query = query.eq("setor_id", filters.setorId);
       if (filters.cargoId) query = query.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) query = query.eq("funcao_id", filters.funcaoId);

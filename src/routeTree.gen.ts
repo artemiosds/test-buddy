@@ -30,6 +30,7 @@ import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_
 import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
 import { Route as AuthenticatedRelatoriosCadastroRouteImport } from './routes/_authenticated/relatorios-cadastro'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedRelatorioNotificacoesRouteImport } from './routes/_authenticated/relatorio-notificacoes'
 import { Route as AuthenticatedRelatorioInteligenteRouteImport } from './routes/_authenticated/relatorio-inteligente'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
@@ -203,6 +204,12 @@ const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedRelatorioNotificacoesRoute =
+  AuthenticatedRelatorioNotificacoesRouteImport.update({
+    id: '/relatorio-notificacoes',
+    path: '/relatorio-notificacoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRelatorioInteligenteRoute =
   AuthenticatedRelatorioInteligenteRouteImport.update({
     id: '/relatorio-inteligente',
@@ -569,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/pendencias': typeof AuthenticatedPendenciasRoute
   '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
+  '/relatorio-notificacoes': typeof AuthenticatedRelatorioNotificacoesRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
@@ -649,6 +657,7 @@ export interface FileRoutesByTo {
   '/pendencias': typeof AuthenticatedPendenciasRoute
   '/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
+  '/relatorio-notificacoes': typeof AuthenticatedRelatorioNotificacoesRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
@@ -731,6 +740,7 @@ export interface FileRoutesById {
   '/_authenticated/pendencias': typeof AuthenticatedPendenciasRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRouteWithChildren
   '/_authenticated/relatorio-inteligente': typeof AuthenticatedRelatorioInteligenteRoute
+  '/_authenticated/relatorio-notificacoes': typeof AuthenticatedRelatorioNotificacoesRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/relatorios-cadastro': typeof AuthenticatedRelatoriosCadastroRoute
   '/_authenticated/relatorios-consolidado': typeof AuthenticatedRelatoriosConsolidadoRoute
@@ -815,6 +825,7 @@ export interface FileRouteTypes {
     | '/pendencias'
     | '/profissionais'
     | '/relatorio-inteligente'
+    | '/relatorio-notificacoes'
     | '/relatorios'
     | '/relatorios-cadastro'
     | '/relatorios-consolidado'
@@ -895,6 +906,7 @@ export interface FileRouteTypes {
     | '/pendencias'
     | '/profissionais'
     | '/relatorio-inteligente'
+    | '/relatorio-notificacoes'
     | '/relatorios'
     | '/relatorios-cadastro'
     | '/relatorios-consolidado'
@@ -976,6 +988,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pendencias'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio-inteligente'
+    | '/_authenticated/relatorio-notificacoes'
     | '/_authenticated/relatorios'
     | '/_authenticated/relatorios-cadastro'
     | '/_authenticated/relatorios-consolidado'
@@ -1196,6 +1209,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorio-notificacoes': {
+      id: '/_authenticated/relatorio-notificacoes'
+      path: '/relatorio-notificacoes'
+      fullPath: '/relatorio-notificacoes'
+      preLoaderRoute: typeof AuthenticatedRelatorioNotificacoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/relatorio-inteligente': {
@@ -1742,6 +1762,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPendenciasRoute: typeof AuthenticatedPendenciasRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRouteWithChildren
   AuthenticatedRelatorioInteligenteRoute: typeof AuthenticatedRelatorioInteligenteRoute
+  AuthenticatedRelatorioNotificacoesRoute: typeof AuthenticatedRelatorioNotificacoesRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRelatoriosCadastroRoute: typeof AuthenticatedRelatoriosCadastroRoute
   AuthenticatedRelatoriosConsolidadoRoute: typeof AuthenticatedRelatoriosConsolidadoRoute
@@ -1801,6 +1822,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRouteWithChildren,
   AuthenticatedRelatorioInteligenteRoute:
     AuthenticatedRelatorioInteligenteRoute,
+  AuthenticatedRelatorioNotificacoesRoute:
+    AuthenticatedRelatorioNotificacoesRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRelatoriosCadastroRoute: AuthenticatedRelatoriosCadastroRoute,
   AuthenticatedRelatoriosConsolidadoRoute:

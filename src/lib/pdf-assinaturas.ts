@@ -449,10 +449,27 @@ export function drawAssinaturasBlock(
     const imgW = Math.min(colW - 8, 75 * factor);
     const row = Math.floor(i / perRow);
     const col = i % perRow;
-    // alinhamento dentro da coluna
+
+    // Alinhamento inteligente:
+    // Se houver 2 ou 3 assinaturas, a do Diretor (normalmente a 1ª ou 2ª)
+    // deve ficar centralizada ou conforme a ordem.
+    // O usuário solicitou: Diretor ao Meio, Secretaria à Direita.
     let cx = marginX + col * colW + colW / 2;
-    if (a.alinhamento === "esquerda") cx = marginX + col * colW + imgW / 2 + 4;
-    else if (a.alinhamento === "direita") cx = marginX + (col + 1) * colW - imgW / 2 - 4;
+    
+    // Se for o perfil de secretário ou a última de 3, joga pra direita
+    if (a.perfil_codigo === "SECRETARIO" || (fluxo.length === 3 && i === 2)) {
+      cx = pageWidth - marginX - imgW / 2 - 4;
+    } 
+    // Se for diretor de unidade e houver espaço para ser "meio"
+    else if (a.perfil_codigo === "DIRETOR_UNIDADE" && fluxo.length >= 2) {
+      if (fluxo.length === 2) {
+        // Com 2, "meio" é relativo. Vamos centralizar o bloco.
+        cx = pageWidth / 2;
+      } else {
+        // Com 3, o índice 1 é o meio exato
+        cx = marginX + colW + colW / 2;
+      }
+    }
     const cy = y + row * (blockH + 4);
 
     if (a.imageData) {

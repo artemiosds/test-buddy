@@ -90,30 +90,31 @@ const COR_TEXTO: [number, number, number] = [0, 0, 0];
 /* -------------------- Layout de colunas -------------------- */
 // Somam ~277 mm (largura útil A4 landscape com margens de 10 mm)
 const COLS = [
-  { key: "matricula", w: 18, label: "Matricula", align: "center" as const },
-  { key: "nome", w: 55, label: "Nome", align: "left" as const },
-  { key: "proj", w: 10, label: "Proj", align: "center" as const },
-  { key: "hp", w: 9, label: "H.P", align: "center" as const },
-  { key: "ch", w: 10, label: "C.H", align: "center" as const },
-  { key: "jorn", w: 10, label: "Jorn", align: "center" as const },
-  { key: "dias", w: 12, label: "DIAS", align: "center" as const, group: "tot" },
-  { key: "falta", w: 12, label: "FALTA", align: "center" as const, group: "tot" },
-  { key: "att", w: 10, label: "ATT", align: "center" as const, group: "tot" },
-  { key: "mat", w: 10, label: "MAT", align: "center" as const, group: "tot" },
-  { key: "he50", w: 11, label: "50%", align: "center" as const, group: "he" },
-  { key: "he100", w: 11, label: "100%", align: "center" as const, group: "he" },
-  { key: "terco", w: 10, label: "1/3", align: "center" as const, group: "fe" },
-  { key: "integ", w: 11, label: "Integ.", align: "center" as const, group: "fe" },
-  { key: "sal", w: 13, label: "SAL.\nSUB/H.", align: "center" as const, group: "var" },
-  { key: "adic", w: 12, label: "ADIC\nNOT", align: "center" as const, group: "var" },
-  { key: "aulas", w: 12, label: "AULAS\nSUPLE.", align: "center" as const, group: "var" },
-  { key: "plantao", w: 13, label: "PLANTÃO", align: "center" as const, group: "var" },
-  { key: "sobre", w: 12, label: "SOBRE\nAVISO", align: "center" as const, group: "var" },
-  { key: "incent", w: 16, label: "INCENTIVO", align: "center" as const, group: "var" },
+  { key: "matricula", w: 16, label: "Matricula", align: "center" as const },
+  { key: "nome", w: 60, label: "Nome", align: "left" as const },
+  { key: "proj", w: 8, label: "Proj", align: "center" as const },
+  { key: "hp", w: 8, label: "H.P", align: "center" as const },
+  { key: "ch", w: 9, label: "C.H", align: "center" as const },
+  { key: "jorn", w: 9, label: "Jorn", align: "center" as const },
+  { key: "dias", w: 10, label: "DIAS", align: "center" as const, group: "tot" },
+  { key: "falta", w: 10, label: "FLT", align: "center" as const, group: "tot" },
+  { key: "att", w: 9, label: "ATT", align: "center" as const, group: "tot" },
+  { key: "mat", w: 9, label: "MAT", align: "center" as const, group: "tot" },
+  { key: "he50", w: 10, label: "50%", align: "center" as const, group: "he" },
+  { key: "he100", w: 10, label: "100%", align: "center" as const, group: "he" },
+  { key: "terco", w: 9, label: "1/3", align: "center" as const, group: "fe" },
+  { key: "integ", w: 10, label: "Integ.", align: "center" as const, group: "fe" },
+  { key: "sal", w: 12, label: "SAL.\nSUB/H.", align: "center" as const, group: "var" },
+  { key: "adic", w: 11, label: "ADIC\nNOT", align: "center" as const, group: "var" },
+  { key: "aulas", w: 11, label: "AULAS\nSUPLE.", align: "center" as const, group: "var" },
+  { key: "plantao", w: 12, label: "PLANT.", align: "center" as const, group: "var" },
+  { key: "sobre", w: 11, label: "SOBR.", align: "center" as const, group: "var" },
+  { key: "incent", w: 13, label: "INCEN.", align: "center" as const, group: "var" },
+
 ];
 
 const MARGEM = 10;
-const LINHA_ALTURA = 14; // altura da linha de profissional (2 sub-linhas)
+const LINHA_ALTURA = 12; // altura da linha de profissional (2 sub-linhas)
 
 /* -------------------- Helpers de desenho -------------------- */
 
@@ -232,7 +233,8 @@ function drawTableHeader(doc: jsPDF, y: number): number {
   doc.setDrawColor(...COR_BORDA);
   doc.setLineWidth(0.2);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
+
   doc.setTextColor(...COR_TEXTO);
 
   // Banda superior: só desenha borda inferior por baixo da tabela; os grupos
@@ -268,7 +270,8 @@ function drawTableHeader(doc: jsPDF, y: number): number {
 
   // Labels das colunas (segunda linha), com bordas verticais
   const y2 = y + rowH1;
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
+
   for (let i = 0; i < COLS.length; i++) {
     const c = COLS[i];
     const x = colX[i];
@@ -334,17 +337,21 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
       // linha horizontal do meio (divide matricula/cargo-label)
       doc.line(xCursor, y + halfH, xCursor + c.w, y + halfH);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
+
       doc.text(String(item.profissional.matricula ?? ""), xCursor + c.w / 2, y + halfH - 1.5, {
         align: "center",
       });
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
+
       doc.text("Cargo", xCursor + 1, y + halfH + 4);
     } else if (c.key === "nome") {
       doc.line(xCursor, y + halfH, xCursor + c.w, y + halfH);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(7);
+
+
       const nome = item.profissional.nome ?? "";
       const nomeLinhas = doc.splitTextToSize(nome, c.w - 2) as string[];
       const nomeShow =
@@ -360,14 +367,15 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
     } else {
       // valor numérico centralizado verticalmente na célula
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
+
       const val = values[c.key] ?? "";
       if (val) {
         // Se for um texto longo (como status de situação), reduzimos a fonte e permitimos quebra básica se necessário
         const isStatus = val.length > 5 && situacao && situacao !== "Ativo" && val === situacao;
         if (isStatus) doc.setFontSize(6);
         doc.text(val, xCursor + c.w / 2, y + h / 2 + 1, { align: "center", maxWidth: c.w - 1 });
-        if (isStatus) doc.setFontSize(8);
+        if (isStatus) doc.setFontSize(7.5);
       }
     }
     xCursor += c.w;

@@ -1,26 +1,27 @@
-# Missão: Correção Forense de Autorização (RBAC) - EXECUÇÃO CONTROLADA
+# Plano de Melhoria: Gestão Multi-Unidade e Seleção Automática
 
-## 1. Diagnóstico de Divergência
-A auditoria técnica comprovou que a função `is_master_db` (usada em RPCs de escrita) é inconsistente com a `is_master` (usada em RLS de leitura), exigindo flags duplas que o MASTER nem sempre possui. Além disso, as policies de escrita da tabela `frequencia_profissional` não possuem bypass para MASTER, causando bloqueios em cascata.
+Este plano visa aprimorar a experiência de Diretores de Unidade com múltiplos vínculos, garantindo seleção automática, isolamento correto e eliminação de inconsistências visuais durante o carregamento.
 
-## 2. Plano de Correção (FASE 1 e 6)
+## 1. Refatoração do Hook de Escopo (`useUnitScope`)
+- Ajustar a lógica para detectar múltiplos vínculos.
+- Adicionar uma flag `hasMultipleUnits` e garantir que `unidadePadraoId` seja a primeira da lista.
+- Manter `locked` como `true` apenas se houver exatamente 1 unidade vinculada e o usuário não for global.
 
-### A. Unificação Conceitual
-- Refatorar `is_master_db` para utilizar a regra de negócio oficial: Perfil MASTER/ADMINISTRADOR_MASTER ou flags de acesso global.
-- **SEGURANÇA**: Remover o bypass hardcoded por email (`artemiosouza99@gmail.com`) de **ambas** as funções (`is_master` e `is_master_db`).
+## 2. Aprimoramento do Componente `UnidadeFilter`
+- Modificar o componente para suportar seleção manual quando `hasMultipleUnits` for verdadeiro.
+- Garantir que a primeira unidade seja selecionada automaticamente se nenhum valor for fornecido.
+- Remover o fallback "Nenhuma unidade vinculada" se houver dados no lookup.
+- Utilizar `TableSkeleton` ou um componente de Loading específico durante a busca de unidades.
 
-### B. Bypass Master em RLS de Frequência
-- Adicionar `is_master(auth.uid())` nas policies de `INSERT`, `UPDATE` e `DELETE` da tabela `frequencia_profissional`. 
-- **RESTRIÇÃO**: Não alterar SELECT nem privilégios de Diretor/Gestor para evitar escalação de privilégios.
+## 3. Otimização dos Hooks de Dados (`useProfissionais`, `useAnalytics`, etc.)
+- Garantir que as queries de Profissionais e Frequências sejam disparadas imediatamente assim que `unidadeId` for resolvido no hook de escopo ou no estado do componente.
+- Adicionar tratamento de carregamento (`isLoading`) para evitar a exibição de contadores zerados ("0") antes da conclusão da query.
 
-### C. Manutenção de Privilégios (Grants)
-- **ZERO** alterações em `GRANT ALL`. O acesso será mediado exclusivamente via RLS e lógica interna de RPC.
+## 4. Atualização das Páginas de Frequência (Contratados e Efetivos)
+- Ajustar a inicialização do estado `unidadeId` para respeitar a `unidadePadraoId` do hook de escopo.
+- Sincronizar a mudança de unidade no dropdown com a atualização imediata da grade de profissionais.
 
-## 3. Matriz de Teste de Não-Regressão
-- **MASTER**: Acesso global comprovado via unificação de funções.
-- **GESTOR**: Mantido no escopo de secretaria via `user_has_secretaria`.
-- **DIRETOR**: Mantido no escopo de unidade via `user_has_unit`.
-- **OPERACIONAL**: Mantido via `has_permission`.
-
----
-*Procedendo com a aplicação da Migration de Segurança.*
+## Detalhes Técnicos
+- **Arquivos:** `src/hooks/use-unit-scope.ts`, `src/components/piso/UnidadeFilter.tsx`, `src/hooks/use-profissionais.ts`, `src/components/frequencias/frequencias-contratados-page.tsx`, `src/components/frequencias/frequencias-efetivos-page.tsx`.
+- **RBAC:** A lógica de filtragem em `use-analytics.ts` e `use-profissionais.ts` já respeita `isMaster`, mas será reforçada para garantir que Diretores sem unidade selecionada não vejam dados globais indevidamente (embora o RLS já proteja o banco).
+- **UX:** Substituição de contadores estáticos "0" por `Skeleton` durante o `fetching`.

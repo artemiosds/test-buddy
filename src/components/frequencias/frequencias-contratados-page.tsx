@@ -37,6 +37,8 @@ import {
   Filter as FilterIcon,
 } from "lucide-react";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
+
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
 import type { ItemContratado } from "@/lib/excel-folha-contratados";
@@ -50,6 +52,8 @@ import {
   ProfissionalEdicaoModal,
   type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
+import { UnidadeFilter } from "@/components/shared";
+
 import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
 import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
 import {
@@ -154,9 +158,19 @@ export function FrequenciasContratadosPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const { data: compAtiva } = useCompetenciaAtiva();
+  const { isGlobal, unidadesPermitidas, unidadePadraoId } = useUnitScope();
 
   const [competenciaId, setCompetenciaId] = useState<string>(search.competenciaId || "");
   const [unidadeId, setUnidadeId] = useState<string>(search.unidadeId || "");
+
+  // Sincroniza unidadeId com a padrão do escopo
+  useEffect(() => {
+    if (!unidadeId && unidadePadraoId) {
+      setUnidadeId(unidadePadraoId);
+    }
+  }, [unidadePadraoId, unidadeId]);
+
+
 
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
@@ -253,19 +267,24 @@ export function FrequenciasContratadosPage() {
 
   const unidadesVisiveis = useMemo(() => {
     if (!me || !unidades) return [];
-    if (isGestor) return unidades;
+    if (isGlobal) return unidades;
     
     // Para Diretores, filtra as unidades globais baseando-se no array de unidades do contexto
-    const permitidas = new Set(me.unidades || []);
+    const permitidas = new Set(unidadesPermitidas || []);
     return unidades.filter(u => permitidas.has(u.id));
-  }, [me, unidades, isGestor]);
+  }, [me, unidades, isGlobal, unidadesPermitidas]);
 
   useEffect(() => {
-    if (unidadeId) return;
-    if (unidadesVisiveis.length > 0) {
+    // Se unidadeId está vazio, tenta a padrão do escopo
+    if (!unidadeId && unidadePadraoId) {
+      setUnidadeId(unidadePadraoId);
+    } 
+    // Se ainda vazio e temos unidades visíveis, pega a primeira
+    else if (!unidadeId && unidadesVisiveis.length > 0) {
       setUnidadeId(unidadesVisiveis[0].id);
     }
-  }, [unidadesVisiveis, unidadeId]);
+  }, [unidadesVisiveis, unidadeId, unidadePadraoId]);
+
 
   const unidadeSel = useMemo(() => 
     unidadesVisiveis.find((u: any) => u.id === unidadeId),
@@ -285,13 +304,18 @@ export function FrequenciasContratadosPage() {
     queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"],
     enabled: !!competenciaId && !!unidadeId,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("frequencias")
         .select("id, status")
         .eq("tipo", "contratados")
-        .eq("competencia_unidades.competencia_id", competenciaId)
-        .eq("competencia_unidades.unidade_id", unidadeId)
-        .maybeSingle();
+        .eq("competencia_unidades.competencia_id", competenciaId);
+      
+      // Se for MASTER e unidadeId for "__all__" (ou null), não filtra por unidade
+      if (unidadeId !== "__all__" && unidadeId) {
+        q = q.eq("competencia_unidades.unidade_id", unidadeId);
+      }
+      
+      const { data } = await q.maybeSingle();
       return data;
     }
   });
@@ -956,27 +980,13 @@ export function FrequenciasContratadosPage() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Unidade</label>
-          {isGestor ? (
-            <Select value={unidadeId} onValueChange={setUnidadeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar unidade" />
-              </SelectTrigger>
-              <SelectContent>
-                {unidadesVisiveis.map((u: any) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ` : ""}
-                    {u.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
-              {unidadesVisiveis[0]
-                ? `${unidadesVisiveis[0].sigla ? unidadesVisiveis[0].sigla + " — " : ""}${unidadesVisiveis[0].nome}`
-                : "Nenhuma unidade vinculada"}
-            </div>
-          )}
+          <UnidadeFilter
+            value={unidadeId}
+            onChange={(v) => setUnidadeId(v)}
+            placeholder="Selecionar unidade"
+            className="w-[200px]"
+          />
+
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Buscar</label>

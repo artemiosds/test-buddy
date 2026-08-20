@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { logger } from "./logger";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
  * Helper para envio de e-mails via SMTP.
@@ -23,6 +24,7 @@ export async function sendEmail({
   const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
   const pass = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD;
   const from = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user;
+  const fromName = process.env.SMTP_FROM_NAME || "HSM Gestão — SMS Oriximiná";
 
   // Gmail especifico: Se for smtp.gmail.com, forçamos porta 587 se não definida
   const port = Number(portStr || (host?.includes("gmail.com") ? 587 : 465));
@@ -61,7 +63,7 @@ export async function sendEmail({
 
   try {
     const info = await transporter.sendMail({
-      from: `HSM Gestão — SMS Oriximiná <${from}>`,
+      from: `"${fromName}" <${from}>`,
       to: Array.isArray(to) ? to.join(", ") : to,
       subject,
       text: text || "Abra este e-mail em um cliente compatível com HTML para visualizar o conteúdo.",
@@ -69,9 +71,26 @@ export async function sendEmail({
     });
 
     logger.info("email.send.success", { messageId: info.messageId, to, subject });
+    
+    // Log success to DB
+    await supabaseAdmin.from("logs_notificacoes").insert({
+      destinatario: Array.isArray(to) ? to.join(", ") : to,
+      assunto: subject,
+      status: "enviado",
+    } as never);
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     logger.error("email.send.error", { error, to, subject });
+
+    // Log error to DB
+    await supabaseAdmin.from("logs_notificacoes").insert({
+      destinatario: Array.isArray(to) ? to.join(", ") : to,
+      assunto: subject,
+      status: "erro",
+      detalhe_erro: (error as Error)?.message || String(error),
+    } as never);
+
     return { success: false, error };
   }
 }

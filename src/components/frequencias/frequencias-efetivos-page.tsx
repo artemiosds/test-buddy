@@ -22,6 +22,8 @@ import { toast, Toaster } from "sonner";
 import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
 import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
+
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import type { Database } from "@/integrations/supabase/types";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
@@ -34,6 +36,8 @@ import {
   type EdicaoCampo,
   type SituacaoFilterValue,
 } from "@/components/shared/gerencial";
+import { UnidadeFilter } from "@/components/shared";
+
 import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
 import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
 import {
@@ -130,9 +134,18 @@ export function FrequenciasEfetivosPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const { data: compAtiva } = useCompetenciaAtiva();
+  const { isGlobal, unidadesPermitidas, unidadePadraoId } = useUnitScope();
 
   const [competenciaId, setCompetenciaId] = useState<string>("");
   const [unidadeId, setUnidadeId] = useState<string>("");
+
+  // Sincroniza unidadeId com a padrão do escopo
+  useEffect(() => {
+    if (!unidadeId && unidadePadraoId) {
+      setUnidadeId(unidadePadraoId);
+    }
+  }, [unidadePadraoId, unidadeId]);
+
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
@@ -225,18 +238,23 @@ export function FrequenciasEfetivosPage() {
 
   const unidadesVisiveis = useMemo(() => {
     if (!me || !unidades) return [];
-    if (isGestor) return unidades;
+    if (isGlobal) return unidades;
     
-    const permitidas = new Set(me.unidades || []);
+    const permitidas = new Set(unidadesPermitidas || []);
     return unidades.filter(u => permitidas.has(u.id));
-  }, [me, unidades, isGestor]);
+  }, [me, unidades, isGlobal, unidadesPermitidas]);
 
   useEffect(() => {
-    if (unidadeId) return;
-    if (unidadesVisiveis.length > 0) {
+    // Se unidadeId está vazio, tenta a padrão do escopo
+    if (!unidadeId && unidadePadraoId) {
+      setUnidadeId(unidadePadraoId);
+    } 
+    // Se ainda vazio e temos unidades visíveis, pega a primeira
+    else if (!unidadeId && unidadesVisiveis.length > 0) {
       setUnidadeId(unidadesVisiveis[0].id);
     }
-  }, [unidadesVisiveis, unidadeId]);
+  }, [unidadesVisiveis, unidadeId, unidadePadraoId]);
+
 
   const unidadeSel = useMemo(() => 
     unidadesVisiveis.find((u: any) => u.id === unidadeId),
@@ -769,27 +787,13 @@ export function FrequenciasEfetivosPage() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Unidade</label>
-          {isGestor ? (
-            <Select value={unidadeId} onValueChange={setUnidadeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar unidade" />
-              </SelectTrigger>
-              <SelectContent>
-                {unidadesVisiveis.map((u: any) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ` : ""}
-                    {u.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
-              {unidadesVisiveis[0]
-                ? `${unidadesVisiveis[0].sigla ? unidadesVisiveis[0].sigla + " — " : ""}${unidadesVisiveis[0].nome}`
-                : "Nenhuma unidade vinculada"}
-            </div>
-          )}
+          <UnidadeFilter
+            value={unidadeId}
+            onChange={(v) => setUnidadeId(v)}
+            placeholder="Selecionar unidade"
+            className="w-[200px]"
+          />
+
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Buscar</label>

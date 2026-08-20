@@ -59,16 +59,27 @@ function AuthPage() {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           if (!mounted || !sessionData.session) return;
+          
           const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          const { data: ctx } = await supabase.rpc("get_my_user_context");
+          const userCtx = ctx as any;
+          const force2FA = userCtx?.perfil_admin_2fa_required === true || userCtx?.perfil_codigo === "ADMIN_SMS";
+          
+          console.log("STATUS GUARDA DE ROTA (AUTH):", { aal, force2FA, perfil: userCtx?.perfil_codigo });
+
           if (!mounted) return;
+
           if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-            void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO, {
-              contexto: { origem: "sessao_pendente" },
-            });
-            await startMfaChallenge();
-            return;
+            if (force2FA) {
+              void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO, {
+                contexto: { origem: "sessao_pendente" },
+              });
+              await startMfaChallenge();
+              return;
+            }
           }
-          navigate({ to: "/" });
+          navigate({ to: "/", replace: true });
+
         } catch (err) {
           logger.error("auth.redirect_check_failed", { error: err });
         }
@@ -198,11 +209,20 @@ function AuthPage() {
         }
         const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-          void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO);
-          await startMfaChallenge();
+          // Buscamos o contexto para decidir se exigimos o 2FA agora
+          const { data: ctx } = await supabase.rpc("get_my_user_context");
+          const userCtx = ctx as any;
+          const force2FA = userCtx?.perfil_admin_2fa_required === true;
+          console.log("VERIFICAÇÃO 2FA:", { perfil: userCtx?.perfil_codigo, flagBanco: userCtx?.perfil_admin_2fa_required });
+
+          if (force2FA) {
+            void auditClient.action(AUDIT_ACOES.MFA_CHALLENGE_INICIADO);
+            await startMfaChallenge();
+          } else {
+            void auditClient.login(AUDIT_ACOES.LOGIN_SUCESSO);
+            navigate({ to: "/" });
+          }
         } else {
-          // A verificação de perfil agora é feita de forma flexível no servidor
-          // Não tentamos fazer upsert manual aqui para evitar erros de tipagem/permissão client-side
           void auditClient.login(AUDIT_ACOES.LOGIN_SUCESSO);
         }
       }

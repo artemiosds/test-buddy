@@ -76,6 +76,8 @@ import {
 } from "lucide-react";
 
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
+
 import { ImportProfissionaisDialog } from "@/components/profissionais/import-dialog";
 import { ImportSalariosPdfDialog } from "@/components/profissionais/import-salarios-ia-dialog";
 
@@ -86,7 +88,9 @@ import {
   MultiSelect,
   DataTable,
   type DataTableColumn,
+  UnidadeFilter,
 } from "@/components/shared";
+
 import { Pagination } from "@/components/shared/Pagination";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -237,8 +241,18 @@ function ProfissionaisPage() {
 
   const { reset } = formMethods;
 
+  const { isGlobal, unidadesPermitidas, unidadePadraoId, locked } = useUnitScope();
+
   // Filtros de listagem (múltipla escolha)
   const [fUnidade, setFUnidade] = useState<string[]>([]);
+  
+  // Efeito para aplicar escopo inicial
+  useEffect(() => {
+    if (!isGlobal && unidadePadraoId && fUnidade.length === 0) {
+      setFUnidade([unidadePadraoId]);
+    }
+  }, [isGlobal, unidadePadraoId, fUnidade.length]);
+
   const [fVinculo, setFVinculo] = useState<string[]>([]);
   const [fStatus, setFStatus] = useState<string[]>([]);
   const [fCargo, setFCargo] = useState<string[]>([]);
@@ -249,6 +263,7 @@ function ProfissionaisPage() {
   const [fMatricula, setFMatricula] = useState<string>("");
   const [fGestor, setFGestor] = useState<"todos" | "sim" | "nao">("todos");
   const [fCategorias, setFCategorias] = useState<CategoriaPiso[]>([]);
+
 
   const filtrosAtivos =
     (fNome.trim() ? 1 : 0) +
@@ -508,8 +523,9 @@ function ProfissionaisPage() {
 
   // Opções para os filtros de listagem — hooks compartilhados (use-lookups)
   const { data: unidadesFiltro } = useUnidadesLookup({ 
-    unidadesPermitidas: me?.acesso_todas_unidades ? undefined : me?.unidades 
+    unidadesPermitidas: isGlobal ? undefined : unidadesPermitidas 
   });
+
   const cargosFiltro = cargosLookup;
   const funcoesFiltro = funcoesLookup;
   const { data: vinculosFiltro } = useVinculosLookup();
@@ -1215,18 +1231,13 @@ function ProfissionaisPage() {
           />
         </FilterBar.Field>
         <FilterBar.Field label="Unidade">
-          <MultiSelect
-            value={fUnidade}
-            onChange={changeUnidadeFiltro}
+          <UnidadeFilter
+            value={fUnidade[0] || "all"}
+            onChange={(v) => changeUnidadeFiltro(v === "all" ? [] : [v])}
             placeholder="Todas"
-            searchPlaceholder="Buscar unidade..."
-            options={(unidadesFiltro ?? []).map((u) => ({
-              value: u.id,
-              label: `${u.sigla ? `${u.sigla} — ` : ""}${u.nome}`,
-              hint: u.sigla,
-            }))}
           />
         </FilterBar.Field>
+
         <FilterBar.Field label="Vínculo">
           <MultiSelect
             value={fVinculo}

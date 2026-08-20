@@ -306,23 +306,18 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     }
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    let ty = logoY + logoSize + 3;
     doc.setFontSize(9);
-    doc.text("ESTADO DO PARÁ", cx, ty, { align: "center" });
-    ty += 4;
-    doc.setFontSize(10);
-    doc.text("PREFEITURA MUNICIPAL DE ORIXIMINÁ", cx, ty, { align: "center" });
-    ty += 4;
-    doc.setFontSize(9);
-    doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, ty, { align: "center" });
-    ty += 4;
-    doc.setFontSize(9);
-    doc.text(`${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`, cx, ty, {
-      align: "center",
-    });
+    doc.text("ESTADO DO PARÁ", cx, 12, { align: "center" });
+    doc.text("PREFEITURA MUNICIPAL DE ORIXIMINÁ", cx, 16, { align: "center" });
+    doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, 20, { align: "center" });
+    
+    const tituloUnidade = `${unidadeUp} - FREQUÊNCIA DOS PRESTADORES - MÊS ${compStr}`;
+    doc.setFontSize(8);
+    doc.text(tituloUnidade, cx, 26, { align: "center" });
+
     doc.setDrawColor(120, 120, 120);
     doc.setLineWidth(0.3);
-    doc.line(MARGEM_PDF, ty + 2, pageW - MARGEM_PDF, ty + 2);
+    doc.line(MARGEM_PDF, 30, pageW - MARGEM_PDF, 30);
   };
 
   const head = [
@@ -333,17 +328,18 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       "CARGO",
       "LOTAÇÃO",
       "DIAS",
-      "FALTA",
+      "FLT",
       "ATT",
-      "H.E 50%",
-      "H.E 100%",
+      "50%",
+      "100%",
       "ADN",
-      "PLANTÕES",
-      "SOBRE-AVISOS",
-      "INCENTIVO",
+      "PLANT.",
+      "SOBR.",
+      "INC.",
       "CONTA",
     ],
   ];
+
 
   const body = input.itens.map((it, i) => {
     const p = it.profissional;
@@ -363,7 +359,9 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "",
-      p.setor || input.unidadeNome || "",
+      (it as any).lotacao_sigla || (it as any).setor_nome || "CAPS II",
+
+
       nVal(l.dias_trabalhados),
       nVal(l.dias_falta),
       nVal(l.atestado),
@@ -380,43 +378,46 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
   autoTable(doc, {
     head,
     body,
-    startY: 52,
-    margin: { left: MARGEM_PDF, right: MARGEM_PDF, top: 52, bottom: 40 },
+    startY: 32,
+    tableWidth: "auto",
+    margin: { left: 10, right: 10, top: 32, bottom: 15 },
     rowPageBreak: "avoid",
     styles: {
-      fontSize: 8,
-      cellPadding: 1.5,
+      fontSize: 7,
+      cellPadding: 1.2,
       lineColor: [180, 180, 180],
       lineWidth: 0.15,
       overflow: "linebreak",
       valign: "middle",
     },
     headStyles: {
-      fillColor: [226, 232, 240],
-      textColor: [0, 0, 0],
+      fillColor: [240, 243, 246],
+      textColor: [30, 41, 59],
       fontStyle: "bold",
       halign: "center",
-      fontSize: 8,
+      valign: "middle",
+      fontSize: 6.5,
+      cellPadding: 1.2,
       lineColor: [120, 120, 120],
       lineWidth: 0.25,
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { halign: "center", cellWidth: 8 },
-      1: { halign: "left", cellWidth: 50 },
-      2: { halign: "center", cellWidth: 24 },
-      3: { halign: "left", cellWidth: 28 },
-      4: { halign: "left", cellWidth: 24 },
-      5: { halign: "center", cellWidth: 10 },
-      6: { halign: "center", cellWidth: 10 },
-      7: { halign: "center", cellWidth: 10 },
-      8: { halign: "center", cellWidth: 12 },
-      9: { halign: "center", cellWidth: 12 },
-      10: { halign: "center", cellWidth: 10 },
-      11: { halign: "center", cellWidth: 14 },
-      12: { halign: "center", cellWidth: 16 },
-      13: { halign: "center", cellWidth: 14 },
-      14: { halign: "left", cellWidth: 45 },
+      0: { halign: "center" },
+      1: { cellWidth: 50, halign: "left" },
+      2: { cellWidth: 24, halign: "center" },
+      3: { cellWidth: 35, halign: "left" },
+      4: { cellWidth: 18, halign: "center" },
+      5: { halign: "center" },
+      6: { halign: "center" },
+      7: { halign: "center" },
+      8: { halign: "center" },
+      9: { halign: "center" },
+      10: { halign: "center" },
+      11: { halign: "center" },
+      12: { halign: "center" },
+      13: { halign: "center" },
+      14: { cellWidth: 40, halign: "left" },
     },
     didDrawPage: (data) => {
       drawHeader();
@@ -424,24 +425,25 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(90, 90, 90);
-      doc.text(`Emissão: ${emissao} | Emitido por: ${input.emitidoPor}`, MARGEM_PDF, pageH - 5);
+      
       const pageNum = data.pageNumber;
       const pageTotal = doc.getNumberOfPages();
+      
+      // Rodapé da página (não confundir com bloco de assinaturas)
+      doc.text(`Emissão: ${emissao} | Emitido por: ${input.emitidoPor}`, MARGEM_PDF, pageH - 5);
       doc.text(`Página ${pageNum} de ${pageTotal}`, pageW / 2, pageH - 5, { align: "center" });
     },
   });
 
   let assinaturaBaseY: number | undefined;
   if (assinaturas.length > 0) {
-    const lastY = (doc as any).lastAutoTable.finalY || 52;
-    // Se não couber na mesma página, joga para a próxima
-    let signY = lastY + 10;
-    if (signY + 30 > pageH - 15) {
+    const lastY = (doc as any).lastAutoTable.finalY || 32;
+    let signY = lastY + 5;
+    if (signY + 35 > pageH - 15) {
       doc.addPage();
       drawHeader();
-      signY = 52 + 10;
+      signY = 32 + 5;
     }
-    
     assinaturaBaseY = signY;
   }
 

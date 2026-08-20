@@ -19,9 +19,17 @@ export type LookupOption = { id: string; nome: string; sigla?: string | null };
 
 export type UnidadeLookup = { id: string; nome: string; sigla: string | null };
 
-export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean; unidadesPermitidas?: string[] }) =>
+export const unidadesLookupOptions = (opts?: { 
+  ativasOnly?: boolean; 
+  unidadesPermitidas?: string[]; 
+  isMaster?: boolean 
+}) =>
   queryOptions({
-    queryKey: ["lookup", "unidades", { ativas: !!opts?.ativasOnly, permitidas: opts?.unidadesPermitidas }],
+    queryKey: ["lookup", "unidades", { 
+      ativas: !!opts?.ativasOnly, 
+      permitidas: opts?.unidadesPermitidas,
+      isMaster: !!opts?.isMaster 
+    }],
     staleTime: FIVE_MIN,
     queryFn: async () => {
       let q = supabase
@@ -30,7 +38,8 @@ export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean; unidadesPer
         .is("deleted_at", null)
         .order("nome");
       
-      if (opts?.unidadesPermitidas && opts.unidadesPermitidas.length > 0) {
+      // Se não for MASTER nem GESTOR e houver unidades permitidas, filtra
+      if (!opts?.isMaster && opts?.unidadesPermitidas && opts.unidadesPermitidas.length > 0) {
         q = q.in("id", opts.unidadesPermitidas);
       }
       
@@ -40,7 +49,11 @@ export const unidadesLookupOptions = (opts?: { ativasOnly?: boolean; unidadesPer
     },
   });
 
-export function useUnidadesLookup(opts?: { ativasOnly?: boolean; unidadesPermitidas?: string[] }) {
+export function useUnidadesLookup(opts?: { 
+  ativasOnly?: boolean; 
+  unidadesPermitidas?: string[]; 
+  isMaster?: boolean 
+}) {
   return useQuery(unidadesLookupOptions(opts));
 }
 
@@ -48,9 +61,9 @@ export function useUnidadesLookup(opts?: { ativasOnly?: boolean; unidadesPermiti
 
 export type SetorLookup = { id: string; nome: string; unidade_id: string | null };
 
-export function useSetoresLookup(opts?: { unidadeId?: string | null }) {
+export function useSetoresLookup(opts?: { unidadeId?: string | null; isMaster?: boolean }) {
   return useQuery({
-    queryKey: ["lookup", "setores", opts?.unidadeId ?? null],
+    queryKey: ["lookup", "setores", opts?.unidadeId ?? null, !!opts?.isMaster],
     staleTime: FIVE_MIN,
     queryFn: async () => {
       let q = supabase
@@ -58,7 +71,11 @@ export function useSetoresLookup(opts?: { unidadeId?: string | null }) {
         .select("id, nome, unidade_id")
         .is("deleted_at", null)
         .order("nome");
-      if (opts?.unidadeId) q = q.eq("unidade_id", opts.unidadeId);
+
+      if (!opts?.isMaster && opts?.unidadeId) {
+        q = q.eq("unidade_id", opts.unidadeId);
+      }
+
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as SetorLookup[];

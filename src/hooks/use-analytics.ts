@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import {
   STATUS_APROVADAS,
   STATUS_PENDENTES,
@@ -49,11 +50,16 @@ export type RankingRow = {
 
 export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: number }) {
   const { data: competenciaAtiva } = useCompetenciaAtiva();
-  const canSee = usePermissions().has;
+  const { has: canSee, isLoading: isPermissionsLoading } = usePermissions();
+  const { data: userCtx } = useCurrentUser();
+  const { unidadePadraoId, isLoading: isScopeLoading } = useUnitScope();
 
+  const isMaster = !!userCtx?.is_master;
   const staleTime = options?.staleTime ?? 300_000;
   const gcTime = 1_800_000;
   const competenciaId = (filters.competenciaId ?? competenciaAtiva?.id ?? null) as string | null;
+  // Habilitado apenas quando o escopo for resolvido e houver unidade selecionada ou for Master
+  const enabled = !isPermissionsLoading && !isScopeLoading && (isMaster || !!filters.unidadeId || !!unidadePadraoId);
 
   const totalProfessionals = useQuery({
     queryKey: ["analytics", "totalProfessionals", filters],
@@ -64,7 +70,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         .from("profissionais")
         .select("id", { head: true, count: "exact" })
         .is("deleted_at", null);
-      if (filters.unidadeId) q.eq("unidade_id", filters.unidadeId);
+      // MASTER vê global (sem filtro) a menos que selecione uma unidade específica.
+      // Diretor/Gestor sempre é limitado pelo RLS, mas o filtro ajuda a otimizar a query.
+      if (filters.unidadeId) {
+        q.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        // Fallback de segurança para não-master: se não informou unidade, limita às dele
+        q.in("unidade_id", userCtx.unidades as string[]);
+      }
       if (filters.setorId) q.eq("setor_id", filters.setorId);
       if (filters.cargoId) q.eq("cargo_id", filters.cargoId);
       if (filters.funcaoId) q.eq("funcao_id", filters.funcaoId);
@@ -74,7 +87,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: !!canSee,
+    enabled: enabled,
   });
 
   const totalUnidades = useQuery({
@@ -105,6 +118,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (error) throw error;
       return count ?? 0;
     },
+    enabled: enabled,
   });
 
   const totalCargos = useQuery({
@@ -119,6 +133,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (error) throw error;
       return count ?? 0;
     },
+    enabled: !isPermissionsLoading,
   });
 
   const totalFuncoes = useQuery({
@@ -133,6 +148,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (error) throw error;
       return count ?? 0;
     },
+    enabled: !isPermissionsLoading,
   });
 
   const pendencias = useQuery({
@@ -150,12 +166,15 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
 
       if (filters.unidadeId) {
         q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q.in("frequencias.competencia_unidades.unidade_id" as never, userCtx.unidades as string[]);
       }
 
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
+    enabled: !isPermissionsLoading,
   });
 
   const summaryQuery = useQuery({
@@ -183,17 +202,17 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         };
       };
     },
-    enabled: !!competenciaId,
+    enabled: !!competenciaId && !isPermissionsLoading,
   });
 
   const frequenciasAggregated = useQuery({
     queryKey: ["analytics", "frequencias-aggregated", competenciaId, filters.unidadeId, filters.tipo],
     staleTime,
     gcTime,
-    enabled: !!competenciaId,
+    enabled: !!competenciaId && !isPermissionsLoading,
     queryFn: () => getAggregatedFrequencies({
       competenciaId,
-      unidadeId: filters.unidadeId,
+      unidadeId: filters.unidadeId || undefined,
       tipo: filters.tipo ?? "all"
     }),
   });
@@ -215,6 +234,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "integridade", filters.unidadeId],
     staleTime,
     gcTime,
+    enabled: !isPermissionsLoading,
     queryFn: async () => {
       let q = supabase
         .from("v_integridade_profissionais")
@@ -222,6 +242,8 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       
       if (filters.unidadeId) {
         q = q.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades as string[]);
       }
 
       const { data, error } = await q;
@@ -293,6 +315,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         setoresVazios: 0,
       };
     },
+    enabled: !isPermissionsLoading,
   });
 
   const rhKpis = summaryQuery.data?.rh_kpis || {
@@ -343,7 +366,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     queryKey: ["analytics", "prevCompetencia", competenciaId],
     staleTime,
     gcTime,
-    enabled: !!competenciaId,
+    enabled: !!competenciaId && !isPermissionsLoading,
     queryFn: async () => {
       const { data: cur } = await supabase
         .from("competencias")
@@ -372,7 +395,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     ],
     staleTime,
     gcTime,
-    enabled: !!previousCompetenciaId.data,
+    enabled: !!previousCompetenciaId.data && !isPermissionsLoading,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("frequencias")
@@ -395,7 +418,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     ],
     staleTime,
     gcTime,
-    enabled: !!previousCompetenciaId.data,
+    enabled: !!previousCompetenciaId.data && !isPermissionsLoading,
     queryFn: async () => {
       const q = supabase
         .from("frequencia_pendencias")
@@ -408,8 +431,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
           "frequencias.competencia_unidades.competencia_id" as never,
           previousCompetenciaId.data as string,
         );
-      if (filters.unidadeId)
+      if (filters.unidadeId) {
         q.eq("frequencias.competencia_unidades.unidade_id" as never, filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q.in("frequencias.competencia_unidades.unidade_id" as never, userCtx.unidades as string[]);
+      }
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
@@ -429,12 +455,17 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         .is("deleted_at", null)
         .order("nome_completo")
         .limit(1000);
-      if (filters.unidadeId) q = q.eq("unidade_id", filters.unidadeId);
+      if (filters.unidadeId) {
+        q = q.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades as string[]);
+      }
       if (filters.cargoId) q = q.eq("cargo_id", filters.cargoId);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
     },
+    enabled: !isPermissionsLoading,
   });
 
   const distribuicaoSetor = useQuery({
@@ -460,7 +491,11 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         .not("unidade_id", "is", null)
         .limit(10000);
       
-      if (filters.unidadeId) qProf = qProf.eq("unidade_id", filters.unidadeId);
+      if (filters.unidadeId) {
+        qProf = qProf.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        qProf = qProf.in("unidade_id", userCtx.unidades as string[]);
+      }
       
       let qSectors = supabase
         .from("setores")
@@ -530,7 +565,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         raw: { professionals, sectors }
       };
     },
-    enabled: !!canSee,
+    enabled: !isPermissionsLoading,
   });
 
   return {
@@ -556,6 +591,8 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     equipeProfissionais,
     distribuicaoSetor,
     loading:
+      isPermissionsLoading ||
+      isScopeLoading ||
       totalProfessionals.isLoading ||
       totalUnidades.isLoading ||
       summary.isLoading ||

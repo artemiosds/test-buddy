@@ -33,27 +33,29 @@ export function useCurrentUser() {
         async () => {
           const { data, error } = await supabase.rpc("get_my_user_context");
           if (error) throw error;
-          
-          // O RPC já retorna um objeto único devido ao jsonb_build_object
+
           const row = data as unknown as UserContext;
           if (!row) return null;
 
-          // Normaliza o perfil_codigo para garantir consistência no frontend
           const normalizedPerfil = normalizarPerfil(row.perfil_codigo);
           
-          // Fail-safe Master check: se o RPC não marcou como master mas o código do perfil é MASTER, force true.
-          // Isso evita falhas de sincronização entre claims de auth e o banco.
-          const isMaster = row.is_master || normalizedPerfil === "MASTER" || normalizedPerfil === "ADMINISTRADOR_MASTER";
+          // Se row.is_master for null ou undefined, o normalizarPerfil serve de fallback
+          const isMaster = !!row.is_master || normalizedPerfil === "MASTER" || normalizedPerfil === "ADMINISTRADOR_MASTER" || normalizedPerfil === "ADMIN_SMS";
+          
+          // Normaliza unidades para garantir que seja um array
+          const unidades = Array.isArray(row.unidades) ? row.unidades : [];
 
           return {
             ...row,
             perfil_codigo: normalizedPerfil,
-            is_master: isMaster
+            is_master: isMaster,
+            unidades
           };
         },
         { fallback: () => null },
       );
     },
+
   });
 }
 

@@ -12,3 +12,5 @@ export { ConfirmDialog, ConfirmProvider, useConfirm } from "./ConfirmDialog";
 export type { ConfirmOptions, ConfirmTone } from "./ConfirmDialog";
 export { FormDialog } from "./FormDialog";
 export type { FormDialogSize } from "./FormDialog";
+export { UnidadeFilter } from "../piso/UnidadeFilter";
+

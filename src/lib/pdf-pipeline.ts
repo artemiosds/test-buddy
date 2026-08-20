@@ -492,6 +492,43 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
   }
 
+  // CORREÇÃO: Busca direta da imagem da diretora para o rodapé (Fallback/Legado)
+  const lastY = (doc as any).lastAutoTable?.finalY || 32;
+  const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
+  
+  // Se houver uma assinatura INSTITUCIONAL específica para diretora na unidade
+  // o finalizarPdf já trataria. Mas o usuário quer uma lógica específica de fetch.
+  // Vamos injetar a lógica de busca do carimbo se a assinatura resolvida não tiver imagem.
+  if (assinatura && !assinatura.imageData) {
+    try {
+      const { data: assin } = await supabase
+        .from('assinaturas_institucionais')
+        .select('storage_path')
+        .eq('usuario_id', me?.id)
+        .eq('ativa', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (assin?.storage_path) {
+        const url = supabase.storage.from('assinaturas').getPublicUrl(assin.storage_path).data.publicUrl;
+        
+        const res = await fetch(url);
+        if (res.ok) {
+          const blob = await res.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          assinatura.imageData = base64;
+        }
+      }
+    } catch (err) {
+      console.warn("Não foi possível carregar carimbo:", err);
+    }
+  }
+
   desenharAssinaturaEm(doc, assinatura, {
     xMm: escolha.xMm,
     yMm: escolha.yMm,
