@@ -13,11 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAggregatedFrequencies, type FrequenciaRow } from "@/lib/analytics-aggregations";
+import { getAggregatedFrequencies, type FrequenciaRow, type UserContext } from "@/lib/analytics-aggregations";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
-import { usePermissions, useCurrentUser, type UserContext } from "@/hooks/use-permissions";
+import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos-panel";

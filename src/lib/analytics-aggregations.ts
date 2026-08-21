@@ -1,6 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import type { UserContext } from "@/hooks/use-permissions";
+
+// Tipo extraído do hook de permissões para evitar circular deps se necessário
+export type UserContext = {
+  id: string;
+  is_master: boolean;
+  unidades: string[];
+  [key: string]: any;
+};
 
 export type FrequenciaRow = {
   id: string;
