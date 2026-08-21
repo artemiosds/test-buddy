@@ -5,6 +5,7 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { ANEXO_MIMES_ACEITOS, ANEXO_TAMANHO_MAX } from "./anexos-linha";
 import { logger } from "./logger";
+import { TIPOS_ANEXO_FOLHA, calcularPurgaApos } from "./frequencias-retencao";
 import { sendEmail, generateEmailTemplate } from "./email.server";
 import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
 
@@ -764,20 +765,6 @@ const RemoverAnexoSchema = z.object({
   documento_id: z.string().uuid(),
 });
 
-/** Retenção legal do binário após a remoção (lixeira). */
-export const RETENCAO_ANOS_FREQUENCIA = 5; // comprovação de despesa pública (TCE)
-export const RETENCAO_ANOS_OUTROS = 2;
-
-const TIPOS_ANEXO_FOLHA = ["frequencia", "frequencia_submissao"] as const;
-
-function calcularPurgaApos(tipoEntidade: string | null | undefined): string {
-  const anos = (TIPOS_ANEXO_FOLHA as readonly string[]).includes(tipoEntidade ?? "")
-    ? RETENCAO_ANOS_FREQUENCIA
-    : RETENCAO_ANOS_OUTROS;
-  const d = new Date();
-  d.setFullYear(d.getFullYear() + anos);
-  return d.toISOString();
-}
 
 /**
  * Remoção = soft-delete apenas. O binário PERMANECE no Storage até a purga
