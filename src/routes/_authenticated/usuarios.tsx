@@ -607,7 +607,7 @@ function UsuariosList() {
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive/80"
-                          disabled={deleteMut.isPending}
+                          disabled={deleteMut.isPending || u.id === userCtx?.id}
                           onClick={() => {
                             void (async () => {
                               const ok = await askConfirm({
