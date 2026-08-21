@@ -61,7 +61,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const gcTime = 1_800_000;
   const competenciaId = (filters.competenciaId ?? competenciaAtiva?.id ?? null) as string | null;
   // Habilitado apenas quando o escopo for resolvido e houver unidade selecionada ou for Master
-  const enabled = !isPermissionsLoading && !isScopeLoading && (isMaster || !!filters.unidadeId || !!unidadePadraoId);
+  const enabled = !isPermissionsLoading && !isScopeLoading && (isGlobal || !!filters.unidadeId || !!unidadePadraoId);
 
   const totalProfessionals = useQuery({
     queryKey: ["analytics", "totalProfessionals", filters],
@@ -194,14 +194,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const summaryQuery = useQuery({
-    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId, unidadePadraoId, isMaster],
+    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId, unidadePadraoId, isGlobal],
     staleTime,
     gcTime,
     queryFn: async () => {
       if (!competenciaId) return null;
       
       // Determina a unidade efetiva para o filtro
-      const effectiveUnitId = filters.unidadeId || (!isMaster ? unidadePadraoId : undefined);
+      const effectiveUnitId = filters.unidadeId || (!isGlobal ? unidadePadraoId : undefined);
       
       const { data, error } = await supabase.rpc("get_dashboard_summary", {
         p_competencia_id: competenciaId,

@@ -35,7 +35,7 @@ const COLORS = [
 ];
 
 export function DashboardClassico() {
-  const { unidadePadraoId, isGlobal } = useUnitScope();
+  const { unidadePadraoId, isGlobal, isMaster } = useUnitScope();
   const a = useAnalytics({ unidadeId: isGlobal ? undefined : unidadePadraoId });
   
   const status = a.statusBreakdown.data ?? {};
