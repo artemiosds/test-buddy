@@ -28,16 +28,33 @@ export function exportarWord(opts: {
   URL.revokeObjectURL(url);
 }
 
-function esc(v: unknown): string {
+function esc(v: unknown, fieldId?: string): string {
   if (v == null) return "";
-  const s = typeof v === "number" ? v.toLocaleString("pt-BR") : String(v);
+  let s: string;
+  if (typeof v === "number") {
+    const k = fieldId?.toLowerCase() || "";
+    const isCurrency = k.includes("salario") || 
+                      k.includes("valor") || 
+                      k.includes("vencimento") || 
+                      k.includes("bruto") || 
+                      k.includes("liquido") ||
+                      k.includes("remunera");
+    
+    if (isCurrency) {
+      s = v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    } else {
+      s = v.toLocaleString("pt-BR");
+    }
+  } else {
+    s = String(v);
+  }
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function buildHtml(o: Parameters<typeof exportarWord>[0]): string {
   const rowsHtml = (b: BlocoExport) =>
     b.linhas
-      .map((r) => `<tr>${b.colunas.map((c) => `<td>${esc(r[c.key])}</td>`).join("")}</tr>`)
+      .map((r) => `<tr>${b.colunas.map((c) => `<td>${esc(r[c.key], c.key)}</td>`).join("")}</tr>`)
       .join("");
 
   const bloquesHtml = o.blocos

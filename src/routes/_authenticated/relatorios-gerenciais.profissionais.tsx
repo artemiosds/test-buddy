@@ -2,6 +2,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,8 @@ const PRESETS: { value: NonNullable<ProfViewFilters["preset"]>; label: string; g
 ];
 
 function RelatoriosProfissionaisGerencial() {
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
   const [preset, setPreset] = useState<NonNullable<ProfViewFilters["preset"]>>("todos");
   const [q, setQ] = useState("");
   const [unidadeId, setUnidadeId] = useState<string>("");
@@ -61,6 +64,13 @@ function RelatoriosProfissionaisGerencial() {
   const [vinculoId, setVinculoId] = useState<string>("");
   const [page, setPage] = useState(1);
   const pageSize = 50;
+
+  // Trava a unidade se não for master
+  useMemo(() => {
+    if (!isMaster && Array.isArray(user?.unidades) && user.unidades.length > 0 && !unidadeId) {
+      setUnidadeId(user.unidades[0]);
+    }
+  }, [isMaster, user, unidadeId]);
 
   const filters: ProfViewFilters = useMemo(
     () => ({
@@ -238,8 +248,10 @@ function RelatoriosProfissionaisGerencial() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Todas as unidades</SelectItem>
-                  {(unidades.data ?? []).map((u) => (
+                  {isMaster && <SelectItem value="__all__">Todas as unidades</SelectItem>}
+                  {(unidades.data ?? [])
+                    .filter(u => isMaster || (Array.isArray(user?.unidades) && user.unidades.includes(u.id)))
+                    .map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.nome}
                     </SelectItem>

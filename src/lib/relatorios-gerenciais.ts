@@ -106,11 +106,20 @@ export async function listProfissionais(filters: ProfViewFilters, page = 1, page
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const base = supabase
     .from("profissionais")
     .select(PROF_SELECT, { count: "exact" })
     .is("deleted_at", null);
   let query = applyPreset(base, filters.preset);
+
+  if (!isMaster && userCtx?.unidades?.length > 0) {
+    query = query.in("unidade_id", userCtx.unidades);
+  }
 
   if (filters.q) {
     const like = `%${filters.q.trim()}%`;
@@ -326,10 +335,21 @@ type ProfMini = {
 };
 
 async function loadProfissionaisMini(): Promise<ProfMini[]> {
-  const { data, error } = await supabase
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
+  let q = supabase
     .from("profissionais")
     .select("id, unidade_id, setor_id, cargo_id, funcao_id, status")
     .is("deleted_at", null);
+
+  if (!isMaster && userCtx?.unidades?.length > 0) {
+    q = q.in("unidade_id", userCtx.unidades);
+  }
+
+  const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as ProfMini[];
 }
@@ -378,14 +398,24 @@ export async function listUnidadesGerencial(
   preset: UnidadePreset = "todas",
   tipo?: string | null,
 ): Promise<UnidadeRow[]> {
-  const { data, error } = await supabase
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
+  let q = supabase
     .from("unidades")
     .select(
       "id, nome, sigla, tipo_unidade, status, cnes, cnpj, telefone, email_institucional, responsavel_nome, distrito, municipio",
     )
     .is("deleted_at", null)
     .order("nome");
-  if (error) throw error;
+
+  if (!isMaster && userCtx?.unidades?.length > 0) {
+    q = q.in("id", userCtx.unidades);
+  }
+
+  const { data, error } = await q;
   const profs = await loadProfissionaisMini();
   const totalMap = countBy(profs, (p) => p.unidade_id);
   const ativoMap = countBy(
@@ -460,12 +490,23 @@ export async function listSetoresGerencial(
   preset: SetorPreset = "todos",
   unidadeId?: string | null,
 ): Promise<SetorRow[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   let q = supabase
     .from("setores")
     .select("id, nome, sigla, unidade_id, status, responsavel_nome")
     .is("deleted_at", null)
     .order("nome");
-  if (unidadeId) q = q.eq("unidade_id", unidadeId);
+
+  if (unidadeId) {
+    q = q.eq("unidade_id", unidadeId);
+  } else if (!isMaster && userCtx?.unidades?.length > 0) {
+    q = q.in("unidade_id", userCtx.unidades);
+  }
+
   const { data, error } = await q;
   if (error) throw error;
 
@@ -517,6 +558,11 @@ export type CargoRow = {
 export type CargoPreset = "todos" | "sem_profissionais" | "com_profissionais";
 
 export async function listCargosGerencial(preset: CargoPreset = "todos"): Promise<CargoRow[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const { data, error } = await supabase
     .from("cargos")
     .select("id, nome, codigo, cbo, nivel, status")
@@ -524,6 +570,7 @@ export async function listCargosGerencial(preset: CargoPreset = "todos"): Promis
     .order("nome");
   if (error) throw error;
   const profs = await loadProfissionaisMini();
+  // loadProfissionaisMini já respeita o escopo de unidade
   const countMap = countBy(profs, (p) => p.cargo_id);
   let rows: CargoRow[] = (data ?? []).map((c) => ({
     ...c,
@@ -549,6 +596,11 @@ export type FuncaoRow = {
 export type FuncaoPreset = "todas" | "sem_profissionais" | "com_profissionais";
 
 export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Promise<FuncaoRow[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const { data, error } = await supabase
     .from("funcoes")
     .select("id, nome, codigo, gratificacao_percentual, status")
@@ -556,6 +608,7 @@ export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Prom
     .order("nome");
   if (error) throw error;
   const profs = await loadProfissionaisMini();
+  // loadProfissionaisMini já respeita o escopo de unidade
   const countMap = countBy(profs, (p) => p.funcao_id);
   let rows: FuncaoRow[] = (data ?? []).map((f) => ({
     ...f,
@@ -595,28 +648,48 @@ export type OrgUnidade = {
 };
 
 export async function getOrganograma(unidadeId?: string | null): Promise<OrgUnidade[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const [uRes, sRes, pRes, cRes, fRes] = await Promise.all([
-    unidadeId
-      ? supabase
-          .from("unidades")
-          .select("id, nome, sigla, responsavel_nome")
-          .eq("id", unidadeId)
-          .is("deleted_at", null)
-      : supabase
-          .from("unidades")
-          .select("id, nome, sigla, responsavel_nome")
-          .is("deleted_at", null)
-          .order("nome"),
-    supabase
-      .from("setores")
-      .select("id, nome, unidade_id, responsavel_nome")
-      .is("deleted_at", null)
-      .order("nome"),
-    supabase
-      .from("profissionais")
-      .select("id, nome_completo, unidade_id, setor_id, cargo_id, funcao_id, status")
-      .is("deleted_at", null)
-      .order("nome_completo"),
+    (() => {
+      let q = supabase
+        .from("unidades")
+        .select("id, nome, sigla, responsavel_nome")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("id", userCtx.unidades);
+      }
+      return q.order("nome");
+    })(),
+    (() => {
+      let q = supabase
+        .from("setores")
+        .select("id, nome, unidade_id, responsavel_nome")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("unidade_id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades);
+      }
+      return q.order("nome");
+    })(),
+    (() => {
+      let q = supabase
+        .from("profissionais")
+        .select("id, nome_completo, unidade_id, setor_id, cargo_id, funcao_id, status")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("unidade_id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades);
+      }
+      return q.order("nome_completo");
+    })(),
     supabase.from("cargos").select("id, nome").is("deleted_at", null),
     supabase.from("funcoes").select("id, nome").is("deleted_at", null),
   ]);

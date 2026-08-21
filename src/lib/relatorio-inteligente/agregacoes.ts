@@ -12,7 +12,17 @@ export type Stats = {
 };
 
 export function statsFor(rows: Row[], field: string): Stats {
-  const values = rows.map((r) => r[field]).filter((v): v is number => typeof v === "number");
+  const values = rows.map((r) => {
+    const val = r[field];
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      // Tenta normalizar string para número se parecer monetário/numérico
+      const clean = val.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
+      const num = parseFloat(clean);
+      return isNaN(num) ? null : num;
+    }
+    return null;
+  }).filter((v): v is number => typeof v === "number");
   const total = values.length;
   if (!total) return { total: 0, soma: 0, media: 0, mediana: 0, minimo: 0, maximo: 0, desvio: 0 };
   const sorted = [...values].sort((a, b) => a - b);

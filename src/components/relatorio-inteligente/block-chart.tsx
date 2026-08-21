@@ -60,7 +60,9 @@ export function BlockChart({ spec, rows }: { spec: ChartSpec; rows: Row[] }) {
   const formatterFn = (v: unknown) => {
     if (typeof v !== "number") return String(v ?? "");
     // Para gráficos financeiros, sempre usa BRL se o valor for representativo
-    if (v > 100 || spec.yField.includes("salario") || spec.yField.includes("valor") || spec.yField === "vencimento_liquido") {
+    const k = spec.yField.toLowerCase();
+    const isCurrency = v > 100 && (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("bruto") || k.includes("liquido") || k.includes("remunera") || k.includes("piso"));
+    if (isCurrency) {
       return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
     return v.toLocaleString("pt-BR");

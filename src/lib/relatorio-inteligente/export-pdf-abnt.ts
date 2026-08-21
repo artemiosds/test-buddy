@@ -162,7 +162,7 @@ export async function exportarPdfAbnt(opts: {
           if (typeof v === "number") {
              // Formatação BRL para campos salariais no PDF
              const k = c.key.toLowerCase();
-             if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto")) {
+             if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto") || k.includes("remunera")) {
                return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
              }
              return v.toLocaleString("pt-BR");

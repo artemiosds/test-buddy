@@ -240,10 +240,12 @@ function RelatoriosPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-2xl font-bold">
-            <FileBarChart className="h-6 w-6 text-primary" /> Relatórios
+            <FileBarChart className="h-6 w-6 text-primary" /> {isMaster ? "Relatórios (Secretaria)" : "Relatórios (Unidade)"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Consolidado de frequências por competência, unidade e tipo de folha.
+            {isMaster 
+              ? "Consolidado de frequências de toda a rede por competência, unidade e tipo de folha."
+              : "Consolidado de frequências da sua unidade por competência e tipo de folha."}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
