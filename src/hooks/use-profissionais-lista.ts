@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "./use-permissions";
 
 /** Lista simplificada (com joins nominais) usada pelo Gerador Corporativo.
  *  Uma única query, cacheada, respeitando RLS. */
