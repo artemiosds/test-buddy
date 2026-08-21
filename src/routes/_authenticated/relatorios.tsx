@@ -48,6 +48,8 @@ function RelatoriosPage() {
 
   const { unidadePadraoId, isLoading: scopeLoading, locked } = useUnitScope();
 
+  const { unidadePadraoId, isLoading: scopeLoading, locked } = useUnitScope();
+
   const [competenciaId, setCompetenciaId] = useState<string>("all");
   const [unidadeId, setUnidadeId] = useState<string>("all");
   const [tipo, setTipo] = useState<TipoFolha | "all">("all");
