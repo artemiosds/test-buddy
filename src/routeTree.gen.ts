@@ -55,6 +55,7 @@ import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
 import { Route as ApiPublicValidarDocumentoRouteImport } from './routes/api/public/validar-documento'
+import { Route as ApiPublicHsmStreamRouteImport } from './routes/api/public/hsm-stream'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
 import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
@@ -347,6 +348,11 @@ const ApiPublicValidarDocumentoRoute =
     path: '/api/public/validar-documento',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHsmStreamRoute = ApiPublicHsmStreamRouteImport.update({
+  id: '/api/public/hsm-stream',
+  path: '/api/public/hsm-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -622,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -703,6 +710,7 @@ export interface FileRoutesByTo {
   '/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -787,6 +795,7 @@ export interface FileRoutesById {
   '/_authenticated/setores/$id': typeof AuthenticatedSetoresIdRoute
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
+  '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -871,6 +880,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
     | '/configuracao/'
     | '/gestao-pessoas/'
@@ -952,6 +962,7 @@ export interface FileRouteTypes {
     | '/setores/$id'
     | '/unidades/$id'
     | '/usuarios/$id'
+    | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
     | '/configuracao'
     | '/gestao-pessoas'
@@ -1035,6 +1046,7 @@ export interface FileRouteTypes {
     | '/_authenticated/setores/$id'
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
+    | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
@@ -1055,6 +1067,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SmtpTestRoute: typeof SmtpTestRoute
   ValidarIdRoute: typeof ValidarIdRoute
+  ApiPublicHsmStreamRoute: typeof ApiPublicHsmStreamRoute
   ApiPublicValidarDocumentoRoute: typeof ApiPublicValidarDocumentoRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
@@ -1384,6 +1397,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/validar-documento'
       fullPath: '/api/public/validar-documento'
       preLoaderRoute: typeof ApiPublicValidarDocumentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hsm-stream': {
+      id: '/api/public/hsm-stream'
+      path: '/api/public/hsm-stream'
+      fullPath: '/api/public/hsm-stream'
+      preLoaderRoute: typeof ApiPublicHsmStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/usuarios/$id': {
@@ -1886,6 +1906,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SmtpTestRoute: SmtpTestRoute,
   ValidarIdRoute: ValidarIdRoute,
+  ApiPublicHsmStreamRoute: ApiPublicHsmStreamRoute,
   ApiPublicValidarDocumentoRoute: ApiPublicValidarDocumentoRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,

@@ -117,7 +117,7 @@ const listarProfissionais: ToolDef = {
 
     let linhas = (data ?? []) as any[];
 
-    // Resolve nomes (unidade / cargo / função) sem embeds ambíguos.
+    // Resolve nomes (unidade / cargo / função) em paralelo para reduzir latência.
     const [uni, car, fun] = await Promise.all([
       ctx.supabase.from("unidades").select("id, nome").is("deleted_at", null),
       ctx.supabase.from("cargos").select("id, nome").is("deleted_at", null),
