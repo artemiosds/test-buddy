@@ -170,6 +170,7 @@ async function contextoTexto(
   ctx: HsmContexto,
   perfil: Record<string, unknown> | null,
   userId?: string,
+  unidadeId?: string,
 ): Promise<string> {
   const { resolverContexto } = await import("./hsm/contexto.server");
   const { memo } = await import("./hsm/memo.server");
@@ -178,7 +179,7 @@ async function contextoTexto(
   const chave = userId
     ? `hsm:ctx:${userId}:${JSON.stringify([ctx?.rota, ctx?.unidade, ctx?.competencia, ctx?.profissional, ctx?.filtros])}`
     : "";
-  const calcular = async () => (await resolverContexto(supabase, perfil, ctx)).texto;
+  const calcular = async () => (await resolverContexto(supabase, perfil, ctx, unidadeId)).texto;
   return chave ? memo(chave, 45_000, calcular) : calcular();
 }
 
@@ -308,7 +309,16 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       return { conversa_id: conversaId, mensagem, confirmacao: null, exportacao: null };
     }
 
-    const ctxTools = { supabase, userId: context.userId };
+    const { data: userCtx } = await supabase.rpc("get_my_user_context");
+    const userCtxObj = userCtx as any;
+    const isMaster = !!userCtxObj?.is_master;
+    const unidadeId = userCtxObj?.unidades?.[0];
+    
+    const ctxTools = { 
+      supabase, 
+      userId: context.userId,
+      unidadeId: !isMaster ? unidadeId : undefined 
+    };
 
     // Tudo o que não depende um do outro roda em paralelo — antes eram cerca de
     // dez idas ao banco em sequência antes da IA sequer começar a pensar.
@@ -352,6 +362,7 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       data.contexto as HsmContexto,
       perfil ?? null,
       context.userId,
+      unidadeId,
     );
 
 
@@ -359,6 +370,9 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     // Etapa 1 — planejamento: o modelo apenas ESCOLHE uma ferramenta.
     // ---------------------------------------------------------------------
     const planejador = `${config.prompt_sistema}
+
+Você está conversando com um ${perfil?.perfil_nome || 'usuário'}. 
+${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidade ID: ${unidadeId}. Suas análises e ferramentas devem focar APENAS nesta unidade.` : ''}
 
 Agente ativo: ${agente.nome}. ${agente.instrucao}
 

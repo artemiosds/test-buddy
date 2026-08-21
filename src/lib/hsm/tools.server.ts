@@ -18,6 +18,7 @@ import { ensurePermission } from "../authz.server";
 export type ToolCtx = {
   supabase: any;
   userId: string;
+  unidadeId?: string;
 };
 
 export type ToolResultado = {
@@ -108,7 +109,7 @@ const listarProfissionais: ToolDef = {
 
     if (a.status) q = q.eq("status", a.status);
     if (a.busca) q = q.or(`nome_completo.ilike.%${a.busca}%,cpf.ilike.%${a.busca}%`);
-    const unidades = await nomeUnidade(ctx, a.unidade);
+    const unidades = ctx.unidadeId ? [ctx.unidadeId] : await nomeUnidade(ctx, a.unidade);
     if (unidades) q = q.in("unidade_id", unidades);
 
     const { data, error, count } = await q;
@@ -175,6 +176,7 @@ const contarProfissionais: ToolDef = {
       .is("deleted_at", null)
       .limit(20000);
     if (a.status) q = q.eq("status", a.status);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
 
@@ -219,7 +221,7 @@ const buscarProfissional: ToolDef = {
   schema: z.object({ termo: texto(120) }),
   async executar(a, ctx) {
     await ensurePermission(ctx.supabase, ctx.userId, "profissional.visualizar");
-    const { data, error } = await ctx.supabase
+    let q = ctx.supabase
       .from("profissionais")
       .select(
         "id, nome_completo, cpf, matricula, status, situacao_funcional, data_admissao, carga_horaria_semanal, email, telefone, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id",
@@ -229,6 +231,8 @@ const buscarProfissional: ToolDef = {
         `nome_completo.ilike.%${a.termo}%,cpf.ilike.%${a.termo}%,matricula.ilike.%${a.termo}%`,
       )
       .limit(10);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
+    const { data, error } = await q;
     erro(error);
     return {
       resumo: `${(data ?? []).length} correspondência(s) para "${a.termo}".`,
@@ -253,6 +257,7 @@ const listarUnidades: ToolDef = {
       .order("nome")
       .limit(a.limite);
     if (a.busca) q = q.ilike("nome", `%${a.busca}%`);
+    if (ctx.unidadeId) q = q.eq("id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
     return { resumo: `${(data ?? []).length} unidade(s).`, dados: data ?? [] };
@@ -301,6 +306,7 @@ const listarFrequencias: ToolDef = {
       .order("created_at", { ascending: false })
       .limit(a.limite);
     if (a.status) q = q.eq("status", a.status);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
     return { resumo: `${(data ?? []).length} folha(s) de frequência.`, dados: data ?? [] };
@@ -328,6 +334,7 @@ const listarPendencias: ToolDef = {
       .limit(a.limite);
     if (a.status) q = q.eq("status", a.status);
     if (a.prioridade) q = q.eq("prioridade", a.prioridade);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
     return { resumo: `${(data ?? []).length} pendência(s).`, dados: data ?? [] };
@@ -349,6 +356,7 @@ const resumoPisoEnfermagem: ToolDef = {
       .select("competencia, categoria, unidade_nome, divergencia, status_consolidacao")
       .limit(20000);
     if (a.competencia) q = q.eq("competencia", a.competencia);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
     const linhas = (data ?? []) as any[];
