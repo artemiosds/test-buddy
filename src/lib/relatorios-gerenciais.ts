@@ -117,7 +117,7 @@ export async function listProfissionais(filters: ProfViewFilters, page = 1, page
     .is("deleted_at", null);
   let query = applyPreset(base, filters.preset);
 
-  if (!isMaster && !filters.unidadeId && userCtx?.unidades?.length > 0) {
+  if (!isMaster && userCtx?.unidades?.length > 0) {
     query = query.in("unidade_id", userCtx.unidades);
   }
 
