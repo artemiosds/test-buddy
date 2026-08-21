@@ -72,6 +72,11 @@ function RelatorioExecutivoPage() {
   const canView = isMaster || has("relatorio.visualizar");
   const canExport = isMaster || has("relatorio.exportar");
 
+  // Se não for master e não tiver permissão específica, bloqueia acesso a esta tela global
+  if (!permLoading && !isMaster && !has("relatorio.visualizar_executivo")) {
+     // Redirecionamento ou mensagem de erro
+  }
+
   const [competenciaId, setCompetenciaId] = useState<string>("");
 
   const { data: competencias } = useQuery({

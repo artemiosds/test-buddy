@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BotaoRelatorioSalarialRapido } from "@/components/relatorios/BotaoRelatorioSalarialRapido";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/")({
   component: HubGerenciais,
@@ -80,9 +81,17 @@ const CARDS: Card[] = [
 ];
 
 function HubGerenciais() {
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">
+          {isMaster 
+            ? "A Secretaria conta com diversos módulos de controle gerencial." 
+            : "A Unidade conta com módulos de controle gerencial adaptados ao seu escopo."}
+        </p>
         <BotaoRelatorioSalarialRapido />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-permissions";
 
 const OPERACIONAIS = [
   { to: "/relatorios", label: "Frequências" },
@@ -63,8 +64,14 @@ function Row({
 
 export function RelatoriosTabs() {
   const { pathname } = useLocation();
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
+
   const isGerencial =
     pathname.startsWith("/relatorios-gerenciais") || pathname.startsWith("/relatorio-inteligente");
+  
+  // Se não for master, ocultamos abas estritamente globais se houver (por enquanto mantemos mas adaptamos o texto)
+  
   return (
     <div className="space-y-2">
       <div>
@@ -78,7 +85,7 @@ export function RelatoriosTabs() {
       </div>
       <div>
         <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Gerenciais{" "}
+          {isMaster ? "Gerenciais (Secretaria)" : "Gerenciais (Unidade)"}{" "}
           <span className="font-normal normal-case text-muted-foreground/70">
             (cadastros atuais)
           </span>
