@@ -95,14 +95,31 @@ export async function resolverContexto(
   sb: Sb,
   perfil: Record<string, unknown> | null,
   pistasCliente?: HsmContexto,
+  unidadeRestritaId?: string,
 ): Promise<ContextoInstitucional> {
+  const isMaster = perfil?.is_master === true;
+  
+  const filterByUnit = (q: any) => {
+    let query = q.is("deleted_at", null);
+    if (!isMaster && unidadeRestritaId) {
+      query = query.eq("unidade_id", unidadeRestritaId);
+    }
+    return query;
+  };
+
   const [competencia, profissionais, pendencias, unidades] = await Promise.all([
     competenciaAtiva(sb),
-    contar(sb, "profissionais", (q) => q.is("deleted_at", null).eq("status", "ativo")),
+    contar(sb, "profissionais", (q) => filterByUnit(q).eq("status", "ativo")),
     contar(sb, "pendencias", (q) =>
-      q.is("deleted_at", null).in("status", ["aberta", "em_analise", "respondida"]),
+      filterByUnit(q).in("status", ["aberta", "em_analise", "respondida"]),
     ),
-    contar(sb, "unidades", (q) => q.is("deleted_at", null).eq("status", "ativo")),
+    contar(sb, "unidades", (q) => {
+      let query = q.is("deleted_at", null).eq("status", "ativo");
+      if (!isMaster && unidadeRestritaId) {
+        query = query.eq("id", unidadeRestritaId);
+      }
+      return query;
+    }),
   ]);
 
   const usuario = {
@@ -125,6 +142,7 @@ export async function resolverContexto(
     unidades !== null ? `Unidades ativas: ${unidades}.` : null,
     pendencias !== null ? `Pendências em aberto visíveis para este usuário: ${pendencias}.` : null,
     listaPistas.length ? listaPistas.join("\n") : null,
+    !isMaster && unidadeRestritaId ? `RESTRIÇÃO DE DADOS: Suas análises e estatísticas estão limitadas à Unidade ID: ${unidadeRestritaId}.` : null,
     "Os números acima já respeitam as permissões deste usuário (RLS). Se ele perguntar algo fora do que enxerga, explique a restrição em vez de estimar.",
   ].filter(Boolean) as string[];
 

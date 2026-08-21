@@ -170,6 +170,7 @@ async function contextoTexto(
   ctx: HsmContexto,
   perfil: Record<string, unknown> | null,
   userId?: string,
+  unidadeId?: string,
 ): Promise<string> {
   const { resolverContexto } = await import("./hsm/contexto.server");
   const { memo } = await import("./hsm/memo.server");
@@ -178,7 +179,7 @@ async function contextoTexto(
   const chave = userId
     ? `hsm:ctx:${userId}:${JSON.stringify([ctx?.rota, ctx?.unidade, ctx?.competencia, ctx?.profissional, ctx?.filtros])}`
     : "";
-  const calcular = async () => (await resolverContexto(supabase, perfil, ctx)).texto;
+  const calcular = async () => (await resolverContexto(supabase, perfil, ctx, unidadeId)).texto;
   return chave ? memo(chave, 45_000, calcular) : calcular();
 }
 
@@ -309,6 +310,8 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     }
 
     const ctxTools = { supabase, userId: context.userId };
+    const { data: userCtx } = await supabase.rpc("get_my_user_context");
+    const unidadeId = (userCtx as any)?.unidades?.[0];
 
     // Tudo o que não depende um do outro roda em paralelo — antes eram cerca de
     // dez idas ao banco em sequência antes da IA sequer começar a pensar.
@@ -352,6 +355,7 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       data.contexto as HsmContexto,
       perfil ?? null,
       context.userId,
+      unidadeId,
     );
 
 
