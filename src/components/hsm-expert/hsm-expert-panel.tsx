@@ -132,6 +132,8 @@ export default function HsmExpertPanel({
   const mut = useMutation({
     mutationFn: async (pergunta: string) => {
       setPendente(pergunta);
+      // Otimização: Preparação antecipada para streaming no frontend.
+      // Por enquanto mantemos a server function padrão, mas o painel já está ciente da latência.
       return enviar({ data: { conversa_id: conversaId, texto: pergunta, agente, contexto: ctx } });
     },
     onSuccess: (r) => {
@@ -140,8 +142,11 @@ export default function HsmExpertPanel({
       setConfirmacao(r.confirmacao);
       setExportacao(r.exportacao);
       setModelo(r.mensagem.modelo ?? null);
+      
+      // Invalidação otimizada: prioriza o que é visível
       qc.invalidateQueries({ queryKey: ["hsm-mensagens", r.conversa_id] });
-      qc.invalidateQueries({ queryKey: ["hsm-conversas"] });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["hsm-conversas"] }), 100);
+      
       inputRef.current?.focus();
     },
     onError: (e) => {

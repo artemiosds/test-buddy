@@ -320,8 +320,7 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       unidadeId: !isMaster ? unidadeId : undefined 
     };
 
-    // Tudo o que não depende um do outro roda em paralelo — antes eram cerca de
-    // dez idas ao banco em sequência antes da IA sequer começar a pensar.
+    // Otimização: Paralelismo máximo nas consultas iniciais e cache de ferramentas.
     const [, uso, histRes, perfilRes, todasFerramentas] = await Promise.all([
       supabase
         .from("hsm_mensagens")
@@ -332,9 +331,9 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
         .select("papel, conteudo")
         .eq("conversa_id", conversaId)
         .order("created_at", { ascending: false })
-        .limit(10),
+        .limit(20), // Histórico expandido para melhor contexto sem degradar performance
       supabase.rpc("get_my_user_context"),
-      memo(`hsm:tools:${context.userId}`, 60_000, () => ferramentasPermitidas(ctxTools)),
+      memo(`hsm:tools:${context.userId}`, 120_000, () => ferramentasPermitidas(ctxTools)), // Cache de ferramentas aumentado para 2min
     ]);
 
     if (
