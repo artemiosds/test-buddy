@@ -25,6 +25,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";

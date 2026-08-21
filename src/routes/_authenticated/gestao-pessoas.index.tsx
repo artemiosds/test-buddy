@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import { EmptyState, KpiCard, PageHeader, StatusBadge, FilterBar } from "@/components/shared";

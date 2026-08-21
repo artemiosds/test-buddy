@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { useAnalytics, type AnalyticsFilters as AF } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";
 import { formatCompetencia } from "@/lib/formatters";
 import { AnalyticsFilterProvider } from "@/context/analytics-filter-context";
