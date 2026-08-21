@@ -1281,6 +1281,7 @@ export type Database = {
           analisado_em: string | null
           analisado_por: string | null
           aprovada_em: string | null
+          aprovada_por: string | null
           atestado: string | null
           aulas_suplementares: string | null
           carga_horaria_mensal: string | null
@@ -1322,6 +1323,7 @@ export type Database = {
           analisado_em?: string | null
           analisado_por?: string | null
           aprovada_em?: string | null
+          aprovada_por?: string | null
           atestado?: string | null
           aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
@@ -1363,6 +1365,7 @@ export type Database = {
           analisado_em?: string | null
           analisado_por?: string | null
           aprovada_em?: string | null
+          aprovada_por?: string | null
           atestado?: string | null
           aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
@@ -1402,6 +1405,13 @@ export type Database = {
           {
             foreignKeyName: "frequencia_profissional_analisado_por_fkey"
             columns: ["analisado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frequencia_profissional_aprovada_por_fkey"
+            columns: ["aprovada_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
