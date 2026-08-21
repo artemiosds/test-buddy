@@ -558,6 +558,11 @@ export type CargoRow = {
 export type CargoPreset = "todos" | "sem_profissionais" | "com_profissionais";
 
 export async function listCargosGerencial(preset: CargoPreset = "todos"): Promise<CargoRow[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const { data, error } = await supabase
     .from("cargos")
     .select("id, nome, codigo, cbo, nivel, status")
@@ -565,6 +570,7 @@ export async function listCargosGerencial(preset: CargoPreset = "todos"): Promis
     .order("nome");
   if (error) throw error;
   const profs = await loadProfissionaisMini();
+  // loadProfissionaisMini já respeita o escopo de unidade
   const countMap = countBy(profs, (p) => p.cargo_id);
   let rows: CargoRow[] = (data ?? []).map((c) => ({
     ...c,
@@ -590,6 +596,11 @@ export type FuncaoRow = {
 export type FuncaoPreset = "todas" | "sem_profissionais" | "com_profissionais";
 
 export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Promise<FuncaoRow[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const { data, error } = await supabase
     .from("funcoes")
     .select("id, nome, codigo, gratificacao_percentual, status")
@@ -597,6 +608,7 @@ export async function listFuncoesGerencial(preset: FuncaoPreset = "todas"): Prom
     .order("nome");
   if (error) throw error;
   const profs = await loadProfissionaisMini();
+  // loadProfissionaisMini já respeita o escopo de unidade
   const countMap = countBy(profs, (p) => p.funcao_id);
   let rows: FuncaoRow[] = (data ?? []).map((f) => ({
     ...f,
