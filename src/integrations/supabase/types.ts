@@ -1280,6 +1280,7 @@ export type Database = {
           afastamentos: string | null
           analisado_em: string | null
           analisado_por: string | null
+          aprovada_em: string | null
           atestado: string | null
           aulas_suplementares: string | null
           carga_horaria_mensal: string | null
@@ -1320,6 +1321,7 @@ export type Database = {
           afastamentos?: string | null
           analisado_em?: string | null
           analisado_por?: string | null
+          aprovada_em?: string | null
           atestado?: string | null
           aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
@@ -1360,6 +1362,7 @@ export type Database = {
           afastamentos?: string | null
           analisado_em?: string | null
           analisado_por?: string | null
+          aprovada_em?: string | null
           atestado?: string | null
           aulas_suplementares?: string | null
           carga_horaria_mensal?: string | null
