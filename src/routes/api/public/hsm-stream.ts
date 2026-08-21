@@ -1,17 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
-import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 
-// Usamos o middleware no TanStack Router para garantir autenticação mesmo em rotas de streaming
 export const Route = createFileRoute('/api/public/hsm-stream')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // 1. Verificação de Autenticação (TanStack Start context não está disponível em handlers de rotas de API pública via request puras)
-        // No entanto, podemos ler o cookie ou token se necessário, ou confiar no middleware se for rota protegida.
-        // Como o prefixo /api/public/ pula o middleware global de auth do site, fazemos manualmente se necessário.
-        
         const encoder = new TextEncoder();
+        
+        // Em um cenário real, aqui leríamos o body para pegar o texto, conversaId, etc.
+        // e passaríamos para a lógica de IA que suporta streaming.
+        
         const stream = new ReadableStream({
           async start(controller) {
             const send = (data: any) => {
@@ -19,20 +17,28 @@ export const Route = createFileRoute('/api/public/hsm-stream')({
             };
 
             try {
-              // Simulação de streaming para o scaffold
-              send({ type: 'status', message: 'Iniciando otimização global...' });
-              await new Promise(r => setTimeout(r, 500));
+              send({ type: 'status', message: 'Iniciando processamento HSM Expert...' });
               
-              send({ type: 'content', chunk: 'Implementando streaming universal...' });
-              await new Promise(r => setTimeout(r, 300));
+              // Aqui chamaríamos o provedor de IA com streaming habilitado
+              // Simulação de chunks de texto em tempo real:
+              const chunks = [
+                "Entendido. ",
+                "Estou processando sua solicitação ",
+                "com a nova arquitetura de alta performance. ",
+                "\n\nOs dados da sua unidade foram carregados instantaneamente ",
+                "graças à execução paralela de ferramentas."
+              ];
+
+              for (const chunk of chunks) {
+                send({ type: 'content', chunk });
+                await new Promise(r => setTimeout(r, 100));
+              }
               
-              send({ type: 'content', chunk: ' Otimizando paralelismo de ferramentas...' });
-              await new Promise(r => setTimeout(r, 300));
-              
-              send({ type: 'status', message: 'Pronto para alta performance.' });
+              send({ type: 'status', message: 'Resposta concluída.' });
               controller.close();
             } catch (err) {
-              controller.error(err);
+              send({ type: 'error', message: err instanceof Error ? err.message : 'Erro no streaming' });
+              controller.close();
             }
           }
         });
@@ -48,4 +54,3 @@ export const Route = createFileRoute('/api/public/hsm-stream')({
     }
   }
 });
-

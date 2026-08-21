@@ -395,6 +395,7 @@ Nunca invente nomes de ferramentas. Se a pergunta não exigir dados do sistema, 
     let plano: { ferramenta?: string | null; argumentos?: Record<string, unknown> } | null = null;
     let modeloPlano = "";
     let provedorPlano = "";
+
     // Sem ferramentas disponíveis não há o que planejar: pula uma chamada
     // inteira de IA e responde direto.
     try {
