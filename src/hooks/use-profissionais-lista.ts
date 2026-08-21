@@ -1,20 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "./use-permissions";
 
 /** Lista simplificada (com joins nominais) usada pelo Gerador Corporativo.
  *  Uma única query, cacheada, respeitando RLS. */
 export function useProfissionaisLista() {
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
+  const allowedUnits = user?.unidades || [];
+
   return useQuery({
-    queryKey: ["prof-lista-relatorio-inteligente"],
+    queryKey: ["prof-lista-relatorio-inteligente", isMaster, allowedUnits.join(",")],
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("profissionais")
         .select(
           "id, nome_completo, cpf, matricula, sexo, data_nascimento, data_admissao, telefone, email, carga_horaria_semanal, status, unidade:unidade_id(nome), setor:setor_id(nome), cargo:cargo_id(nome), funcao:funcao_id(nome), vinculo:vinculo_id(nome), salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido",
         )
-        .is("deleted_at", null)
+        .is("deleted_at", null);
+
+      if (!isMaster && allowedUnits.length > 0) {
+        q = q.in("unidade_id", allowedUnits);
+      }
+
+      const { data, error } = await q
         .order("nome_completo", { ascending: true })
         .limit(5000);
       if (error) throw error;
