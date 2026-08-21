@@ -2,6 +2,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   Building2,
   ChevronDown,
@@ -34,10 +35,19 @@ export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/estr
 });
 
 function EstruturaOrganizacional() {
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const unidades = useUnidadesLookup();
+
+  // Trava a unidade se não for master
+  useMemo(() => {
+    if (!isMaster && Array.isArray(user?.unidades) && user.unidades.length > 0 && !unidadeId) {
+      setUnidadeId(user.unidades[0]);
+    }
+  }, [isMaster, user, unidadeId]);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["rel-ger", "organograma", unidadeId || null],
@@ -225,8 +235,10 @@ function EstruturaOrganizacional() {
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Todas as unidades</SelectItem>
-              {(unidades.data ?? []).map((u) => (
+              {isMaster && <SelectItem value="__all__">Todas as unidades</SelectItem>}
+              {(unidades.data ?? [])
+                .filter(u => isMaster || (Array.isArray(user?.unidades) && user.unidades.includes(u.id)))
+                .map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.nome}
                 </SelectItem>

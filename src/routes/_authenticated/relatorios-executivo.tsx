@@ -104,12 +104,19 @@ function RelatorioExecutivoPage() {
     queryKey: ["exec-consolidado", competenciaId],
     enabled: !!competenciaId && canView,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("frequencia_profissional")
         .select(
           "he_50, he_100, adicional_noturno, plantoes_extras, status_linha, frequencias!inner(competencia_unidades!inner(competencia_id, unidades(id, nome, sigla)))",
         )
         .eq("frequencias.competencia_unidades.competencia_id", competenciaId);
+
+      // Injeção forçada de filtro se não for master
+      if (!isMaster && me?.unidades && Array.isArray(me.unidades)) {
+        q = q.in("frequencias.competencia_unidades.unidade_id" as any, me.unidades);
+      }
+      
+      const { data, error } = await q;
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = (data ?? []) as any[];
