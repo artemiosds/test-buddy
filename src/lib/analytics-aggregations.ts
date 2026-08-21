@@ -183,7 +183,7 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
       if (det) {
         dynamicData.total_profissionais = det.length;
         dynamicData.total_dias_trabalhados = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_trabalhados) || 0), 0);
-        dynamicData.total_dias_trabalhados = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_trabalhados) || 0), 0);
+
         dynamicData.total_faltas = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_falta) || 0), 0);
         dynamicData.total_horas_extras = det.reduce((acc: number, curr: any) => acc + (Number(curr.he_50) || 0) + (Number(curr.he_100) || 0), 0);
       }
