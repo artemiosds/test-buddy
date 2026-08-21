@@ -186,35 +186,63 @@ function porte(qtd: number): string {
 }
 
 export async function getGerencialAggregate(): Promise<GerencialAggregate> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const [profRes, uRes, sRes, cRes, fRes, vRes, secRes, tuRes, auditNow, auditPrev] =
     await Promise.all([
-      supabase
-        .from("profissionais")
-        .select(
-          "id, sexo, data_nascimento, data_admissao, status, secretaria_id, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id, cpf, matricula, telefone, email, carga_horaria_semanal",
-        )
-        .is("deleted_at", null),
-      supabase
-        .from("unidades")
-        .select(
-          "id, nome, sigla, tipo_unidade, status, cnes, cnpj, telefone, email_institucional, responsavel_nome",
-        )
-        .is("deleted_at", null),
-      supabase
-        .from("setores")
-        .select("id, nome, unidade_id, status, responsavel_nome")
-        .is("deleted_at", null),
+      (() => {
+        let q = supabase
+          .from("profissionais")
+          .select(
+            "id, sexo, data_nascimento, data_admissao, status, secretaria_id, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id, cpf, matricula, telefone, email, carga_horaria_semanal",
+          )
+          .is("deleted_at", null);
+        if (!isMaster && userCtx?.unidades?.length > 0) {
+          q = q.in("unidade_id", userCtx.unidades);
+        }
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from("unidades")
+          .select(
+            "id, nome, sigla, tipo_unidade, status, cnes, cnpj, telefone, email_institucional, responsavel_nome",
+          )
+          .is("deleted_at", null);
+        if (!isMaster && userCtx?.unidades?.length > 0) {
+          q = q.in("id", userCtx.unidades);
+        }
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from("setores")
+          .select("id, nome, unidade_id, status, responsavel_nome")
+          .is("deleted_at", null);
+        if (!isMaster && userCtx?.unidades?.length > 0) {
+          q = q.in("unidade_id", userCtx.unidades);
+        }
+        return q;
+      })(),
       supabase.from("cargos").select("id, nome").is("deleted_at", null),
       supabase.from("funcoes").select("id, nome").is("deleted_at", null),
       supabase.from("vinculos").select("id, nome").is("deleted_at", null),
       supabase.from("secretarias").select("id, nome").is("deleted_at", null),
       supabase.from("tipos_unidade").select("id, nome").is("deleted_at", null),
-      supabase
-        .from("audit_log")
-        .select("id, ocorrido_em, operacao, tabela, usuario_email")
-        .gte("ocorrido_em", new Date(Date.now() - 30 * 86400_000).toISOString())
-        .order("ocorrido_em", { ascending: false })
-        .limit(5000),
+      (() => {
+        let q = supabase
+          .from("audit_log")
+          .select("id, ocorrido_em, operacao, tabela, usuario_email")
+          .gte("ocorrido_em", new Date(Date.now() - 30 * 86400_000).toISOString())
+          .order("ocorrido_em", { ascending: false })
+          .limit(5000);
+        // Auditoria também deve ser filtrada se possível, mas audit_log não tem unidade_id direto
+        // Geralmente audit_log é master-only ou filtrado por RLS se houver unidade_id.
+        return q;
+      })(),
       supabase
         .from("audit_log")
         .select("id", { count: "exact", head: true })
