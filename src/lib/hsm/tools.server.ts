@@ -221,7 +221,7 @@ const buscarProfissional: ToolDef = {
   schema: z.object({ termo: texto(120) }),
   async executar(a, ctx) {
     await ensurePermission(ctx.supabase, ctx.userId, "profissional.visualizar");
-    const { data, error } = await ctx.supabase
+    let q = ctx.supabase
       .from("profissionais")
       .select(
         "id, nome_completo, cpf, matricula, status, situacao_funcional, data_admissao, carga_horaria_semanal, email, telefone, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id",
@@ -232,6 +232,7 @@ const buscarProfissional: ToolDef = {
       )
       .limit(10);
     if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
+    const { data, error } = await q;
     erro(error);
     return {
       resumo: `${(data ?? []).length} correspondência(s) para "${a.termo}".`,
