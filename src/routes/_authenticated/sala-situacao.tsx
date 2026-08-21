@@ -573,12 +573,14 @@ function SalaSituacaoPage() {
           <CardTitle className="text-base">Rankings (top 10)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="unidades">
+          <Tabs defaultValue={isMasterUser ? "unidades" : "setores"}>
             <TabsList className="mb-3 flex flex-wrap">
-              <TabsTrigger value="unidades">
-                <Building2 className="mr-1 h-3.5 w-3.5" />
-                Unidades
-              </TabsTrigger>
+              {isMasterUser && (
+                <TabsTrigger value="unidades">
+                  <Building2 className="mr-1 h-3.5 w-3.5" />
+                  Unidades
+                </TabsTrigger>
+              )}
               <TabsTrigger value="setores">
                 <Network className="mr-1 h-3.5 w-3.5" />
                 Setores
@@ -589,10 +591,12 @@ function SalaSituacaoPage() {
                 <Clock className="mr-1 h-3.5 w-3.5" />
                 Horas Extras
               </TabsTrigger>
-              <TabsTrigger value="criticas">
-                <ShieldAlert className="mr-1 h-3.5 w-3.5" />
-                Críticas
-              </TabsTrigger>
+              {isMasterUser && (
+                <TabsTrigger value="criticas">
+                  <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+                  Críticas
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="unidades">
