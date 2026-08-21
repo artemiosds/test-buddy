@@ -1059,8 +1059,9 @@ function ProfissionaisPage() {
         title="Profissionais"
         description="Cadastro dos profissionais da rede municipal de saúde."
         actions={
-          canCreate ? (
-            <>
+          <div className="flex items-center gap-2">
+            {canCreate && (
+              <>
                 <ImportProfissionaisDialog />
                 {hasPermission("profissional.dados_salariais") && (
                   <>
@@ -1071,69 +1072,76 @@ function ProfissionaisPage() {
                     <ImportSalariosPdfDialog open={openImportSalarios} onOpenChange={setOpenImportSalarios} />
                   </>
                 )}
-                <Button variant="outline" onClick={handleExport} disabled={isExporting}>
-
-                 {isExporting ? (
-                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                 ) : (
-                   <Download className="mr-2 h-4 w-4" />
-                 )}
-                 Exportar
-               </Button>
-              <Dialog open={open} onOpenChange={(v) => {
-                setOpen(v);
-                if (!v) reset(EMPTY_VALUES);
-              }}>
-                <DialogTrigger asChild>
-                  <Button onClick={openNew} type="button">
-                    <Plus className="mr-2 h-4 w-4" /> Novo profissional
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {formMethods.getValues("id") ? `Editar: ${formMethods.watch("nome_completo") || "Profissional"}` : "Novo profissional"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <Form {...formMethods}>
-                    <form
-                      onSubmit={formMethods.handleSubmit((values: any) => upsert.mutate(values))}
-                      className="space-y-4"
-                    >
-                      <ProfissionalFormBody
-                        secretarias={secretarias}
-                        unidades={unidades}
-                        setores={setores}
-                        cargos={cargos}
-                        funcoes={funcoes}
-                        vinculos={vinculos}
-                        gestoresOpt={gestoresOpt}
-                        canEditAgili={hasPermission("profissional.editar_dados_agili")}
-                        canSeeBanco={hasPermission("profissional.dados_bancarios")}
-                        canSeeSalario={hasPermission("profissional.dados_salariais") || me?.is_master === true}
-
-                      />
-                      <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                          Cancelar
-                        </Button>
-                        <Button type="submit" disabled={upsert.isPending}>
-                          {upsert.isPending ? (
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Salvando...
-                            </span>
-                          ) : "Salvar"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </>
-          ) : undefined
+              </>
+            )}
+            <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Exportar
+            </Button>
+            {canCreate && (
+              <Button onClick={openNew} type="button">
+                <Plus className="mr-2 h-4 w-4" /> Novo profissional
+              </Button>
+            )}
+          </div>
         }
       />
+
+      <Dialog 
+        open={open} 
+        onOpenChange={(v) => {
+          console.log("Dialog onOpenChange:", v);
+          setOpen(v);
+          if (!v) reset(EMPTY_VALUES);
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {formMethods.getValues("id") ? `Editar: ${formMethods.watch("nome_completo") || "Profissional"}` : "Novo profissional"}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...formMethods}>
+            <form
+              onSubmit={formMethods.handleSubmit((values: any) => {
+                console.log("Submit form values:", values);
+                upsert.mutate(values);
+              })}
+              className="space-y-4"
+            >
+              <ProfissionalFormBody
+                secretarias={secretarias}
+                unidades={unidades}
+                setores={setores}
+                cargos={cargos}
+                funcoes={funcoes}
+                vinculos={vinculos}
+                gestoresOpt={gestoresOpt}
+                canEditAgili={hasPermission("profissional.editar_dados_agili")}
+                canSeeBanco={hasPermission("profissional.dados_bancarios")}
+                canSeeSalario={hasPermission("profissional.dados_salariais") || me?.is_master === true}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={upsert.isPending}>
+                  {upsert.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Salvando...
+                    </span>
+                  ) : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
