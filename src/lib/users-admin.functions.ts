@@ -190,7 +190,7 @@ export const updateUsuario = createServerFn({ method: "POST" })
     await assertMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const authPatch: Record<string, unknown> = {};
+    const authPatch: any = {};
     if (data.email) authPatch.email = data.email;
     if (data.password) authPatch.password = data.password;
     if (data.nome_completo || data.telefone !== undefined) {
