@@ -1,0 +1,1 @@
+ALTER FUNCTION public.get_dashboard_summary(uuid, uuid) SECURITY INVOKER;

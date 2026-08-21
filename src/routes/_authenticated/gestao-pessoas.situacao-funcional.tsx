@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
 
@@ -45,14 +46,21 @@ const ORDER: {
 ];
 
 function SituacaoFuncional() {
-  const a = useAnalytics({});
+  const { unidadePadraoId, isMaster } = useUnitScope();
+  const a = useAnalytics({ unidadeId: unidadePadraoId });
   const { data: professionals, isLoading: isLoadingDirect } = useQuery({
-    queryKey: ["profissionais-status-direct"],
+    queryKey: ["profissionais-status-direct", unidadePadraoId, isMaster],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("profissionais")
-        .select("status")
+        .select("status, unidade_id")
         .is("deleted_at", null);
+      
+      if (unidadePadraoId) {
+        q = q.eq("unidade_id", unidadePadraoId);
+      }
+      
+      const { data, error } = await q;
       if (error) throw error;
       return data as { status: string | null }[];
     },

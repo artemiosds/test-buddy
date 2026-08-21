@@ -95,11 +95,19 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     staleTime,
     gcTime,
     queryFn: async () => {
-      const { count, error } = await supabase
+      let q = supabase
         .from("unidades")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null)
         .eq("status", "ativa");
+      
+      if (filters.unidadeId) {
+        q = q.eq("id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q = q.in("id", userCtx.unidades as string[]);
+      }
+      
+      const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
@@ -111,10 +119,18 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     staleTime,
     gcTime,
     queryFn: async () => {
-      const { count, error } = await supabase
+      let q = supabase
         .from("setores")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null);
+      
+      if (filters.unidadeId) {
+        q = q.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades as string[]);
+      }
+      
+      const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
@@ -279,14 +295,21 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const alertas = useQuery({
-    queryKey: ["analytics", "alertas"],
+    queryKey: ["analytics", "alertas", filters.unidadeId],
     staleTime,
     gcTime,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("v_integridade_profissionais")
-        .select("*")
-        .limit(1000);
+        .select("*");
+      
+      if (filters.unidadeId) {
+        q = q.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades as string[]);
+      }
+
+      const { data, error } = await q.limit(1000);
       if (error) throw error;
       
       const rows = (data || []) as IntegridadeRow[];
@@ -298,18 +321,30 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         semFuncao: acc.semFuncao + (curr.sem_funcao || 0),
       }), { semUnidade: 0, semSetor: 0, semCargo: 0, semFuncao: 0 });
 
+      let qUnidades = supabase
+        .from("unidades")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("responsavel_nome", null);
+      
+      let qSetores = supabase
+        .from("setores")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("gestor_id", null)
+        .is("responsavel_nome", null);
+
+      if (filters.unidadeId) {
+        qUnidades = qUnidades.eq("id", filters.unidadeId);
+        qSetores = qSetores.eq("unidade_id", filters.unidadeId);
+      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+        qUnidades = qUnidades.in("id", userCtx.unidades as string[]);
+        qSetores = qSetores.in("unidade_id", userCtx.unidades as string[]);
+      }
+
       const [unidadesSemGestorRes, setoresSemRespRes] = await Promise.all([
-        supabase
-          .from("unidades")
-          .select("id", { count: "exact", head: true })
-          .is("deleted_at", null)
-          .is("responsavel_nome", null),
-        supabase
-          .from("setores")
-          .select("id", { count: "exact", head: true })
-          .is("deleted_at", null)
-          .is("gestor_id", null)
-          .is("responsavel_nome", null),
+        qUnidades,
+        qSetores,
       ]);
 
       return {

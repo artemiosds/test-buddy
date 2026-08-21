@@ -25,6 +25,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { useCompetenciasLookup, useUnidadesLookup } from "@/hooks/use-lookups";
@@ -128,12 +129,15 @@ function SalaSituacaoPage() {
       replace: true,
     });
 
-  const a = useAnalytics({ competenciaId, unidadeId, status });
+  const { unidadePadraoId, isMaster: isMasterUser } = useUnitScope();
+  const effectiveUnidadeId = unidadeId || (!isMasterUser ? unidadePadraoId : undefined);
+
+  const a = useAnalytics({ competenciaId, unidadeId: effectiveUnidadeId, status });
   const intel = useIntelligence(a);
 
   // Pendências críticas (vencidas) — regra ALERT_RULES.pendenciaDiasCritico.
   const pendCriticasQ = useQuery({
-    queryKey: ["sala-situacao", "pend-criticas", unidadeId],
+    queryKey: ["sala-situacao", "pend-criticas", effectiveUnidadeId],
     staleTime: 60_000,
     queryFn: async () => {
       const cutoff = new Date(
@@ -149,7 +153,7 @@ function SalaSituacaoPage() {
         .lt("created_at", cutoff)
         .order("created_at", { ascending: true })
         .limit(100);
-      if (unidadeId) q = q.eq("frequencias.competencia_unidades.unidade_id", unidadeId);
+      if (effectiveUnidadeId) q = q.eq("frequencias.competencia_unidades.unidade_id", effectiveUnidadeId);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as Array<{
@@ -169,7 +173,7 @@ function SalaSituacaoPage() {
 
   // Últimas movimentações — origem: profissional_historico_funcional.
   const movQ = useQuery({
-    queryKey: ["sala-situacao", "movimentacoes", unidadeId],
+    queryKey: ["sala-situacao", "movimentacoes", effectiveUnidadeId],
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase
@@ -180,8 +184,8 @@ function SalaSituacaoPage() {
         .is("deleted_at", null)
         .order("data_inicio", { ascending: false })
         .limit(10);
-      if (unidadeId) {
-        q = q.or(`unidade_novo_id.eq.${unidadeId},unidade_anterior_id.eq.${unidadeId}`);
+      if (effectiveUnidadeId) {
+        q = q.or(`unidade_novo_id.eq.${effectiveUnidadeId},unidade_anterior_id.eq.${effectiveUnidadeId}`);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -416,24 +420,26 @@ function SalaSituacaoPage() {
 
       {/* Filtros globais */}
       <FilterBar>
-        <FilterBar.Field label="Unidade">
-          <Select
-            value={unidadeSel}
-            onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todas</SelectItem>
-              {(unidadesQ.data ?? []).map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FilterBar.Field>
+        {isMasterUser && (
+          <FilterBar.Field label="Unidade">
+            <Select
+              value={unidadeSel}
+              onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {(unidadesQ.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+        )}
         <FilterBar.Field label="Status">
           <Select
             value={statusSel}
@@ -567,12 +573,14 @@ function SalaSituacaoPage() {
           <CardTitle className="text-base">Rankings (top 10)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="unidades">
+          <Tabs defaultValue={isMasterUser ? "unidades" : "setores"}>
             <TabsList className="mb-3 flex flex-wrap">
-              <TabsTrigger value="unidades">
-                <Building2 className="mr-1 h-3.5 w-3.5" />
-                Unidades
-              </TabsTrigger>
+              {isMasterUser && (
+                <TabsTrigger value="unidades">
+                  <Building2 className="mr-1 h-3.5 w-3.5" />
+                  Unidades
+                </TabsTrigger>
+              )}
               <TabsTrigger value="setores">
                 <Network className="mr-1 h-3.5 w-3.5" />
                 Setores
@@ -583,10 +591,12 @@ function SalaSituacaoPage() {
                 <Clock className="mr-1 h-3.5 w-3.5" />
                 Horas Extras
               </TabsTrigger>
-              <TabsTrigger value="criticas">
-                <ShieldAlert className="mr-1 h-3.5 w-3.5" />
-                Críticas
-              </TabsTrigger>
+              {isMasterUser && (
+                <TabsTrigger value="criticas">
+                  <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+                  Críticas
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="unidades">
