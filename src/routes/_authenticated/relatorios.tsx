@@ -45,9 +45,18 @@ function RelatoriosPage() {
   const canExport = isMaster || has("relatorio.exportar");
   const nivel = nivelPrivacidade({ isMaster, has });
 
+  const { unidadePadraoId, isLoading: scopeLoading, locked } = useUnitScope();
+
   const [competenciaId, setCompetenciaId] = useState<string>("all");
   const [unidadeId, setUnidadeId] = useState<string>("all");
   const [tipo, setTipo] = useState<TipoFolha | "all">("all");
+
+  // Efeito para sincronizar a unidadeId inicial com o escopo do usuário
+  useMemo(() => {
+    if (!scopeLoading && !isMaster && unidadePadraoId && unidadeId === "all") {
+      setUnidadeId(unidadePadraoId);
+    }
+  }, [scopeLoading, isMaster, unidadePadraoId, unidadeId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["rel-competencias"],
@@ -71,7 +80,19 @@ function RelatoriosPage() {
         .from("unidades")
         .select("id, nome, sigla")
         .is("deleted_at", null)
+        .in("id", !isMaster ? userCtx?.unidades || [] : [])
         .order("nome");
+      
+      let q = supabase
+        .from("unidades")
+        .select("id, nome, sigla")
+        .is("deleted_at", null);
+      
+      if (!isMaster && Array.isArray(userCtx?.unidades)) {
+        q = q.in("id", userCtx.unidades);
+      }
+      
+      const { data, error } = await q.order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -277,7 +298,7 @@ function RelatoriosPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
+              {!locked && <SelectItem value="all">Todas</SelectItem>}
               {unidades?.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.sigla ? `${u.sigla} — ` : ""}

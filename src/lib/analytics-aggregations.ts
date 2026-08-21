@@ -91,6 +91,9 @@ export type AggregatedSummary = {
  * os detalhes quando a folha pai ainda não foi consolidada.
  */
 export async function getAggregatedFrequencies(params: AggregationParams): Promise<AggregatedSummary> {
+  const { data: userCtx } = await supabase.rpc("get_my_user_context");
+  const isMaster = !!userCtx?.is_master;
+
   let q = supabase
     .from("frequencias")
     .select(`
@@ -113,9 +116,14 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
   if (params.competenciaId && params.competenciaId !== "all") {
     q = q.eq("competencia_unidade.competencia_id", params.competenciaId);
   }
+  
   if (params.unidadeId && params.unidadeId !== "all") {
     q = q.eq("competencia_unidade.unidade_id", params.unidadeId);
+  } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades)) {
+    // Restrição de segurança: se não informou unidade e não é master, limita às dele
+    q = q.in("competencia_unidade.unidade_id", userCtx.unidades as string[]);
   }
+
   if (params.tipo && params.tipo !== "all") {
     q = q.eq("tipo", params.tipo as any);
   }

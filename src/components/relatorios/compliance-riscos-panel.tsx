@@ -76,20 +76,41 @@ export function ComplianceRiscosPanel({
     queryKey: ["compliance-total-base", competenciaId, unidadeId],
     enabled,
     queryFn: async () => {
+      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const isMaster = !!userCtx?.is_master;
+      const allowedUnits = Array.isArray(userCtx?.unidades) ? (userCtx.unidades as string[]) : [];
+
       // Se tivermos competência, contamos quem está em folha (vínculos reais)
       if (competenciaId !== "all") {
-        const { count, error } = await supabase
+        let q = supabase
           .from("frequencia_profissional")
           .select("id", { count: "exact", head: true })
           .eq("frequencias.competencia_unidades.competencia_id" as any, competenciaId)
           .is("deleted_at", null);
+        
+        if (unidadeId !== "all") {
+          q = q.eq("frequencias.competencia_unidades.unidade_id" as any, unidadeId);
+        } else if (!isMaster && allowedUnits.length > 0) {
+          q = q.in("frequencias.competencia_unidades.unidade_id" as any, allowedUnits);
+        }
+
+        const { count, error } = await q;
         if (!error && count !== null) return count;
       }
+      
       // Fallback para count global de profissionais ativos se for "Todas"
-      const { count } = await supabase
+      let qProf = supabase
         .from("profissionais")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null);
+
+      if (unidadeId !== "all") {
+        qProf = qProf.eq("unidade_id", unidadeId);
+      } else if (!isMaster && allowedUnits.length > 0) {
+        qProf = qProf.in("unidade_id", allowedUnits);
+      }
+
+      const { count } = await qProf;
       return count ?? 0;
     }
   });
