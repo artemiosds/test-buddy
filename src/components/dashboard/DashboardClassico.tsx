@@ -36,7 +36,7 @@ const COLORS = [
 
 export function DashboardClassico() {
   const { unidadePadraoId, isMaster } = useUnitScope();
-  const a = useAnalytics({ unidadeId: unidadePadraoId });
+  const a = useAnalytics({ unidadeId: isMaster ? undefined : unidadePadraoId });
   
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;

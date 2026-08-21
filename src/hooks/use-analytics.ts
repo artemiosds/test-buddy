@@ -71,11 +71,9 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         .select("id", { head: true, count: "exact" })
         .is("deleted_at", null);
       // MASTER vê global (sem filtro) a menos que selecione uma unidade específica.
-      // Diretor/Gestor sempre é limitado pelo RLS, mas o filtro ajuda a otimizar a query.
       if (filters.unidadeId) {
         q.eq("unidade_id", filters.unidadeId);
       } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
-        // Fallback de segurança para não-master: se não informou unidade, limita às dele
         q.in("unidade_id", userCtx.unidades as string[]);
       }
       if (filters.setorId) q.eq("setor_id", filters.setorId);
