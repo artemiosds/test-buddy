@@ -403,8 +403,12 @@ function SalaSituacaoPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
-        title="Sala de Situação — Força de Trabalho"
-        description="Painel executivo do módulo Gestão da Saúde — visão consolidada da força de trabalho."
+        title={isMasterUser ? "Sala de Situação (Secretaria)" : "Sala de Situação (Unidade)"}
+        description={
+          isMasterUser
+            ? "Painel executivo com visão consolidada da força de trabalho em toda a rede."
+            : "Painel executivo com visão consolidada da força de trabalho na sua unidade."
+        }
         actions={
           <Button variant="outline" size="sm" onClick={() => a.refetch()}>
             <RefreshCw className="mr-1 h-4 w-4" /> Atualizar

@@ -138,8 +138,12 @@ function DashboardExecutivo() {
   return (
     <div className="p-4 md:p-6">
       <PageHeader
-        title="Dashboard Executivo"
-        description="Visão consolidada de pessoas, estrutura e operação — dados em tempo real."
+        title={isMasterUser ? "Dashboard Executivo (Secretaria)" : "Dashboard Executivo (Unidade)"}
+        description={
+          isMasterUser
+            ? "Visão consolidada de pessoas, estrutura e operação de toda a rede em tempo real."
+            : "Visão consolidada de pessoas, estrutura e operação da unidade em tempo real."
+        }
       />
 
       <div className="mt-4">
