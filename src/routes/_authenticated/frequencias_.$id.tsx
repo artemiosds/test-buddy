@@ -1648,85 +1648,23 @@ function AnexosDialog({
         <DialogHeader>
           <DialogTitle>Anexos — {profNome}</DialogTitle>
         </DialogHeader>
-        {canEdit && (
-          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium">Categoria</label>
-                <Select value={categoriaId} onValueChange={setCategoriaId}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(categorias ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium">Arquivo</label>
-                <Input
-                  ref={fileRef}
-                  type="file"
-                  className="h-8"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleUpload(f);
-                  }}
-                  disabled={uploading}
-                />
-              </div>
-            </div>
-            {uploading && (
-              <div className="text-xs text-muted-foreground">
-                <Upload className="mr-1 inline h-3 w-3" />
-                Enviando...
-              </div>
-            )}
-          </div>
-        )}
-        <div className="max-h-80 space-y-1 overflow-y-auto">
-          {!anexos?.length ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">Nenhum anexo.</div>
-          ) : (
-            anexos.map((a) => {
-              const cat = categorias?.find((c) => c.id === a.categoria_id);
-              return (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded border p-2 text-sm"
-                >
-                  <button
-                    className="flex-1 truncate text-left hover:underline"
-                    onClick={() => baixar(a)}
-                  >
-                    {a.nome}
-                  </button>
-                  <div className="ml-2 flex items-center gap-2">
-                    {cat && (
-                      <Badge variant="outline" className="text-xs">
-                        {cat.nome}
-                      </Badge>
-                    )}
-                    {canEdit && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Remover anexo"
-                        onClick={() => removerAnexo(a)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
+        
+        <div className="py-2">
+          <AnexosEntidade
+            entidadeId={linhaId}
+            tipoEntidade="frequencia"
+            unidadeId={unidadeId}
+            canEdit={canEdit}
+            mostrarLixeira={true}
+            titulo="Documentos Comprobatórios"
+          />
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
