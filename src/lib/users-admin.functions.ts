@@ -215,7 +215,7 @@ export const updateUsuario = createServerFn({ method: "POST" })
     if (Object.keys(rowPatch).length > 0) {
       const { error: uErr } = await supabaseAdmin
         .from("usuarios")
-        .update(rowPatch)
+        .update(rowPatch as any)
         .eq("id", data.id);
       if (uErr) throw new Error(uErr.message);
     }
