@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
-  listarAnexosLinha,
-  listarAnexosRemovidosLinha,
   registrarAnexoLinha,
   removerAnexoLinha,
   restaurarAnexoLinha,
+  listarAnexosRemovidosLinha,
 } from "@/lib/frequencias.functions";
+import { listarAnexosLinha } from "@/lib/listar-anexos.functions";
 import {
   ANEXO_ACCEPT,
   formatarBytes,
