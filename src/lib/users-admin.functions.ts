@@ -269,12 +269,15 @@ export const alterarPerfilStatusUsuario = createServerFn({ method: "POST" })
     if (data.id === context.userId && (data.status === "inativo" || data.status === "bloqueado")) {
       throw new Error("Você não pode inativar/bloquear a própria conta.");
     }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const patch: Record<string, unknown> = {};
     if (data.perfil_id) patch.perfil_id = data.perfil_id;
     if (data.status) patch.status = data.status;
-    const { error } = await context.supabase
+
+    const { error } = await supabaseAdmin
       .from("usuarios")
-      .update(patch as never)
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     if (data.status) {
