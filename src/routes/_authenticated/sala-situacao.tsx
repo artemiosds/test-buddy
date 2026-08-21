@@ -128,12 +128,15 @@ function SalaSituacaoPage() {
       replace: true,
     });
 
-  const a = useAnalytics({ competenciaId, unidadeId, status });
+  const { unidadePadraoId, isMaster: isMasterUser } = useUnitScope();
+  const effectiveUnidadeId = unidadeId || (!isMasterUser ? unidadePadraoId : undefined);
+
+  const a = useAnalytics({ competenciaId, unidadeId: effectiveUnidadeId, status });
   const intel = useIntelligence(a);
 
   // Pendências críticas (vencidas) — regra ALERT_RULES.pendenciaDiasCritico.
   const pendCriticasQ = useQuery({
-    queryKey: ["sala-situacao", "pend-criticas", unidadeId],
+    queryKey: ["sala-situacao", "pend-criticas", effectiveUnidadeId],
     staleTime: 60_000,
     queryFn: async () => {
       const cutoff = new Date(
@@ -149,7 +152,7 @@ function SalaSituacaoPage() {
         .lt("created_at", cutoff)
         .order("created_at", { ascending: true })
         .limit(100);
-      if (unidadeId) q = q.eq("frequencias.competencia_unidades.unidade_id", unidadeId);
+      if (effectiveUnidadeId) q = q.eq("frequencias.competencia_unidades.unidade_id", effectiveUnidadeId);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as Array<{
@@ -169,7 +172,7 @@ function SalaSituacaoPage() {
 
   // Últimas movimentações — origem: profissional_historico_funcional.
   const movQ = useQuery({
-    queryKey: ["sala-situacao", "movimentacoes", unidadeId],
+    queryKey: ["sala-situacao", "movimentacoes", effectiveUnidadeId],
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase
@@ -180,8 +183,8 @@ function SalaSituacaoPage() {
         .is("deleted_at", null)
         .order("data_inicio", { ascending: false })
         .limit(10);
-      if (unidadeId) {
-        q = q.or(`unidade_novo_id.eq.${unidadeId},unidade_anterior_id.eq.${unidadeId}`);
+      if (effectiveUnidadeId) {
+        q = q.or(`unidade_novo_id.eq.${effectiveUnidadeId},unidade_anterior_id.eq.${effectiveUnidadeId}`);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -416,24 +419,26 @@ function SalaSituacaoPage() {
 
       {/* Filtros globais */}
       <FilterBar>
-        <FilterBar.Field label="Unidade">
-          <Select
-            value={unidadeSel}
-            onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todas</SelectItem>
-              {(unidadesQ.data ?? []).map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FilterBar.Field>
+        {isMasterUser && (
+          <FilterBar.Field label="Unidade">
+            <Select
+              value={unidadeSel}
+              onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {(unidadesQ.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+        )}
         <FilterBar.Field label="Status">
           <Select
             value={statusSel}

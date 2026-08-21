@@ -97,9 +97,12 @@ function DashboardExecutivo() {
       replace: true,
     });
 
+  const { unidadePadraoId, isMaster: isMasterUser } = useUnitScope();
+  const effectiveUnidadeId = resolved.unidadeId || (!isMasterUser ? unidadePadraoId : undefined);
+
   const a = useAnalytics({
     competenciaId: resolved.competenciaId,
-    unidadeId: resolved.unidadeId,
+    unidadeId: effectiveUnidadeId,
     status: resolved.status,
   });
   const intel = useIntelligence(a);
@@ -148,24 +151,26 @@ function DashboardExecutivo() {
 
       <div className="mt-4">
         <FilterBar>
-          <FilterBar.Field label="Unidade">
-            <Select
-              value={unidadeSel}
-              onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todas</SelectItem>
-                {(unidadesQ.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterBar.Field>
+          {isMasterUser && (
+            <FilterBar.Field label="Unidade">
+              <Select
+                value={unidadeSel}
+                onValueChange={(v) => patchFilter({ unidade: v === "__all__" ? "" : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas</SelectItem>
+                  {(unidadesQ.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterBar.Field>
+          )}
           <FilterBar.Field label="Status">
             <Select
               value={statusSel}

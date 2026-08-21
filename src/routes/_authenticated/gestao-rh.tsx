@@ -51,10 +51,11 @@ const NONE = "__all__";
 function GestaoRhContent() {
   const ctx = useContext(AnalyticsFilterContext);
   const setFilters = ctx.setFilters!;
+  const { unidadePadraoId, isMaster } = useUnitScope();
 
   const filters: AF = {
     competenciaId: ctx.competenciaId ?? null,
-    unidadeId: ctx.unidadeId ?? null,
+    unidadeId: ctx.unidadeId || (!isMaster ? unidadePadraoId : null),
     setorId: ctx.setorId ?? null,
     cargoId: ctx.cargoId ?? null,
     funcaoId: ctx.funcaoId ?? null,
@@ -228,24 +229,26 @@ function GestaoRhContent() {
             </SelectContent>
           </Select>
         </FilterBar.Field>
-        <FilterBar.Field label="Unidade">
-          <Select
-            value={filters.unidadeId ?? NONE}
-            onValueChange={(v) => setFilters({ unidadeId: v === NONE ? null : v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>Todas</SelectItem>
-              {unidades?.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FilterBar.Field>
+        {isMaster && (
+          <FilterBar.Field label="Unidade">
+            <Select
+              value={filters.unidadeId ?? NONE}
+              onValueChange={(v) => setFilters({ unidadeId: v === NONE ? null : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Todas</SelectItem>
+                {unidades?.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.sigla ? `${u.sigla} — ${u.nome}` : u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar.Field>
+        )}
       </FilterBar>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
