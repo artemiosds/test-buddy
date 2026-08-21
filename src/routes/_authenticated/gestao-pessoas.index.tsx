@@ -450,15 +450,17 @@ function DashboardExecutivo() {
 
       <Section title="Distribuição">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <DistribuicaoTable
-            title="Profissionais por unidade (top 10)"
-            loading={a.distribuicaoUnidade.isLoading}
-            rows={topUnidades.map((r) => ({
-              id: r.id,
-              nome: r.sigla ? `${r.sigla} — ${r.nome}` : r.nome,
-              total: r.total,
-            }))}
-          />
+          {isMasterUser && (
+            <DistribuicaoTable
+              title="Profissionais por unidade (top 10)"
+              loading={a.distribuicaoUnidade.isLoading}
+              rows={topUnidades.map((r) => ({
+                id: r.id,
+                nome: r.sigla ? `${r.sigla} — ${r.nome}` : r.nome,
+                total: r.total,
+              }))}
+            />
+          )}
           <DistribuicaoTable
             title="Profissionais por cargo (top 10)"
             loading={a.distribuicaoCargo.isLoading}
