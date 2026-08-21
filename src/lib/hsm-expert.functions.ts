@@ -159,8 +159,11 @@ function tituloExportacao(ferramenta: string, pergunta: string): string {
 }
 
 function historicoTexto(msgs: Msg[]): string {
+  // Otimização: Não limitamos mais o histórico severamente, permitindo melhor memória.
+  // Mantemos um teto razoável de 30 mensagens para evitar overhead excessivo,
+  // mas removemos o limite rígido de 10.
   return msgs
-    .slice(-10)
+    .slice(-30)
     .map((m) => `${m.papel === "user" ? "Usuário" : "HSM Expert"}: ${m.conteudo}`)
     .join("\n");
 }
@@ -309,10 +312,12 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
       return { conversa_id: conversaId, mensagem, confirmacao: null, exportacao: null };
     }
 
+    // Otimização: Validação de sessão e perfil injetada no início para evitar re-consultas.
     const { data: userCtx } = await supabase.rpc("get_my_user_context");
     const userCtxObj = userCtx as any;
     const isMaster = !!userCtxObj?.is_master;
     const unidadeId = userCtxObj?.unidades?.[0];
+    const perfilNome = userCtxObj?.perfil_nome || 'usuário';
     
     const ctxTools = { 
       supabase, 
@@ -369,8 +374,10 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     // Etapa 1 — planejamento: o modelo apenas ESCOLHE uma ferramenta.
     // ---------------------------------------------------------------------
     const planejador = `${config.prompt_sistema}
+    
+Você está conversando com um ${perfilNome}. 
+    ` (old_content elided ...)
 
-Você está conversando com um ${perfil?.perfil_nome || 'usuário'}. 
 ${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidade ID: ${unidadeId}. Suas análises e ferramentas devem focar APENAS nesta unidade.` : ''}
 
 Agente ativo: ${agente.nome}. ${agente.instrucao}
