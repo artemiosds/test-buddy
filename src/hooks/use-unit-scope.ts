@@ -100,11 +100,13 @@ export function useUnitScope() {
   }, [isGlobal, contextUnitIds, unidadesList]);
 
   // AUTO-SELEÇÃO FORÇADA: diretor com unidades nunca fica sem unidade ativa.
+  // MASTER pode ficar sem unidade ativa (Visão Global).
   useEffect(() => {
     if (!user) return;
+    if (isGlobal) return; // Master/Global não precisa de auto-seleção forçada
     if (allowedIds.length === 0) return;
     if (selectedUnitId && allowedIds.includes(selectedUnitId)) return;
-    if (selectedUnitId && isGlobal) return; // global pode manter qualquer seleção
+    
     setGlobalUnitId(allowedIds[0]);
   }, [user, allowedIds, selectedUnitId, isGlobal]);
 
