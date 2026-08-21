@@ -6,6 +6,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
+import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   Sparkles,
   Check,
@@ -117,6 +118,9 @@ type TipoRelatorio = keyof typeof PRESETS;
 /* ============================================================= */
 
 export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filtersProp }: { mode?: string, initialFilters?: any }) {
+  const { data: user } = useCurrentUser();
+  const isMaster = !!user?.is_master;
+
   // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
   // com a rota /relatorio-inteligente.
   const search: any = useSearch({ strict: false });
@@ -129,8 +133,12 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
         <PageHeader
-          title="⭐ Gerador Corporativo de Relatórios Gerenciais"
-          description="Monte o relatório exato que o gestor precisa — escolha blocos, campos, filtros e ordenação. Dados 100% reais, sem alterar folha, competência ou banco."
+          title={isMaster ? "⭐ Gerador Corporativo de Relatórios Gerenciais (Secretaria)" : "⭐ Gerador Corporativo de Relatórios Gerenciais (Unidade)"}
+          description={
+            isMaster
+              ? "Monte o relatório exato que a gestão da secretaria precisa — dados 100% reais de toda a rede."
+              : "Monte o relatório exato que a sua unidade precisa — dados 100% reais vinculados ao seu escopo."
+          }
         />
         <RelatoriosTabs />
         <Wizard mode={mode} initialFilters={initialFilters} />
