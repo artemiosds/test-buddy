@@ -376,8 +376,6 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     const planejador = `${config.prompt_sistema}
     
 Você está conversando com um ${perfilNome}. 
-    ` (old_content elided ...)
-
 ${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidade ID: ${unidadeId}. Suas análises e ferramentas devem focar APENAS nesta unidade.` : ''}
 
 Agente ativo: ${agente.nome}. ${agente.instrucao}
