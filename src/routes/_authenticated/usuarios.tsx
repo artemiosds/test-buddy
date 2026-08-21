@@ -541,9 +541,13 @@ function UsuariosList() {
                     {isMaster ? (
                       <Select
                         value={u.status}
-                        onValueChange={(v) =>
-                          updateUser.mutate({ id: u.id, status: v as (typeof STATUS_OPTS)[number] })
-                        }
+                        onValueChange={(v) => {
+                          if (u.id === userCtx?.id && (v === "inativo" || v === "bloqueado")) {
+                            toast.error("Você não pode inativar ou bloquear a própria conta.");
+                            return;
+                          }
+                          updateUser.mutate({ id: u.id, status: v as (typeof STATUS_OPTS)[number] });
+                        }}
                       >
                         <SelectTrigger className="h-8 w-[140px]">
                           <SelectValue />
@@ -607,7 +611,7 @@ function UsuariosList() {
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive/80"
-                          disabled={deleteMut.isPending}
+                          disabled={deleteMut.isPending || u.id === userCtx?.id}
                           onClick={() => {
                             void (async () => {
                               const ok = await askConfirm({

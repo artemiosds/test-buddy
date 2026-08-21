@@ -190,7 +190,7 @@ export const updateUsuario = createServerFn({ method: "POST" })
     await assertMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const authPatch: Record<string, unknown> = {};
+    const authPatch: any = {};
     if (data.email) authPatch.email = data.email;
     if (data.password) authPatch.password = data.password;
     if (data.nome_completo || data.telefone !== undefined) {
@@ -215,7 +215,7 @@ export const updateUsuario = createServerFn({ method: "POST" })
     if (Object.keys(rowPatch).length > 0) {
       const { error: uErr } = await supabaseAdmin
         .from("usuarios")
-        .update(rowPatch)
+        .update(rowPatch as any)
         .eq("id", data.id);
       if (uErr) throw new Error(uErr.message);
     }
@@ -269,12 +269,15 @@ export const alterarPerfilStatusUsuario = createServerFn({ method: "POST" })
     if (data.id === context.userId && (data.status === "inativo" || data.status === "bloqueado")) {
       throw new Error("Você não pode inativar/bloquear a própria conta.");
     }
-    const patch: Record<string, unknown> = {};
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: any = {};
     if (data.perfil_id) patch.perfil_id = data.perfil_id;
     if (data.status) patch.status = data.status;
-    const { error } = await context.supabase
+
+    const { error } = await supabaseAdmin
       .from("usuarios")
-      .update(patch as never)
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     if (data.status) {
