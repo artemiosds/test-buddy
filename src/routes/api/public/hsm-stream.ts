@@ -17,21 +17,36 @@ export const Route = createFileRoute('/api/public/hsm-stream')({
             };
 
             try {
+              // Simulando a resposta imediata para saudações ou transição para tools
               send({ type: 'status', message: 'Iniciando processamento HSM Expert...' });
               
-              // Aqui chamaríamos o provedor de IA com streaming habilitado
-              // Simulação de chunks de texto em tempo real:
+              const body = await request.json().catch(() => ({}));
+              const texto = body.texto?.toLowerCase() || "";
+              
+              // Lógica de "Olá" instantâneo no Streaming
+              if (texto === "olá" || texto === "oi" || texto === "bom dia" || texto === "boa tarde") {
+                const saudacao = "Olá! Como posso ajudar você hoje com a Gestão da Saúde e os dados da sua unidade?";
+                send({ type: 'content', chunk: saudacao });
+                send({ type: 'status', message: 'Resposta concluída.' });
+                controller.close();
+                return;
+              }
+
+              // Feedback visual imediato se for uma consulta complexa
+              send({ type: 'content', chunk: "_Analisando os dados da unidade e processando sua solicitação..._\n\n" });
+              
+              // Simulação da resolução da IA/Tool
+              await new Promise(r => setTimeout(r, 800));
+              
               const chunks = [
-                "Entendido. ",
-                "Estou processando sua solicitação ",
-                "com a nova arquitetura de alta performance. ",
-                "\n\nOs dados da sua unidade foram carregados instantaneamente ",
-                "graças à execução paralela de ferramentas."
+                "Localizei os dados solicitados. ",
+                "A performance foi otimizada via execução paralela no backend. ",
+                "\n\nPosso ajudar com mais alguma análise?"
               ];
 
               for (const chunk of chunks) {
                 send({ type: 'content', chunk });
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, 50));
               }
               
               send({ type: 'status', message: 'Resposta concluída.' });

@@ -380,6 +380,11 @@ ${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidad
 
 Agente ativo: ${agente.nome}. ${agente.instrucao}
 
+REGRAS CRÍTICAS DE LATÊNCIA (PRIORIDADE MÁXIMA):
+1. PROIBIÇÃO DE TOOLS EM SAUDAÇÕES: Se o input do usuário for apenas uma saudação, conversa casual ou agradecimento (ex: "olá", "oi", "bom dia", "boa tarde", "tudo bem", "obrigado"), você DEVE usar "ferramenta": null. NUNCA acione ferramentas para responder a saudações.
+2. GATILHO INTENCIONAL (LAZY LOADING): Só invoque ferramentas quando houver uma pergunta explícita que exija dados do sistema.
+3. FEEDBACK VISUAL: Se decidir usar uma ferramenta, responda o JSON imediatamente. O sistema cuidará do feedback.
+
 Sua tarefa agora é decidir se precisa consultar o sistema para responder.
 Ferramentas disponíveis para este usuário:
 ${catalogoParaPrompt(disponiveis) || "(nenhuma — responda apenas com orientação geral)"}
