@@ -636,28 +636,48 @@ export type OrgUnidade = {
 };
 
 export async function getOrganograma(unidadeId?: string | null): Promise<OrgUnidade[]> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
+  const isMaster = !!userCtx?.is_master;
+
   const [uRes, sRes, pRes, cRes, fRes] = await Promise.all([
-    unidadeId
-      ? supabase
-          .from("unidades")
-          .select("id, nome, sigla, responsavel_nome")
-          .eq("id", unidadeId)
-          .is("deleted_at", null)
-      : supabase
-          .from("unidades")
-          .select("id, nome, sigla, responsavel_nome")
-          .is("deleted_at", null)
-          .order("nome"),
-    supabase
-      .from("setores")
-      .select("id, nome, unidade_id, responsavel_nome")
-      .is("deleted_at", null)
-      .order("nome"),
-    supabase
-      .from("profissionais")
-      .select("id, nome_completo, unidade_id, setor_id, cargo_id, funcao_id, status")
-      .is("deleted_at", null)
-      .order("nome_completo"),
+    (() => {
+      let q = supabase
+        .from("unidades")
+        .select("id, nome, sigla, responsavel_nome")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("id", userCtx.unidades);
+      }
+      return q.order("nome");
+    })(),
+    (() => {
+      let q = supabase
+        .from("setores")
+        .select("id, nome, unidade_id, responsavel_nome")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("unidade_id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades);
+      }
+      return q.order("nome");
+    })(),
+    (() => {
+      let q = supabase
+        .from("profissionais")
+        .select("id, nome_completo, unidade_id, setor_id, cargo_id, funcao_id, status")
+        .is("deleted_at", null);
+      if (unidadeId) {
+        q = q.eq("unidade_id", unidadeId);
+      } else if (!isMaster && userCtx?.unidades?.length > 0) {
+        q = q.in("unidade_id", userCtx.unidades);
+      }
+      return q.order("nome_completo");
+    })(),
     supabase.from("cargos").select("id, nome").is("deleted_at", null),
     supabase.from("funcoes").select("id, nome").is("deleted_at", null),
   ]);
