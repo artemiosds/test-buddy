@@ -376,7 +376,7 @@ export const enviarMensagemHSM = createServerFn({ method: "POST" })
     const planejador = `${config.prompt_sistema}
     
 Você está conversando com um ${perfilNome}. 
-${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidade ID: ${unidadeId}. Suas análises e ferramentas devem focar APENAS nesta unidade.` : ''}
+${!isMaster && unidadeId ? `LIMITE DE CONTEXTO: O usuário é restrito à unidade ID: ${unidadeId}. Suas análises e ferramentas devem focar APENAS nesta unidade.` : ""}
 
 Agente ativo: ${agente.nome}. ${agente.instrucao}
 
@@ -395,6 +395,7 @@ Nunca invente nomes de ferramentas. Se a pergunta não exigir dados do sistema, 
     let plano: { ferramenta?: string | null; argumentos?: Record<string, unknown> } | null = null;
     let modeloPlano = "";
     let provedorPlano = "";
+
 
     // Sem ferramentas disponíveis não há o que planejar: pula uma chamada
     // inteira de IA e responde direto.
