@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useUnitScope } from "@/hooks/use-unit-scope";
+import { temAcessoGlobal } from "@/lib/auth-helpers";
 import {
   STATUS_APROVADAS,
   STATUS_PENDENTES,
@@ -52,14 +53,15 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   const { data: competenciaAtiva } = useCompetenciaAtiva();
   const { has: canSee, isLoading: isPermissionsLoading } = usePermissions();
   const { data: userCtx } = useCurrentUser();
-  const { unidadePadraoId, isLoading: isScopeLoading } = useUnitScope();
-
+  const { unidadePadraoId, isLoading: isScopeLoading, isGlobal: isScopeGlobal } = useUnitScope();
+  
   const isMaster = !!userCtx?.is_master;
+  const isGlobal = isMaster || isScopeGlobal || temAcessoGlobal(userCtx?.perfil_codigo, userCtx?.is_master);
   const staleTime = options?.staleTime ?? 300_000;
   const gcTime = 1_800_000;
   const competenciaId = (filters.competenciaId ?? competenciaAtiva?.id ?? null) as string | null;
   // Habilitado apenas quando o escopo for resolvido e houver unidade selecionada ou for Master
-  const enabled = !isPermissionsLoading && !isScopeLoading && (isMaster || !!filters.unidadeId || !!unidadePadraoId);
+  const enabled = !isPermissionsLoading && !isScopeLoading && (isGlobal || !!filters.unidadeId || !!unidadePadraoId);
 
   const totalProfessionals = useQuery({
     queryKey: ["analytics", "totalProfessionals", filters],
@@ -70,10 +72,10 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
         .from("profissionais")
         .select("id", { head: true, count: "exact" })
         .is("deleted_at", null);
-      // MASTER vê global (sem filtro) a menos que selecione uma unidade específica.
+      // MASTER/Global vê global (sem filtro) a menos que selecione uma unidade específica.
       if (filters.unidadeId) {
         q.eq("unidade_id", filters.unidadeId);
-      } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
+      } else if (!isGlobal && userCtx?.unidades && Array.isArray(userCtx.unidades) && userCtx.unidades.length > 0) {
         q.in("unidade_id", userCtx.unidades as string[]);
       }
       if (filters.setorId) q.eq("setor_id", filters.setorId);
@@ -192,14 +194,14 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const summaryQuery = useQuery({
-    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId, unidadePadraoId, isMaster],
+    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId, unidadePadraoId, isGlobal],
     staleTime,
     gcTime,
     queryFn: async () => {
       if (!competenciaId) return null;
       
       // Determina a unidade efetiva para o filtro
-      const effectiveUnitId = filters.unidadeId || (!isMaster ? unidadePadraoId : undefined);
+      const effectiveUnitId = filters.unidadeId || (!isGlobal ? unidadePadraoId : undefined);
       
       const { data, error } = await supabase.rpc("get_dashboard_summary", {
         p_competencia_id: competenciaId,

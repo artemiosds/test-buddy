@@ -119,7 +119,7 @@ type TipoRelatorio = keyof typeof PRESETS;
 
 export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filtersProp }: { mode?: string, initialFilters?: any }) {
   const { data: user } = useCurrentUser();
-  const isMaster = !!user?.is_master;
+  const isGlobal = !!user?.is_master; // Aqui tratamos como global se for Master
 
   // Lê os parâmetros de busca da rota ATIVA (qualquer uma), sem exigir vínculo
   // com a rota /relatorio-inteligente.
@@ -133,9 +133,9 @@ export function RelatorioInteligentePage({ mode: modeProp, initialFilters: filte
     <PermissionGate permission="relatorio.visualizar">
       <div className="space-y-4 p-4">
         <PageHeader
-          title={isMaster ? "⭐ Gerador Corporativo de Relatórios Gerenciais (Secretaria)" : "⭐ Gerador Corporativo de Relatórios Gerenciais (Unidade)"}
+          title={isGlobal ? "⭐ Gerador Corporativo de Relatórios Gerenciais (Secretaria)" : "⭐ Gerador Corporativo de Relatórios Gerenciais (Unidade)"}
           description={
-            isMaster
+            isGlobal
               ? "Monte o relatório exato que a gestão da secretaria precisa — dados 100% reais de toda a rede."
               : "Monte o relatório exato que a sua unidade precisa — dados 100% reais vinculados ao seu escopo."
           }
