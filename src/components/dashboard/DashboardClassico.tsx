@@ -109,7 +109,7 @@ export function DashboardClassico() {
       {/* Gráficos Principais */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Gráfico de Profissionais por Unidade - Apenas para Master/Global */}
-        {isGlobal && (
+        {isGlobal && barData.length > 0 && (
           <div className="rounded-xl border bg-card p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-6">
               <Building2 className="h-5 w-5 text-primary" />
