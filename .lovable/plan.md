@@ -1,27 +1,27 @@
-# Plano de Melhoria: Gestão Multi-Unidade e Seleção Automática
+# Plano de Restauração de Visão Global (Administrador Master)
 
-Este plano visa aprimorar a experiência de Diretores de Unidade com múltiplos vínculos, garantindo seleção automática, isolamento correto e eliminação de inconsistências visuais durante o carregamento.
+Este plano visa corrigir a regressão na visibilidade global do perfil Master no Dashboard e Relatórios, garantindo que o bypass de RLS e filtros de frontend funcione corretamente.
 
-## 1. Refatoração do Hook de Escopo (`useUnitScope`)
-- Ajustar a lógica para detectar múltiplos vínculos.
-- Adicionar uma flag `hasMultipleUnits` e garantir que `unidadePadraoId` seja a primeira da lista.
-- Manter `locked` como `true` apenas se houver exatamente 1 unidade vinculada e o usuário não for global.
+## Alterações
 
-## 2. Aprimoramento do Componente `UnidadeFilter`
-- Modificar o componente para suportar seleção manual quando `hasMultipleUnits` for verdadeiro.
-- Garantir que a primeira unidade seja selecionada automaticamente se nenhum valor for fornecido.
-- Remover o fallback "Nenhuma unidade vinculada" se houver dados no lookup.
-- Utilizar `TableSkeleton` ou um componente de Loading específico durante a busca de unidades.
+### Frontend - Dashboard e Hooks
+- **useUnitScope**: Ajustar para garantir que `selectedUnitId` não seja forçado a uma unidade específica se o usuário for Master.
+- **DashboardClassico**: Modificar a chamada do `useAnalytics` para não passar `unidadeId` se for Master (permitindo visão global).
+- **useProfissionaisLista**: Corrigir erro de build e garantir que o filtro de unidade seja ignorado para Master.
 
-## 3. Otimização dos Hooks de Dados (`useProfissionais`, `useAnalytics`, etc.)
-- Garantir que as queries de Profissionais e Frequências sejam disparadas imediatamente assim que `unidadeId` for resolvido no hook de escopo ou no estado do componente.
-- Adicionar tratamento de carregamento (`isLoading`) para evitar a exibição de contadores zerados ("0") antes da conclusão da query.
+### Frontend - Relatório Inteligente
+- **StepPrevia**: Verificar e ajustar a injeção de filtros para garantir que Master possa ver dados globais nos blocos de visualização.
 
-## 4. Atualização das Páginas de Frequência (Contratados e Efetivos)
-- Ajustar a inicialização do estado `unidadeId` para respeitar a `unidadePadraoId` do hook de escopo.
-- Sincronizar a mudança de unidade no dropdown com a atualização imediata da grade de profissionais.
+### Backend - RLS e RPCs
+- **RLS (Políticas)**: Validar se as políticas de `profissionais` e `unidades` permitem bypass via `is_master(auth.uid())`.
+- **RPC (get_dashboard_summary)**: Confirmar que a função permite `p_unidade_id` nulo para retornar dados globais.
 
 ## Detalhes Técnicos
-- **Arquivos:** `src/hooks/use-unit-scope.ts`, `src/components/piso/UnidadeFilter.tsx`, `src/hooks/use-profissionais.ts`, `src/components/frequencias/frequencias-contratados-page.tsx`, `src/components/frequencias/frequencias-efetivos-page.tsx`.
-- **RBAC:** A lógica de filtragem em `use-analytics.ts` e `use-profissionais.ts` já respeita `isMaster`, mas será reforçada para garantir que Diretores sem unidade selecionada não vejam dados globais indevidamente (embora o RLS já proteja o banco).
-- **UX:** Substituição de contadores estáticos "0" por `Skeleton` durante o `fetching`.
+- Uniformizar a lógica de `isMaster` em todos os hooks (`use-permissions`, `use-unit-scope`, `use-analytics`).
+- Garantir que `effectiveUnitId` no backend seja `NULL` quando Master não selecionar uma unidade específica.
+- Corrigir importações ausentes em `src/hooks/use-profissionais-lista.ts`.
+
+## Verificação
+- Acessar o Dashboard como Master e verificar se o total de profissionais reflete a rede toda (ex: 919+).
+- Validar se o seletor de unidades no Dashboard permite "Visão Global" ou limpa o filtro.
+- Verificar se os KPIs e gráficos estão sincronizados em modo Global.
