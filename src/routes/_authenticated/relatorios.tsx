@@ -18,12 +18,14 @@ import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos-panel";
 import { nivelPrivacidade } from "@/lib/lgpd";
 import { gerarCertificado, linhasCertificadoPlanilha, registrarDownload } from "@/lib/fe-publica";
 import type { Database } from "@/integrations/supabase/types";
 import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
+import type { UserContext } from "@/lib/sso.functions";
 
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
 
@@ -76,25 +78,18 @@ function RelatoriosPage() {
   const { data: unidades } = useQuery({
     queryKey: ["rel-unidades"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("unidades")
-        .select("id, nome, sigla")
-        .is("deleted_at", null)
-        .in("id", !isMaster ? userCtx?.unidades || [] : [])
-        .order("nome");
-      
-      let q = supabase
+      let query = supabase
         .from("unidades")
         .select("id, nome, sigla")
         .is("deleted_at", null);
       
       if (!isMaster && Array.isArray(userCtx?.unidades)) {
-        q = q.in("id", userCtx.unidades);
+        query = query.in("id", userCtx.unidades);
       }
       
-      const { data, error } = await q.order("nome");
-      if (error) throw error;
-      return data ?? [];
+      const { data: units, error: unitsError } = await query.order("nome");
+      if (unitsError) throw unitsError;
+      return units ?? [];
     },
     enabled: canView,
   });

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { UserContext } from "./sso.functions";
 
 export type FrequenciaRow = {
   id: string;
@@ -91,7 +92,9 @@ export type AggregatedSummary = {
  * os detalhes quando a folha pai ainda não foi consolidada.
  */
 export async function getAggregatedFrequencies(params: AggregationParams): Promise<AggregatedSummary> {
-  const { data: userCtx } = await supabase.rpc("get_my_user_context");
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as UserContext;
   const isMaster = !!userCtx?.is_master;
 
   let q = supabase

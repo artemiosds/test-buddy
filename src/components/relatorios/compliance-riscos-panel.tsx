@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, ChevronDown, ShieldAlert, ShieldCheck, UserSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cpfVisivel, type NivelPrivacidade } from "@/lib/lgpd";
+import type { UserContext } from "@/lib/sso.functions";
 
 type Duplicidade = {
   cpf: string;
@@ -76,7 +77,10 @@ export function ComplianceRiscosPanel({
     queryKey: ["compliance-total-base", competenciaId, unidadeId],
     enabled,
     queryFn: async () => {
-      const { data: userCtx } = await supabase.rpc("get_my_user_context");
+      const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+      if (userError) throw userError;
+      
+      const userCtx = (userData as unknown) as UserContext;
       const isMaster = !!userCtx?.is_master;
       const allowedUnits = Array.isArray(userCtx?.unidades) ? (userCtx.unidades as string[]) : [];
 
