@@ -334,6 +334,7 @@ const listarPendencias: ToolDef = {
       .limit(a.limite);
     if (a.status) q = q.eq("status", a.status);
     if (a.prioridade) q = q.eq("prioridade", a.prioridade);
+    if (ctx.unidadeId) q = q.eq("unidade_id", ctx.unidadeId);
     const { data, error } = await q;
     erro(error);
     return { resumo: `${(data ?? []).length} pendência(s).`, dados: data ?? [] };
