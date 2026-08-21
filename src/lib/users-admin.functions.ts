@@ -271,7 +271,7 @@ export const alterarPerfilStatusUsuario = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: any = {};
     if (data.perfil_id) patch.perfil_id = data.perfil_id;
     if (data.status) patch.status = data.status;
 
