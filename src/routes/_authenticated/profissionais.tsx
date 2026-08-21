@@ -782,57 +782,61 @@ function ProfissionaisPage() {
   };
 
   const openEdit = (p: Profissional) => {
-    reset({
+    console.log("Abrindo edição para:", p.nome_completo, p.id);
+    
+    // Garantir que o formulário reseta com os valores do profissional antes de abrir o modal
+    const values = {
       id: p.id,
-      nome_completo: p.nome_completo,
-      nome_social: p.nome_social ?? "",
-      cpf: p.cpf ?? "",
-      matricula: p.matricula ?? "",
-      email: p.email ?? "",
-      telefone: p.telefone ?? "",
-      data_nascimento: p.data_nascimento ?? "",
-      sexo: p.sexo ?? "",
-      data_admissao: p.data_admissao ?? "",
-      carga_horaria_semanal: p.carga_horaria_semanal?.toString() ?? "",
-      status: p.status,
-      observacoes: p.observacoes ?? "",
-      secretaria_id: p.secretaria_id,
-      unidade_id: p.unidade_id ?? "",
-      setor_id: p.setor_id ?? "",
-      cargo_id: p.cargo_id ?? "",
-      funcao_id: p.funcao_id ?? "",
-      vinculo_id: p.vinculo_id ?? "",
-      banco: (p as any).banco ?? "",
-      agencia: (p as any).agencia ?? "",
-      conta_corrente: (p as any).conta_corrente ?? "",
-      proj: (p as any).proj?.toString() ?? "",
-      h_p: (p as any).h_p?.toString() ?? "",
-      c_h: (p as any).c_h?.toString() ?? "",
-      jorn: (p as any).jorn?.toString() ?? "",
-      conselho_classe: (p as any).conselho_classe ?? "",
-      conselho_numero: (p as any).conselho_numero ?? "",
-      conselho_uf: (p as any).conselho_uf ?? "",
-      conselho_validade: (p as any).conselho_validade ?? "",
-      gestor_imediato_id: (p as any).gestor_imediato_id ?? "",
-      situacao_funcional: (p as any).situacao_funcional ?? "",
-      situacao_data_inicio: (p as any).situacao_data_inicio ?? "",
-      situacao_data_fim: (p as any).situacao_data_fim ?? "",
-      foto_url: p.foto_url ?? "",
-      cep: (p as any).cep ?? "",
-      logradouro: (p as any).logradouro ?? "",
-      numero: (p as any).numero ?? "",
-      bairro: (p as any).bairro ?? "",
-      cidade: (p as any).cidade ?? "",
-      uf: (p as any).uf ?? "",
-      salario_base: (p as any).salario_base?.toString() ?? "",
-      salario_liquido: (p as any).salario_liquido?.toString() ?? "",
-      horas_extras: (p as any).horas_extras?.toString() ?? "",
-      adicional_noturno: (p as any).adicional_noturno?.toString() ?? "",
-      salario_bruto: (p as any).salario_bruto?.toString() ?? "",
-      gratificacao_incentivo: (p as any).gratificacao_incentivo?.toString() ?? "",
-      vencimento_liquido: (p as any).vencimento_liquido?.toString() ?? "",
-    });
+      nome_completo: p.nome_completo || "",
+      nome_social: p.nome_social || "",
+      cpf: p.cpf || "",
+      matricula: p.matricula || "",
+      email: p.email || "",
+      telefone: p.telefone || "",
+      data_nascimento: p.data_nascimento || "",
+      sexo: p.sexo || "",
+      data_admissao: p.data_admissao || "",
+      carga_horaria_semanal: p.carga_horaria_semanal?.toString() || "",
+      status: p.status || "ativo",
+      observacoes: p.observacoes || "",
+      secretaria_id: p.secretaria_id || "",
+      unidade_id: p.unidade_id || "",
+      setor_id: p.setor_id || "",
+      cargo_id: p.cargo_id || "",
+      funcao_id: p.funcao_id || "",
+      vinculo_id: p.vinculo_id || "",
+      banco: (p as any).banco || "",
+      agencia: (p as any).agencia || "",
+      conta_corrente: (p as any).conta_corrente || "",
+      proj: (p as any).proj?.toString() || "",
+      h_p: (p as any).h_p?.toString() || "",
+      c_h: (p as any).c_h?.toString() || "",
+      jorn: (p as any).jorn?.toString() || "",
+      conselho_classe: (p as any).conselho_classe || "",
+      conselho_numero: (p as any).conselho_numero || "",
+      conselho_uf: (p as any).conselho_uf || "",
+      conselho_validade: (p as any).conselho_validade || "",
+      gestor_imediato_id: (p as any).gestor_imediato_id || "",
+      situacao_funcional: (p as any).situacao_funcional || "",
+      situacao_data_inicio: (p as any).situacao_data_inicio || "",
+      situacao_data_fim: (p as any).situacao_data_fim || "",
+      foto_url: p.foto_url || "",
+      cep: (p as any).cep || "",
+      logradouro: (p as any).logradouro || "",
+      numero: (p as any).numero || "",
+      bairro: (p as any).bairro || "",
+      cidade: (p as any).cidade || "",
+      uf: (p as any).uf || "",
+      salario_base: (p as any).salario_base?.toString() || "",
+      salario_liquido: (p as any).salario_liquido?.toString() || "",
+      horas_extras: (p as any).horas_extras?.toString() || "",
+      adicional_noturno: (p as any).adicional_noturno?.toString() || "",
+      salario_bruto: (p as any).salario_bruto?.toString() || "",
+      gratificacao_incentivo: (p as any).gratificacao_incentivo?.toString() || "",
+      vencimento_liquido: (p as any).vencimento_liquido?.toString() || "",
+    };
 
+    reset(values);
     setOpen(true);
   };
 
@@ -1010,7 +1014,10 @@ function ProfissionaisPage() {
             <OfflineButton
               size="icon"
               variant="ghost"
-              onClick={() => openEdit(p)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openEdit(p);
+              }}
               title="Editar"
               aria-label="Editar profissional"
               requireOnline
@@ -1073,16 +1080,19 @@ function ProfissionaisPage() {
                  )}
                  Exportar
                </Button>
-              <Dialog open={open} onOpenChange={setOpen}>
+              <Dialog open={open} onOpenChange={(v) => {
+                setOpen(v);
+                if (!v) reset(EMPTY_VALUES);
+              }}>
                 <DialogTrigger asChild>
-                  <Button onClick={openNew}>
+                  <Button onClick={openNew} type="button">
                     <Plus className="mr-2 h-4 w-4" /> Novo profissional
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {formMethods.getValues("id") ? "Editar profissional" : "Novo profissional"}
+                      {formMethods.getValues("id") ? `Editar: ${formMethods.watch("nome_completo") || "Profissional"}` : "Novo profissional"}
                     </DialogTitle>
                   </DialogHeader>
                   <Form {...formMethods}>
@@ -1108,7 +1118,12 @@ function ProfissionaisPage() {
                           Cancelar
                         </Button>
                         <Button type="submit" disabled={upsert.isPending}>
-                          {upsert.isPending ? "Salvando..." : "Salvar"}
+                          {upsert.isPending ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Salvando...
+                            </span>
+                          ) : "Salvar"}
                         </Button>
                       </DialogFooter>
                     </form>
