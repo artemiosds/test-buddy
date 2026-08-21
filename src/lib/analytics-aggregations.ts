@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import type { UserContext } from "./sso.functions";
+import type { UserContext } from "@/hooks/use-permissions";
 
 export type FrequenciaRow = {
   id: string;

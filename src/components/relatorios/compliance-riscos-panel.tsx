@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, ChevronDown, ShieldAlert, ShieldCheck, UserSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cpfVisivel, type NivelPrivacidade } from "@/lib/lgpd";
-import type { UserContext } from "@/lib/sso.functions";
+import type { UserContext } from "@/hooks/use-permissions";
 
 type Duplicidade = {
   cpf: string;

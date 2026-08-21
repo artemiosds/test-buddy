@@ -17,7 +17,7 @@ import { getAggregatedFrequencies, type FrequenciaRow } from "@/lib/analytics-ag
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
-import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { usePermissions, useCurrentUser, type UserContext } from "@/hooks/use-permissions";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos-panel";
@@ -25,7 +25,6 @@ import { nivelPrivacidade } from "@/lib/lgpd";
 import { gerarCertificado, linhasCertificadoPlanilha, registrarDownload } from "@/lib/fe-publica";
 import type { Database } from "@/integrations/supabase/types";
 import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
-import type { UserContext } from "@/lib/sso.functions";
 
 type TipoFolha = Database["public"]["Enums"]["tipo_frequencia"];
 
