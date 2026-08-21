@@ -1,5 +1,6 @@
 import React from "react";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { KpiCard, PageHeader } from "@/components/shared";
 import { 
   Users, 
