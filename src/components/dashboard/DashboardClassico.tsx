@@ -34,7 +34,8 @@ const COLORS = [
 ];
 
 export function DashboardClassico() {
-  const a = useAnalytics({});
+  const { unidadePadraoId, isMaster } = useUnitScope();
+  const a = useAnalytics({ unidadeId: unidadePadraoId });
   
   const status = a.statusBreakdown.data ?? {};
   const vinc = a.vinculoBreakdown.data;
@@ -106,13 +107,14 @@ export function DashboardClassico() {
 
       {/* Gráficos Principais */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Gráfico de Profissionais por Unidade */}
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <Building2 className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-foreground">Top 5 Unidades (Profissionais)</h3>
-          </div>
-          <div className="h-80 w-full">
+        {/* Gráfico de Profissionais por Unidade - Apenas para Master/Global */}
+        {isMaster && (
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Building2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Top 5 Unidades (Profissionais)</h3>
+            </div>
+            <div className="h-80 w-full">
             {isLoading ? (
               <div className="flex h-full items-center justify-center text-muted-foreground animate-pulse">
                 Carregando unidades...
@@ -170,8 +172,9 @@ export function DashboardClassico() {
                 </BarChart>
               </ResponsiveContainer>
             )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Gráfico de Distribuição por Vínculo */}
         <div className="rounded-xl border bg-card p-6 shadow-sm">

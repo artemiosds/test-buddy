@@ -178,14 +178,18 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
   });
 
   const summaryQuery = useQuery({
-    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId],
+    queryKey: ["analytics", "summary", competenciaId, filters.unidadeId, unidadePadraoId, isMaster],
     staleTime,
     gcTime,
     queryFn: async () => {
       if (!competenciaId) return null;
+      
+      // Determina a unidade efetiva para o filtro
+      const effectiveUnitId = filters.unidadeId || (!isMaster ? unidadePadraoId : undefined);
+      
       const { data, error } = await supabase.rpc("get_dashboard_summary", {
         p_competencia_id: competenciaId,
-        p_unidade_id: filters.unidadeId || undefined,
+        p_unidade_id: effectiveUnitId || undefined,
       });
       if (error) throw error;
       return data as {
