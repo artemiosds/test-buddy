@@ -13,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAggregatedFrequencies, type FrequenciaRow } from "@/lib/analytics-aggregations";
+import { getAggregatedFrequencies, type FrequenciaRow, type UserContext } from "@/lib/analytics-aggregations";
 import { Download, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { loadXlsxKit } from "@/lib/lazy-exports";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { useUnitScope } from "@/hooks/use-unit-scope";
 import { RelatoriosTabs } from "@/components/relatorios-tabs";
 import { ComplianceRiscosPanel } from "@/components/relatorios/compliance-riscos-panel";
 import { nivelPrivacidade } from "@/lib/lgpd";
@@ -45,9 +46,19 @@ function RelatoriosPage() {
   const canExport = isMaster || has("relatorio.exportar");
   const nivel = nivelPrivacidade({ isMaster, has });
 
+  const { unidadePadraoId, isLoading: scopeLoading, locked } = useUnitScope();
+
+
   const [competenciaId, setCompetenciaId] = useState<string>("all");
   const [unidadeId, setUnidadeId] = useState<string>("all");
   const [tipo, setTipo] = useState<TipoFolha | "all">("all");
+
+  // Efeito para sincronizar a unidadeId inicial com o escopo do usuário
+  useMemo(() => {
+    if (!scopeLoading && !isMaster && unidadePadraoId && unidadeId === "all") {
+      setUnidadeId(unidadePadraoId);
+    }
+  }, [scopeLoading, isMaster, unidadePadraoId, unidadeId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["rel-competencias"],
@@ -67,13 +78,18 @@ function RelatoriosPage() {
   const { data: unidades } = useQuery({
     queryKey: ["rel-unidades"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("unidades")
         .select("id, nome, sigla")
-        .is("deleted_at", null)
-        .order("nome");
-      if (error) throw error;
-      return data ?? [];
+        .is("deleted_at", null);
+      
+      if (!isMaster && Array.isArray(userCtx?.unidades)) {
+        query = query.in("id", userCtx.unidades);
+      }
+      
+      const { data: units, error: unitsError } = await query.order("nome");
+      if (unitsError) throw unitsError;
+      return units ?? [];
     },
     enabled: canView,
   });
@@ -277,7 +293,7 @@ function RelatoriosPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
+              {!locked && <SelectItem value="all">Todas</SelectItem>}
               {unidades?.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.sigla ? `${u.sigla} — ` : ""}

@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
+// Tipo extraído do hook de permissões para evitar circular deps se necessário
+export type UserContext = {
+  id: string;
+  is_master: boolean;
+  unidades: string[];
+  [key: string]: any;
+};
+
 export type FrequenciaRow = {
   id: string;
   status: Database["public"]["Enums"]["status_frequencia"];
@@ -91,6 +99,11 @@ export type AggregatedSummary = {
  * os detalhes quando a folha pai ainda não foi consolidada.
  */
 export async function getAggregatedFrequencies(params: AggregationParams): Promise<AggregatedSummary> {
+  const { data: userData, error: userError } = await supabase.rpc("get_my_user_context");
+  if (userError) throw userError;
+  const userCtx = (userData as unknown) as UserContext;
+  const isMaster = !!userCtx?.is_master;
+
   let q = supabase
     .from("frequencias")
     .select(`
@@ -113,9 +126,14 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
   if (params.competenciaId && params.competenciaId !== "all") {
     q = q.eq("competencia_unidade.competencia_id", params.competenciaId);
   }
+  
   if (params.unidadeId && params.unidadeId !== "all") {
     q = q.eq("competencia_unidade.unidade_id", params.unidadeId);
+  } else if (!isMaster && userCtx?.unidades && Array.isArray(userCtx.unidades)) {
+    // Restrição de segurança: se não informou unidade e não é master, limita às dele
+    q = q.in("competencia_unidade.unidade_id", userCtx.unidades as string[]);
   }
+
   if (params.tipo && params.tipo !== "all") {
     q = q.eq("tipo", params.tipo as any);
   }
@@ -164,9 +182,10 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
         
       if (det) {
         dynamicData.total_profissionais = det.length;
-        dynamicData.total_dias_trabalhados = det.reduce((acc, curr) => acc + (Number(curr.dias_trabalhados) || 0), 0);
-        dynamicData.total_faltas = det.reduce((acc, curr) => acc + (Number(curr.dias_falta) || 0), 0);
-        dynamicData.total_horas_extras = det.reduce((acc, curr) => acc + (Number(curr.he_50) || 0) + (Number(curr.he_100) || 0), 0);
+        dynamicData.total_dias_trabalhados = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_trabalhados) || 0), 0);
+
+        dynamicData.total_faltas = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_falta) || 0), 0);
+        dynamicData.total_horas_extras = det.reduce((acc: number, curr: any) => acc + (Number(curr.he_50) || 0) + (Number(curr.he_100) || 0), 0);
       }
     } else {
       const { data: det } = await supabase
@@ -177,9 +196,9 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
 
       if (det) {
         dynamicData.total_profissionais = det.length;
-        dynamicData.total_dias_trabalhados = det.reduce((acc, curr) => acc + (Number(curr.dias_trabalhados) || 0), 0);
-        dynamicData.total_faltas = det.reduce((acc, curr) => acc + (Number(curr.faltas_injustificadas) || 0) + (Number(curr.faltas_justificadas) || 0), 0);
-        dynamicData.total_horas_extras = det.reduce((acc, curr) => acc + (Number(curr.he_50) || 0) + (Number(curr.he_100) || 0), 0);
+        dynamicData.total_dias_trabalhados = det.reduce((acc: number, curr: any) => acc + (Number(curr.dias_trabalhados) || 0), 0);
+        dynamicData.total_faltas = det.reduce((acc: number, curr: any) => acc + (Number(curr.faltas_injustificadas) || 0) + (Number(curr.faltas_justificadas) || 0), 0);
+        dynamicData.total_horas_extras = det.reduce((acc: number, curr: any) => acc + (Number(curr.he_50) || 0) + (Number(curr.he_100) || 0), 0);
       }
     }
 

@@ -1,0 +1,1 @@
+ALTER FUNCTION public.compliance_riscos(uuid, uuid) SECURITY INVOKER;
