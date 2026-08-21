@@ -190,6 +190,7 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
   if (userError) throw userError;
   const userCtx = (userData as unknown) as { id: string; is_master: boolean; unidades: string[] };
   const isMaster = !!userCtx?.is_master;
+  const allowedUnits = userCtx?.unidades || [];
 
   const [profRes, uRes, sRes, cRes, fRes, vRes, secRes, tuRes, auditNow, auditPrev] =
     await Promise.all([
@@ -200,8 +201,8 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
             "id, sexo, data_nascimento, data_admissao, status, secretaria_id, unidade_id, setor_id, cargo_id, funcao_id, vinculo_id, cpf, matricula, telefone, email, carga_horaria_semanal",
           )
           .is("deleted_at", null);
-        if (!isMaster && userCtx?.unidades?.length > 0) {
-          q = q.in("unidade_id", userCtx.unidades);
+        if (!isMaster && allowedUnits.length > 0) {
+          q = q.in("unidade_id", allowedUnits);
         }
         return q;
       })(),
@@ -212,8 +213,8 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
             "id, nome, sigla, tipo_unidade, status, cnes, cnpj, telefone, email_institucional, responsavel_nome",
           )
           .is("deleted_at", null);
-        if (!isMaster && userCtx?.unidades?.length > 0) {
-          q = q.in("id", userCtx.unidades);
+        if (!isMaster && allowedUnits.length > 0) {
+          q = q.in("id", allowedUnits);
         }
         return q;
       })(),
@@ -222,8 +223,8 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
           .from("setores")
           .select("id, nome, unidade_id, status, responsavel_nome")
           .is("deleted_at", null);
-        if (!isMaster && userCtx?.unidades?.length > 0) {
-          q = q.in("unidade_id", userCtx.unidades);
+        if (!isMaster && allowedUnits.length > 0) {
+          q = q.in("unidade_id", allowedUnits);
         }
         return q;
       })(),
@@ -239,8 +240,6 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
           .gte("ocorrido_em", new Date(Date.now() - 30 * 86400_000).toISOString())
           .order("ocorrido_em", { ascending: false })
           .limit(5000);
-        // Auditoria também deve ser filtrada se possível, mas audit_log não tem unidade_id direto
-        // Geralmente audit_log é master-only ou filtrado por RLS se houver unidade_id.
         return q;
       })(),
       supabase
