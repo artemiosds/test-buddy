@@ -192,13 +192,19 @@ function UsuariosList() {
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
-      await deleteFn({ data: { id } });
+      return await deleteFn({ data: { id } });
     },
-    onSuccess: () => {
+    onSuccess: (res: { mensagem?: string } | undefined) => {
       qc.invalidateQueries({ queryKey: ["usuarios"] });
-      toast.success("Usuário excluído");
+      toast.success(res?.mensagem || "Usuário excluído com sucesso.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => {
+      const msg =
+        (e as Error)?.message ||
+        (typeof e === "string" ? e : "") ||
+        "Não foi possível excluir o usuário. Tente bloqueá-lo em vez de excluir.";
+      toast.error(msg);
+    },
   });
 
   const [form, setForm] = useState({

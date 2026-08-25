@@ -370,6 +370,8 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .eq("tipo", "contratados")
       .eq("competencia_unidade_id", (await garantirCompetenciaUnidade({ competencia_id: data.competencia_id, unidade_id: data.unidade_id, userId }))!)
       .filter("setor_id", data.setor_id ? "eq" : "is", data.setor_id ?? null)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (freq?.id) {

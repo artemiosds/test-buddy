@@ -73,6 +73,19 @@ import { MuralHeaderSino } from "@/components/mural/MuralHeaderSino";
 import { AvisoModal } from "@/components/mural/AvisoModal";
 import { ManutencaoProvider } from "@/providers/ManutencaoProvider";
 
+const STATUS_BLOQUEADOS = ["bloqueado", "inativo", "suspenso"];
+
+async function derrubarSessaoBloqueada() {
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    /* sessão já pode estar inválida */
+  }
+  if (typeof window !== "undefined") {
+    window.location.replace("/auth?bloqueado=1");
+  }
+}
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
@@ -82,23 +95,23 @@ export const Route = createFileRoute("/_authenticated")({
     try {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) return { user: null };
-      
+
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       const { data: ctx } = await supabase.rpc("get_my_user_context");
       const userCtx = ctx as any;
-      const mfaRequired = !!userCtx && (userCtx.perfil_admin_2fa_required === true || userCtx.perfil_codigo === "ADMIN_SMS");
 
-      console.log("STATUS GUARDA DE ROTA:", { 
-        aal: aal, 
-        mfaObrigatorio: userCtx?.perfil_admin_2fa_required,
-        perfil: userCtx?.perfil_codigo
-      });
+      // BLOQUEIO EFETIVO: conta removida (soft-delete) ou status não-ativo
+      if (!userCtx || STATUS_BLOQUEADOS.includes(String(userCtx.status ?? "").toLowerCase())) {
+        await derrubarSessaoBloqueada();
+        return { user: null };
+      }
+
+      const mfaRequired = !!userCtx && (userCtx.perfil_admin_2fa_required === true || userCtx.perfil_codigo === "ADMIN_SMS");
 
       if (mfaRequired && aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
         return { user: null };
       }
 
-      
       return { user: data.user };
     } catch {
       return { user: null };

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
 import { useServerFn } from "@tanstack/react-start";
@@ -49,6 +50,18 @@ function AuthPage() {
   const countBackupFn = useServerFn(countBackupCodes);
   const consumeBackupFn = useServerFn(consumeBackupCodeAndUnenroll);
 
+  // Mensagem de acesso bloqueado (redirecionado pela guarda de rota)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("bloqueado") === "1") {
+      const msg = "Acesso bloqueado. Entre em contato com a administração.";
+      setError(msg);
+      toast.error(msg);
+      window.history.replaceState({}, "", "/auth");
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const isSSR = typeof window === "undefined";
@@ -63,7 +76,20 @@ function AuthPage() {
           const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           const { data: ctx } = await supabase.rpc("get_my_user_context");
           const userCtx = ctx as any;
+
+          // Conta bloqueada/inativa/removida: nunca entra no sistema
+          const statusUsuario = String(userCtx?.status ?? "").toLowerCase();
+          if (!userCtx || ["bloqueado", "inativo", "suspenso"].includes(statusUsuario)) {
+            await supabase.auth.signOut();
+            if (!mounted) return;
+            const msg = "Acesso bloqueado. Entre em contato com a administração.";
+            setError(msg);
+            toast.error(msg);
+            return;
+          }
+
           const force2FA = userCtx?.perfil_admin_2fa_required === true || userCtx?.perfil_codigo === "ADMIN_SMS";
+          
           
           console.log("STATUS GUARDA DE ROTA (AUTH):", { aal, force2FA, perfil: userCtx?.perfil_codigo });
 

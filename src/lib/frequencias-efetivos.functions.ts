@@ -65,6 +65,14 @@ type SupabaseCtx = { supabase: any; userId: string };
  * Garante que exista uma competencia_unidades para (comp, unidade) e uma
  * frequencias(tipo='efetivos') vinculada, retornando ambos os ids.
  */
+/** Reduz o filtro de setor (que pode ser lista) a um único UUID ou null. */
+function normalizarSetorId(setor_id?: string | string[] | null): string | null {
+  if (Array.isArray(setor_id)) {
+    return setor_id.length === 1 ? setor_id[0]! : null;
+  }
+  return setor_id ?? null;
+}
+
 async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, unidade_id: string, setor_id?: string | string[]) {
   const { supabase, userId } = ctx;
 
@@ -74,15 +82,22 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
     userId
   });
 
-  let { data: freq, error: fErr } = await supabase
-    .from("frequencias")
-    .select("id, status")
-    .eq("competencia_unidade_id", cuId)
-    .eq("tipo", "efetivos")
-    .filter("setor_id", Array.isArray(setor_id) ? "in" : (setor_id ? "eq" : "is"), Array.isArray(setor_id) ? `(${setor_id.join(",")})` : (setor_id ?? null))
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (fErr) throw new Error(fErr.message);
+  const setor = normalizarSetorId(setor_id);
+
+  const buscar = async () => {
+    const q = supabase
+      .from("frequencias")
+      .select("id, status")
+      .eq("competencia_unidade_id", cuId)
+      .eq("tipo", "efetivos");
+    if (setor) q.eq("setor_id", setor);
+    else q.is("setor_id", null);
+    const { data, error } = await q.order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data as { id: string; status: string } | null;
+  };
+
+  let freq = await buscar();
 
   if (!freq) {
     const { data: ins, error } = await supabase
@@ -90,20 +105,31 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
       .insert({
         competencia_unidade_id: cuId,
         tipo: "efetivos",
-        setor_id: Array.isArray(setor_id) ? null : (setor_id ?? null),
+        setor_id: setor,
         status: "rascunho",
         created_by: userId,
       } as never)
       .select("id, status")
       .single();
-    if (error) throw new Error(error.message);
-    freq = ins as any;
+
+    if (error) {
+      // 23505 = unique_violation (corrida entre requisições simultâneas)
+      const dup = (error as any).code === "23505" || /duplicate key/i.test(error.message ?? "");
+      if (!dup) throw new Error(error.message);
+      freq = await buscar();
+    } else {
+      freq = ins as any;
+    }
+  }
+
+  if (!freq) {
+    throw new Error("Não foi possível abrir a folha de efetivos para esta unidade/setor. Tente novamente.");
   }
 
   return {
     competencia_unidade_id: cuId,
-    frequencia_id: freq!.id,
-    frequencia_status: freq!.status as string,
+    frequencia_id: freq.id,
+    frequencia_status: freq.status as string,
   };
 }
 
@@ -372,7 +398,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         tipo: "efetivos",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
-        setor_id: Array.isArray(data.setor_id) ? undefined : data.setor_id,
+        setor_id: normalizarSetorId(data.setor_id) ?? undefined,
       }
     });
 
@@ -458,7 +484,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
         tipo: "efetivos",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
-        setor_id: Array.isArray(data.setor_id) ? undefined : data.setor_id,
+        setor_id: normalizarSetorId(data.setor_id) ?? undefined,
       }
     });
 

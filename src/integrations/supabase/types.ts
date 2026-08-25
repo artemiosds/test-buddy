@@ -5532,6 +5532,7 @@ export type Database = {
         Returns: string
       }
       eventos_travados: { Args: { _limit?: number }; Returns: Json }
+      excluir_usuario_completo: { Args: { p_user_id: string }; Returns: Json }
       get_assinaturas_documento: {
         Args: {
           _secretaria_id?: string

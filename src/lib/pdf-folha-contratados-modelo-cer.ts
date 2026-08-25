@@ -66,50 +66,51 @@ export async function gerarFolhaContratadosModeloCer(
   });
 
   const drawHeader = () => {
-    const logoSize = 18;
-    const logoY = 8;
-    // Logo 1 (esquerda) — Prefeitura
+    // NÍVEL 1 — linha de logos no topo (y = 6 .. 22 mm, altura máx. 16 mm)
+    const logoH = 16;
+    const logoY = 6;
+    const cx = pageW / 2;
+
     if (logoPrefeitura) {
       try {
-        doc.addImage(logoPrefeitura, "JPEG", MARGEM, logoY, logoSize, logoSize);
+        doc.addImage(logoPrefeitura, "JPEG", MARGEM, logoY, logoH, logoH);
       } catch (e) {
         console.warn("Erro ao desenhar logoPrefeitura", e);
       }
     }
-    // Logo 3 (direita) — Secretaria Municipal de Saúde
+    if (logoBrasaoAlt) {
+      try {
+        doc.addImage(logoBrasaoAlt, "PNG", cx - logoH / 2, logoY, logoH, logoH);
+      } catch (e) {
+        console.warn("Erro ao desenhar logoBrasaoAlt", e);
+      }
+    }
     if (logoSaude) {
       try {
-        doc.addImage(logoSaude, "PNG", pageW - MARGEM - logoSize, logoY, logoSize, logoSize);
+        doc.addImage(logoSaude, "PNG", pageW - MARGEM - logoH, logoY, logoH, logoH);
       } catch (e) {
         console.warn("Erro ao desenhar logoSaude", e);
       }
     }
 
-    const cx = pageW / 2;
-    // Logo 2 (centro) — brasão alternativo, acima dos textos
-    if (logoBrasaoAlt) {
-      try {
-        // A segunda imagem (brasão) deve ficar ACIMA do texto "ESTADO DO PARÁ"
-        doc.addImage(logoBrasaoAlt, "PNG", cx - (logoSize * 0.8) / 2, logoY - 2, logoSize * 0.8, logoSize * 0.8);
-      } catch (e) {
-        console.warn("Erro ao desenhar logoBrasaoAlt", e);
-      }
-    }
+    // NÍVEL 2 — bloco de texto institucional, iniciando abaixo das imagens
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("ESTADO DO PARÁ", cx, 12, { align: "center" });
-    doc.text("PREFEITURA MUNICIPAL DE ORIXIMINÁ", cx, 16, { align: "center" });
-    doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, 20, { align: "center" });
-    
-    const tituloUnidade = `${unidadeUp} - FREQUÊNCIA DOS PRESTADORES - MÊS ${compStr}`;
-    doc.setFontSize(8);
-    doc.text(tituloUnidade, cx, 26, { align: "center" });
+    doc.text("ESTADO DO PARÁ", cx, 25, { align: "center" });
+    doc.setFontSize(10);
+    doc.text("PREFEITURA MUNICIPAL DE ORIXIMINÁ", cx, 30, { align: "center" });
+    doc.setFontSize(9);
+    doc.text("SECRETARIA MUNICIPAL DE SAÚDE", cx, 35, { align: "center" });
+    const tituloUnidade = `${unidadeUp} — FREQUÊNCIA DOS PRESTADORES — MÊS ${compStr}`;
+    doc.text(tituloUnidade, cx, 40, { align: "center", maxWidth: pageW - MARGEM * 2 - 4 });
 
+    // Linha divisória
     doc.setDrawColor(120, 120, 120);
     doc.setLineWidth(0.3);
-    doc.line(MARGEM, 30, pageW - MARGEM, 30);
+    doc.line(MARGEM, 42, pageW - MARGEM, 42);
   };
+
 
   const head = [
     [
@@ -161,9 +162,9 @@ export async function gerarFolhaContratadosModeloCer(
   autoTable(doc, {
     head,
     body,
-    startY: 32,
+    startY: 44,
     tableWidth: "auto",
-    margin: { top: 32, left: 10, right: 10, bottom: 15 },
+    margin: { top: 44, left: 10, right: 10, bottom: 15 },
     rowPageBreak: "avoid",
     styles: {
       fontSize: 7,
@@ -219,12 +220,12 @@ export async function gerarFolhaContratadosModeloCer(
 
   let assinaturaBaseY: number | undefined;
   if (assinaturas.length > 0) {
-    const lastY = (doc as any).lastAutoTable?.finalY || 32;
+    const lastY = (doc as any).lastAutoTable?.finalY || 44;
     let signY = lastY + 5;
     if (signY + 35 > pageH - 15) {
       doc.addPage();
       drawHeader();
-      signY = 32 + 5;
+      signY = 44 + 5;
     }
     assinaturaBaseY = signY;
   }

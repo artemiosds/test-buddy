@@ -233,17 +233,29 @@ export const deleteUsuario = createServerFn({ method: "POST" })
     if (data.id === context.userId) {
       throw new Error("Você não pode excluir a própria conta.");
     }
+
+    // 1) Remove o cadastro e todos os vínculos via RPC (retorna JSON tratado).
+    const { data: rpcData, error: rpcErr } = await context.supabase.rpc(
+      "excluir_usuario_completo" as never,
+      { p_user_id: data.id } as never,
+    );
+    if (rpcErr) {
+      throw new Error(rpcErr.message || "Falha ao excluir usuário no banco de dados.");
+    }
+    const resultado = (rpcData ?? {}) as { sucesso?: boolean; mensagem?: string };
+    if (resultado.sucesso !== true) {
+      throw new Error(resultado.mensagem || "Não foi possível excluir o usuário.");
+    }
+
+    // 2) Remove a conta de autenticação (encerra qualquer sessão ativa).
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Hard delete: auth.users cascade removes public.usuarios via FK ON DELETE CASCADE.
     const { error: dErr } = await supabaseAdmin.auth.admin.deleteUser(data.id);
-    if (dErr) throw new Error(dErr.message);
-
-    // Safety net: ensure the public row is gone even if cascade didn't apply.
-    await supabaseAdmin.from("usuarios").delete().eq("id", data.id);
+    if (dErr && !/not found|does not exist/i.test(dErr.message)) {
+      throw new Error(`Cadastro removido, mas houve falha ao remover o acesso: ${dErr.message}`);
+    }
 
     await emitEvento(context.supabase, EVENTOS.USUARIO_EXCLUIDO, "usuario", data.id, {});
-    return { id: data.id };
+    return { id: data.id, mensagem: resultado.mensagem ?? "Usuário excluído com sucesso." };
   });
 
 /**
@@ -280,6 +292,19 @@ export const alterarPerfilStatusUsuario = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Invalida a sessão ativa ao bloquear/inativar; reabilita ao reativar.
+    if (data.status) {
+      const bloquear = data.status === "inativo" || data.status === "bloqueado";
+      try {
+        await supabaseAdmin.auth.admin.updateUserById(data.id, {
+          ban_duration: bloquear ? "876000h" : "none",
+        } as never);
+      } catch {
+        /* bloqueio já é garantido pelas políticas do banco */
+      }
+    }
+
     if (data.status) {
       if (data.status === "inativo" || data.status === "bloqueado") {
         await emitEvento(context.supabase, EVENTOS.USUARIO_BLOQUEADO, "usuario", data.id, {
