@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendEmail, generateEmailTemplate } from "./email.server";
+
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 
 const CriarSchema = z.object({
