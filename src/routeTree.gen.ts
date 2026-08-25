@@ -55,6 +55,7 @@ import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_
 import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
 import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
 import { Route as ApiPublicValidarDocumentoRouteImport } from './routes/api/public/validar-documento'
+import { Route as ApiPublicReenviarNotificacoesCompetenciaRouteImport } from './routes/api/public/reenviar-notificacoes-competencia'
 import { Route as ApiPublicHsmStreamRouteImport } from './routes/api/public/hsm-stream'
 import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
 import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
@@ -348,6 +349,12 @@ const ApiPublicValidarDocumentoRoute =
     path: '/api/public/validar-documento',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicReenviarNotificacoesCompetenciaRoute =
+  ApiPublicReenviarNotificacoesCompetenciaRouteImport.update({
+    id: '/api/public/reenviar-notificacoes-competencia',
+    path: '/api/public/reenviar-notificacoes-competencia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHsmStreamRoute = ApiPublicHsmStreamRouteImport.update({
   id: '/api/public/hsm-stream',
   path: '/api/public/hsm-stream',
@@ -629,6 +636,7 @@ export interface FileRoutesByFullPath {
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
+  '/api/public/reenviar-notificacoes-competencia': typeof ApiPublicReenviarNotificacoesCompetenciaRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -711,6 +719,7 @@ export interface FileRoutesByTo {
   '/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
+  '/api/public/reenviar-notificacoes-competencia': typeof ApiPublicReenviarNotificacoesCompetenciaRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -796,6 +805,7 @@ export interface FileRoutesById {
   '/_authenticated/unidades/$id': typeof AuthenticatedUnidadesIdRoute
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
+  '/api/public/reenviar-notificacoes-competencia': typeof ApiPublicReenviarNotificacoesCompetenciaRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
@@ -881,6 +891,7 @@ export interface FileRouteTypes {
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/api/public/hsm-stream'
+    | '/api/public/reenviar-notificacoes-competencia'
     | '/api/public/validar-documento'
     | '/configuracao/'
     | '/gestao-pessoas/'
@@ -963,6 +974,7 @@ export interface FileRouteTypes {
     | '/unidades/$id'
     | '/usuarios/$id'
     | '/api/public/hsm-stream'
+    | '/api/public/reenviar-notificacoes-competencia'
     | '/api/public/validar-documento'
     | '/configuracao'
     | '/gestao-pessoas'
@@ -1047,6 +1059,7 @@ export interface FileRouteTypes {
     | '/_authenticated/unidades/$id'
     | '/_authenticated/usuarios/$id'
     | '/api/public/hsm-stream'
+    | '/api/public/reenviar-notificacoes-competencia'
     | '/api/public/validar-documento'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
@@ -1068,6 +1081,7 @@ export interface RootRouteChildren {
   SmtpTestRoute: typeof SmtpTestRoute
   ValidarIdRoute: typeof ValidarIdRoute
   ApiPublicHsmStreamRoute: typeof ApiPublicHsmStreamRoute
+  ApiPublicReenviarNotificacoesCompetenciaRoute: typeof ApiPublicReenviarNotificacoesCompetenciaRoute
   ApiPublicValidarDocumentoRoute: typeof ApiPublicValidarDocumentoRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
@@ -1397,6 +1411,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/validar-documento'
       fullPath: '/api/public/validar-documento'
       preLoaderRoute: typeof ApiPublicValidarDocumentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/reenviar-notificacoes-competencia': {
+      id: '/api/public/reenviar-notificacoes-competencia'
+      path: '/api/public/reenviar-notificacoes-competencia'
+      fullPath: '/api/public/reenviar-notificacoes-competencia'
+      preLoaderRoute: typeof ApiPublicReenviarNotificacoesCompetenciaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hsm-stream': {
@@ -1907,6 +1928,8 @@ const rootRouteChildren: RootRouteChildren = {
   SmtpTestRoute: SmtpTestRoute,
   ValidarIdRoute: ValidarIdRoute,
   ApiPublicHsmStreamRoute: ApiPublicHsmStreamRoute,
+  ApiPublicReenviarNotificacoesCompetenciaRoute:
+    ApiPublicReenviarNotificacoesCompetenciaRoute,
   ApiPublicValidarDocumentoRoute: ApiPublicValidarDocumentoRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
