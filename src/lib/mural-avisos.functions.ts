@@ -102,17 +102,19 @@ export const criarAviso = createServerFn({ method: "POST" })
 
       if (data.notificar_email && avisoInserido) {
         try {
-          await supabase.functions.invoke('notificar-aviso-mural', {
-            body: { aviso_id: avisoInserido.id }
-          });
-          await supabaseAdmin
-            .from('avisos_mural')
-            .update({ email_enviado_em: new Date().toISOString() })
-            .eq('id', avisoInserido.id);
+          const { enviarEmailsAviso } = await import("@/lib/mural-avisos.server");
+          const res = await enviarEmailsAviso(avisoInserido.id);
+          if (res.enviados > 0) {
+            await supabaseAdmin
+              .from('avisos_mural')
+              .update({ email_enviado_em: new Date().toISOString() })
+              .eq('id', avisoInserido.id);
+          }
         } catch (invokeError) {
           console.error("Erro ao disparar notificação por e-mail:", invokeError);
         }
       }
+
 
       return { success: true };
     } catch (err) {
@@ -139,11 +141,15 @@ export const reenviarEmailAviso = createServerFn({ method: "POST" })
       throw new Error("Não autorizado");
     }
 
-    const { error: invokeError } = await supabase.functions.invoke('notificar-aviso-mural', {
-      body: { aviso_id: data.avisoId }
-    });
+    const { enviarEmailsAviso } = await import("@/lib/mural-avisos.server");
+    const res = await enviarEmailsAviso(data.avisoId);
 
-    if (invokeError) throw invokeError;
+    if (res.enviados === 0) {
+      throw new Error(
+        res.motivo ??
+          "Nenhum e-mail pôde ser enviado. Verifique as configurações de SMTP em Configurações do Sistema.",
+      );
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
@@ -151,7 +157,14 @@ export const reenviarEmailAviso = createServerFn({ method: "POST" })
       .update({ email_enviado_em: new Date().toISOString() })
       .eq('id', data.avisoId);
 
-    return { success: true };
+    return {
+      success: true,
+      enviados: res.enviados,
+      falhas: res.falhas,
+      destinatarios: res.destinatarios,
+      motivo: res.motivo,
+    };
+
   });
 
 export const listarAvisosAtivos = createServerFn({ method: "GET" })
@@ -256,6 +269,87 @@ export const reativarAviso = createServerFn({ method: "POST" })
 
     if (error) throw error;
     return { success: true };
+  });
+
+const editarAvisoSchema = z.object({
+  id: z.string().uuid(),
+  titulo: z.string().min(3, "Título deve ter no mínimo 3 caracteres"),
+  subtitulo: z.string().optional().nullable(),
+  mensagem: z.string().min(5, "Mensagem deve ter no mínimo 5 caracteres"),
+  tipo: z.enum(['informativo', 'urgente', 'manutencao']),
+  prioridade: z.enum(['baixa', 'normal', 'alta', 'critica']),
+  data_fim: z.string().optional().nullable(),
+  fixado: z.boolean().default(false),
+  ativo: z.boolean().default(true),
+  ativa_modo_manutencao: z.boolean().optional(),
+});
+
+export const editarAviso = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => editarAvisoSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('id, perfil:perfis(codigo)')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const role = (profile?.perfil as { codigo: string } | null)?.codigo ?? null;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: atual, error: erroBusca } = await supabaseAdmin
+      .from('avisos_mural')
+      .select('id, criado_por, tipo, ativa_modo_manutencao')
+      .eq('id', data.id)
+      .maybeSingle();
+
+    if (erroBusca) throw erroBusca;
+    if (!atual) throw new Error("Aviso não encontrado");
+
+    const isGestao = role === 'MASTER' || role === 'GESTOR';
+    const isAutor = atual.criado_por === userId;
+    if (!isGestao && !isAutor) {
+      throw new Error("Não autorizado");
+    }
+
+    const ativaManutencao =
+      data.ativa_modo_manutencao ?? (atual.ativa_modo_manutencao ?? false);
+
+    const { data: atualizado, error } = await supabaseAdmin
+      .from('avisos_mural')
+      .update({
+        titulo: data.titulo,
+        subtitulo: data.subtitulo ?? null,
+        mensagem: data.mensagem,
+        tipo: data.tipo,
+        prioridade: data.prioridade,
+        data_fim: data.data_fim ? data.data_fim : null,
+        fixado: data.fixado,
+        ativo: data.ativo,
+        ativa_modo_manutencao: data.tipo === 'manutencao' ? ativaManutencao : false,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq('id', data.id)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    // Mantém o modo manutenção coerente com o estado final do aviso.
+    const { lerConfigManutencao, aplicarModoManutencao } = await import("@/lib/manutencao.server");
+    const cfg = await lerConfigManutencao();
+    const deveBloquear = data.tipo === 'manutencao' && data.ativo && ativaManutencao;
+
+    if (deveBloquear && cfg?.aviso_manutencao_id !== data.id) {
+      await aplicarModoManutencao(data.id, userId);
+    } else if (!deveBloquear && cfg?.aviso_manutencao_id === data.id) {
+      await aplicarModoManutencao(null, userId);
+    }
+
+    return atualizado;
   });
 
 

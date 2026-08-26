@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import { AlertTriangle, Info, Settings, Paperclip, Download, Eye, FileText, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Info, Settings, Paperclip, Download, Eye, FileText, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SafeHtml } from "@/components/shared/SafeHtml";
@@ -145,6 +145,12 @@ export function AvisoModal() {
 
   if (!currentAviso) return null;
 
+  const podeEditar =
+    user?.perfil_codigo === 'MASTER' ||
+    user?.perfil_codigo === 'GESTOR' ||
+    !!user?.is_master ||
+    currentAviso.criado_por === user?.id;
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
@@ -216,7 +222,21 @@ export function AvisoModal() {
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 p-6 border-t bg-muted/20">
+        <DialogFooter className="flex-shrink-0 p-6 border-t bg-muted/20 gap-2">
+          {podeEditar && (
+            <Button
+              variant="outline"
+              className="h-11"
+              onClick={() => {
+                setOpen(false);
+                window.dispatchEvent(
+                  new CustomEvent('open-mural-editar-aviso', { detail: currentAviso }),
+                );
+              }}
+            >
+              <Pencil className="h-4 w-4 mr-2" /> Editar
+            </Button>
+          )}
           {currentAviso.confirmacao_obrigatoria ? (
             <Button onClick={handleConfirm} className="w-full h-11 font-bold shadow-lg shadow-blue-500/20">
               <CheckCircle2 className="h-4 w-4 mr-2" /> Li e estou ciente

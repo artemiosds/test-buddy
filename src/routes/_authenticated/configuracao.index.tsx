@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Save, Settings2, Upload } from "lucide-react";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
+import { SmtpConfigSection } from "@/components/configuracoes/smtp-config-section";
+
 
 export const Route = createFileRoute("/_authenticated/configuracao/")({ errorComponent: ErrorComponent,
   component: ConfiguracaoPage,
@@ -521,6 +523,9 @@ function ConfiguracaoPage() {
       </section>
 
       <HsmConfigSection />
+
+      {userCtx?.is_master && <SmtpConfigSection />}
+
 
       {userCtx?.is_master && (
         <section className="space-y-4 rounded-lg border bg-card p-6">

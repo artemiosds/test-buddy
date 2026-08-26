@@ -1,11 +1,12 @@
-import nodemailer from "nodemailer";
 import { logger } from "./logger";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { resolverCredenciaisSmtp, criarTransporter } from "./configuracoes-smtp.server";
 
 /**
  * Helper para envio de e-mails via SMTP.
- * Utiliza credenciais do ambiente (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM).
- * 
+ * Credenciais: 1) public.configuracoes_sistema (painel de Configurações),
+ *              2) variáveis de ambiente (SMTP_HOST, SMTP_PORT, ...) como fallback.
+ *
  * Este arquivo é seguro para importação em funções de servidor (*.functions.ts ou *.server.ts).
  */
 export async function sendEmail({
@@ -19,47 +20,16 @@ export async function sendEmail({
   html: string;
   text?: string;
 }) {
-  const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
-  const portStr = process.env.SMTP_PORT || process.env.VITE_SMTP_PORT;
-  const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD;
-  const from = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user;
-  const fromName = process.env.SMTP_FROM_NAME || "HSM Gestão — SMS Oriximiná";
+  const resolvido = await resolverCredenciaisSmtp();
 
-  // Gmail especifico: Se for smtp.gmail.com, forçamos porta 587 se não definida
-  const port = Number(portStr || (host?.includes("gmail.com") ? 587 : 465));
-
-  if (!host || !user || !pass) {
-    const missing = [];
-    if (!host) missing.push("SMTP_HOST");
-    if (!user) missing.push("SMTP_USER");
-    if (!pass) missing.push("SMTP_PASSWORD");
-    
-    logger.warn("email.send.skipped", {
-      reason: `SMTP credentials missing: ${missing.join(", ")}`,
-      to,
-      subject,
-    });
-    return { 
-      success: false, 
-      skipped: true, 
-      error: new Error(`Configuração SMTP incompleta. Faltando: ${missing.join(", ")}`) 
-    };
+  if (!resolvido.ok) {
+    logger.warn("email.send.skipped", { reason: resolvido.motivo, to, subject });
+    return { success: false, skipped: true, error: new Error(resolvido.motivo) };
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // SSL para 465, STARTTLS para 587
-    auth: {
-      user,
-      pass,
-    },
-    // Otimização para Gmail e servidores modernos
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
+  const { host, port, secure, user, pass, from, fromName } = resolvido.cred;
+  const transporter = criarTransporter({ host, port, secure, user, pass });
+
 
   try {
     const info = await transporter.sendMail({

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -660,6 +660,62 @@ export type Database = {
             columns: ["secretaria_id"]
             isOneToOne: false
             referencedRelation: "secretarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes_sistema: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          smtp_ativo: boolean
+          smtp_from_email: string | null
+          smtp_from_name: string
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_user: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          chave?: string
+          created_at?: string
+          id?: string
+          smtp_ativo?: boolean
+          smtp_from_email?: string | null
+          smtp_from_name?: string
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          smtp_ativo?: boolean
+          smtp_from_email?: string | null
+          smtp_from_name?: string
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_sistema_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listarAvisosAtivos, desativarAviso, reenviarEmailAviso } from "@/lib/mural-avisos.functions";
+import { EditarAvisoDialog } from "./EditarAvisoDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { 
   Megaphone, 
@@ -16,6 +17,7 @@ import {
   Search,
   Filter,
   MoreVertical,
+  Pencil,
   Plus,
   Clock,
   User,
@@ -34,7 +36,7 @@ import { useCurrentUser } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeHtml } from "@/components/shared/SafeHtml";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { 
@@ -54,6 +56,19 @@ export function MuralAvisosList() {
   const resendEmail = useServerFn(reenviarEmailAviso);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("todos");
+  const [avisoEditando, setAvisoEditando] = useState<any>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const abrirEdicao = (aviso: any) => {
+    setAvisoEditando(aviso);
+    setEditOpen(true);
+  };
+
+  useEffect(() => {
+    const handler = (e: any) => abrirEdicao(e.detail);
+    window.addEventListener("open-mural-editar-aviso" as any, handler);
+    return () => window.removeEventListener("open-mural-editar-aviso" as any, handler);
+  }, []);
 
   const isManagement = user?.perfil_codigo === 'MASTER' || user?.perfil_codigo === 'GESTOR' || user?.is_master;
 
@@ -73,12 +88,20 @@ export function MuralAvisosList() {
 
   const mutationReenviar = useMutation({
     mutationFn: (id: string) => resendEmail({ data: { avisoId: id } }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["mural-avisos"] });
-      toast.success("E-mail reenviado com sucesso!");
+      const enviados = res?.enviados ?? 0;
+      const falhas = res?.falhas ?? 0;
+      if (falhas > 0) {
+        toast.warning(`${enviados} e-mail(s) enviado(s), ${falhas} falha(s). ${res?.motivo ?? ""}`);
+      } else {
+        toast.success(`E-mail enviado para ${enviados} destinatário(s).`);
+      }
     },
-    onError: (err: any) => toast.error(`Erro ao reenviar e-mail: ${err.message}`)
+    onError: (err: any) =>
+      toast.error(`Erro ao reenviar e-mail: ${err?.message || "falha desconhecida"}`)
   });
+
 
   const filteredAvisos = useMemo(() => {
     if (!avisos) return [];
@@ -278,6 +301,13 @@ export function MuralAvisosList() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56 p-2">
                           <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground font-bold px-2 py-1.5">Ações de Gestão</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => abrirEdicao(aviso)}
+                            className="flex items-center gap-2 cursor-pointer font-medium py-2"
+                          >
+                            <Pencil className="h-4 w-4 text-primary" />
+                            Editar Aviso
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             disabled={mutationReenviar.isPending}
                             onClick={() => mutationReenviar.mutate(aviso.id)}
@@ -309,6 +339,8 @@ export function MuralAvisosList() {
           ))}
         </div>
       )}
+
+      <EditarAvisoDialog aviso={avisoEditando} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   );
 }

@@ -145,8 +145,9 @@ function CompetenciasPage() {
             prazo_analise: payload.prazo_analise ?? null,
           },
         });
+        return null;
       } else {
-        await criarFn({
+        return await criarFn({
           data: {
             ano: payload.ano!,
             mes: payload.mes!,
@@ -161,12 +162,21 @@ function CompetenciasPage() {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["competencias"] });
       qc.invalidateQueries({ queryKey: ["competencia-ativa"] });
       setOpenForm(false);
       setEditing(null);
-      toast.success("Competência salva");
+      const n = res?.notificacoes;
+      if (n && (n.emails_falhos !== 0 || n.erro)) {
+        toast.warning("Competência criada, mas houve falha no envio de notificações", {
+          description: n.erro ?? `${n.emails_falhos} e-mail(s) não puderam ser enviados.`,
+        });
+      } else if (n) {
+        toast.success(`Competência salva — ${n.emails} e-mail(s) enviado(s) para ${n.usuarios} usuário(s)`);
+      } else {
+        toast.success("Competência salva");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });

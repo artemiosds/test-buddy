@@ -75,14 +75,27 @@ export const criarCompetencia = createServerFn({ method: "POST" })
     });
 
     // Notificação (in-app + mural + e-mail) para usuários vinculados às unidades
+    let notificacoes: {
+      usuarios: number;
+      emails: number;
+      emails_falhos: number;
+      erro?: string;
+    } = { usuarios: 0, emails: 0, emails_falhos: 0 };
     try {
       const { notificarNovaCompetencia } = await import("./notificar-competencia.server");
-      await notificarNovaCompetencia(id, context.userId);
+      const r = await notificarNovaCompetencia(id, context.userId);
+      notificacoes = { usuarios: r.usuarios, emails: r.emails, emails_falhos: r.emails_falhos };
     } catch (mailErr) {
       console.error("Erro ao enviar notificações de nova competência:", mailErr);
+      notificacoes = {
+        usuarios: 0,
+        emails: 0,
+        emails_falhos: -1,
+        erro: (mailErr as Error)?.message ?? "Falha desconhecida no envio de notificações",
+      };
     }
 
-    return { id };
+    return { id, notificacoes };
   });
 
 const EditarSchema = z.object({
