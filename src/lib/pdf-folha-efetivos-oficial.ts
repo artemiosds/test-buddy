@@ -18,6 +18,8 @@ import { loadMunicipioInfo, type MunicipioInfo } from "@/lib/pdf-institucional";
 import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
 import { LOGO_BRASAO } from "@/lib/pdf-logos-base64";
+import { parseNumeroPtBr, formatarNumeroPtBr } from "@/lib/numero-ptbr";
+
 
 export type ProfissionalFolha = {
   id: string;
@@ -122,13 +124,28 @@ const PADDING_CELULA = 0.3; // mm de cada lado
 
 function fmt(v: number | string | null | undefined): string {
   if (v == null || v === "") return "";
-  if (typeof v === "string") return v;
-  const x = Number(String(v).replace(",", "."));
-  if (isNaN(x)) return String(v);
+  if (typeof v === "string") {
+    // Textos (ocorrências, situações) são preservados; números em pt-BR são normalizados.
+    if (!/^\s*R?\$?\s*-?[\d.,]+\s*$/.test(v)) return v;
+  }
+  const x = parseNumeroPtBr(v);
   if (x === 0) return "0";
-  if (Number.isInteger(x)) return String(x);
-  return x.toFixed(2).replace(".", ",");
+  return formatarNumeroPtBr(x);
 }
+
+/**
+ * Dias trabalhados da competência. Quando o servidor não tem ocorrência e o
+ * campo não foi preenchido, usa os dias projetados ("Proj") como referência.
+ */
+function diasTrabalhados(item: ItemFolha): string {
+  const bruto = item.totais.dias_trabalhados;
+  const n = parseNumeroPtBr(bruto);
+  if (n > 0) return formatarNumeroPtBr(n);
+  if (typeof bruto === "string" && bruto.trim() && !/^[\d.,\s]+$/.test(bruto)) return bruto;
+  const proj = parseNumeroPtBr(item.profissional.proj);
+  return proj > 0 ? formatarNumeroPtBr(proj) : "";
+}
+
 
 function ptToMm(pt: number): number {
   return pt * 0.352778;
@@ -199,7 +216,8 @@ function calcularAlturaLinha(doc: jsPDF, item: ItemFolha): number {
     hp: fmt(item.profissional.h_p),
     ch: fmt(item.profissional.c_h),
     jorn: fmt(item.profissional.jorn),
-    dias: isStatus ? situacao : fmt(t.dias_trabalhados),
+    dias: isStatus ? situacao : diasTrabalhados(item),
+
     falta: isStatus ? situacao : fmt(t.dias_falta),
     att: isStatus ? situacao : fmt(t.atestado),
     mat: isStatus ? situacao : fmt(t.maternidade),
@@ -425,7 +443,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
     hp: fmt(item.profissional.h_p),
     ch: fmt(item.profissional.c_h),
     jorn: fmt(item.profissional.jorn),
-    dias: isStatus ? situacao : fmt(t.dias_trabalhados),
+    dias: isStatus ? situacao : diasTrabalhados(item),
     falta: isStatus ? situacao : fmt(t.dias_falta),
     att: isStatus ? situacao : fmt(t.atestado),
     mat: isStatus ? situacao : fmt(t.maternidade),

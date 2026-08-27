@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { parseNumeroPtBr } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -696,19 +697,20 @@ export function FrequenciasEfetivosPage() {
                   grupos[setor].itens.push({
                     profissional: it.profissional,
                     totais: {
-                      dias_falta: Number(l.faltas_injustificadas ?? 0),
-                      atestado: Number(l.atestado ?? 0),
+                      dias_trabalhados: parseNumeroPtBr(l.dias_trabalhados ?? 0),
+                      dias_falta: parseNumeroPtBr(l.faltas_injustificadas ?? 0),
+                      atestado: parseNumeroPtBr(l.atestado ?? 0),
                       maternidade: 0,
-                      he_50: Number(l.he_50 ?? 0),
-                      he_100: Number(l.he_100 ?? 0),
-                      ferias_terco: Number(l.ferias_terco ?? 0),
-                      ferias_integral: Number(l.ferias_integral ?? 0),
-                      sal_sub_h: Number(l.sal_sub_h ?? 0),
-                      adicional_noturno: Number(l.adicional_noturno ?? 0),
-                      aulas_suplementares: Number(l.aulas_suplementares ?? 0),
-                      plantao: Number(l.plantoes_extras ?? 0),
-                      sobreaviso: Number(l.sobreaviso ?? 0),
-                      incentivo: Number(l.incentivo ?? 0),
+                      he_50: parseNumeroPtBr(l.he_50 ?? 0),
+                      he_100: parseNumeroPtBr(l.he_100 ?? 0),
+                      ferias_terco: parseNumeroPtBr(l.ferias_terco ?? 0),
+                      ferias_integral: parseNumeroPtBr(l.ferias_integral ?? 0),
+                      sal_sub_h: parseNumeroPtBr(l.sal_sub_h ?? 0),
+                      adicional_noturno: parseNumeroPtBr(l.adicional_noturno ?? 0),
+                      aulas_suplementares: parseNumeroPtBr(l.aulas_suplementares ?? 0),
+                      plantao: parseNumeroPtBr(l.plantoes_extras ?? 0),
+                      sobreaviso: parseNumeroPtBr(l.sobreaviso ?? 0),
+                      incentivo: parseNumeroPtBr(l.incentivo ?? 0),
                     },
                   });
                 }

@@ -63,6 +63,12 @@ import { statsFor, numericFields } from "@/lib/relatorio-inteligente/agregacoes"
 import { agrupar, type GroupNode } from "@/lib/relatorio-inteligente/agrupamento";
 import { BlockChart } from "@/components/relatorio-inteligente/block-chart";
 import {
+  construirConsolidadosSalariais,
+  BLOCO_SALARIAL_ID,
+  type ConsolidadoTabela,
+} from "@/lib/relatorio-inteligente/consolidados-salariais";
+
+import {
   exportarPdfMulti,
   exportarExcelMulti,
   exportarCsvMulti,
@@ -947,6 +953,17 @@ function StepPrevia({
     }),
     [built],
   );
+  const consolidados = useMemo(() => {
+    const salarial = built.find((b) => b.block.id === BLOCO_SALARIAL_ID);
+    if (!salarial) return [];
+    try {
+      return construirConsolidadosSalariais(salarial.rawRows);
+    } catch (e) {
+      console.error("Erro ao construir consolidados salariais:", e);
+      return [];
+    }
+  }, [built]);
+  const [resumido, setResumido] = useState(false);
 
   if (loading)
     return (
@@ -961,7 +978,7 @@ function StepPrevia({
   if (!built.length)
     return <EmptyState title="Nada para exibir" description="Selecione blocos na Etapa 1." />;
 
-  const [resumido, setResumido] = useState(false);
+
 
   return (
     <div className="space-y-4">
@@ -979,6 +996,8 @@ function StepPrevia({
         </div>
       </div>
       {indice && <IndiceCard indice={indice} />}
+      {consolidados.length > 0 && <ConsolidadosPreview tabelas={consolidados} />}
+
       {built.map(({ cfg, block, rows, rawRows, grupos }) => (
         <div key={cfg.blockId} className="rounded-md border">
           <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
@@ -1030,7 +1049,76 @@ function StepPrevia({
   );
 }
 
+function ConsolidadosPreview({ tabelas }: { tabelas: ConsolidadoTabela[] }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border-l-4 border-primary bg-primary/5 px-3 py-2 text-xs">
+        <span className="font-semibold uppercase text-primary">Consolidação financeira</span>{" "}
+        — sínteses por unidade, setor, cargo e vínculo, calculadas sobre o mesmo recorte de
+        filtros da listagem analítica.
+      </div>
+      {tabelas.map((t) => (
+        <div key={t.titulo} className="rounded-md border">
+          <div className="border-b bg-muted/30 px-3 py-2">
+            <div className="text-sm font-semibold">{t.titulo}</div>
+            {t.descricao && (
+              <div className="text-[11px] text-muted-foreground">{t.descricao}</div>
+            )}
+          </div>
+          <div className="max-h-[420px] overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted/50">
+                <tr>
+                  {t.colunas.map((c, i) => (
+                    <th
+                      key={c.key}
+                      className={
+                        "whitespace-nowrap px-2 py-1.5 font-semibold " +
+                        (i === 0 ? "text-left" : "text-right")
+                      }
+                    >
+                      {c.header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {t.linhas.map((r, ri) => {
+                  const isTotal = t.totaisIdx.includes(ri);
+                  return (
+                    <tr
+                      key={ri}
+                      className={
+                        isTotal
+                          ? "border-t-2 border-primary/50 bg-primary/10 font-semibold"
+                          : "border-t hover:bg-muted/20"
+                      }
+                    >
+                      {t.colunas.map((c, i) => (
+                        <td
+                          key={c.key}
+                          className={
+                            "px-2 py-1 " +
+                            (i === 0 ? "text-left" : "text-right tabular-nums")
+                          }
+                        >
+                          {fmtCell(r[c.key], c.key)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function IndiceCard({ indice }: { indice: IndiceAutomatico }) {
+
   const cor =
     indice.nivel === "excelente"
       ? "text-emerald-700 border-emerald-300 bg-emerald-50"
@@ -1591,7 +1679,22 @@ function StepExportar({
     }
     setGerando(true);
     try {
-      const blocosExp: BlocoExport[] = built.map(({ cfg, block, rows, grupos }) => ({
+      const salarial = built.find((b) => b.block.id === BLOCO_SALARIAL_ID);
+      let consolidadosExp: BlocoExport[] = [];
+      if (salarial) {
+        try {
+          consolidadosExp = construirConsolidadosSalariais(salarial.rawRows).map((t) => ({
+            titulo: t.titulo,
+            descricao: t.descricao,
+            colunas: t.colunas,
+            linhas: t.linhas,
+          }));
+        } catch (e) {
+          console.error("Erro ao construir consolidados salariais para exportação:", e);
+        }
+      }
+      const analiticos: BlocoExport[] = built.map(({ cfg, block, rows, grupos }) => ({
+
         titulo: block.label,
         descricao: block.descricao,
         colunas: cfg.fields.map((id) => {
@@ -1602,6 +1705,8 @@ function StepExportar({
         grupos: grupos ?? undefined,
         groupByLabels: cfg.groupBy?.map((id) => block.fields.find((f) => f.id === id)?.label ?? id),
       }));
+      const blocosExp: BlocoExport[] = [...consolidadosExp, ...analiticos];
+
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `relatorio-${tipo}-${stamp}`;
       const tituloRel = `Relatório Gerencial — ${labelTipo(tipo)}`;
