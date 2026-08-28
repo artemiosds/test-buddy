@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseNumeroPtBr } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaEfetivos,
@@ -40,6 +40,8 @@ import {
 import { UnidadeFilter } from "@/components/shared";
 
 import { LinhaAnexos } from "@/components/frequencias/linha-anexos";
+import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
+import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
 import { EnviarFolhaDialog } from "@/components/frequencias/enviar-folha-dialog";
 import {
   contarSituacoes,
@@ -105,6 +107,31 @@ type LinhaState = {
   observacoes: string;
   _dirty?: boolean;
 };
+
+/** Converte uma linha da grade no payload aceito pelo servidor. */
+function mapLinhaPayloadEfetivos(l: LinhaState): any {
+  return {
+    profissional_id: l.profissional_id,
+    status_linha: l.status_linha,
+    dias_trabalhados: l.dias_trabalhados,
+    faltas_injustificadas: l.faltas_injustificadas,
+    atestado: l.atestado,
+    he_50: l.he_50,
+    he_100: l.he_100,
+    ferias_terco: l.ferias_terco,
+    ferias_integral: l.ferias_integral,
+    sal_sub_h: l.sal_sub_h,
+    adicional_noturno: l.adicional_noturno,
+    aulas_suplementares: l.aulas_suplementares,
+    sobreaviso: l.sobreaviso,
+    plantoes_extras: l.plantoes_extras,
+    incentivo: l.incentivo,
+    ferias: l.ferias,
+    licenca_premio: l.licenca_premio,
+    observacoes: l.observacoes || null,
+  };
+}
+
 
 const CAMPOS_OFICIAIS = [
   { key: "dias_trabalhados", label: "Dias" },
@@ -262,12 +289,25 @@ export function FrequenciasEfetivosPage() {
     [unidadesVisiveis, unidadeId]
   );
 
+  // Filtro de setor efetivo — precisa ser IDÊNTICO na leitura e na gravação,
+  // senão salva numa folha (setor) diferente da que está sendo exibida.
+  const setorParam = useMemo(
+    () =>
+      setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)
+        ? setorFilter
+        : undefined,
+    [setorFilter, setoresOpts],
+  );
+
   const carregar = useServerFn(listarFolhaEfetivos);
   const { data: folha, isFetching } = useQuery({
-    queryKey: ["folha-efetivos", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
+    queryKey: ["folha-efetivos", competenciaId, unidadeId, setorParam ?? "all"],
     enabled: !!competenciaId && !!unidadeId && has("frequencia.visualizar"),
-    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
+    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorParam } }),
   });
+
+  // Setor único (server aceita apenas um UUID ao gravar/enviar)
+  const setorUnico = setorParam && setorParam.length === 1 ? setorParam[0] : undefined;
 
   useFrequencyRealtime({ 
     competenciaId, 
@@ -278,32 +318,41 @@ export function FrequenciasEfetivosPage() {
   const [linhas, setLinhas] = useState<Record<string, LinhaState>>({});
   useEffect(() => {
     if (!folha?.itens) return;
-    const next: Record<string, LinhaState> = {};
-    for (const item of folha.itens) {
-      const l = item.linha as any;
-      next[item.profissional.id] = {
-        profissional_id: item.profissional.id,
-        status_linha: (l?.status_linha as StatusFreq) ?? "pendente",
-        dias_trabalhados: String(l?.dias_trabalhados ?? "0"),
-        faltas_injustificadas: String(l?.faltas_injustificadas ?? "0"),
-        atestado: String(l?.atestado ?? "0"),
-        he_50: String(l?.he_50 ?? "0"),
-        he_100: String(l?.he_100 ?? "0"),
-        ferias_terco: String(l?.ferias_terco ?? "0"),
-        ferias_integral: String(l?.ferias_integral ?? "0"),
-        sal_sub_h: String(l?.sal_sub_h ?? "0"),
-        adicional_noturno: String(l?.adicional_noturno ?? "0"),
-        aulas_suplementares: String(l?.aulas_suplementares ?? "0"),
-        sobreaviso: String(l?.sobreaviso ?? "0"),
-        plantoes_extras: String(l?.plantoes_extras ?? "0"),
-        incentivo: String(l?.incentivo ?? "0"),
-        ferias: String(l?.ferias ?? "0"),
-        licenca_premio: String(l?.licenca_premio ?? "0"),
-        observacoes: l?.observacoes ?? "",
-      };
-    }
-    setLinhas(next);
+    setLinhas((prev) => {
+      const next: Record<string, LinhaState> = {};
+      for (const item of folha.itens) {
+        const l = item.linha as any;
+        const anterior = prev[item.profissional.id];
+        // Nunca sobrescreve valores digitados e ainda não salvos (refetch/realtime).
+        if (anterior?._dirty) {
+          next[item.profissional.id] = anterior;
+          continue;
+        }
+        next[item.profissional.id] = {
+          profissional_id: item.profissional.id,
+          status_linha: (l?.status_linha as StatusFreq) ?? "pendente",
+          dias_trabalhados: String(l?.dias_trabalhados ?? "0"),
+          faltas_injustificadas: String(l?.faltas_injustificadas ?? "0"),
+          atestado: String(l?.atestado ?? "0"),
+          he_50: String(l?.he_50 ?? "0"),
+          he_100: String(l?.he_100 ?? "0"),
+          ferias_terco: String(l?.ferias_terco ?? "0"),
+          ferias_integral: String(l?.ferias_integral ?? "0"),
+          sal_sub_h: String(l?.sal_sub_h ?? "0"),
+          adicional_noturno: String(l?.adicional_noturno ?? "0"),
+          aulas_suplementares: String(l?.aulas_suplementares ?? "0"),
+          sobreaviso: String(l?.sobreaviso ?? "0"),
+          plantoes_extras: String(l?.plantoes_extras ?? "0"),
+          incentivo: String(l?.incentivo ?? "0"),
+          ferias: String(l?.ferias ?? "0"),
+          licenca_premio: String(l?.licenca_premio ?? "0"),
+          observacoes: l?.observacoes ?? "",
+        };
+      }
+      return next;
+    });
   }, [folha]);
+
 
   const folhaStatus = (folha?.frequencia_status as StatusFreq) ?? "rascunho";
   const folhaEditavel =
@@ -322,53 +371,71 @@ export function FrequenciasEfetivosPage() {
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
 
-  const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
-    setLinhas((prev) => {
-      const cur = prev[pid];
-      if (!cur) return prev;
-      const next = { ...prev, [pid]: { ...cur, [campo]: valor, _dirty: true } };
-      
-      // Sincronização automática para 'status_linha' (Edição via Modal)
-      if (campo === "status_linha") {
-        // Mapeia os status da folha para os permitidos na linha (pendente, aprovada, rejeitada)
-        let mappedStatus: "pendente" | "aprovada" | "rejeitada" = "pendente";
-        if (valor === "aprovada") mappedStatus = "aprovada";
-        if (valor === "rejeitada") mappedStatus = "rejeitada";
+  // ---------- Autosalvamento em segundo plano ----------
+  const linhasRef = useRef<Record<string, LinhaState>>({});
+  linhasRef.current = linhas;
 
-        salvarFn({
-          data: { 
-            competencia_id: competenciaId, 
-            unidade_id: unidadeId, 
-            linhas: [{
-              profissional_id: pid,
-              status_linha: mappedStatus,
-              dias_trabalhados: cur.dias_trabalhados,
-              faltas_injustificadas: cur.faltas_injustificadas,
-              atestado: cur.atestado,
-              he_50: cur.he_50,
-              he_100: cur.he_100,
-              ferias_terco: cur.ferias_terco,
-              ferias_integral: cur.ferias_integral,
-              sal_sub_h: cur.sal_sub_h,
-              adicional_noturno: cur.adicional_noturno,
-              aulas_suplementares: cur.aulas_suplementares,
-              sobreaviso: cur.sobreaviso,
-              plantoes_extras: cur.plantoes_extras,
-              incentivo: cur.incentivo,
-              ferias: cur.ferias,
-              licenca_premio: cur.licenca_premio,
-              observacoes: cur.observacoes || null,
-            }]
-          },
-        }).then(() => {
-          qc.invalidateQueries({ queryKey: ["folha-efetivos"] });
-          qc.invalidateQueries({ queryKey: ["frequencia-resumo"] });
-        });
+  const canEditRef = useRef(canEdit);
+  canEditRef.current = canEdit;
+
+  const autosaveRun = useCallback(async () => {
+    if (!canEditRef.current || !competenciaId || !unidadeId) return false;
+    const pendentes = Object.values(linhasRef.current).filter((l) => l._dirty);
+    if (!pendentes.length) return false;
+
+    const list = pendentes.map(mapLinhaPayloadEfetivos);
+    const snapshot = new Map(list.map((p) => [p.profissional_id, JSON.stringify(p)]));
+
+    const result = await salvarFn({
+      data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
+    });
+    if (!result?.ok || result.processadas !== list.length) return false;
+
+    // Limpa o "sujo" apenas das linhas cujo conteúdo não mudou durante o envio.
+    setLinhas((prev) => {
+      const next: Record<string, LinhaState> = { ...prev };
+      for (const [pid, serial] of snapshot) {
+        const atual = next[pid];
+        if (!atual) continue;
+        if (JSON.stringify(mapLinhaPayloadEfetivos(atual)) === serial) {
+          next[pid] = { ...atual, _dirty: false };
+        }
       }
-      
       return next;
     });
-  }, [competenciaId, unidadeId, salvarFn, qc]);
+
+    qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
+    return true;
+  }, [competenciaId, unidadeId, setorUnico, salvarFn, qc]);
+
+  const autosave = useAutosaveFolha({ enabled: canEdit, run: autosaveRun, delay: 900 });
+  const autosaveRef = useRef(autosave);
+  autosaveRef.current = autosave;
+
+  // Grava o que estiver pendente ao sair da página / trocar de aba.
+  useEffect(() => {
+    const handler = () => {
+      if (Object.values(linhasRef.current).some((l) => l._dirty)) autosaveRef.current.flush();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      handler();
+    };
+  }, []);
+
+  const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
+    const cur = linhasRef.current[pid];
+    if (!cur) return;
+    const next = { ...linhasRef.current, [pid]: { ...cur, [campo]: valor, _dirty: true } };
+    linhasRef.current = next;
+    setLinhas(next);
+
+    // Autosalve: campos numéricos já chegam aqui no onBlur (grava na hora);
+    // texto livre usa debounce enquanto o usuário digita.
+    if (campo === "observacoes") autosaveRef.current.schedule();
+    else autosaveRef.current.flush();
+  }, []);
 
   function payloadDirty(): any[] {
     return Object.values(linhas)
@@ -430,7 +497,7 @@ export function FrequenciasEfetivosPage() {
       
       try {
         const res = await salvarFn({
-          data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
+          data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
         });
         console.log("DEBUG_SALVAMENTO: Resposta servidor", res);
         return res;
@@ -441,7 +508,13 @@ export function FrequenciasEfetivosPage() {
     },
     onSuccess: (r: any) => {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
-      else toast.success("Rascunho salvo.");
+      else toast.success("Alterações salvas com sucesso!");
+      // Só após confirmação de escrita as linhas deixam de ser "sujas".
+      setLinhas((prev) => {
+        const next: Record<string, LinhaState> = {};
+        for (const [k, v] of Object.entries(prev)) next[k] = { ...v, _dirty: false };
+        return next;
+      });
       qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
       qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
     },
@@ -456,16 +529,20 @@ export function FrequenciasEfetivosPage() {
       const list = payloadDirty();
       if (list.length) {
         await salvarFn({
-          data: { competencia_id: competenciaId, unidade_id: unidadeId, linhas: list },
+          data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
         });
       }
       
-      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
-      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: sId } });
+      return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico } });
     },
     onSuccess: (r: any) => {
       toast.success(`Enviado para aprovação (${r?.enviadas ?? 0} linhas).`);
       setEnviarAberto(false);
+      setLinhas((prev) => {
+        const next: Record<string, LinhaState> = {};
+        for (const [k, v] of Object.entries(prev)) next[k] = { ...v, _dirty: false };
+        return next;
+      });
       qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
       qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
     },
@@ -608,6 +685,10 @@ export function FrequenciasEfetivosPage() {
           });
         });
         if (touched) toast.success(`${touched} valor(es) colado(s).`);
+        if (touched) {
+          linhasRef.current = next;
+          autosaveRef.current.flush();
+        }
         return next;
       });
     },
@@ -661,6 +742,7 @@ export function FrequenciasEfetivosPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <AutosaveBadge status={autosave.status} onRetry={autosave.retry} />
           <Button
             variant="outline"
             onClick={() => mSalvar.mutate()}

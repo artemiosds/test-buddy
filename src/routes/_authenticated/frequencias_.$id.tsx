@@ -5,7 +5,7 @@ import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRetryMutation } from "@/lib/retry-mutation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { auditClient, AUDIT_ACOES } from "@/lib/audit-client";
@@ -71,6 +71,8 @@ import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
+import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
+import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
 
 export const Route = createFileRoute("/_authenticated/frequencias_/$id")({ errorComponent: ErrorComponent,
   component: FrequenciaDetalhe,
@@ -333,8 +335,12 @@ function FrequenciaDetalhe() {
 
   useEffect(() => {
     if (!rowsExistentes) return;
-    setLinhas(
-      rowsExistentes.map((r) => ({
+    setLinhas((prev) => {
+      const anteriores = new Map(prev.map((linha) => [linha.profissional_id, linha]));
+      const next = rowsExistentes.map((r) => {
+        const anterior = anteriores.get(r.profissional_id);
+        if (anterior?._dirty) return anterior;
+        return {
         id: r.id,
         profissional_id: r.profissional_id,
         dias_trabalhados: r.dias_trabalhados ?? 0,
@@ -359,8 +365,11 @@ function FrequenciaDetalhe() {
         observacoes: r.observacoes,
         status_linha: r.status_linha,
         observacao_analise: r.observacao_analise,
-      })),
-    );
+        };
+      });
+      linhasRef.current = next;
+      return next;
+    });
   }, [rowsExistentes]);
 
   // Busca dados dos profissionais referenciados nas linhas existentes que
@@ -516,7 +525,10 @@ function FrequenciaDetalhe() {
   };
 
   const updateLinha = (idx: number, patch: Partial<Linha>) => {
-    setLinhas((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch, _dirty: true } : l)));
+    const next = linhasRef.current.map((l, i) => (i === idx ? { ...l, ...patch, _dirty: true } : l));
+    linhasRef.current = next;
+    setLinhas(next);
+    autosaveRef.current.schedule();
   };
 
   const removeLinha = (idx: number) => {
@@ -700,8 +712,8 @@ function FrequenciaDetalhe() {
       );
       return;
     }
-    setLinhas((prev) =>
-      prev.map((l, idx) => {
+    setLinhas((prev) => {
+      const next = prev.map((l, idx) => {
         const dr = idx - r;
         if (dr < 0 || dr >= rows.length) return l;
         if (!isRowEditable(l)) return l;
@@ -715,12 +727,61 @@ function FrequenciaDetalhe() {
           patch[colunas[targetCol].field] = Number(v);
         });
         return { ...l, ...patch, _dirty: true };
-      }),
-    );
+      });
+      linhasRef.current = next;
+      autosaveRef.current.flush();
+      return next;
+    });
     toast.success(`${rows.length} linha(s) coladas.`);
   };
 
   const salvarFn = useServerFn(salvarLinhasFrequencia);
+  const linhasRef = useRef<Linha[]>([]);
+  linhasRef.current = linhas;
+  const obsRef = useRef(obs);
+  obsRef.current = obs;
+
+  const autosaveRun = useCallback(async () => {
+    const current = linhasRef.current;
+    const dirty = current.filter((linha) => linha._dirty);
+    if (!dirty.length) return false;
+    const snapshot = new Map(dirty.map((linha) => [linha.profissional_id, JSON.stringify(linha)]));
+    const result = await salvarFn({
+      data: {
+        frequencia_id: id,
+        observacoes: obsRef.current,
+        ids_manter: current.flatMap((linha) => (linha.id ? [linha.id] : [])),
+        linhas: current.map((linha) => ({
+          ...linha,
+          id: linha.id ?? null,
+          _new: !!linha._new,
+          _dirty: !!linha._dirty,
+          observacoes: linha.observacoes ?? null,
+        })),
+      },
+    });
+    if (!result?.ok || result.processadas !== dirty.length) return false;
+    setLinhas((prev) => {
+      const next = prev.map((linha) =>
+        snapshot.get(linha.profissional_id) === JSON.stringify(linha)
+          ? { ...linha, _dirty: false, _new: false }
+          : linha,
+      );
+      linhasRef.current = next;
+      return next;
+    });
+    void qc.invalidateQueries({ queryKey: ["frequencia", id] });
+    return true;
+  }, [id, qc, salvarFn]);
+
+  const autosave = useAutosaveFolha({
+    enabled: !!editable && !!canEditar,
+    run: autosaveRun,
+    delay: 900,
+  });
+  const autosaveRef = useRef(autosave);
+  autosaveRef.current = autosave;
+
   const salvarMutation = useMutation({
     mutationFn: async () => {
       const idsManter = linhas.filter((l) => l.id).map((l) => l.id!);
@@ -759,6 +820,11 @@ function FrequenciaDetalhe() {
       });
     },
     onSuccess: () => {
+      setLinhas((prev) => {
+        const next = prev.map((linha) => ({ ...linha, _dirty: false, _new: false }));
+        linhasRef.current = next;
+        return next;
+      });
       qc.invalidateQueries({ queryKey: ["frequencia-profissional", id] });
       qc.invalidateQueries({ queryKey: ["frequencia", id] });
       toast.success("Frequência salva");
@@ -1085,6 +1151,7 @@ function FrequenciaDetalhe() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <AutosaveBadge status={autosave.status} onRetry={autosave.retry} />
         {canEditar && editable && (
           <Button
             size="sm"
@@ -1305,6 +1372,7 @@ function FrequenciaDetalhe() {
                               [c.field]: isNaN(parsed) || numericVal === "" ? val : parsed,
                             } as any)
                           }}
+                           onBlur={() => autosave.flush()}
                         />
                       </td>
                     ))}
@@ -1416,7 +1484,12 @@ function FrequenciaDetalhe() {
         <Textarea
           rows={3}
           value={obs}
-          onChange={(e) => setObs(e.target.value)}
+          onChange={(e) => {
+            setObs(e.target.value);
+            obsRef.current = e.target.value;
+            autosave.schedule();
+          }}
+          onBlur={() => autosave.flush()}
           disabled={!editable || !canEditar}
         />
       </div>

@@ -151,7 +151,7 @@ export const salvarLinhasFrequencia = createServerFn({ method: "POST" })
       .update({ observacoes: data.observacoes ?? null, updated_by: userId } as never)
       .eq("id", data.frequencia_id);
     if (fErr) throw new Error(fErr.message);
-    return { ok: true };
+    return { ok: true, processadas: dirty.length };
   });
 
 const StatusEnum = z.enum([
