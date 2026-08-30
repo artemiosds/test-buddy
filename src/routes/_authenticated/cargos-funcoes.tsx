@@ -36,7 +36,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { cargoFormSchema, funcaoFormSchema, AREAS_PROFISSIONAIS, type CargoFormData, type FuncaoFormData, type NivelCargo, type AreaProfissional } from "@/lib/cargos-funcoes.validation";
 import { maskCBO, maskGratificacao, FormError } from "@/utils/cargos-funcoes.masks";
 import { z } from "zod";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { fallback } from "@/lib/search-validator";
 
 const searchSchema = z.object({
   search: fallback(z.string(), "").default(""),
@@ -45,7 +45,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/cargos-funcoes")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
   errorComponent: ErrorComponent,
   component: CargosFuncoesPage,
 });

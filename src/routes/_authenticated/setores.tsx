@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { fallback } from "@/lib/search-validator";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/setores")({ errorComponent: ErrorComponent,
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
   component: SetoresPage,
 });
 
