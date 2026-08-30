@@ -16,7 +16,12 @@ import {
   inserirLinhasAuto,
   registrarAnexoLinha,
 } from "@/lib/frequencias.functions";
-import { validarArquivoAnexo } from "@/lib/anexos-linha";
+import { ANEXO_TAMANHO_MAX, validarArquivoAnexo } from "@/lib/anexos-linha";
+import {
+  enviarArquivoUniversal,
+  obterUrlVisualizacao,
+  removerArquivoUniversal,
+} from "@/lib/storage-universal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -1657,11 +1662,12 @@ function AnexosDialog({
     setUploading(true);
     try {
       const path = `frequencia_profissional/${linhaId}/${crypto.randomUUID()}.${file.name.split(".").pop() ?? "bin"}`;
-      const { error: upErr } = await supabase.storage.from("documentos").upload(path, file, {
-        contentType: check.mime,
-        upsert: false,
+      const { storage_path } = await enviarArquivoUniversal({
+        file,
+        caminho: path,
+        mime: check.mime,
+        limiteBytes: ANEXO_TAMANHO_MAX,
       });
-      if (upErr) throw upErr;
       await registrarAnexoFn({
         data: {
           entidade_id: linhaId,
@@ -1669,11 +1675,12 @@ function AnexosDialog({
           unidade_id: unidadeId ?? null,
           categoria_id: categoriaId || null,
           nome: file.name,
-          storage_path: path,
+          storage_path,
           mime_type: check.mime,
           tamanho_bytes: file.size,
         },
       });
+
 
       toast.success("Anexo enviado");
       refetch();
@@ -1688,7 +1695,7 @@ function AnexosDialog({
 
   const removerAnexo = async (doc: DocRow) => {
     try {
-      await supabase.storage.from("documentos").remove([doc.storage_path]);
+      await removerArquivoUniversal(doc.storage_path);
       const { error } = await supabase
         .from("documentos")
         .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
@@ -1702,14 +1709,12 @@ function AnexosDialog({
   };
 
   const baixar = async (doc: DocRow) => {
-    const { data, error } = await supabase.storage
-      .from("documentos")
-      .createSignedUrl(doc.storage_path, 60);
-    if (error) {
-      toast.error(error.message);
+    const url = await obterUrlVisualizacao(doc.storage_path, { expiraEm: 60 });
+    if (!url) {
+      toast.error("Não foi possível abrir o documento.");
       return;
     }
-    window.open(data.signedUrl, "_blank");
+    window.open(url, "_blank");
   };
 
   return (

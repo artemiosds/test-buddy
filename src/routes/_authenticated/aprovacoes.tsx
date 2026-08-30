@@ -133,7 +133,8 @@ function AprovacoesPage() {
           `
           id, tipo, status, data_envio, data_aprovacao, total_profissionais,
           competencia_unidade_id, setor_id,
-          competencia_unidades:competencia_unidade_id(
+          competencia_unidades:competencia_unidade_id!inner(
+
             unidade_id,
             competencia_id,
             unidades:unidade_id(id, nome),

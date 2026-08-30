@@ -8,6 +8,7 @@ import { logger } from "./logger";
 import { TIPOS_ANEXO_FOLHA, calcularPurgaApos } from "./frequencias-retencao";
 import { sendEmail, generateEmailTemplate } from "./email.server";
 import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
+import { assinarUrlDocumento, removerDocumento } from "./storage-r2.server";
 
 
 
@@ -735,9 +736,7 @@ export const listarAnexosLinha = createServerFn({ method: "POST" })
 
     const assinadas = await Promise.all(
       rows.map(async (d: any) => {
-        const { data: signed } = await supabase.storage
-          .from("documentos")
-          .createSignedUrl(d.storage_path, 300);
+        const url = await assinarUrlDocumento(supabase, d.storage_path);
         return {
           id: d.id as string,
           nome: d.nome as string,
@@ -745,7 +744,7 @@ export const listarAnexosLinha = createServerFn({ method: "POST" })
           tamanho_bytes: Number(d.tamanho_bytes ?? 0),
           created_at: d.created_at as string,
           enviado_por: autores.get(d.created_by) ?? null,
-          url: signed?.signedUrl ?? null,
+          url,
         };
       }),
     );
@@ -829,9 +828,7 @@ export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
     return {
       anexos: await Promise.all(
         rows.map(async (d: Record<string, unknown>) => {
-          const { data: signed } = await supabase.storage
-            .from("documentos")
-            .createSignedUrl(d.storage_path as string, 300);
+          const url = await assinarUrlDocumento(supabase, d.storage_path as string);
           return {
             id: d.id as string,
             nome: d.nome as string,
@@ -839,7 +836,7 @@ export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
             tamanho_bytes: Number(d.tamanho_bytes ?? 0),
             deleted_at: d.deleted_at as string,
             purga_apos: (d.purga_apos ?? null) as string | null,
-            url: signed?.signedUrl ?? null,
+            url,
           };
         }),
       ),
@@ -903,7 +900,7 @@ export const descartarAnexosPendentes = createServerFn({ method: "POST" })
     const { error: dErr } = await supabase.from("documentos").delete().in("id", ids);
     if (dErr) throw new Error(dErr.message);
 
-    await supabase.storage.from("documentos").remove(paths);
+    await Promise.all(paths.map((p) => removerDocumento(supabase, p)));
 
     await emitEvento(supabase, EVENTOS.DOCUMENTO_REMOVIDO, "documento", ids[0], {
       descarte_definitivo: true,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { obterUrlVisualizacao } from "@/lib/storage-universal";
 
 /**
  * Foto do profissional.
@@ -43,7 +43,11 @@ export function montarCaminhoFoto(profissionalId: string | null | undefined, mim
   return `profissionais/${owner}-${Date.now()}.${ext}`;
 }
 
-/** Gera (e renova) a URL assinada da foto a partir do caminho salvo. */
+/**
+ * Gera (e renova) a URL assinada da foto a partir do caminho salvo.
+ * Retrocompatível: caminhos antigos do bucket `avatars` continuam funcionando;
+ * novos uploads gravados no Cloudflare R2 (`r2:...`) resolvem por URL assinada.
+ */
 export function useFotoAssinada(valor: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -59,8 +63,11 @@ export function useFotoAssinada(valor: string | null | undefined): string | null
       return;
     }
     void (async () => {
-      const { data } = await supabase.storage.from(FOTO_BUCKET).createSignedUrl(alvo, 3600);
-      if (ativo) setUrl(data?.signedUrl ?? null);
+      const resolvida = await obterUrlVisualizacao(alvo, {
+        bucket: FOTO_BUCKET,
+        expiraEm: 3600,
+      });
+      if (ativo) setUrl(resolvida);
     })();
     return () => {
       ativo = false;

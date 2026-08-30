@@ -143,7 +143,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       if (fbErr) throw fbErr;
       if (!freqBase) return { ok: true, msg: "Frequência base não encontrada para sincronização." };
 
-      const { data: linhas, error: lErr } = await supabaseAdmin
+      const linhasQuery = supabaseAdmin
         .from("frequencia_profissional")
         .select(`
           status_linha,
@@ -151,25 +151,27 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
           profissionais!inner(setor_id)
         `)
         .eq("frequencia_id", freqBase.id)
-        .filter("profissionais.setor_id", setor_id ? "eq" : "is", setor_id ?? null)
         .is("deleted_at", null);
+
+      // A folha sem setor abrange TODOS os profissionais da unidade; filtrar por
+      // setor nulo zerava os totais e escondia as linhas na tela de Aprovações.
+      if (setor_id) linhasQuery.filter("profissionais.setor_id", "eq", setor_id);
+
+      const { data: linhas, error: lErr } = await linhasQuery;
 
       if (lErr) throw lErr;
 
+      // O status oficial é o da própria folha (fonte da verdade do fluxo de
+      // envio/aprovação). Só é promovido a "aprovada" quando todas as linhas
+      // já foram aprovadas — nunca rebaixado, para não desfazer um envio.
+      statusOficial = freqBase.status;
       if (linhas && linhas.length > 0) {
-        const statuses = linhas.map(l => (l as any).status_linha || "rascunho");
-        if (statuses.every(s => s === "aprovada")) {
-          statusOficial = "aprovada";
-        } else if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
-          statusOficial = "rascunho";
-        } else if (statuses.some(s => s === "enviada")) {
-          statusOficial = "enviada";
-        }
-      } else {
-        statusOficial = freqBase.status;
+        const statuses = linhas.map((l) => (l as any).status_linha || "pendente");
+        if (statuses.every((s) => s === "aprovada")) statusOficial = "aprovada";
       }
 
       totalProfissionais = linhas?.length ?? 0;
+
       dataEnvio = freqBase.data_envio;
       enviadaPor = freqBase.enviada_por;
       dataAprovacao = freqBase.data_aprovacao;

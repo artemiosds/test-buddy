@@ -15,11 +15,13 @@ import {
 import { listarAnexosLinha } from "@/lib/listar-anexos.functions";
 import {
   ANEXO_ACCEPT,
+  ANEXO_TAMANHO_MAX,
   formatarBytes,
   montarCaminhoAnexo,
   validarArquivoAnexo,
   type TipoAnexoEntidade,
 } from "@/lib/anexos-linha";
+import { enviarArquivoUniversal } from "@/lib/storage-universal";
 
 /**
  * Anexos de comprovação vinculados a uma entidade da folha.
@@ -166,10 +168,12 @@ export function AnexosEntidade({
           tipoEntidade,
           mime: check.mime,
         });
-        const { error: upErr } = await supabase.storage
-          .from("documentos")
-          .upload(path, file, { contentType: check.mime, upsert: false });
-        if (upErr) throw new Error(upErr.message);
+        const { storage_path } = await enviarArquivoUniversal({
+          file,
+          caminho: path,
+          mime: check.mime,
+          limiteBytes: ANEXO_TAMANHO_MAX,
+        });
         const res = await registrar({
           data: {
             entidade_id: alvoId,
@@ -179,7 +183,7 @@ export function AnexosEntidade({
             unidade_id: unidadeId,
             secretaria_id: secretariaId,
             nome: file.name.slice(0, 255),
-            storage_path: path,
+            storage_path,
             mime_type: check.mime,
             tamanho_bytes: file.size,
           },
