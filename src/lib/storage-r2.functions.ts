@@ -79,11 +79,19 @@ export const resolverUrlDocumento = createServerFn({ method: "POST" })
     return { url };
   });
 
-/** Exclui o binário no destino correto (R2 ou Supabase legado). */
+/**
+ * Exclui o binário apenas no Supabase Storage legado. Arquivos no R2 têm
+ * retenção indefinida: a chamada devolve `motivo: "retencao"` sem apagar nada.
+ */
 export const removerDocumentoStorage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof ResolverSchema>) => ResolverSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await removerDocumento(context.supabase as never, data.storage_path, data.bucket ?? "documentos");
-    return { ok: true as const };
+    const r = await removerDocumento(
+      context.supabase as never,
+      data.storage_path,
+      data.bucket ?? "documentos",
+    );
+    return { ok: r.ok, motivo: r.motivo };
   });
+

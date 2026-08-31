@@ -14,10 +14,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
   confirmarUploadR2,
-  removerDocumentoStorage,
   resolverUrlDocumento,
   solicitarUploadR2,
 } from "@/lib/storage-r2.functions";
+
 
 export const R2_PREFIXO = "r2:";
 
@@ -128,14 +128,21 @@ export async function enviarArquivoUniversal(params: {
   return { storage_path: params.caminho, provider: "supabase" };
 }
 
-/** Remove o binário no destino correto (usado apenas em exclusões definitivas). */
+/**
+ * Remoção de binário no destino legado (Supabase Storage).
+ *
+ * Arquivos no R2 têm retenção indefinida e NUNCA são apagados: para eles a
+ * função apenas registra em log e retorna sem tocar no objeto. A remoção de
+ * anexos na interface é sempre soft-delete no banco.
+ */
 export async function removerArquivoUniversal(
   storagePath: string,
   bucket = "documentos",
 ): Promise<void> {
   if (isR2(storagePath)) {
-    await removerDocumentoStorage({ data: { storage_path: storagePath, bucket } });
+    console.warn("[storage] exclusão ignorada: arquivo retido no R2.", storagePath);
     return;
   }
   await supabase.storage.from(bucket).remove([storagePath]);
 }
+

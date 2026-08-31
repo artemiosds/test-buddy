@@ -115,12 +115,49 @@ export async function criarUrlLeitura(
   return assinada.url;
 }
 
-/** Apaga o objeto no R2. Retorna `true` quando o R2 aceitou a exclusão. */
-export async function removerArquivo(key: string): Promise<boolean> {
+/** Resultado tipado de uma tentativa de exclusão no R2. */
+export type ResultadoRemocao = {
+  ok: boolean;
+  motivo: "removido" | "inexistente" | "retencao" | "indisponivel" | "erro";
+  status?: number;
+  detalhe?: string;
+};
+
+/** Detecta a recusa do bucket lock (retenção indefinida) do Cloudflare R2. */
+function ehRetencao(status: number, corpo: string): boolean {
+  if (status === 403 || status === 423) return true;
+  return /ObjectLock|Retention|WORM|AccessDenied|InvalidRequest/i.test(corpo);
+}
+
+/**
+ * Exclusão física de um objeto no R2.
+ *
+ * ATENÇÃO: o bucket opera com bloqueio indefinido (object lock). Esta função
+ * NÃO deve ser chamada por nenhum fluxo automático de anexos — a remoção de
+ * documentos é sempre soft-delete. Continua disponível apenas para o arquivo
+ * descartável do diagnóstico e sempre devolve resultado tipado, nunca lança.
+ */
+export async function removerArquivo(key: string): Promise<ResultadoRemocao> {
   const cfg = lerConfig();
-  if (!cfg) return false;
-  const res = await cliente(cfg).fetch(urlObjeto(cfg, chaveR2(key)), { method: "DELETE" });
-  return res.ok || res.status === 404;
+  if (!cfg) return { ok: false, motivo: "indisponivel" };
+  try {
+    const res = await cliente(cfg).fetch(urlObjeto(cfg, chaveR2(key)), { method: "DELETE" });
+    if (res.status === 404) return { ok: true, motivo: "inexistente", status: 404 };
+    if (res.ok) return { ok: true, motivo: "removido", status: res.status };
+    const corpo = await res.text().catch(() => "");
+    if (ehRetencao(res.status, corpo)) {
+      console.warn("[storage-r2] exclusão recusada por retenção do bucket:", {
+        key: chaveR2(key),
+        status: res.status,
+      });
+      return { ok: false, motivo: "retencao", status: res.status, detalhe: corpo.slice(0, 300) };
+    }
+    console.error("[storage-r2] falha ao excluir objeto:", { key: chaveR2(key), status: res.status });
+    return { ok: false, motivo: "erro", status: res.status, detalhe: corpo.slice(0, 300) };
+  } catch (e) {
+    console.error("[storage-r2] erro de rede ao excluir objeto:", (e as Error)?.message);
+    return { ok: false, motivo: "erro", detalhe: (e as Error)?.message };
+  }
 }
 
 /**
@@ -141,7 +178,8 @@ export async function objetoExisteR2(key: string): Promise<boolean> {
 
 /**
  * Confere no R2 se o objeto existe e respeita o limite de tamanho.
- * Se exceder o limite, o objeto é apagado e um erro é lançado.
+ * O objeto NUNCA é apagado aqui (bucket com retenção): quando inválido, o
+ * upload é apenas rejeitado e o ocorrido registrado em log.
  */
 export async function validarObjeto(
   key: string,
@@ -154,15 +192,19 @@ export async function validarObjeto(
   }
   const tamanho = Number(res.headers.get("content-length") ?? 0);
   if (tamanho <= 0) {
-    await removerArquivo(key);
+    console.warn("[storage-r2] objeto vazio mantido por retenção:", { key: chaveR2(key) });
     throw new Error("Arquivo vazio.");
   }
   if (tamanho > limiteBytes) {
-    await removerArquivo(key);
+    console.warn("[storage-r2] objeto acima do limite mantido por retenção:", {
+      key: chaveR2(key),
+      tamanho,
+    });
     throw new Error("Arquivo maior que o limite permitido.");
   }
   return { ok: true, tamanho };
 }
+
 
 type SupabaseLike = {
   storage: {
@@ -203,15 +245,28 @@ export async function assinarUrlDocumento(
   return data?.signedUrl ?? null;
 }
 
-/** Apaga o binário no destino correto conforme o prefixo do caminho salvo. */
+/**
+ * Remoção de binário do destino legado.
+ *
+ * Para caminhos `r2:` a exclusão é PROIBIDA (bucket com retenção indefinida):
+ * a função apenas registra em log e devolve `retencao`, sem tocar no objeto.
+ */
 export async function removerDocumento(
   supabase: SupabaseLike,
   storagePath: string,
   bucket = "documentos",
-): Promise<void> {
+): Promise<ResultadoRemocao> {
   if (isCaminhoR2(storagePath)) {
-    await removerArquivo(storagePath);
-    return;
+    console.warn("[storage-r2] exclusão ignorada (retenção indefinida):", {
+      key: chaveR2(storagePath),
+    });
+    return { ok: false, motivo: "retencao" };
   }
-  await supabase.storage.from(bucket).remove([storagePath]);
+  const { error } = await supabase.storage.from(bucket).remove([storagePath]);
+  if (error) {
+    console.error("[storage] falha ao excluir no Supabase Storage:", error.message);
+    return { ok: false, motivo: "erro", detalhe: error.message };
+  }
+  return { ok: true, motivo: "removido" };
 }
+

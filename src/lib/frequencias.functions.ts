@@ -8,7 +8,7 @@ import { logger } from "./logger";
 import { TIPOS_ANEXO_FOLHA, calcularPurgaApos } from "./frequencias-retencao";
 import { sendEmail, generateEmailTemplate } from "./email.server";
 import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
-import { assinarUrlDocumento, removerDocumento } from "./storage-r2.server";
+import { assinarUrlDocumento } from "./storage-r2.server";
 
 
 
@@ -867,12 +867,12 @@ const DescartarSchema = z.object({
 });
 
 /**
- * Descarte definitivo de anexos ainda NÃO confirmados (ex.: o usuário fez
- * upload no modal de envio e fechou sem confirmar).
+ * Descarte de anexos ainda NÃO confirmados (ex.: o usuário fez upload no modal
+ * de envio e fechou sem confirmar).
  *
- * Diferente de `removerAnexoLinha` (soft-delete + retenção legal), aqui o
- * registro e o binário são apagados de vez — mas apenas para quem subiu o
- * arquivo e enquanto ele não foi removido/retido.
+ * O binário NUNCA é apagado: o bucket R2 opera com retenção indefinida e todo
+ * documento vinculado a uma submissão precisa continuar consultável. Aqui o
+ * registro apenas recebe soft-delete (sai das listagens ativas).
  */
 export const descartarAnexosPendentes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -895,32 +895,30 @@ export const descartarAnexosPendentes = createServerFn({ method: "POST" })
     if (!alvos.length) return { ok: true, descartados: 0 };
 
     const ids = alvos.map((d: Record<string, unknown>) => d.id as string);
+    const agora = new Date().toISOString();
 
-    // O binário só pode ser apagado se a linha REALMENTE saiu do banco.
-    // Sem `.select()` a RLS pode bloquear o DELETE (0 linhas, sem erro) e o
-    // arquivo seria removido do R2 deixando o registro órfão -> NoSuchKey.
-    const { data: apagados, error: dErr } = await supabase
+    const { data: marcados, error: uErr } = await supabase
       .from("documentos")
-      .delete()
+      .update({
+        deleted_at: agora,
+        deleted_by: userId,
+        purga_apos: null,
+      } as never)
       .in("id", ids)
-      .select("id, storage_path");
-    if (dErr) throw new Error(dErr.message);
+      .select("id");
+    if (uErr) throw new Error(uErr.message);
 
-    const removidos = (apagados ?? []) as { id: string; storage_path: string }[];
+    const removidos = (marcados ?? []) as { id: string }[];
     if (!removidos.length) {
-      throw new Error(
-        "Não foi possível descartar os anexos: sem permissão para excluir os registros. Nenhum arquivo foi apagado.",
-      );
+      throw new Error("Não foi possível descartar os anexos: sem permissão para alterar os registros.");
     }
 
-    await Promise.all(
-      removidos.filter((d) => d.storage_path).map((d) => removerDocumento(supabase, d.storage_path)),
-    );
-
     await emitEvento(supabase, EVENTOS.DOCUMENTO_REMOVIDO, "documento", removidos[0].id, {
-      descarte_definitivo: true,
+      soft_delete: true,
+      binario_retido: true,
       motivo: "envio_cancelado",
       quantidade: removidos.length,
     });
     return { ok: true, descartados: removidos.length };
   });
+

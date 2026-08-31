@@ -90,6 +90,7 @@ import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api
 import { Route as ApiPublicHooksMuralLembretesRouteImport } from './routes/api/public/hooks/mural-lembretes'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
+import { Route as ApiPublicHooksAuditarAnexosRouteImport } from './routes/api/public/hooks/auditar-anexos'
 import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
 import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
@@ -553,6 +554,12 @@ const ApiPublicHooksDeadlineCheckRoute =
     path: '/api/public/hooks/deadline-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAuditarAnexosRoute =
+  ApiPublicHooksAuditarAnexosRouteImport.update({
+    id: '/api/public/hooks/auditar-anexos',
+    path: '/api/public/hooks/auditar-anexos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicDocumentoPdfIdRoute = ApiPublicDocumentoPdfIdRouteImport.update({
   id: '/api/public/documento-pdf/$id',
   path: '/api/public/documento-pdf/$id',
@@ -644,6 +651,7 @@ export interface FileRoutesByFullPath {
   '/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
+  '/api/public/hooks/auditar-anexos': typeof ApiPublicHooksAuditarAnexosRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
@@ -727,6 +735,7 @@ export interface FileRoutesByTo {
   '/unidades': typeof AuthenticatedUnidadesIndexRoute
   '/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
+  '/api/public/hooks/auditar-anexos': typeof ApiPublicHooksAuditarAnexosRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
@@ -813,6 +822,7 @@ export interface FileRoutesById {
   '/_authenticated/unidades/': typeof AuthenticatedUnidadesIndexRoute
   '/_authenticated/configuracao/perfis/$id': typeof AuthenticatedConfiguracaoPerfisIdRoute
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
+  '/api/public/hooks/auditar-anexos': typeof ApiPublicHooksAuditarAnexosRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
   '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/unidades/'
     | '/configuracao/perfis/$id'
     | '/api/public/documento-pdf/$id'
+    | '/api/public/hooks/auditar-anexos'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/mural-lembretes'
@@ -982,6 +993,7 @@ export interface FileRouteTypes {
     | '/unidades'
     | '/configuracao/perfis/$id'
     | '/api/public/documento-pdf/$id'
+    | '/api/public/hooks/auditar-anexos'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/mural-lembretes'
@@ -1067,6 +1079,7 @@ export interface FileRouteTypes {
     | '/_authenticated/unidades/'
     | '/_authenticated/configuracao/perfis/$id'
     | '/api/public/documento-pdf/$id'
+    | '/api/public/hooks/auditar-anexos'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
     | '/api/public/hooks/mural-lembretes'
@@ -1083,6 +1096,7 @@ export interface RootRouteChildren {
   ApiPublicHsmStreamRoute: typeof ApiPublicHsmStreamRoute
   ApiPublicValidarDocumentoRoute: typeof ApiPublicValidarDocumentoRoute
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
+  ApiPublicHooksAuditarAnexosRoute: typeof ApiPublicHooksAuditarAnexosRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
   ApiPublicHooksMuralLembretesRoute: typeof ApiPublicHooksMuralLembretesRoute
@@ -1658,6 +1672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/auditar-anexos': {
+      id: '/api/public/hooks/auditar-anexos'
+      path: '/api/public/hooks/auditar-anexos'
+      fullPath: '/api/public/hooks/auditar-anexos'
+      preLoaderRoute: typeof ApiPublicHooksAuditarAnexosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/documento-pdf/$id': {
       id: '/api/public/documento-pdf/$id'
       path: '/api/public/documento-pdf/$id'
@@ -1930,6 +1951,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHsmStreamRoute: ApiPublicHsmStreamRoute,
   ApiPublicValidarDocumentoRoute: ApiPublicValidarDocumentoRoute,
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
+  ApiPublicHooksAuditarAnexosRoute: ApiPublicHooksAuditarAnexosRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
   ApiPublicHooksMuralLembretesRoute: ApiPublicHooksMuralLembretesRoute,

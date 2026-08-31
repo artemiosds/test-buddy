@@ -97,15 +97,19 @@ export const diagnosticarR2 = createServerFn({ method: "POST" })
         });
       } finally {
         if (gravou) {
-          const apagou = await removerArquivo(chave);
+          const r = await removerArquivo(chave);
           etapas.push({
             etapa: "Limpeza (DELETE)",
-            ok: apagou,
-            detalhe: apagou
-              ? "Arquivo de teste removido do bucket."
-              : "Não foi possível remover o arquivo de teste.",
+            ok: r.ok || r.motivo === "retencao",
+            detalhe:
+              r.motivo === "retencao"
+                ? "Exclusão recusada pelo bloqueio de retenção do bucket — comportamento esperado."
+                : r.ok
+                  ? "Arquivo de teste removido do bucket."
+                  : `Não foi possível remover o arquivo de teste (${r.status ?? r.motivo}).`,
           });
         }
+
       }
     }
 
