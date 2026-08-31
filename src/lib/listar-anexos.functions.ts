@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, ensurePermission } from "./authz.server";
-import { assinarUrlDocumento } from "./storage-r2.server";
+import { assinarUrlDocumento, isCaminhoR2, objetoExisteR2 } from "./storage-r2.server";
 
 const ListarAnexosSchema = z.object({
   entidade_id: z.string().uuid(),
@@ -67,7 +67,10 @@ async function formatarAnexos(rows: any[], supabase: any) {
 
     const assinadas = await Promise.all(
       rows.map(async (d: any) => {
-        const url = await assinarUrlDocumento(supabase, d.storage_path);
+        const [url, existe] = await Promise.all([
+          assinarUrlDocumento(supabase, d.storage_path),
+          isCaminhoR2(d.storage_path) ? objetoExisteR2(d.storage_path) : Promise.resolve(true),
+        ]);
         return {
           id: d.id as string,
           nome: d.nome as string,
@@ -75,7 +78,8 @@ async function formatarAnexos(rows: any[], supabase: any) {
           tamanho_bytes: Number(d.tamanho_bytes ?? 0),
           created_at: d.created_at as string,
           enviado_por: autores.get(d.created_by) ?? null,
-          url,
+          url: existe ? url : null,
+          disponivel: existe,
         };
       }),
     );

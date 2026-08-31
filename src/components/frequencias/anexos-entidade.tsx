@@ -246,12 +246,19 @@ export function AnexosEntidade({
                         {a.enviado_por ? ` · ${a.enviado_por}` : ""}
                       </div>
                     </div>
-                    {a.url && (
+                    {a.url ? (
                       <Button asChild variant="outline" size="sm" className="h-7 text-xs">
                         <a href={a.url} target="_blank" rel="noreferrer">
                           Ver
                         </a>
                       </Button>
+                    ) : (
+                      <span
+                        className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700"
+                        title="O arquivo não está mais no armazenamento."
+                      >
+                        Arquivo indisponível
+                      </span>
                     )}
                     {canEdit && (
                       <Button

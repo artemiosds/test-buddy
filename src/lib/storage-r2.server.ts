@@ -124,6 +124,22 @@ export async function removerArquivo(key: string): Promise<boolean> {
 }
 
 /**
+ * HEAD no R2 para saber se o binário ainda existe.
+ * Usado na listagem para não entregar link que abriria erro `NoSuchKey`.
+ * Em caso de indisponibilidade do R2 assume `true` (não esconde o anexo).
+ */
+export async function objetoExisteR2(key: string): Promise<boolean> {
+  const cfg = lerConfig();
+  if (!cfg) return true;
+  try {
+    const res = await cliente(cfg).fetch(urlObjeto(cfg, chaveR2(key)), { method: "HEAD" });
+    return res.status !== 404;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Confere no R2 se o objeto existe e respeita o limite de tamanho.
  * Se exceder o limite, o objeto é apagado e um erro é lançado.
  */
