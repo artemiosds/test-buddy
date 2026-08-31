@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-import { useAnalytics } from "@/hooks/use-analytics";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 import { EmptyState, KpiCard, PageHeader, StatusBadge } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
@@ -46,18 +45,21 @@ const ORDER: {
 ];
 
 function SituacaoFuncional() {
-  const { unidadePadraoId, isMaster } = useUnitScope();
-  const a = useAnalytics({ unidadeId: unidadePadraoId });
+  const { unidadePadraoId, selectedUnitId, isMaster, isGlobal } = useUnitScope();
+  // O Administrador Master sempre enxerga a rede inteira nesta página, como
+  // na listagem de Profissionais. Outros perfis globais podem filtrar unidade.
+  const escopoUnidadeId = isMaster ? null : isGlobal ? selectedUnitId : unidadePadraoId;
   const { data: professionals, isLoading: isLoadingDirect } = useQuery({
-    queryKey: ["profissionais-status-direct", unidadePadraoId, isMaster],
+    queryKey: ["profissionais-status-direct", escopoUnidadeId],
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
         .select("status, unidade_id")
-        .is("deleted_at", null);
-      
-      if (unidadePadraoId) {
-        q = q.eq("unidade_id", unidadePadraoId);
+        .is("deleted_at", null)
+        .limit(10000);
+
+      if (escopoUnidadeId) {
+        q = q.eq("unidade_id", escopoUnidadeId);
       }
       
       const { data, error } = await q;
@@ -66,17 +68,11 @@ function SituacaoFuncional() {
     },
   });
 
-  const isLoading = a.statusBreakdown.isLoading || isLoadingDirect;
+  const isLoading = isLoadingDirect;
   
-  // Agregação no frontend para garantir resiliência se a RPC falhar ou retornar zeros incorretamente
+  // Usa diretamente a mesma fonte da página de Profissionais. A RPC de analytics
+  // não é usada aqui porque pode carregar um escopo de unidade diferente do Master.
   const statusCounts = useMemo(() => {
-    // Se a RPC trouxe dados, usamos como base, mas validamos se não está tudo zerado
-    const rpcData = a.statusBreakdown.data as Record<string, number> | undefined;
-    const hasRpcData = rpcData && Object.values(rpcData).some(v => v > 0);
-    
-    if (hasRpcData) return rpcData;
-
-    // Fallback: agregamos manualmente os profissionais se a RPC falhar
     const counts: Record<string, number> = {
       ativo: 0,
       afastado: 0,
@@ -101,7 +97,7 @@ function SituacaoFuncional() {
     });
 
     return counts;
-  }, [a.statusBreakdown.data, professionals]);
+  }, [professionals]);
 
   const total = Object.values(statusCounts).reduce((s: number, n: number) => s + n, 0);
 

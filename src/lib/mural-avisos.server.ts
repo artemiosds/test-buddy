@@ -15,7 +15,10 @@ type Alvo = { id: string; email: string; nome: string };
  * Envia (ou reenvia) por e-mail um aviso do mural, usando as credenciais SMTP
  * de public.configuracoes_sistema (com fallback para variáveis de ambiente).
  */
-export async function enviarEmailsAviso(avisoId: string): Promise<ResultadoEmailAviso> {
+export async function enviarEmailsAviso(
+  avisoId: string,
+  opts?: { pularEnviadosDesde?: string },
+): Promise<ResultadoEmailAviso> {
   const vazio: ResultadoEmailAviso = { destinatarios: 0, enviados: 0, falhas: 0, motivo: null };
 
   const { data: aviso, error: aErr } = await supabaseAdmin
@@ -100,7 +103,20 @@ export async function enviarEmailsAviso(avisoId: string): Promise<ResultadoEmail
   let falhas = 0;
   let motivo: string | null = null;
 
+  // Idempotência opcional: pula quem já recebeu este assunto com sucesso desde a data informada
+  const jaRecebeu = new Set<string>();
+  if (opts?.pularEnviadosDesde) {
+    const { data: logs } = await supabaseAdmin
+      .from("logs_notificacoes")
+      .select("destinatario")
+      .eq("assunto", assunto)
+      .eq("status", "enviado")
+      .gte("data_envio", opts.pularEnviadosDesde);
+    for (const l of logs ?? []) jaRecebeu.add(((l.destinatario as string) ?? "").toLowerCase());
+  }
+
   for (const u of destinatarios) {
+    if (jaRecebeu.has(u.email.toLowerCase())) continue;
     const res = await sendEmail({ to: u.email, subject: assunto, html });
     if (res.success) {
       enviados += 1;

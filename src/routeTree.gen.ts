@@ -87,6 +87,7 @@ import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
 import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_authenticated/administracao/mural'
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
+import { Route as ApiPublicHooksMuralLembretesRouteImport } from './routes/api/public/hooks/mural-lembretes'
 import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
 import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
 import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
@@ -534,6 +535,12 @@ const ApiPublicHooksPurgarDocumentosRoute =
     path: '/api/public/hooks/purgar-documentos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksMuralLembretesRoute =
+  ApiPublicHooksMuralLembretesRouteImport.update({
+    id: '/api/public/hooks/mural-lembretes',
+    path: '/api/public/hooks/mural-lembretes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksEventosWorkerRoute =
   ApiPublicHooksEventosWorkerRouteImport.update({
     id: '/api/public/hooks/eventos-worker',
@@ -639,6 +646,7 @@ export interface FileRoutesByFullPath {
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesByTo {
@@ -721,6 +729,7 @@ export interface FileRoutesByTo {
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRoutesById {
@@ -806,6 +815,7 @@ export interface FileRoutesById {
   '/api/public/documento-pdf/$id': typeof ApiPublicDocumentoPdfIdRoute
   '/api/public/hooks/deadline-check': typeof ApiPublicHooksDeadlineCheckRoute
   '/api/public/hooks/eventos-worker': typeof ApiPublicHooksEventosWorkerRoute
+  '/api/public/hooks/mural-lembretes': typeof ApiPublicHooksMuralLembretesRoute
   '/api/public/hooks/purgar-documentos': typeof ApiPublicHooksPurgarDocumentosRoute
 }
 export interface FileRouteTypes {
@@ -891,6 +901,7 @@ export interface FileRouteTypes {
     | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/mural-lembretes'
     | '/api/public/hooks/purgar-documentos'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -973,6 +984,7 @@ export interface FileRouteTypes {
     | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/mural-lembretes'
     | '/api/public/hooks/purgar-documentos'
   id:
     | '__root__'
@@ -1057,6 +1069,7 @@ export interface FileRouteTypes {
     | '/api/public/documento-pdf/$id'
     | '/api/public/hooks/deadline-check'
     | '/api/public/hooks/eventos-worker'
+    | '/api/public/hooks/mural-lembretes'
     | '/api/public/hooks/purgar-documentos'
   fileRoutesById: FileRoutesById
 }
@@ -1072,6 +1085,7 @@ export interface RootRouteChildren {
   ApiPublicDocumentoPdfIdRoute: typeof ApiPublicDocumentoPdfIdRoute
   ApiPublicHooksDeadlineCheckRoute: typeof ApiPublicHooksDeadlineCheckRoute
   ApiPublicHooksEventosWorkerRoute: typeof ApiPublicHooksEventosWorkerRoute
+  ApiPublicHooksMuralLembretesRoute: typeof ApiPublicHooksMuralLembretesRoute
   ApiPublicHooksPurgarDocumentosRoute: typeof ApiPublicHooksPurgarDocumentosRoute
 }
 
@@ -1623,6 +1637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPurgarDocumentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/mural-lembretes': {
+      id: '/api/public/hooks/mural-lembretes'
+      path: '/api/public/hooks/mural-lembretes'
+      fullPath: '/api/public/hooks/mural-lembretes'
+      preLoaderRoute: typeof ApiPublicHooksMuralLembretesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/eventos-worker': {
       id: '/api/public/hooks/eventos-worker'
       path: '/api/public/hooks/eventos-worker'
@@ -1911,6 +1932,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDocumentoPdfIdRoute: ApiPublicDocumentoPdfIdRoute,
   ApiPublicHooksDeadlineCheckRoute: ApiPublicHooksDeadlineCheckRoute,
   ApiPublicHooksEventosWorkerRoute: ApiPublicHooksEventosWorkerRoute,
+  ApiPublicHooksMuralLembretesRoute: ApiPublicHooksMuralLembretesRoute,
   ApiPublicHooksPurgarDocumentosRoute: ApiPublicHooksPurgarDocumentosRoute,
 }
 export const routeTree = rootRouteImport
