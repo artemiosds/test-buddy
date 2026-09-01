@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { valorCelula } from "@/lib/numero-ptbr";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -695,11 +696,8 @@ function LinhasAnaliseDialog({
     };
   }, []);
 
-  const parseInputValue = (val: string | number | null | undefined) => {
-    if (val === "" || val === null || val === undefined) return 0;
-    const parsed = Number(val);
-    return isNaN(parsed) ? 0 : parsed;
-  };
+  // Preserva marcações textuais ("X") e números pt-BR ("1.500" = 1500).
+  const parseInputValue = (val: string | number | null | undefined) => valorCelula(val);
 
   const flushUpdates = async () => {
     const updates = { ...pendingUpdates.current };
@@ -732,6 +730,7 @@ function LinhasAnaliseDialog({
           data: {
             competencia_id: cu.competencia_id,
             unidade_id: cu.unidade_id,
+            setor_id: freqBase.setor_id ?? undefined,
             linhas: [{
               profissional_id: pid,
               dias_trabalhados: parseInputValue(payloadBase.dias_trabalhados),
@@ -759,6 +758,7 @@ function LinhasAnaliseDialog({
           data: {
             competencia_id: cu.competencia_id,
             unidade_id: cu.unidade_id,
+            setor_id: freqBase.setor_id ?? undefined,
             linhas: [{
               profissional_id: pid,
               dias_trabalhados: parseInputValue(payloadBase.dias_trabalhados),

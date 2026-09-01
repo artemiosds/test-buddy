@@ -137,6 +137,21 @@ function fmt(v: number | string | null | undefined): string {
  * Dias trabalhados da competência. Quando o servidor não tem ocorrência e o
  * campo não foi preenchido, usa os dias projetados ("Proj") como referência.
  */
+/**
+ * Coluna de marcação (Férias 1/3): texto digitado é preservado em maiúsculo,
+ * número maior que zero vira "X", vazio/zero fica em branco.
+ */
+function fmtMarcacao(v: number | string | null | undefined): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return "";
+    if (!/^R?\$?\s*-?[\d.,]+$/.test(s)) return s.toUpperCase();
+    return parseNumeroPtBr(s) > 0 ? "X" : "";
+  }
+  return v > 0 ? "X" : "";
+}
+
 function diasTrabalhados(item: ItemFolha): string {
   const bruto = item.totais.dias_trabalhados;
   const n = parseNumeroPtBr(bruto);
@@ -223,7 +238,7 @@ function calcularAlturaLinha(doc: jsPDF, item: ItemFolha): number {
     mat: isStatus ? situacao : fmt(t.maternidade),
     he50: isStatus ? situacao : fmt(t.he_50),
     he100: isStatus ? situacao : fmt(t.he_100),
-    terco: isStatus ? situacao : (t.ferias_terco ? "X" : ""),
+    terco: isStatus ? situacao : fmtMarcacao(t.ferias_terco),
     integ: isStatus ? situacao : fmt(t.ferias_integral),
     sal: isStatus ? situacao : fmt(t.sal_sub_h),
     adic: isStatus ? situacao : fmt(t.adicional_noturno),
@@ -449,7 +464,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
     mat: isStatus ? situacao : fmt(t.maternidade),
     he50: isStatus ? situacao : fmt(t.he_50),
     he100: isStatus ? situacao : fmt(t.he_100),
-    terco: isStatus ? situacao : (t.ferias_terco ? "X" : ""),
+    terco: isStatus ? situacao : fmtMarcacao(t.ferias_terco),
     integ: isStatus ? situacao : fmt(t.ferias_integral),
     sal: isStatus ? situacao : fmt(t.sal_sub_h),
     adic: isStatus ? situacao : fmt(t.adicional_noturno),

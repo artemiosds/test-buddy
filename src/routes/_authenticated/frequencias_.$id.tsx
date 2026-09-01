@@ -1,5 +1,5 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
-import { parseNumeroPtBr } from "@/lib/numero-ptbr";
+import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -939,20 +939,20 @@ function FrequenciaDetalhe() {
               jorn: p?.jorn ?? null,
             },
             totais: {
-              dias_trabalhados: parseNumeroPtBr(l.dias_trabalhados ?? 0),
-              dias_falta: parseNumeroPtBr(l.faltas_injustificadas ?? 0),
-              atestado: parseNumeroPtBr(l.atestado ?? 0),
+              dias_trabalhados: valorCelula(l.dias_trabalhados ?? 0),
+              dias_falta: valorCelula(l.faltas_injustificadas ?? 0),
+              atestado: valorCelula(l.atestado ?? 0),
               maternidade: 0,
-              he_50: parseNumeroPtBr(l.he_50 ?? 0),
-              he_100: parseNumeroPtBr(l.he_100 ?? 0),
-              ferias_terco: parseNumeroPtBr(l.ferias_terco ?? 0),
-              ferias_integral: parseNumeroPtBr(l.ferias_integral ?? 0),
-              sal_sub_h: parseNumeroPtBr(l.sal_sub_h ?? 0),
-              adicional_noturno: parseNumeroPtBr(l.adicional_noturno ?? 0),
-              aulas_suplementares: parseNumeroPtBr(l.aulas_suplementares ?? 0),
-              plantao: parseNumeroPtBr(l.plantoes_extras ?? 0),
-              sobreaviso: parseNumeroPtBr(l.sobreaviso ?? 0),
-              incentivo: parseNumeroPtBr(l.incentivo ?? 0),
+              he_50: valorCelula(l.he_50 ?? 0),
+              he_100: valorCelula(l.he_100 ?? 0),
+              ferias_terco: valorCelula(l.ferias_terco ?? 0),
+              ferias_integral: valorCelula(l.ferias_integral ?? 0),
+              sal_sub_h: valorCelula(l.sal_sub_h ?? 0),
+              adicional_noturno: valorCelula(l.adicional_noturno ?? 0),
+              aulas_suplementares: valorCelula(l.aulas_suplementares ?? 0),
+              plantao: valorCelula(l.plantoes_extras ?? 0),
+              sobreaviso: valorCelula(l.sobreaviso ?? 0),
+              incentivo: valorCelula(l.incentivo ?? 0),
             },
           });
         }

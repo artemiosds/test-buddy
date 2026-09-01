@@ -35,3 +35,16 @@ export function formatarNumeroPtBr(n: number): string {
     ? n.toLocaleString("pt-BR")
     : n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/**
+ * Valor bruto de uma célula da folha para exportação.
+ * Numérico (ou vazio) => number; marcação textual ("X", "SIM") => string original.
+ */
+export function valorCelula(v: unknown): number | string {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (v == null) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  if (/^R?\$?\s*-?[\d.,]+$/.test(s)) return parseNumeroPtBr(s);
+  return s;
+}
