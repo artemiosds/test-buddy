@@ -290,7 +290,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
-      .select("id, profissional_id, status_linha, updated_at")
+      .select("id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")
       .eq("frequencia_id", frequencia_id)
       .in("profissional_id", profIds)
       .is("deleted_at", null);
@@ -354,11 +354,12 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         updated_by: userId,
       };
 
-      if (!ex) {
-        payload.created_by = userId;
-      } else {
-        payload.id = ex.id;
-      }
+      // Todas as linhas do lote precisam do mesmo conjunto de colunas: no upsert
+      // em lote o PostgREST envia NULL para chaves ausentes (erro 23502 no `id`).
+      payload.id = ex?.id ?? crypto.randomUUID();
+      payload.created_by = (ex as any)?.created_by ?? userId;
+
+
 
       const inativo = naoAtivos.has(l.profissional_id);
       for (const f of PAYLOAD_FIELDS) {

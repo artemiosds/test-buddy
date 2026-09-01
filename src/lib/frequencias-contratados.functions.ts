@@ -193,7 +193,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     const profIds = data.linhas.map((l) => l.profissional_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencias_contratados")
-      .select("id, profissional_id, status, updated_at")
+      .select("id, profissional_id, status, updated_at, created_by, aprovada_em, aprovada_por")
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
       .in("profissional_id", profIds)
@@ -257,11 +257,11 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         aprovada_por: (l.status === "aprovada" && ex?.status !== "aprovada") ? userId : (ex?.aprovada_por ?? null),
       };
 
-      if (!ex) {
-        payload.created_by = userId;
-      } else {
-        payload.id = ex.id;
-      }
+      // Todas as linhas do lote precisam do mesmo conjunto de colunas (ver Efetivos).
+      payload.id = ex?.id ?? crypto.randomUUID();
+      payload.created_by = (ex as any)?.created_by ?? userId;
+
+
 
       const inativo = naoAtivos.has(l.profissional_id);
       for (const f of PAYLOAD_FIELDS) {
