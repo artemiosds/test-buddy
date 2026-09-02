@@ -172,12 +172,13 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
-    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status, competencia_unidade_id } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
       data.setor_id
     );
+
 
     const query = supabase
       .from("profissionais")
