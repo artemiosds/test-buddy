@@ -821,7 +821,7 @@ function LinhasAnaliseDialog({
             id:profissional_id, profissional_id, status:status, observacoes, 
             dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, 
             plantoes, sobreaviso, incentivo, 
-            profissionais:profissional_id!inner(nome_completo, matricula, setor_id)
+            profissionais:profissional_id!inner(nome_completo, matricula, setor_id, status)
           `)
           .eq("competencia_id", cu.competencia_id)
           .eq("unidade_id", cu.unidade_id)
