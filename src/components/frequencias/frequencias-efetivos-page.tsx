@@ -356,8 +356,11 @@ export function FrequenciasEfetivosPage() {
 
   const folhaStatus = (folha?.frequencia_status as StatusFreq) ?? "rascunho";
   const folhaEditavel =
-    folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada";
-  
+    folhaStatus === "rascunho" ||
+    folhaStatus === "com_pendencias" ||
+    folhaStatus === "rejeitada" ||
+    folhaStatus === "devolvida";
+
   // Mapeamento de perfis para controle de botões na interface (EFETIVOS)
   const isMaster = !!me?.is_master;
   const perfilCodigo = me?.perfil_codigo || ""; // Usa o campo direto do UserContext
@@ -365,7 +368,14 @@ export function FrequenciasEfetivosPage() {
   const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
   const isOperacional = perfilCodigo === "OPERACIONAL_ADM" || isMaster;
 
-  const canEdit = !compFechada && has("frequencia.editar") && folhaEditavel && (isDiretor || isOperacional);
+  // Master/Gestor mantêm a edição mesmo após o envio para análise (o backend
+  // já permite esse bypass); os demais perfis só editam folha em aberto.
+  const canEdit =
+    !compFechada &&
+    has("frequencia.editar") &&
+    (folhaEditavel || isGestorPerfil) &&
+    (isDiretor || isOperacional || isGestorPerfil);
+
   const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
