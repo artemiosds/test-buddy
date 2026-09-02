@@ -315,7 +315,9 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       if (
         frequencia_status !== "rascunho" &&
         frequencia_status !== "com_pendencias" &&
-        frequencia_status !== "rejeitada"
+        frequencia_status !== "rejeitada" &&
+        frequencia_status !== "devolvida"
+
       ) {
         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
