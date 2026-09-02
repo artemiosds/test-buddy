@@ -322,14 +322,22 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     }
 
     const profIds = data.linhas.map((l) => l.profissional_id);
+    // Sem filtro de setor, a linha do profissional pode estar gravada na folha
+    // do setor dele. Procuramos em todas as folhas irmãs para ATUALIZAR a linha
+    // existente em vez de criar uma duplicada na folha geral.
+    const folhaIdsAlvo = normalizarSetorId(data.setor_id)
+      ? [frequencia_id]
+      : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
-      .select("id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")
-      .eq("frequencia_id", frequencia_id)
+      .select("id, frequencia_id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")
+      .in("frequencia_id", folhaIdsAlvo.length ? folhaIdsAlvo : [frequencia_id])
       .in("profissional_id", profIds)
-      .is("deleted_at", null);
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: true });
     if (exErr) throw new Error(exErr.message);
     const byProf = new Map((existentes ?? []).map((r: any) => [r.profissional_id, r]));
+
 
     // Proteção: profissionais que não estão ativos (férias/licença/afastamento…)
     // não recebem lançamentos numéricos — os campos são zerados no banco.
