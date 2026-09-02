@@ -857,7 +857,7 @@ function LinhasAnaliseDialog({
           dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, 
           ferias_terco, ferias_integral, adicional_noturno, he_50, he_100, 
           plantoes_extras, sobreaviso, incentivo, sal_sub_h, aulas_suplementares, 
-          profissionais:profissional_id(nome_completo, matricula, setor_id), 
+          profissionais:profissional_id(nome_completo, matricula, setor_id, status), 
           analisado_por_usuario:analisado_por(nome_completo)
         `)
         .eq("frequencia_id", freqId!)
