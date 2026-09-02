@@ -288,12 +288,13 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       throw new Error("Competência encerrada — folha de efetivos em modo somente leitura.");
     }
 
-    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status, competencia_unidade_id } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
       data.setor_id
     );
+
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
