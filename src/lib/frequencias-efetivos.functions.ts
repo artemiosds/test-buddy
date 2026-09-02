@@ -133,6 +133,30 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
   };
 }
 
+/**
+ * Retorna os ids de TODAS as folhas de efetivos da mesma competência/unidade
+ * (a folha geral com setor_id NULL e as folhas criadas por setor).
+ *
+ * Motivo: quando a unidade envia por setor, as linhas ficam gravadas na folha
+ * daquele setor. A tela sem filtro de setor lia só a folha de setor_id NULL e
+ * por isso alguns profissionais apareciam "vazios", mesmo com dados visíveis
+ * na tela de Aprovações (que lê todas as folhas).
+ */
+async function idsFolhasIrmasEfetivos(
+  supabase: any,
+  competencia_unidade_id: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("frequencias")
+    .select("id")
+    .eq("competencia_unidade_id", competencia_unidade_id)
+    .eq("tipo", "efetivos")
+    .is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((f: any) => f.id as string);
+}
+
+
 export const listarFolhaEfetivos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: { competencia_id: string; unidade_id: string; setor_id?: string | string[] }) =>
@@ -148,12 +172,13 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
-    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status, competencia_unidade_id } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
       data.setor_id
     );
+
 
     const query = supabase
       .from("profissionais")
@@ -199,16 +224,24 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     const profIds = (profsFinais ?? []).map((p: any) => p.id);
     let linhas: any[] = [];
     if (profIds.length) {
+      // Sem filtro de setor a visão é consolidada: lê as linhas de todas as
+      // folhas irmãs (geral + por setor) para não "perder" lançamentos.
+      const folhaIds = normalizarSetorId(data.setor_id)
+        ? [frequencia_id]
+        : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
       const { data: fs, error } = await supabase
         .from("frequencia_profissional")
         .select("*")
-        .eq("frequencia_id", frequencia_id)
+        .in("frequencia_id", folhaIds.length ? folhaIds : [frequencia_id])
         .in("profissional_id", profIds)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: true });
       if (error) throw new Error(error.message);
       linhas = fs ?? [];
     }
+    // Ordem crescente por updated_at → o Map mantém a linha mais recente.
     const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
+
 
     return {
       frequencia_id,
@@ -255,12 +288,13 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       throw new Error("Competência encerrada — folha de efetivos em modo somente leitura.");
     }
 
-    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status, competencia_unidade_id } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
       data.setor_id
     );
+
 
     const isMaster = context.claims?.is_master === true;
     const { data: isMasterRPC } = await supabase.rpc("is_master", { _user_id: userId });
@@ -281,21 +315,31 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       if (
         frequencia_status !== "rascunho" &&
         frequencia_status !== "com_pendencias" &&
-        frequencia_status !== "rejeitada"
+        frequencia_status !== "rejeitada" &&
+        frequencia_status !== "devolvida"
+
       ) {
         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
     }
 
     const profIds = data.linhas.map((l) => l.profissional_id);
+    // Sem filtro de setor, a linha do profissional pode estar gravada na folha
+    // do setor dele. Procuramos em todas as folhas irmãs para ATUALIZAR a linha
+    // existente em vez de criar uma duplicada na folha geral.
+    const folhaIdsAlvo = normalizarSetorId(data.setor_id)
+      ? [frequencia_id]
+      : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
-      .select("id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")
-      .eq("frequencia_id", frequencia_id)
+      .select("id, frequencia_id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")
+      .in("frequencia_id", folhaIdsAlvo.length ? folhaIdsAlvo : [frequencia_id])
       .in("profissional_id", profIds)
-      .is("deleted_at", null);
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: true });
     if (exErr) throw new Error(exErr.message);
     const byProf = new Map((existentes ?? []).map((r: any) => [r.profissional_id, r]));
+
 
     // Proteção: profissionais que não estão ativos (férias/licença/afastamento…)
     // não recebem lançamentos numéricos — os campos são zerados no banco.
@@ -346,7 +390,8 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
       }
 
       const payload: Record<string, unknown> = {
-        frequencia_id,
+        frequencia_id: (ex as any)?.frequencia_id ?? frequencia_id,
+
         profissional_id: l.profissional_id,
         status_linha: l.status_linha || (ex ? ex.status_linha : "pendente") || "pendente",
         aprovada_em: (l.status_linha === "aprovada" && ex?.status_linha !== "aprovada") ? new Date().toISOString() : (ex?.aprovada_em ?? null),
