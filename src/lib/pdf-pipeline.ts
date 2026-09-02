@@ -24,7 +24,12 @@ const REF_H = 560;
 const BASE_W = 75;
 const BASE_H = 30;
 
-export type EscopoAssinatura = { unidadeId?: string | null; secretariaId?: string | null };
+export type EscopoAssinatura = {
+  unidadeId?: string | null;
+  secretariaId?: string | null;
+  /** quando informado, prioriza a assinatura desse perfil (quem está assinando) */
+  perfilCodigo?: string | null;
+};
 
 /**
  * FASE 1 — Função central: devolve a assinatura institucional ATIVA aplicável,
@@ -57,9 +62,13 @@ export async function obterAssinaturaInstitucionalAtual(
   );
   if (candidatas.length === 0) return null;
 
-  // Ordena por escopo (Unidade > Secretaria > Global)
+  // Ordena por perfil solicitado (quem assina) e depois por escopo (Unidade > Secretaria > Global)
+  const perfilAlvo = escopo.perfilCodigo ?? null;
   candidatas.sort(
-    (a, b) => (prioridade[a.escopo] ?? 9) - (prioridade[b.escopo] ?? 9) || a.ordem - b.ordem,
+    (a, b) =>
+      (perfilAlvo ? (a.perfil_codigo === perfilAlvo ? 0 : 1) - (b.perfil_codigo === perfilAlvo ? 0 : 1) : 0) ||
+      (prioridade[a.escopo] ?? 9) - (prioridade[b.escopo] ?? 9) ||
+      a.ordem - b.ordem,
   );
 
   const selecionada = candidatas[0];
@@ -391,53 +400,146 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     }
   };
 
-  let assinatura: AssinaturaResolvida | null = null;
+  // ---------------------------------------------------------------
+  // Resolve TODAS as assinaturas aplicáveis (Direção da Unidade,
+  // Gestor/Secretário do usuário logado, carimbos institucionais).
+  // ---------------------------------------------------------------
+  let listaBruta: AssinaturaResolvida[] = [];
   try {
-    assinatura = await obterAssinaturaInstitucionalAtual(
-      opts.tipo ?? "relatorio",
-      { unidadeId: opts.unidadeId, secretariaId: opts.secretariaId },
-      opts.assinaturas,
-    );
-    if (assinatura) assinatura = await garantirImagemAssinatura(assinatura);
+    listaBruta =
+      opts.assinaturas ??
+      (await resolverAssinaturasDocumento(opts.tipo ?? "relatorio", {
+        secretariaId: opts.secretariaId ?? null,
+        unidadeId: opts.unidadeId ?? null,
+      }));
   } catch {
-    assinatura = null;
+    listaBruta = [];
   }
 
-  if (!assinatura) {
-    if (documentoId && validationCode) {
-      // Mesmo sem assinatura visual, injeta o selo de autenticidade no rodapé
-      const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
-      const pdfBuffer = doc.output("arraybuffer");
-      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
-      const QRCode = await import("qrcode");
-      const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+  let candidatas = (listaBruta ?? []).filter(
+    (a) => a.escopo !== "ausente" && (!!a.imageData || !!a.titular_nome),
+  );
 
-      drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
-    }
-    await baixar();
-    return;
-  }
+  // Deduplica por assinatura/regra
+  const vistos = new Set<string>();
+  candidatas = candidatas.filter((a) => {
+    const key = a.assinatura_id ?? a.regra_id;
+    if (vistos.has(key)) return false;
+    vistos.add(key);
+    return true;
+  });
+
+  // Pré-carrega as imagens (jsPDF é síncrono)
+  candidatas = await Promise.all(candidatas.map((a) => garantirImagemAssinatura(a)));
 
   const pageWidthMm = doc.internal.pageSize.getWidth();
   const pageHeightMm = doc.internal.pageSize.getHeight();
   const pageCount = doc.getNumberOfPages();
-  const { w, h } = dimensoes(assinatura);
+  const paginaBase = Math.min(Math.max(opts.pagina ?? pageCount, 1), pageCount);
 
-  const temPadraoSalvo = assinatura.posicao_x !== null && assinatura.posicao_y !== null;
-  const xPadrao = temPadraoSalvo
-    ? ((assinatura.posicao_x as number) / REF_W) * pageWidthMm
-    : (opts.xPadraoMm ?? pageWidthMm - 14 - w);
-  const yPadrao = temPadraoSalvo
-    ? ((assinatura.posicao_y as number) / REF_H) * pageHeightMm
-    : (opts.yPadraoMm ?? pageHeightMm - 42);
-  const pagina = Math.min(Math.max(opts.pagina ?? pageCount, 1), pageCount);
+  /** Injeta o selo de validação institucional no rodapé (best effort). */
+  const aplicarSelo = async () => {
+    if (!documentoId || !validationCode) return;
+    try {
+      const me = await supabase.rpc("get_my_user_context").then((r) => r.data as any);
+      const pdfBuffer = doc.output("arraybuffer");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+      const hashHex = Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+      const QRCode = await import("qrcode");
+      const qrDataUrl = await (QRCode.toDataURL ?? (QRCode as any).default?.toDataURL)(
+        validationUrl,
+        { margin: 1, width: 180 },
+      );
+      drawSignatureStamp(
+        doc,
+        documentoId,
+        hashHex,
+        me?.nome_completo || "Sistema",
+        new Date().toISOString(),
+        validationCode,
+        14,
+        qrDataUrl,
+      );
+    } catch (err) {
+      console.warn("Falha ao aplicar selo de validação:", err);
+    }
+  };
+
+  // Nenhuma assinatura disponível → comportamento atual (selo + download)
+  if (candidatas.length === 0) {
+    await aplicarSelo();
+    await baixar();
+    return;
+  }
+
+  /** Posição padrão de cada assinatura (respeita o cadastro; senão distribui). */
+  const posicaoPadrao = (a: AssinaturaResolvida, idx: number) => {
+    const { w } = dimensoes(a);
+    const temPadraoSalvo = a.posicao_x !== null && a.posicao_y !== null;
+    if (temPadraoSalvo) {
+      return {
+        x: ((a.posicao_x as number) / REF_W) * pageWidthMm,
+        y: ((a.posicao_y as number) / REF_H) * pageHeightMm,
+      };
+    }
+    const colunas = Math.max(1, Math.min(candidatas.length, 3));
+    const coluna = idx % colunas;
+    const util = pageWidthMm - 28;
+    const passo = util / colunas;
+    const x = 14 + coluna * passo + Math.max(0, (passo - w) / 2);
+    const linha = Math.floor(idx / colunas);
+    const y = (opts.yPadraoMm ?? pageHeightMm - 42) - linha * 26;
+    return {
+      x: Math.max(0, Math.min(x, pageWidthMm - w)),
+      y: Math.max(0, y),
+    };
+  };
+
+  // Perfil do usuário logado — usado para marcar "incluir" por padrão
+  let meuPerfil: string | null = null;
+  try {
+    const { data: ctx } = await supabase.rpc("get_my_user_context");
+    meuPerfil = (ctx as any)?.perfil_codigo ?? null;
+  } catch {
+    /* segue sem contexto */
+  }
+
+  const itens = candidatas.map((a, idx) => {
+    const { x, y } = posicaoPadrao(a, idx);
+    return {
+      id: a.assinatura_id ?? a.regra_id,
+      assinatura: a,
+      xPadraoMm: x,
+      yPadraoMm: y,
+      paginaPadrao: paginaBase,
+      tamanhoPercentualPadrao: a.tamanho_percentual ?? 80,
+      incluirPadrao:
+        (!!meuPerfil && a.perfil_codigo === meuPerfil) || a.perfil_codigo === "DIRETOR_UNIDADE",
+    };
+  });
+  // Garante ao menos uma assinatura marcada
+  if (!itens.some((i) => i.incluirPadrao) && itens[0]) itens[0].incluirPadrao = true;
+
+  const porId = new Map(itens.map((i) => [i.id, i.assinatura]));
+
+  const desenharPadroes = () => {
+    for (const i of itens) {
+      if (!i.incluirPadrao) continue;
+      desenharAssinaturaEm(doc, i.assinatura, {
+        xMm: i.xPadraoMm,
+        yMm: i.yPadraoMm,
+        pagina: i.paginaPadrao,
+        tamanhoPercentual: i.tamanhoPercentualPadrao,
+      });
+    }
+  };
 
   if (opts.semModal) {
-    desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
+    await aplicarSelo();
+    desenharPadroes();
     await baixar();
     return;
   }
@@ -450,25 +552,21 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     previewUrl = "";
   }
 
-
   const escolha = await requestPdfPosicao({
     previewUrl,
     pageWidthMm,
     pageHeightMm,
     pageCount,
-    paginaPadrao: pagina,
-    xPadraoMm: xPadrao,
-    yPadraoMm: yPadrao,
     larguraMm: BASE_W,
     alturaMm: BASE_H,
-    tamanhoPercentualPadrao: assinatura.tamanho_percentual ?? 80,
-    assinatura,
     filename: finalFilename,
+    assinaturas: itens,
   });
 
-  // Modal indisponível → posição padrão (nunca quebra o download)
+  // Modal indisponível → posições padrão (nunca quebra o download)
   if (escolha === undefined) {
-    desenharAssinaturaEm(doc, assinatura, { xMm: xPadrao, yMm: yPadrao, pagina });
+    await aplicarSelo();
+    desenharPadroes();
     await baixar();
     return;
   }
@@ -476,78 +574,27 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   // Usuário cancelou
   if (escolha === null) return;
 
-  // Antes de desenhar a assinatura visual, injetamos o carimbo de autenticidade (Selo Verde)
-  if (documentoId && validationCode) {
-    const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
-    // Recalcula o hash final antes da assinatura (o hash registrado no banco é do PDF base)
-    const pdfBuffer = doc.output("arraybuffer");
-    const hashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
-    const QRCode = await import("qrcode");
-    const qrDataUrl = await (QRCode.toDataURL ?? QRCode.default?.toDataURL)(validationUrl, { margin: 1, width: 180 });
+  await aplicarSelo();
 
-    drawSignatureStamp(doc, documentoId, hashHex, me?.nome_completo || "Sistema", new Date().toISOString(), validationCode, 14, qrDataUrl);
-  }
-
-  // CORREÇÃO: Busca direta da imagem da diretora para o rodapé (Fallback/Legado)
-  const lastY = (doc as any).lastAutoTable?.finalY || 32;
-  const me = await supabase.rpc("get_my_user_context").then(r => r.data as any);
-  
-  // Se houver uma assinatura INSTITUCIONAL específica para diretora na unidade
-  // o finalizarPdf já trataria. Mas o usuário quer uma lógica específica de fetch.
-  // Vamos injetar a lógica de busca do carimbo se a assinatura resolvida não tiver imagem.
-  if (assinatura && !assinatura.imageData) {
-    try {
-      const { data: assin } = await supabase
-        .from('assinaturas_institucionais')
-        .select('storage_path')
-        .eq('usuario_id', me?.id)
-        .eq('ativa', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (assin?.storage_path) {
-        const url = supabase.storage.from('assinaturas').getPublicUrl(assin.storage_path).data.publicUrl;
-        
-        const res = await fetch(url);
-        if (res.ok) {
-          const blob = await res.blob();
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-          assinatura.imageData = base64;
-        }
-      }
-    } catch (err) {
-      console.warn("Não foi possível carregar carimbo:", err);
+  for (const item of escolha.itens) {
+    if (!item.incluir) continue;
+    const a = porId.get(item.assinaturaId);
+    if (!a) continue;
+    desenharAssinaturaEm(doc, a, {
+      xMm: item.xMm,
+      yMm: item.yMm,
+      pagina: item.pagina,
+      tamanhoPercentual: item.tamanhoPercentual,
+    });
+    if (item.salvarPadrao) {
+      await salvarPosicaoPadrao(
+        a,
+        { xMm: item.xMm, yMm: item.yMm, tamanhoPercentual: item.tamanhoPercentual },
+        pageWidthMm,
+        pageHeightMm,
+      );
     }
   }
 
-  desenharAssinaturaEm(doc, assinatura, {
-    xMm: escolha.xMm,
-    yMm: escolha.yMm,
-    pagina: escolha.pagina,
-    tamanhoPercentual: escolha.tamanhoPercentual,
-  });
-  if (escolha.salvarPadrao) {
-    await salvarPosicaoPadrao(
-      assinatura,
-      { 
-        xMm: escolha.xMm, 
-        yMm: escolha.yMm, 
-        tamanhoPercentual: escolha.tamanhoPercentual 
-      },
-      pageWidthMm,
-      pageHeightMm,
-    );
-  }
-  // Se temos um ID de documento e o PDF foi gerado com sucesso, 
-  // poderíamos fazer o upload do PDF aqui se desejado (onBlob já trata isso).
   await baixar();
 }

@@ -4,6 +4,18 @@
  */
 import type { AssinaturaResolvida } from "@/lib/pdf-assinaturas";
 
+export type PdfPosicaoItemRequest = {
+  /** identificador estável (assinatura_id ou regra_id) */
+  id: string;
+  assinatura: AssinaturaResolvida;
+  xPadraoMm: number;
+  yPadraoMm: number;
+  paginaPadrao: number;
+  tamanhoPercentualPadrao: number;
+  /** marcada por padrão (usuário logado / direção da unidade) */
+  incluirPadrao: boolean;
+};
+
 export type PdfPosicaoRequest = {
   /** PDF em memória (sem assinatura) para pré-visualização */
   previewUrl: string;
@@ -11,25 +23,25 @@ export type PdfPosicaoRequest = {
   pageWidthMm: number;
   pageHeightMm: number;
   pageCount: number;
-  /** página onde a assinatura será inserida por padrão (1-based) */
-  paginaPadrao: number;
-  /** posição padrão em mm */
-  xPadraoMm: number;
-  yPadraoMm: number;
+  /** tamanho base do bloco de assinatura (100%) */
   larguraMm: number;
   alturaMm: number;
-  tamanhoPercentualPadrao: number;
-  assinatura: AssinaturaResolvida;
   filename: string;
+  /** todas as assinaturas aplicáveis ao documento */
+  assinaturas: PdfPosicaoItemRequest[];
 };
 
-export type PdfPosicaoResult = {
+export type PdfPosicaoItemResult = {
+  assinaturaId: string;
   xMm: number;
   yMm: number;
-    pagina: number;
-    tamanhoPercentual: number;
-    salvarPadrao: boolean;
-} | null;
+  pagina: number;
+  tamanhoPercentual: number;
+  incluir: boolean;
+  salvarPadrao: boolean;
+};
+
+export type PdfPosicaoResult = { itens: PdfPosicaoItemResult[] } | null;
 
 type Handler = (req: PdfPosicaoRequest) => Promise<PdfPosicaoResult>;
 
@@ -44,9 +56,9 @@ export function hasPdfPosicaoHandler() {
 }
 
 /**
- * Solicita ao usuário o posicionamento da assinatura.
+ * Solicita ao usuário o posicionamento das assinaturas.
  * Sem handler montado (SSR, testes), devolve `undefined` para que o
- * chamador use a posição padrão sem quebrar o download.
+ * chamador use as posições padrão sem quebrar o download.
  */
 export async function requestPdfPosicao(
   req: PdfPosicaoRequest,

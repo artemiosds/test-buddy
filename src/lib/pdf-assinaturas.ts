@@ -106,27 +106,65 @@ export function desenharImagemProporcional(
 
 
 /**
- * Converte qualquer imagem (Data URL) para PNG com fundo branco se houver transparência.
- * Isso evita o "fundo preto" em imagens com canal alpha no jsPDF.
+ * Normaliza uma imagem de carimbo/assinatura (Data URL) para PNG.
+ *
+ * - modo "transparente" (padrão): preserva o canal alfa e transforma os pixels
+ *   quase brancos do fundo digitalizado em transparentes, de modo que o carimbo
+ *   se misture ao fundo da folha (linhas, tabelas, faixas) sem caixa branca.
+ * - modo "branco": achata a imagem contra um fundo branco (comportamento legado,
+ *   usado como fallback).
  */
-export async function removerFundoTransparente(dataUri: string): Promise<string> {
+export async function removerFundoTransparente(
+  dataUri: string,
+  modo: "transparente" | "branco" = "transparente",
+  tolerancia = 238,
+): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) {
+          resolve(dataUri);
+          return;
+        }
+
+        if (modo === "branco") {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+          return;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const px = imageData.data;
+        for (let i = 0; i < px.length; i += 4) {
+          const a = px[i + 3];
+          if (a === 0) continue;
+          const r = px[i];
+          const g = px[i + 1];
+          const b = px[i + 2];
+          if (r >= tolerancia && g >= tolerancia && b >= tolerancia) {
+            px[i + 3] = 0;
+          } else {
+            // Suaviza a borda: quanto mais claro o pixel, mais translúcido
+            const luminancia = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+            if (luminancia > 0.82) px[i + 3] = Math.round(a * (1 - (luminancia - 0.82) / 0.18));
+          }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } catch {
+        // Fallback seguro: nunca quebra a emissão do documento
         resolve(dataUri);
-        return;
       }
-      // Fundo branco
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Desenha a imagem por cima
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
     };
     img.onerror = () => resolve(dataUri);
     img.src = dataUri;
@@ -158,7 +196,11 @@ export async function resolverAssinaturasDocumento(
   tipo: TipoDocumento,
   opts: { secretariaId?: string | null; unidadeId?: string | null; frequenciaId?: string | null } = {},
 ): Promise<AssinaturaResolvida[]> {
-  // Se for uma frequência com snapshot, buscamos os snapshots primeiro
+  // Snapshots capturados no envio/aprovação da folha (quando existirem).
+  // Eles NÃO substituem as demais regras: são mesclados com as regras
+  // vigentes para que todos os signatários (Direção + Gestor/Secretaria)
+  // apareçam no documento.
+  let snapshotList: AssinaturaResolvida[] = [];
   if (opts.frequenciaId && (tipo === "folha_efetivos" || tipo === "folha_contratados" || tipo === "frequencia")) {
     const { data: snapshots } = await supabase
       .from("frequencia_assinaturas_snapshot")
@@ -166,39 +208,55 @@ export async function resolverAssinaturasDocumento(
       .eq("frequencia_id", opts.frequenciaId);
 
     if (snapshots && snapshots.length > 0) {
-      return Promise.all(snapshots.map(async (s) => {
-        let imageData: string | null = null;
-        if (s.storage_path) {
-          const signedUrl = await getSignatureSignedUrl(s.storage_path, null, 300);
-          if (signedUrl) {
-            imageData = await urlToDataUrl(signedUrl);
-          }
+      // Descobre o perfil real de cada assinatura usada no snapshot
+      const snapIds = snapshots.map((s) => s.assinatura_id).filter(Boolean) as string[];
+      const perfilPorAssinatura = new Map<string, string | null>();
+      if (snapIds.length > 0) {
+        const { data: assinRows } = await supabase
+          .from("assinaturas_institucionais")
+          .select("id, perfis:perfil_id(codigo)")
+          .in("id", snapIds);
+        for (const r of (assinRows ?? []) as Array<{ id: string; perfis: { codigo: string } | null }>) {
+          perfilPorAssinatura.set(r.id, r.perfis?.codigo ?? null);
         }
+      }
 
-        // Mapeia para o perfil correspondente à ação
-        const perfilCodigo = s.acao === "enviar" ? "DIRETOR_UNIDADE" : "GESTOR";
+      snapshotList = await Promise.all(
+        snapshots.map(async (s) => {
+          let imageData: string | null = null;
+          if (s.storage_path) {
+            const signedUrl = await getSignatureSignedUrl(s.storage_path, null, 300);
+            if (signedUrl) {
+              imageData = await urlToDataUrl(signedUrl);
+            }
+          }
 
-        return {
-          regra_id: `snapshot-${s.id}`,
-          perfil_codigo: perfilCodigo,
-          tipo_assinatura: "assinatura",
-          ordem: s.acao === "enviar" ? 1 : 2,
-          obrigatoria: true,
-          titular_nome: s.titular_nome,
-          titular_cargo: s.titular_cargo,
-          storage_path: s.storage_path,
-          escopo: "global",
-          imageData,
-          assinatura_id: s.assinatura_id,
-          posicao_x: s.posicao_x,
-          posicao_y: s.posicao_y,
-          tamanho_percentual: s.tamanho_percentual || 80,
-          alinhamento: (s.alinhamento as any) || "centro",
-          mostrar_nome: true,
-          mostrar_cargo: true,
-          metadata: s.metadata,
-        } as AssinaturaResolvida;
-      }));
+          const perfilCodigo =
+            (s.assinatura_id ? perfilPorAssinatura.get(s.assinatura_id) : null) ??
+            (s.acao === "enviar" ? "DIRETOR_UNIDADE" : "GESTOR");
+
+          return {
+            regra_id: `snapshot-${s.id}`,
+            perfil_codigo: perfilCodigo,
+            tipo_assinatura: "assinatura",
+            ordem: perfilCodigo === "DIRETOR_UNIDADE" ? 1 : 2,
+            obrigatoria: true,
+            titular_nome: s.titular_nome,
+            titular_cargo: s.titular_cargo,
+            storage_path: s.storage_path,
+            escopo: "global",
+            imageData,
+            assinatura_id: s.assinatura_id,
+            posicao_x: s.posicao_x,
+            posicao_y: s.posicao_y,
+            tamanho_percentual: s.tamanho_percentual || 80,
+            alinhamento: (s.alinhamento as any) || "centro",
+            mostrar_nome: true,
+            mostrar_cargo: true,
+            metadata: s.metadata,
+          } as AssinaturaResolvida;
+        }),
+      );
     }
   }
 
@@ -208,7 +266,9 @@ export async function resolverAssinaturasDocumento(
     _secretaria_id: opts.secretariaId ?? undefined,
     _unidade_id: opts.unidadeId ?? undefined,
   });
-  if (error || !data) return [];
+  if (error || !data) return snapshotList;
+
+
 
   const rows = data as unknown as Array<{
     regra_id: string;
@@ -324,7 +384,24 @@ export async function resolverAssinaturasDocumento(
     }),
   );
 
-  return resolvidas.sort((a, b) => a.ordem - b.ordem);
+  // Mescla snapshots (prioritários) com as regras vigentes dos outros perfis,
+  // evitando duplicar o mesmo perfil no rodapé.
+  const perfisSnapshot = new Set(snapshotList.map((s) => s.perfil_codigo).filter(Boolean) as string[]);
+  const complementares = resolvidas.filter(
+    (r) => !r.perfil_codigo || !perfisSnapshot.has(r.perfil_codigo),
+  );
+  const finais = [...snapshotList, ...complementares];
+
+  // Remove duplicidades por perfil (mantém a primeira, já ordenada por prioridade)
+  const vistos = new Set<string>();
+  const unicas = finais.filter((a) => {
+    const key = a.perfil_codigo ?? a.regra_id;
+    if (vistos.has(key)) return false;
+    vistos.add(key);
+    return true;
+  });
+
+  return unicas.sort((a, b) => a.ordem - b.ordem);
 }
 
 

@@ -332,6 +332,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           // Busca a assinatura ativa para o usuário que está realizando a ação
           const assinatura = await obterAssinaturaInstitucionalAtual(tipoDoc as any, {
             unidadeId: (freq as any).competencia_unidades?.unidades?.id || null,
+            perfilCodigo: perfil?.codigo || null,
           });
 
           if (assinatura) {
