@@ -133,6 +133,30 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
   };
 }
 
+/**
+ * Retorna os ids de TODAS as folhas de efetivos da mesma competência/unidade
+ * (a folha geral com setor_id NULL e as folhas criadas por setor).
+ *
+ * Motivo: quando a unidade envia por setor, as linhas ficam gravadas na folha
+ * daquele setor. A tela sem filtro de setor lia só a folha de setor_id NULL e
+ * por isso alguns profissionais apareciam "vazios", mesmo com dados visíveis
+ * na tela de Aprovações (que lê todas as folhas).
+ */
+async function idsFolhasIrmasEfetivos(
+  supabase: any,
+  competencia_unidade_id: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("frequencias")
+    .select("id")
+    .eq("competencia_unidade_id", competencia_unidade_id)
+    .eq("tipo", "efetivos")
+    .is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((f: any) => f.id as string);
+}
+
+
 export const listarFolhaEfetivos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: { competencia_id: string; unidade_id: string; setor_id?: string | string[] }) =>
