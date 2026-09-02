@@ -1179,8 +1179,13 @@ function LinhasAnaliseDialog({
                     >
                       <td className="p-3 border-r sticky left-0 bg-background/95 z-10 w-[260px] min-w-[220px] align-middle">
                         <div className="font-semibold text-sm truncate" title={l.profissionais?.nome_completo ?? ""}>{l.profissionais?.nome_completo ?? "—"}</div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
                           <span className="bg-muted px-1 rounded font-mono">Mat. {l.profissionais?.matricula ?? "—"}</span>
+                          {(l as any).profissionais?.status && (l as any).profissionais.status !== "ativo" && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500/50 text-amber-700 dark:text-amber-400 uppercase">
+                              {String((l as any).profissionais.status).replace(/_/g, " ")}
+                            </Badge>
+                          )}
                           {l.analisado_em && (
                             <span className="italic flex items-center gap-1">
                               · <CheckCircle2 className="h-2.5 w-2.5 text-green-600" /> 
