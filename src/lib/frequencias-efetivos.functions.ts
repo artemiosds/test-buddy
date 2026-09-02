@@ -224,16 +224,24 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     const profIds = (profsFinais ?? []).map((p: any) => p.id);
     let linhas: any[] = [];
     if (profIds.length) {
+      // Sem filtro de setor a visão é consolidada: lê as linhas de todas as
+      // folhas irmãs (geral + por setor) para não "perder" lançamentos.
+      const folhaIds = normalizarSetorId(data.setor_id)
+        ? [frequencia_id]
+        : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
       const { data: fs, error } = await supabase
         .from("frequencia_profissional")
         .select("*")
-        .eq("frequencia_id", frequencia_id)
+        .in("frequencia_id", folhaIds.length ? folhaIds : [frequencia_id])
         .in("profissional_id", profIds)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: true });
       if (error) throw new Error(error.message);
       linhas = fs ?? [];
     }
+    // Ordem crescente por updated_at → o Map mantém a linha mais recente.
     const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
+
 
     return {
       frequencia_id,
