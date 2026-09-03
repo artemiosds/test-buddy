@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, StatusBadge } from "@/components/shared";
+import { notificarRejeicaoLinha } from "@/lib/notificar-rejeicao.functions";
 import { salvarFolhaEfetivos } from "@/lib/frequencias-efetivos.functions";
 import { salvarFolhaContratados } from "@/lib/frequencias-contratados.functions";
 import { statusLabel } from "@/lib/status";
@@ -685,6 +686,7 @@ function LinhasAnaliseDialog({
   const [editMap, setEditMap] = useState<Record<string, any>>({});
   const { data: parametros } = useMunicipioParametros();
   const salvarEfetivosFn = useServerFn(salvarFolhaEfetivos);
+  const notificarRejeicaoFn = useServerFn(notificarRejeicaoLinha);
   const salvarContratadosFn = useServerFn(salvarFolhaContratados);
   const pendingUpdates = useRef<Record<string, { pid: string; campo: string; valor: any }>>({});
   const timeoutRef = useRef<any>(null);
@@ -1005,8 +1007,20 @@ function LinhasAnaliseDialog({
         if (error) throw error;
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_r, vars) => {
       toast.success("Linha atualizada");
+
+      // Notifica a unidade quando um profissional é rejeitado
+      if (vars?.status === "rejeitada" && freqId) {
+        try {
+          const nome = linhas?.find((l: any) => l.id === vars.id || l.profissional_id === vars.id)?.profissionais?.nome_completo;
+          await notificarRejeicaoFn({
+            data: { frequencia_id: freqId, motivo: vars.obs, profissional_nome: nome ?? undefined },
+          });
+        } catch {
+          /* notificação não bloqueia a rejeição */
+        }
+      }
       qc.invalidateQueries({ queryKey: ["frequencia-linhas-analise", freqId] });
       qc.invalidateQueries({ queryKey: ["frequencia-profissional", freqId] });
       

@@ -312,18 +312,15 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     
     const isMasterFinal = isMaster || isMasterRPC === true || isGestor;
 
-    if (!isMasterFinal) {
-      // 1. Bloqueio por status da folha (Bypass Protection)
-      if (
-        frequencia_status !== "rascunho" &&
-        frequencia_status !== "com_pendencias" &&
-        frequencia_status !== "rejeitada" &&
-        frequencia_status !== "devolvida"
+    // REGRA DE OURO: o status da LINHA sobrepõe o status geral da folha.
+    // A folha travada só bloqueia linhas que não estejam em estado corrigível
+    // (rejeitada). A verificação final acontece linha a linha, mais abaixo.
+    const folhaEditavel =
+      frequencia_status === "rascunho" ||
+      frequencia_status === "com_pendencias" ||
+      frequencia_status === "rejeitada" ||
+      frequencia_status === "devolvida";
 
-      ) {
-        throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
-      }
-    }
 
     const profIds = data.linhas.map((l) => l.profissional_id);
     // Sem filtro de setor, a linha do profissional pode estar gravada na folha
@@ -359,9 +356,16 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
+      const linhaCorrigivel = ex?.status_linha === "rejeitada";
       if (ex && ex.status_linha === "aprovada" && !isMasterFinal) {
         throw new Error("Não é possível alterar uma linha que já foi aprovada.");
       }
+      if (!isMasterFinal && !folhaEditavel && !linhaCorrigivel) {
+        throw new Error(
+          "Folha já enviada ou aprovada — só é possível corrigir profissionais com linha rejeitada.",
+        );
+      }
+
 
       // Concorrência Otimista: Verifica se a linha foi alterada por outro usuário
       if (ex?.updated_at && (l as any).updated_at) {

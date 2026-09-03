@@ -220,10 +220,12 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
       
-      // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
+      // REGRA DE OURO: o status da LINHA sobrepõe o status geral da folha.
+      // Linha rejeitada/devolvida permanece sempre corrigível pelo diretor.
       if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
-         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
+         throw new Error("Este profissional já foi enviado/aprovado — só é possível corrigir linhas rejeitadas ou devolvidas.");
       }
+
 
       // Concorrência Otimista
       if (ex?.updated_at && (l as any).updated_at) {

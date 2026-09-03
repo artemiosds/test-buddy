@@ -9,7 +9,6 @@ import {
   enviarFolhaEfetivos,
 } from "@/lib/frequencias-efetivos.functions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import {
@@ -377,14 +376,33 @@ export function FrequenciasEfetivosPage() {
     isMaster,
   });
 
-  const canEdit =
+  // Permissão base (prazo, competência, perfil) — sem considerar o status da folha.
+  const canEditBase =
     !prazoBloqueado &&
     !compFechada &&
     has("frequencia.editar") &&
-    (folhaEditavel || isGestorPerfil) &&
     (isDiretor || isOperacional || isGestorPerfil);
 
-  const canEnviar = !prazoBloqueado && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+  const canEdit = canEditBase && (folhaEditavel || isGestorPerfil);
+
+  // REGRA DE OURO: linha rejeitada/devolvida continua corrigível mesmo com a
+  // folha enviada, em análise ou aprovada.
+  const linhaCorrigivelStatus = (s?: string | null) => s === "rejeitada" || s === "devolvida";
+  const temLinhaCorrigivel = Object.values(linhas).some((l) =>
+    linhaCorrigivelStatus(l?.status_linha as string),
+  );
+  const canEditAlgo = canEdit || (canEditBase && temLinhaCorrigivel);
+
+  const canEnviar =
+    !prazoBloqueado &&
+    (folhaStatus === "rascunho" ||
+      folhaStatus === "com_pendencias" ||
+      folhaStatus === "rejeitada" ||
+      folhaStatus === "devolvida" ||
+      temLinhaCorrigivel) &&
+    has("frequencia.enviar") &&
+    (isDiretor || isGestorPerfil);
+
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
@@ -393,8 +411,8 @@ export function FrequenciasEfetivosPage() {
   const linhasRef = useRef<Record<string, LinhaState>>({});
   linhasRef.current = linhas;
 
-  const canEditRef = useRef(canEdit);
-  canEditRef.current = canEdit;
+  const canEditRef = useRef(canEditAlgo);
+  canEditRef.current = canEditAlgo;
 
   const autosaveRun = useCallback(async () => {
     if (!canEditRef.current || !competenciaId || !unidadeId) return false;
@@ -426,7 +444,7 @@ export function FrequenciasEfetivosPage() {
     return true;
   }, [competenciaId, unidadeId, setorUnico, salvarFn, qc]);
 
-  const autosave = useAutosaveFolha({ enabled: canEdit, run: autosaveRun, delay: 900 });
+  const autosave = useAutosaveFolha({ enabled: canEditAlgo, run: autosaveRun, delay: 900 });
   const autosaveRef = useRef(autosave);
   autosaveRef.current = autosave;
 
@@ -770,7 +788,7 @@ export function FrequenciasEfetivosPage() {
           <Button
             variant="outline"
             onClick={() => mSalvar.mutate()}
-            disabled={!canEdit || mSalvar.isPending}
+            disabled={!canEditAlgo || mSalvar.isPending}
           >
             <Save className="mr-1.5 h-4 w-4" /> Salvar rascunho
           </Button>
@@ -1136,8 +1154,11 @@ export function FrequenciasEfetivosPage() {
                 const p = it.profissional;
                 const l = linhas[p.id];
                 if (!l) return null;
-                const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
-                const ro = !canEdit || linhaAprovada;
+                const statusLinha = ((it.linha as any)?.status_linha ?? l.status_linha ?? "pendente") as string;
+                const linhaAprovada = statusLinha === "aprovada";
+                // REGRA DE OURO: linha rejeitada/devolvida sempre editável.
+                const linhaCorrigivel = linhaCorrigivelStatus(statusLinha);
+                const ro = linhaCorrigivel ? !canEditBase : !canEdit || linhaAprovada;
                 const situ = derivarSituacao(conf);
                 const overrideSituacao = overrideSituacaoFolha(conf);
                 const CelulaSituacao = (
@@ -1151,7 +1172,12 @@ export function FrequenciasEfetivosPage() {
                   />
                 );
                 return (
-                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
+                  <tr
+                    key={p.id}
+                    data-row-id={p.id}
+                    data-situacao={situ}
+                    className={linhaCorrigivel ? "bg-danger-soft/40" : undefined}
+                  >
                     <td
                       className="erp-sticky"
                       style={{
@@ -1235,9 +1261,7 @@ export function FrequenciasEfetivosPage() {
                       />
                     </td>
                     <td className="text-center">
-                      <Badge variant="outline">
-                        {(it.linha as any)?.status_linha ?? "pendente"}
-                      </Badge>
+                      <StatusBadge domain="frequencia" value={statusLinha} />
                     </td>
                   </tr>
                 );
