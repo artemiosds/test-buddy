@@ -128,6 +128,38 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
     dragRef.current = null;
   };
 
+  /** Redimensionamento proporcional pelos handles de canto (30%–200%). */
+  const iniciarResize = (e: React.PointerEvent, canto: "nw" | "ne" | "sw" | "se") => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!req || !scale || !posAtual) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startTam = posAtual.tamanhoPercentual;
+    const baseW = req.larguraMm * scale;
+    const id = selecionadaId;
+
+    const onMove = (ev: PointerEvent) => {
+      const dxPx = (ev.clientX - startX) * (canto === "ne" || canto === "se" ? 1 : -1);
+      const dyPx = (ev.clientY - startY) * (canto === "sw" || canto === "se" ? 1 : -1);
+      const delta = ((dxPx + dyPx) / 2 / Math.max(1, baseW)) * 100;
+      const tam = Math.max(30, Math.min(200, Math.round((startTam + delta) / 5) * 5));
+      setEstado((prev) => {
+        const atual = prev[id];
+        if (!atual) return prev;
+        const pos = clamp(atual.xMm, atual.yMm, tam);
+        return { ...prev, [id]: { ...atual, tamanhoPercentual: tam, xMm: pos.x, yMm: pos.y } };
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+
   const finalizar = (result: PdfPosicaoResult) => {
     pending?.resolve(result);
     setPending(null);
@@ -170,28 +202,44 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                     return (
                       <div
                         key={a.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelecionadaId(a.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelecionadaId(a.id);
+                          }
+                        }}
                         className={cn(
-                          "rounded-md border p-2 text-left transition-colors",
-                          ativa ? "border-primary bg-primary/5" : "hover:bg-muted",
+                          "cursor-pointer rounded-md border p-2 text-left transition-colors",
+                          ativa
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "hover:bg-muted",
                         )}
                       >
-                        <button
-                          type="button"
-                          onClick={() => setSelecionadaId(a.id)}
-                          className="block w-full text-left"
+                        <span className="block truncate text-xs font-semibold">
+                          {a.assinatura.titular_nome ?? "Assinatura"}
+                        </span>
+                        <span className="block truncate text-[10px] text-muted-foreground">
+                          {a.assinatura.titular_cargo ?? a.assinatura.perfil_codigo ?? ""}
+                        </span>
+                        {ativa && (
+                          <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wide text-primary">
+                            Editando
+                          </span>
+                        )}
+                        <div
+                          className="mt-1.5 flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="block truncate text-xs font-semibold">
-                            {a.assinatura.titular_nome ?? "Assinatura"}
-                          </span>
-                          <span className="block truncate text-[10px] text-muted-foreground">
-                            {a.assinatura.titular_cargo ?? a.assinatura.perfil_codigo ?? ""}
-                          </span>
-                        </button>
-                        <div className="mt-1.5 flex items-center gap-1.5">
                           <Checkbox
                             id={`incluir-${a.id}`}
                             checked={est?.incluir ?? false}
-                            onCheckedChange={(c) => atualizar({ incluir: c === true }, a.id)}
+                            onCheckedChange={(c) => {
+                              atualizar({ incluir: c === true }, a.id);
+                              if (c === true) setSelecionadaId(a.id);
+                            }}
                           />
                           <Label htmlFor={`incluir-${a.id}`} className="text-[10px]">
                             Incluir no documento
@@ -199,6 +247,7 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                         </div>
                       </div>
                     );
+
                   })}
                 </div>
               </div>
@@ -222,30 +271,44 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                 )}
 
                 {/* Fantasmas das demais assinaturas marcadas na mesma página */}
-                {req.assinaturas.map((a) => {
+                {scale > 0 && req.assinaturas.map((a) => {
                   const est = estado[a.id];
                   if (!est || !est.incluir || a.id === selecionadaId) return null;
-                  if (est.pagina !== (posAtual?.pagina ?? est.pagina)) return null;
+                  if (est.pagina !== (posAtual?.pagina ?? 1)) return null;
                   return (
                     <div
                       key={`ghost-${a.id}`}
-                      className="pointer-events-none absolute z-40 rounded border border-dashed border-muted-foreground/60 bg-background/40"
+                      role="button"
+                      tabIndex={0}
+                      title="Clique para selecionar esta assinatura"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        setSelecionadaId(a.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelecionadaId(a.id);
+                        }
+                      }}
+                      className="absolute z-40 cursor-pointer rounded border border-dashed border-muted-foreground/60 bg-background/30 opacity-70 outline-none transition hover:border-primary/70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/40"
                       style={{
                         left: est.xMm * scale,
                         top: est.yMm * scale,
                         width: req.larguraMm * (est.tamanhoPercentual / 100) * scale,
                         height: req.alturaMm * (est.tamanhoPercentual / 100) * scale,
+                        touchAction: "none",
                       }}
                     >
                       {a.assinatura.imageData ? (
                         <img
                           src={a.assinatura.imageData}
                           alt=""
-                          className="h-full w-full object-contain opacity-70"
+                          className="pointer-events-none h-full w-full object-contain"
                           draggable={false}
                         />
                       ) : (
-                        <span className="flex h-full items-end justify-center truncate px-1 text-[8px]">
+                        <span className="pointer-events-none flex h-full items-end justify-center truncate px-1 text-[8px]">
                           {a.assinatura.titular_nome ?? ""}
                         </span>
                       )}
@@ -253,14 +316,14 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                   );
                 })}
 
-                {itemAtual && posAtual && (
+                {scale > 0 && itemAtual && posAtual && posAtual.incluir && (
                   <div
                     role="button"
                     tabIndex={0}
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
-                    className="absolute z-50 cursor-move rounded border-2 border-dashed border-primary bg-background/70 shadow-lg"
+                    className="absolute z-50 cursor-move rounded border-2 border-solid border-primary bg-background/70 shadow-lg outline-none ring-2 ring-primary/25"
                     style={{
                       left: posAtual.xMm * scale,
                       top: posAtual.yMm * scale,
@@ -286,8 +349,25 @@ export function PdfPosicaoProvider({ children }: { children: React.ReactNode }) 
                         </span>
                       </div>
                     )}
+
+                    {/* Handles de redimensionamento (cantos) */}
+                    {(["nw", "ne", "sw", "se"] as const).map((canto) => (
+                      <span
+                        key={canto}
+                        onPointerDown={(e) => iniciarResize(e, canto)}
+                        className={cn(
+                          "absolute z-[60] h-2.5 w-2.5 rounded-sm border border-background bg-primary",
+                          canto === "nw" && "-left-1.5 -top-1.5 cursor-nwse-resize",
+                          canto === "ne" && "-right-1.5 -top-1.5 cursor-nesw-resize",
+                          canto === "sw" && "-bottom-1.5 -left-1.5 cursor-nesw-resize",
+                          canto === "se" && "-bottom-1.5 -right-1.5 cursor-nwse-resize",
+                        )}
+                        style={{ touchAction: "none" }}
+                      />
+                    ))}
                   </div>
                 )}
+
               </div>
 
               {/* Controles da assinatura selecionada */}
