@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
+import { assertPrazoEnvio } from "./prazo-envio";
 
 const VAL = z.union([z.number(), z.string()]).default(0);
 
@@ -275,6 +276,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
+    await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     const { data: comp, error: cErr } = await supabase
       .from("competencias")
@@ -457,6 +459,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
+    await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
       { supabase, userId },

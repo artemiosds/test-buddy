@@ -70,6 +70,7 @@ import {
 import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
+import { bloqueadoPorPrazo, MSG_PRAZO_ENCERRADO } from "@/lib/prazo-envio";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
@@ -438,8 +439,14 @@ function FrequenciaDetalhe() {
 
   const temDadosParaExportar = isEfetivo ? linhasEfetivosExportacao.length > 0 : linhas.length > 0;
 
+  const prazoBloqueado = bloqueadoPorPrazo({
+    prazo: (frequencia as any)?.competencia_unidades?.competencias?.prazo_envio,
+    perfilCodigo: (me as any)?.perfil_codigo,
+    isMaster: !!(me as any)?.is_master,
+  });
+
   const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || frequencia?.status === "devolvida";
-  const canEditar = has("frequencia.editar");
+  const canEditar = has("frequencia.editar") && !prazoBloqueado;
 
   // Contagem de pendências abertas/respondidas por linha (frequencia_profissional_id)
   const { data: pendCounts } = useQuery({
@@ -899,7 +906,7 @@ function FrequenciaDetalhe() {
   const prazoEnvio = comp?.prazo_envio ? new Date(comp.prazo_envio + "T00:00:00") : null;
   const foraDoPrazo = !!prazoEnvio && hoje > prazoEnvio;
   const permitirForaPrazo = parametros?.permitir_envio_fora_prazo === true;
-  const envioBloqueado = foraDoPrazo && !permitirForaPrazo;
+  const envioBloqueado = prazoBloqueado || (foraDoPrazo && !permitirForaPrazo);
 
   const exportarPDF = async () => {
     if (!frequencia) return;
@@ -1151,6 +1158,12 @@ function FrequenciaDetalhe() {
           <StatusBadge domain="frequencia" value={frequencia.status} />
         </div>
       </div>
+
+      {prazoBloqueado && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <span>{MSG_PRAZO_ENCERRADO}</span>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <AutosaveBadge status={autosave.status} onRetry={autosave.retry} />

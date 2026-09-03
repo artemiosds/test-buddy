@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
+import { assertPrazoEnvio } from "./prazo-envio";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -162,6 +163,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
+    await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     // Bloqueia edição se competência já estiver encerrada/arquivada.
     const { data: comp, error: cErr } = await supabase
@@ -313,6 +315,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
+    await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     // Auditoria rico
     const { data: perfil } = await supabase

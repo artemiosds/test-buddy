@@ -20,12 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast, Toaster } from "sonner";
-import { Save, Send, Search, FileSpreadsheet, FileDown } from "lucide-react";
+import { Save, Send, Search, FileSpreadsheet, FileDown, AlertTriangle } from "lucide-react";
 import type { UnidadeFolha } from "@/lib/pdf-folha-efetivos-oficial";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
+import { bloqueadoPorPrazo, MSG_PRAZO_ENCERRADO } from "@/lib/prazo-envio";
 import type { Database } from "@/integrations/supabase/types";
 import { useConferenciaProfissionais, mergeConferencia } from "@/hooks/use-conferencia";
 import {
@@ -230,7 +231,7 @@ export function FrequenciasEfetivosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("competencias")
-        .select("id, ano, mes, status")
+        .select("id, ano, mes, status, prazo_envio")
         .is("deleted_at", null)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
@@ -370,13 +371,20 @@ export function FrequenciasEfetivosPage() {
 
   // Master/Gestor mantêm a edição mesmo após o envio para análise (o backend
   // já permite esse bypass); os demais perfis só editam folha em aberto.
+  const prazoBloqueado = bloqueadoPorPrazo({
+    prazo: (compSel as any)?.prazo_envio,
+    perfilCodigo,
+    isMaster,
+  });
+
   const canEdit =
+    !prazoBloqueado &&
     !compFechada &&
     has("frequencia.editar") &&
     (folhaEditavel || isGestorPerfil) &&
     (isDiretor || isOperacional || isGestorPerfil);
 
-  const canEnviar = (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+  const canEnviar = !prazoBloqueado && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
@@ -740,6 +748,12 @@ export function FrequenciasEfetivosPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Efetivos" />
+      {prazoBloqueado && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{MSG_PRAZO_ENCERRADO}</span>
+        </div>
+      )}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

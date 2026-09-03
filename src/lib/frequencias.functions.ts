@@ -9,6 +9,7 @@ import { TIPOS_ANEXO_FOLHA, calcularPurgaApos } from "./frequencias-retencao";
 import { sendEmail, generateEmailTemplate } from "./email.server";
 import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
 import { assinarUrlDocumento } from "./storage-r2.server";
+import { assertPrazoEnvioPorFrequencia } from "./prazo-envio";
 
 
 
@@ -78,6 +79,7 @@ export const salvarLinhasFrequencia = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
+    await assertPrazoEnvioPorFrequencia(supabase, userId, data.frequencia_id);
 
     const dirty = data.linhas.filter((l) => l._dirty);
     
@@ -214,6 +216,9 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
 
     const perm = PERM_STATUS[data.status];
     if (perm) await ensurePermission(supabase, userId, perm);
+    if (data.status === "enviada" || data.status === "rascunho") {
+      await assertPrazoEnvioPorFrequencia(supabase, userId, data.frequencia_id);
+    }
 
     // Recupera perfil para auditoria rica (usando 'nome' e 'codigo' como substituto de role)
     const { data: perfil } = await supabase

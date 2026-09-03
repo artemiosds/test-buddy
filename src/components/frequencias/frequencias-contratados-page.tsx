@@ -37,11 +37,13 @@ import {
   Ban,
   ArrowRightLeft,
   Filter as FilterIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
+import { bloqueadoPorPrazo, MSG_PRAZO_ENCERRADO } from "@/lib/prazo-envio";
 import type { Database } from "@/integrations/supabase/types";
 import type { ItemContratado } from "@/lib/excel-folha-contratados";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -250,7 +252,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("competencias")
-        .select("id, ano, mes, status")
+        .select("id, ano, mes, status, prazo_envio")
         .is("deleted_at", null)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
@@ -423,7 +425,12 @@ export function FrequenciasContratadosPage() {
   const isMaster = !!me?.is_master;
   const perfilCodigo = me?.perfil_codigo || "";
   const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
-  const canEdit = !compFechada && has("frequencia.editar");
+  const prazoBloqueado = bloqueadoPorPrazo({
+    prazo: (compSel as any)?.prazo_envio,
+    perfilCodigo,
+    isMaster,
+  });
+  const canEdit = !prazoBloqueado && !compFechada && has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
@@ -613,6 +620,7 @@ export function FrequenciasContratadosPage() {
   const folhaAprovada = folhaStatusUnificado === "aprovada";
   const podeEnviar = useMemo(() => {
     if (!folha?.length) return false;
+    if (prazoBloqueado) return false;
     if (!(isDiretor || isMaster || perfilCodigo === "GESTOR") || !has("frequencia.enviar")) return false;
     
     // Se a folha já está em análise ou aprovada, não pode enviar de novo (a menos que seja devolvida)
@@ -965,6 +973,12 @@ export function FrequenciasContratadosPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <FolhaBreadcrumb current="Folha Pagamento — Contratados" />
+      {prazoBloqueado && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{MSG_PRAZO_ENCERRADO}</span>
+        </div>
+      )}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
