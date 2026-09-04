@@ -432,11 +432,17 @@ export function FrequenciasContratadosPage() {
   });
   const canEdit = !prazoBloqueado && !compFechada && has("frequencia.editar");
 
+  const isGestorPerfil = perfilCodigo === "GESTOR" || isMaster;
+
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
     if (!canEdit) return true;
-    // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
+    // Após o envio, a unidade só corrige quem foi rejeitado/devolvido.
+    return !linhaEditavel({
+      statusLinha: l.status,
+      folhaStatus: l.status === "rascunho" ? "rascunho" : folhaStatusUnificado,
+      isGestor: isGestorPerfil,
+    });
   }
 
   const salvarFn = useServerFn(salvarFolhaContratados);
@@ -1387,7 +1393,13 @@ export function FrequenciasContratadosPage() {
                       />
                     </td>
                     <td className="text-center">
-                      <StatusBadge domain="frequencia" value={l.status ?? "rascunho"} />
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase tracking-wide ${statusLinhaClass(l.status ?? "rascunho")}`}
+                        title={ro && canEdit ? MSG_LINHA_BLOQUEADA : undefined}
+                      >
+                        {statusLinhaLabel(l.status ?? "rascunho")}
+                      </Badge>
                     </td>
                   </tr>
                 );
