@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
+import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "@/lib/edicao-linha";
+import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -381,8 +383,10 @@ export function FrequenciasEfetivosPage() {
     !prazoBloqueado &&
     !compFechada &&
     has("frequencia.editar") &&
+    (folhaEditavel || isGestorPerfil) &&
     (isDiretor || isOperacional || isGestorPerfil);
 
+<<<<<<< HEAD
   /**
    * Regra institucional: depois que a folha sai da unidade (enviada/em análise/
    * aprovada), o Diretor só volta a editar o profissional cuja LINHA foi
@@ -397,6 +401,9 @@ export function FrequenciasEfetivosPage() {
 
   const canEnviar = !prazoBloqueado && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || ((folha?.itens ?? []) as any[]).some((it) => { const s = (it.linha as any)?.status_linha; return s === "rejeitada" || s === "devolvida"; })) && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
+=======
+  const canEnviar = !prazoBloqueado && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida") && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+>>>>>>> b93b0880a607d07bfb337efda6e47d0aa1e80c0a
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
   const enviarFn = useServerFn(enviarFolhaEfetivos);
@@ -1148,9 +1155,19 @@ export function FrequenciasEfetivosPage() {
                 const p = it.profissional;
                 const l = linhas[p.id];
                 if (!l) return null;
+<<<<<<< HEAD
                 const statusLinha = ((it.linha as any)?.status_linha ?? "pendente") as string;
                 const ro = !canEdit || !linhaEditavel(statusLinha);
 
+=======
+                const statusLinhaAtual = (it.linha as any)?.status_linha ?? "pendente";
+                const podeCorrigirLinha = linhaEditavel({
+                  statusLinha: statusLinhaAtual,
+                  folhaStatus,
+                  isGestor: isGestorPerfil,
+                });
+                const ro = !canEdit || !podeCorrigirLinha;
+>>>>>>> b93b0880a607d07bfb337efda6e47d0aa1e80c0a
                 const situ = derivarSituacao(conf);
                 const overrideSituacao = overrideSituacaoFolha(conf);
                 const CelulaSituacao = (
@@ -1248,6 +1265,7 @@ export function FrequenciasEfetivosPage() {
                       />
                     </td>
                     <td className="text-center">
+<<<<<<< HEAD
                       <StatusBadge
                         domain="linha"
                         value={statusLinha}
@@ -1257,6 +1275,15 @@ export function FrequenciasEfetivosPage() {
                             : undefined
                         }
                       />
+=======
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase tracking-wide ${statusLinhaClass(statusLinhaAtual)}`}
+                        title={ro && canEdit ? MSG_LINHA_BLOQUEADA : undefined}
+                      >
+                        {statusLinhaLabel(statusLinhaAtual)}
+                      </Badge>
+>>>>>>> b93b0880a607d07bfb337efda6e47d0aa1e80c0a
                     </td>
 
                   </tr>
