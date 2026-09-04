@@ -1136,8 +1136,13 @@ export function FrequenciasEfetivosPage() {
                 const p = it.profissional;
                 const l = linhas[p.id];
                 if (!l) return null;
-                const linhaAprovada = (it.linha as any)?.status_linha === "aprovada";
-                const ro = !canEdit || linhaAprovada;
+                const statusLinhaAtual = (it.linha as any)?.status_linha ?? "pendente";
+                const podeCorrigirLinha = linhaEditavel({
+                  statusLinha: statusLinhaAtual,
+                  folhaStatus,
+                  isGestor: isGestorPerfil,
+                });
+                const ro = !canEdit || !podeCorrigirLinha;
                 const situ = derivarSituacao(conf);
                 const overrideSituacao = overrideSituacaoFolha(conf);
                 const CelulaSituacao = (
