@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
+import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "@/lib/edicao-linha";
+import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -432,11 +434,17 @@ export function FrequenciasContratadosPage() {
   });
   const canEdit = !prazoBloqueado && !compFechada && has("frequencia.editar");
 
+  const isGestorPerfil = perfilCodigo === "GESTOR" || isMaster;
+
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
     if (!canEdit) return true;
-    // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
+    // Após o envio, a unidade só corrige quem foi rejeitado/devolvido.
+    return !linhaEditavel({
+      statusLinha: l.status,
+      folhaStatus: l.status === "rascunho" ? "rascunho" : folhaStatusUnificado,
+      isGestor: isGestorPerfil,
+    });
   }
 
   const salvarFn = useServerFn(salvarFolhaContratados);
@@ -1268,21 +1276,12 @@ export function FrequenciasContratadosPage() {
                 const l = linhas[p.id];
                 if (!l) return null;
                 const ro = readonlyLinha(l);
-                // REGRA DE OURO: linha rejeitada/devolvida fica sempre corrigível.
-                const linhaCorrigivel =
-                  (l.status as string) === "rejeitada" || (l.status as string) === "devolvida";
-
                 const situ = derivarSituacao(conf);
                 const overrideSituacao = overrideSituacaoFolha(conf);
                 const semConta = !p.banco && !p.agencia && !p.conta_corrente;
                 const semContaConf = !conf.banco && !conf.agencia && !conf.conta_corrente;
                 return (
-                  <tr
-                    key={p.id}
-                    data-row-id={p.id}
-                    data-situacao={situ}
-                    className={linhaCorrigivel ? "bg-danger-soft/40" : undefined}
-                  >
+                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
                       className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
                       style={{ width: 40, left: L.num }}
@@ -1396,7 +1395,13 @@ export function FrequenciasContratadosPage() {
                       />
                     </td>
                     <td className="text-center">
-                      <StatusBadge domain="frequencia" value={l.status ?? "rascunho"} />
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase tracking-wide ${statusLinhaClass(l.status ?? "rascunho")}`}
+                        title={ro && canEdit ? MSG_LINHA_BLOQUEADA : undefined}
+                      >
+                        {statusLinhaLabel(l.status ?? "rascunho")}
+                      </Badge>
                     </td>
                   </tr>
                 );

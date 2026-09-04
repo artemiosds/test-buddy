@@ -476,22 +476,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       } catch (emailErr) {
         logger.error("email.trigger.failed", { error: emailErr, frequencia_id: data.frequencia_id });
       }
-
-      // Notificação no sino + e-mail para os responsáveis da unidade
-      if (["rejeitada", "com_pendencias", "devolvida"].includes(data.status)) {
-        try {
-          const { notificarRejeicaoFrequencia } = await import("./notificar-rejeicao.server");
-          await notificarRejeicaoFrequencia({
-            frequenciaId: data.frequencia_id,
-            escopo: "folha",
-            status: data.status,
-            motivo: data.observacoes ?? null,
-            criadoPor: userId,
-          });
-        } catch (notifErr) {
-          logger.error("rejeicao.notificar.trigger_failed", { error: notifErr, frequencia_id: data.frequencia_id });
-        }
-      }
     }
     return { ok: true };
   });

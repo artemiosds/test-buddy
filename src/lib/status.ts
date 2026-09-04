@@ -79,7 +79,6 @@ const REGISTRY: Registry = {
   frequencia: {
     order: [
       "rascunho",
-      "pendente",
       "enviada",
       "em_analise",
       "com_pendencias",
@@ -92,23 +91,15 @@ const REGISTRY: Registry = {
       rascunho: {
         label: "Rascunho",
         variant: "secondary",
-        className: "border border-slate-200 bg-slate-100 font-medium text-slate-700",
+        className: "bg-muted text-muted-foreground",
         icon: FileEdit,
         colorToken: "muted",
         description: "Folha em edição, ainda não enviada.",
       },
-      pendente: {
-        label: "Pendente",
-        variant: "secondary",
-        className: "border border-slate-200 bg-slate-100 font-medium text-slate-700",
-        icon: FileEdit,
-        colorToken: "muted",
-        description: "Aguardando lançamento/envio.",
-      },
       enviada: {
         label: "Enviada",
         variant: "secondary",
-        className: "border border-sky-200 bg-sky-100 font-medium text-sky-800",
+        className: "bg-info-soft text-info-soft-foreground",
         icon: Send,
         colorToken: "info",
         description: "Enviada para análise da unidade responsável.",
@@ -117,7 +108,7 @@ const REGISTRY: Registry = {
       em_analise: {
         label: "Em análise",
         variant: "secondary",
-        className: "border border-blue-200 bg-blue-100 font-medium text-blue-800",
+        className: "bg-info-soft text-info-soft-foreground",
         icon: Search,
         colorToken: "info",
         description: "Em análise pela equipe de RH.",
@@ -126,7 +117,7 @@ const REGISTRY: Registry = {
       com_pendencias: {
         label: "Com pendências",
         variant: "secondary",
-        className: "border border-amber-200 bg-amber-100 font-medium text-amber-900",
+        className: "bg-warning-soft text-warning-soft-foreground",
         icon: AlertTriangle,
         colorToken: "warning",
         description: "Devolvida à unidade com pendências para correção.",
@@ -134,7 +125,7 @@ const REGISTRY: Registry = {
       devolvida: {
         label: "Devolvida",
         variant: "secondary",
-        className: "border border-orange-300 bg-orange-100 font-semibold text-orange-900",
+        className: "bg-amber-100 text-amber-800 border-amber-200",
         icon: RotateCcw,
         colorToken: "warning",
         description: "Devolvida para correção pelo gestor.",
@@ -142,7 +133,7 @@ const REGISTRY: Registry = {
       aprovada: {
         label: "Aprovada",
         variant: "secondary",
-        className: "border border-emerald-200 bg-emerald-100 font-medium text-emerald-800",
+        className: "bg-success-soft text-success-soft-foreground",
         icon: CheckCircle2,
         colorToken: "success",
         description: "Folha aprovada pelo RH.",
@@ -151,7 +142,7 @@ const REGISTRY: Registry = {
       rejeitada: {
         label: "Rejeitada",
         variant: "secondary",
-        className: "border border-red-300 bg-red-100 font-semibold text-red-800",
+        className: "bg-danger-soft text-danger-soft-foreground",
         icon: XCircle,
         colorToken: "danger",
         description: "Folha rejeitada — não será processada.",

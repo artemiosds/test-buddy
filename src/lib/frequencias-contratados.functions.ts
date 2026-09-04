@@ -219,13 +219,18 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      
-      // REGRA DE OURO: o status da LINHA sobrepõe o status geral da folha.
-      // Linha rejeitada/devolvida permanece sempre corrigível pelo diretor.
-      if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
-         throw new Error("Este profissional já foi enviado/aprovado — só é possível corrigir linhas rejeitadas ou devolvidas.");
-      }
 
+      // Após o envio, a unidade só corrige profissionais rejeitados/devolvidos.
+      if (
+        ex &&
+        !linhaEditavel({
+          statusLinha: ex.status,
+          folhaStatus: ex.status === "rascunho" ? "rascunho" : ex.status,
+          isGestor: isMasterFinal,
+        })
+      ) {
+        throw new Error(MSG_LINHA_BLOQUEADA);
+      }
 
       // Concorrência Otimista
       if (ex?.updated_at && (l as any).updated_at) {

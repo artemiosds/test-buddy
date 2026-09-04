@@ -1,121 +1,96 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendEmail, generateEmailTemplate } from "./email.server";
 import { logger } from "./logger";
 
-export type EscopoRejeicao = "folha" | "linha";
+type Resultado = { usuarios: number; notificacoes: number; emails: number };
 
-export type NotificarRejeicaoInput = {
-  frequenciaId: string;
-  escopo: EscopoRejeicao;
-  /** "rejeitada" | "devolvida" | "com_pendencias" */
-  status: string;
-  motivo?: string | null;
-  profissionalNome?: string | null;
-  criadoPor?: string | null;
-};
+const VAZIO: Resultado = { usuarios: 0, notificacoes: 0, emails: 0 };
 
-type Destinatario = { id: string; email: string | null; nome: string };
+/**
+ * Destinatários de uma rejeição: usuários ativos vinculados à unidade da folha.
+ */
+async function destinatariosDaUnidade(unidadeId: string) {
+  const { data: vinculos } = await supabaseAdmin
+    .from("usuario_unidades")
+    .select("usuario_id")
+    .eq("unidade_id", unidadeId)
+    .is("data_fim", null)
+    .is("deleted_at", null);
 
-function statusLabel(status: string) {
-  if (status === "rejeitada") return "Rejeitada";
-  if (status === "devolvida") return "Devolvida para correção";
-  return "Devolvida com pendências";
+  const ids = [...new Set((vinculos ?? []).map((v) => v.usuario_id as string))];
+  if (ids.length === 0) return [] as Array<{ id: string; email: string | null; nome: string }>;
+
+  const { data: us } = await supabaseAdmin
+    .from("usuarios")
+    .select("id, email, nome_completo")
+    .in("id", ids)
+    .eq("status", "ativo")
+    .is("deleted_at", null);
+
+  return (us ?? []).map((u) => ({
+    id: u.id as string,
+    email: (u.email as string) ?? null,
+    nome: (u.nome_completo as string) ?? "",
+  }));
 }
 
 /**
- * Notifica (sino + e-mail) os responsáveis pela unidade quando uma folha
- * inteira ou uma linha individual de profissional é rejeitada/devolvida.
- * Nunca lança: falhas são apenas registradas em log.
+ * Notifica a unidade sobre uma rejeição/devolução — na folha inteira ou em um
+ * profissional específico. Envia notificação in-app (sino) e e-mail.
+ *
+ * Nunca lança: a rejeição em si não pode falhar por causa do aviso.
  */
-export async function notificarRejeicaoFrequencia(input: NotificarRejeicaoInput) {
+export async function notificarRejeicaoFolha(input: {
+  frequenciaId: string;
+  /** "rejeitada" | "devolvida" | "com_pendencias" */
+  status?: string;
+  /** Nome do profissional quando a rejeição é de uma linha específica. */
+  profissionalNome?: string | null;
+  justificativa?: string | null;
+  autorId?: string | null;
+}): Promise<Resultado> {
   try {
     const { data: freq } = await supabaseAdmin
       .from("frequencias")
       .select(
-        "id, tipo, created_by, competencia_unidades(unidade_id, competencia_id, unidades(nome), competencias(mes, ano))",
+        `tipo,
+         competencia_unidades:competencia_unidade_id(
+           unidade_id,
+           unidades:unidade_id(nome),
+           competencias:competencia_id(ano, mes)
+         )`,
       )
       .eq("id", input.frequenciaId)
       .maybeSingle();
 
-    if (!freq) {
-      logger.warn("rejeicao.notificar.folha_nao_encontrada", { frequenciaId: input.frequenciaId });
-      return { notificacoes: 0, emails: 0 };
-    }
+    const cu = (freq as any)?.competencia_unidades;
+    const unidadeId = cu?.unidade_id as string | undefined;
+    if (!unidadeId) return VAZIO;
 
-    const cu = (freq as any).competencia_unidades ?? {};
-    const unidadeId: string | null = cu.unidade_id ?? null;
-    const unidadeNome: string = cu.unidades?.nome ?? "Unidade";
-    const competenciaStr = cu.competencias
-      ? `${String(cu.competencias.mes).padStart(2, "0")}/${cu.competencias.ano}`
-      : "";
+    const unidadeNome = cu?.unidades?.nome ?? "sua unidade";
+    const comp = cu?.competencias;
+    const competenciaStr = comp
+      ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}`
+      : "competência atual";
+    const tipo = (freq as any)?.tipo === "contratados" ? "Contratados" : "Efetivos";
 
-    // ---- Destinatários: vinculados à unidade + criador da folha ----
-    const alvos = new Map<string, Destinatario>();
+    const devolvida = input.status === "devolvida" || input.status === "com_pendencias";
+    const acao = devolvida ? "devolvido para correção" : "rejeitado";
 
-    if (unidadeId) {
-      const { data: vinculos } = await supabaseAdmin
-        .from("usuario_unidades")
-        .select("usuario_id")
-        .eq("unidade_id", unidadeId)
-        .is("data_fim", null);
-      const ids = [...new Set((vinculos ?? []).map((v) => v.usuario_id as string))];
-      if (ids.length) {
-        const { data: us } = await supabaseAdmin
-          .from("usuarios")
-          .select("id, email, nome_completo")
-          .in("id", ids)
-          .eq("status", "ativo")
-          .is("deleted_at", null);
-        for (const u of us ?? []) {
-          alvos.set(u.id as string, {
-            id: u.id as string,
-            email: (u.email as string) ?? null,
-            nome: (u.nome_completo as string) ?? "",
-          });
-        }
-      }
-    }
+    const titulo = input.profissionalNome
+      ? `Lançamento ${acao}: ${input.profissionalNome}`
+      : `Folha ${devolvida ? "devolvida" : "rejeitada"} — ${competenciaStr}`;
 
-    const criador = (freq as any).created_by as string | null;
-    if (criador && !alvos.has(criador)) {
-      const { data: u } = await supabaseAdmin
-        .from("usuarios")
-        .select("id, email, nome_completo")
-        .eq("id", criador)
-        .maybeSingle();
-      if (u) {
-        alvos.set(u.id as string, {
-          id: u.id as string,
-          email: (u.email as string) ?? null,
-          nome: (u.nome_completo as string) ?? "",
-        });
-      }
-    }
+    const mensagem = input.profissionalNome
+      ? `O lançamento de ${input.profissionalNome} na folha de ${tipo} (${competenciaStr}) da unidade ${unidadeNome} foi ${acao}. ` +
+        `Justificativa: ${input.justificativa?.trim() || "não informada"}. Corrija o profissional e reenvie para análise.`
+      : `A folha de ${tipo} (${competenciaStr}) da unidade ${unidadeNome} foi ${acao}. ` +
+        `Justificativa: ${input.justificativa?.trim() || "não informada"}.`;
 
-    const destinatarios = [...alvos.values()];
-    if (!destinatarios.length) {
-      logger.warn("rejeicao.notificar.sem_destinatarios", { frequenciaId: input.frequenciaId });
-      return { notificacoes: 0, emails: 0 };
-    }
+    const destinatarios = await destinatariosDaUnidade(unidadeId);
+    if (destinatarios.length === 0) return VAZIO;
 
-    const label = statusLabel(input.status);
-    const motivo = (input.motivo ?? "").trim() || "Nenhuma justificativa informada.";
-    const tipoFolha = (freq as any).tipo === "contratados" ? "Contratados" : "Efetivos";
+    const link = (freq as any)?.tipo === "contratados" ? "/folha-contratados" : "/folha-efetivos";
 
-    const titulo =
-      input.escopo === "linha"
-        ? `Profissional rejeitado na folha ${tipoFolha} ${competenciaStr}`
-        : `Folha ${tipoFolha} ${label.toLowerCase()} — ${competenciaStr}`;
-
-    const mensagem =
-      input.escopo === "linha"
-        ? `O lançamento de ${input.profissionalNome || "um profissional"} na folha de ${tipoFolha} da unidade ${unidadeNome} (${competenciaStr}) foi rejeitado. Motivo: ${motivo}`
-        : `A folha de ${tipoFolha} da unidade ${unidadeNome} (${competenciaStr}) foi ${label.toLowerCase()}. Motivo: ${motivo}`;
-
-    const link = `/frequencias?competencia=${cu.competencia_id ?? ""}&unidade=${unidadeId ?? ""}`;
-
-    // ---- Notificação in-app ----
-    let notificacoes = 0;
     const { error: nErr, count } = await supabaseAdmin.from("notificacoes").insert(
       destinatarios.map((u) => ({
         usuario_id: u.id,
@@ -127,45 +102,54 @@ export async function notificarRejeicaoFrequencia(input: NotificarRejeicaoInput)
         link,
         entidade_tipo: "frequencia",
         entidade_id: input.frequenciaId,
-        created_by: input.criadoPor ?? null,
+        created_by: input.autorId ?? null,
       })) as never,
       { count: "exact" },
     );
     if (nErr) logger.error("rejeicao.notificar.inapp_erro", { error: nErr.message });
-    else notificacoes = count ?? destinatarios.length;
 
-    // ---- E-mail ----
-    const baseUrl = process.env.VITE_APP_URL || process.env.SITE_URL || "http://localhost:8080";
-    const assunto = `[Ação Necessária] ${titulo}`;
-    const emails = [
-      ...new Set(destinatarios.map((u) => u.email).filter((e): e is string => !!e && e.includes("@"))),
-    ];
-
-    const html = generateEmailTemplate({
-      title: titulo,
-      message: `${mensagem} Acesse o sistema para corrigir e reenviar.`,
-      ctaLabel: "Corrigir agora",
-      ctaUrl: `${baseUrl}${link}`,
-      details: [
-        { label: "Unidade", value: unidadeNome },
-        { label: "Competência", value: competenciaStr },
-        { label: "Tipo de folha", value: tipoFolha },
-        ...(input.escopo === "linha"
-          ? [{ label: "Profissional", value: input.profissionalNome || "—" }]
-          : []),
-        { label: "Justificativa", value: motivo },
-      ],
-    });
-
-    let enviados = 0;
-    for (const email of emails) {
-      const r = await sendEmail({ to: email, subject: assunto, html });
-      if (r.success) enviados++;
+    let emails = 0;
+    const paraEmail = destinatarios.map((u) => u.email).filter((e): e is string => !!e);
+    if (paraEmail.length > 0) {
+      try {
+        const { sendEmail, generateEmailTemplate } = await import("./email.server");
+        const baseUrl = process.env["VITE_APP_URL"] || "https://hsm-gestao.lovable.app";
+        const html = generateEmailTemplate({
+          title: titulo,
+          message: mensagem,
+          ctaLabel: "Corrigir agora",
+          ctaUrl: `${baseUrl}${link}`,
+          details: [
+            { label: "Unidade", value: unidadeNome },
+            { label: "Competência", value: competenciaStr },
+            { label: "Folha", value: tipo },
+            ...(input.profissionalNome
+              ? [{ label: "Profissional", value: input.profissionalNome }]
+              : []),
+            {
+              label: "Justificativa",
+              value: input.justificativa?.trim() || "Nenhuma justificativa informada.",
+            },
+          ],
+        });
+        const res = await sendEmail({
+          to: paraEmail,
+          subject: `[Ação necessária] ${titulo}`,
+          html,
+        });
+        emails = (res as any)?.success === false ? 0 : paraEmail.length;
+      } catch (mailErr) {
+        logger.error("rejeicao.notificar.email_erro", { error: (mailErr as Error)?.message });
+      }
     }
 
-    return { notificacoes, emails: enviados };
+    return {
+      usuarios: destinatarios.length,
+      notificacoes: count ?? destinatarios.length,
+      emails,
+    };
   } catch (err) {
-    logger.error("rejeicao.notificar.falhou", { error: err, frequenciaId: input.frequenciaId });
-    return { notificacoes: 0, emails: 0 };
+    logger.error("rejeicao.notificar.falhou", { error: (err as Error)?.message });
+    return VAZIO;
   }
 }
