@@ -312,10 +312,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     
     const isMasterFinal = isMaster || isMasterRPC === true || isGestor;
 
-    // REGRA DE OURO: o status da LINHA sobrepõe o status geral da folha.
-    // A folha travada só bloqueia linhas que não estejam em estado corrigível
-    // (rejeitada). A verificação final acontece linha a linha, mais abaixo.
-    const folhaEditavel =
+    const folhaAberta =
       frequencia_status === "rascunho" ||
       frequencia_status === "com_pendencias" ||
       frequencia_status === "rejeitada" ||
@@ -356,13 +353,15 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      const linhaCorrigivel = ex?.status_linha === "rejeitada";
-      if (ex && ex.status_linha === "aprovada" && !isMasterFinal) {
+      const statusLinha = (ex?.status_linha ?? "pendente") as string;
+      if (ex && statusLinha === "aprovada" && !isMasterFinal) {
         throw new Error("Não é possível alterar uma linha que já foi aprovada.");
       }
-      if (!isMasterFinal && !folhaEditavel && !linhaCorrigivel) {
+      // Folha já enviada/em análise/aprovada: a unidade só corrige o
+      // profissional cuja linha foi rejeitada ou devolvida.
+      if (!isMasterFinal && !folhaAberta && statusLinha !== "rejeitada" && statusLinha !== "devolvida") {
         throw new Error(
-          "Folha já enviada ou aprovada — só é possível corrigir profissionais com linha rejeitada.",
+          "Folha já enviada — só é possível corrigir os profissionais com lançamento rejeitado ou devolvido.",
         );
       }
 
@@ -521,8 +520,18 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
         updated_by: userId,
       } as never)
       .eq("id", frequencia_id)
-      .in("status", ["rascunho", "com_pendencias", "rejeitada"]);
+      .in("status", ["rascunho", "com_pendencias", "rejeitada", "devolvida", "enviada"]);
     if (error) throw new Error(error.message);
+
+    // Reenvio após correção: as linhas rejeitadas voltam para análise.
+    const { error: reErr } = await supabase
+      .from("frequencia_profissional")
+      .update({ status_linha: "pendente", updated_by: userId } as never)
+      .eq("frequencia_id", frequencia_id)
+      .eq("status_linha", "rejeitada")
+      .is("deleted_at", null);
+    if (reErr) throw new Error(reErr.message);
+
 
     const { count } = await supabase
       .from("frequencia_profissional")

@@ -1268,21 +1268,12 @@ export function FrequenciasContratadosPage() {
                 const l = linhas[p.id];
                 if (!l) return null;
                 const ro = readonlyLinha(l);
-                // REGRA DE OURO: linha rejeitada/devolvida fica sempre corrigível.
-                const linhaCorrigivel =
-                  (l.status as string) === "rejeitada" || (l.status as string) === "devolvida";
-
                 const situ = derivarSituacao(conf);
                 const overrideSituacao = overrideSituacaoFolha(conf);
                 const semConta = !p.banco && !p.agencia && !p.conta_corrente;
                 const semContaConf = !conf.banco && !conf.agencia && !conf.conta_corrente;
                 return (
-                  <tr
-                    key={p.id}
-                    data-row-id={p.id}
-                    data-situacao={situ}
-                    className={linhaCorrigivel ? "bg-danger-soft/40" : undefined}
-                  >
+                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
                     <td
                       className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
                       style={{ width: 40, left: L.num }}

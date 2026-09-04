@@ -397,8 +397,11 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           .from("frequencias")
           .select(`
             tipo,
-            unidades(nome, gestor_email),
-            competencias(mes, ano),
+            competencia_unidades(
+              unidade_id,
+              unidades(id, nome, email_institucional),
+              competencias(mes, ano)
+            ),
             perfis!frequencias_created_by_fkey(user_id, nome, user_email)
           `)
           .eq("id", data.frequencia_id)
@@ -406,11 +409,14 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
 
         if (details) {
           const det = details as any;
-          const gestorEmail = (det.unidades as any)?.email_institucional;
+          const unidade = det.competencia_unidades?.unidades;
+          const comp = det.competencia_unidades?.competencias;
+          const gestorEmail = unidade?.email_institucional;
           const solicitanteEmail = det.perfis?.user_email;
-          const unidadeNome = det.unidades?.nome || "Unidade não identificada";
-          const competenciaStr = `${det.competencias?.mes}/${det.competencias?.ano}`;
-          const baseUrl = process.env.VITE_APP_URL || "http://localhost:8080";
+          const unidadeNome = unidade?.nome || "Unidade não identificada";
+          const competenciaStr = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
+          const baseUrl = process.env['VITE_APP_URL'] || "http://localhost:8080";
+
 
           // 1. Submissão (pendente/enviada) -> Notifica Gestor
           if (data.status === "enviada" && gestorEmail) {
@@ -452,49 +458,139 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
             });
           }
 
-          // 3. Devolução/Rejeição -> Notifica Solicitante com Justificativa
-          if (["rejeitada", "com_pendencias", "devolvida"].includes(data.status) && solicitanteEmail) {
+          // 3. Devolução/Rejeição -> Notifica Solicitante + responsáveis da unidade
+          if (["rejeitada", "com_pendencias", "devolvida"].includes(data.status)) {
+            const unidadeId = (freq as any).competencia_unidades?.unidades?.id ?? null;
+            const destinatarios = await destinatariosUnidade(supabase, unidadeId, [
+              solicitanteEmail,
+              gestorEmail,
+            ]);
             const statusLabel = data.status === "rejeitada" ? "Rejeitada" : "Devolvida para Ajustes";
-            const html = generateEmailTemplate({
-              title: `Folha ${statusLabel}`,
-              message: `A folha de frequência da unidade ${unidadeNome} foi ${statusLabel.toLowerCase()}. Por favor, verifique a justificativa abaixo e providencie os ajustes necessários.`,
-              ctaLabel: "Ajustar Folha",
-              ctaUrl: `${baseUrl}/aprovacoes`,
-              details: [
-                { label: "Unidade", value: unidadeNome },
-                { label: "Competência", value: competenciaStr },
-                { label: "Justificativa", value: data.observacoes || "Nenhuma justificativa informada." },
-              ],
-            });
-            await sendEmail({
-              to: solicitanteEmail,
-              subject: `[Ação Necessária] Folha ${statusLabel}: ${unidadeNome} - ${competenciaStr}`,
-              html,
-            });
+            if (destinatarios.length) {
+              const html = generateEmailTemplate({
+                title: `Folha ${statusLabel}`,
+                message: `A folha de frequência da unidade ${unidadeNome} foi ${statusLabel.toLowerCase()}. Por favor, verifique a justificativa abaixo e providencie os ajustes necessários.`,
+                ctaLabel: "Ajustar Folha",
+                ctaUrl: `${baseUrl}/aprovacoes`,
+                details: [
+                  { label: "Unidade", value: unidadeNome },
+                  { label: "Competência", value: competenciaStr },
+                  { label: "Justificativa", value: data.observacoes || "Nenhuma justificativa informada." },
+                ],
+              });
+              await sendEmail({
+                to: destinatarios,
+                subject: `[Ação Necessária] Folha ${statusLabel}: ${unidadeNome} - ${competenciaStr}`,
+                html,
+              });
+            }
           }
         }
       } catch (emailErr) {
         logger.error("email.trigger.failed", { error: emailErr, frequencia_id: data.frequencia_id });
       }
-
-      // Notificação no sino + e-mail para os responsáveis da unidade
-      if (["rejeitada", "com_pendencias", "devolvida"].includes(data.status)) {
-        try {
-          const { notificarRejeicaoFrequencia } = await import("./notificar-rejeicao.server");
-          await notificarRejeicaoFrequencia({
-            frequenciaId: data.frequencia_id,
-            escopo: "folha",
-            status: data.status,
-            motivo: data.observacoes ?? null,
-            criadoPor: userId,
-          });
-        } catch (notifErr) {
-          logger.error("rejeicao.notificar.trigger_failed", { error: notifErr, frequencia_id: data.frequencia_id });
-        }
-      }
     }
     return { ok: true };
   });
+
+/**
+ * Reúne os e-mails que devem ser avisados de uma rejeição/devolução:
+ * quem enviou, o contato institucional da unidade e os usuários vinculados
+ * à unidade (Diretores). Nunca lança — notificação não derruba a operação.
+ */
+async function destinatariosUnidade(
+  supabase: any,
+  unidadeId: string | null,
+  extras: (string | null | undefined)[] = [],
+): Promise<string[]> {
+  const set = new Set<string>();
+  for (const e of extras) if (e) set.add(e);
+  if (unidadeId) {
+    try {
+      const { data: vinculos } = await supabase
+        .from("usuario_unidades")
+        .select("usuario_id, usuarios:usuario_id(email, status)")
+        .eq("unidade_id", unidadeId)
+        .is("deleted_at", null);
+      for (const v of vinculos ?? []) {
+        const u = (v as any).usuarios;
+        if (u?.email && u.status === "ativo") set.add(u.email as string);
+      }
+    } catch (e) {
+      logger.warn("notificacao.destinatarios.falhou", { unidadeId });
+    }
+  }
+  return [...set];
+}
+
+const RejeitarLinhaSchema = z.object({
+  frequencia_id: z.string().uuid(),
+  profissional_id: z.string().uuid(),
+  motivo: z.string().max(2000).optional().default(""),
+});
+
+/**
+ * Aviso de rejeição de UM profissional da folha: notifica a unidade para que
+ * o Diretor corrija apenas aquele lançamento e reenvie.
+ */
+export const notificarLinhaRejeitada = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof RejeitarLinhaSchema>) => RejeitarLinhaSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.FREQUENCIA_REJEITAR);
+
+    try {
+      const { data: freq } = await supabase
+        .from("frequencias")
+        .select(
+          "id, tipo, competencia_unidades(unidade_id, unidades(id, nome, email_institucional), competencias(mes, ano))",
+        )
+        .eq("id", data.frequencia_id)
+        .maybeSingle();
+
+      const { data: prof } = await supabase
+        .from("profissionais")
+        .select("nome_completo, matricula")
+        .eq("id", data.profissional_id)
+        .maybeSingle();
+
+      const cu = (freq as any)?.competencia_unidades;
+      const unidade = cu?.unidades;
+      const competenciaStr = cu?.competencias
+        ? `${String(cu.competencias.mes).padStart(2, "0")}/${cu.competencias.ano}`
+        : "—";
+      const destinatarios = await destinatariosUnidade(supabase, unidade?.id ?? null, [
+        unidade?.email_institucional,
+      ]);
+      if (!destinatarios.length) return { ok: true, enviados: 0 };
+
+      const baseUrl = process.env['VITE_APP_URL'] || "http://localhost:8080";
+      const nomeProf = (prof as any)?.nome_completo ?? "Profissional";
+      const html = generateEmailTemplate({
+        title: "Lançamento rejeitado — correção necessária",
+        message: `O lançamento de ${nomeProf} na folha da unidade ${unidade?.nome ?? "—"} foi rejeitado. A unidade já pode corrigir esse profissional e reenviar a folha.`,
+        ctaLabel: "Corrigir agora",
+        ctaUrl: `${baseUrl}/aprovacoes`,
+        details: [
+          { label: "Profissional", value: nomeProf },
+          { label: "Matrícula", value: (prof as any)?.matricula ?? "—" },
+          { label: "Competência", value: competenciaStr },
+          { label: "Motivo", value: data.motivo || "Nenhuma justificativa informada." },
+        ],
+      });
+      await sendEmail({
+        to: destinatarios,
+        subject: `[Correção] Lançamento rejeitado: ${nomeProf} - ${competenciaStr}`,
+        html,
+      });
+      return { ok: true, enviados: destinatarios.length };
+    } catch (e) {
+      logger.error("email.linha_rejeitada.failed", { error: e, frequencia_id: data.frequencia_id });
+      return { ok: false, enviados: 0 };
+    }
+  });
+
 
 
 const PendenciaSchema = z.object({

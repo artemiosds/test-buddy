@@ -67,11 +67,13 @@ export type StatusMeta = {
 
 export type StatusDomain =
   | "frequencia"
+  | "linha"
   | "competencia"
   | "profissional"
   | "pendencia"
   | "unidade"
   | "usuario";
+
 
 type Registry = Record<StatusDomain, { order: readonly string[]; map: Record<string, StatusMeta> }>;
 
@@ -168,6 +170,45 @@ const REGISTRY: Registry = {
       },
     },
   },
+  /** Estado individual da linha do profissional dentro da folha. */
+  linha: {
+    order: ["pendente", "aprovada", "rejeitada", "devolvida"],
+    map: {
+      pendente: {
+        label: "Pendente",
+        variant: "secondary",
+        className: "border border-slate-200 bg-slate-100 font-medium text-slate-700",
+        icon: Clock,
+        colorToken: "neutral",
+        description: "Lançamento aguardando análise.",
+      },
+      aprovada: {
+        label: "Aprovada",
+        variant: "secondary",
+        className: "border border-emerald-200 bg-emerald-100 font-medium text-emerald-800",
+        icon: CheckCircle2,
+        colorToken: "success",
+        description: "Lançamento aprovado — bloqueado para edição.",
+      },
+      rejeitada: {
+        label: "Rejeitada — corrigir",
+        variant: "secondary",
+        className: "border border-red-300 bg-red-100 font-semibold text-red-800",
+        icon: XCircle,
+        colorToken: "danger",
+        description: "Rejeitada pelo analista — liberada para correção e novo envio.",
+      },
+      devolvida: {
+        label: "Devolvida — corrigir",
+        variant: "secondary",
+        className: "border border-orange-300 bg-orange-100 font-semibold text-orange-900",
+        icon: RotateCcw,
+        colorToken: "warning",
+        description: "Devolvida para correção pela unidade.",
+      },
+    },
+  },
+
   competencia: {
     order: ["aberta", "em_processamento", "encerrada", "arquivada"],
     map: {
