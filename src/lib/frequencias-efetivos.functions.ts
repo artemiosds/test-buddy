@@ -359,8 +359,16 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      if (ex && ex.status_linha === "aprovada" && !isMasterFinal) {
-        throw new Error("Não é possível alterar uma linha que já foi aprovada.");
+      // Após o envio, a unidade só corrige profissionais rejeitados/devolvidos.
+      if (
+        ex &&
+        !linhaEditavel({
+          statusLinha: ex.status_linha,
+          folhaStatus: frequencia_status,
+          isGestor: isMasterFinal,
+        })
+      ) {
+        throw new Error(MSG_LINHA_BLOQUEADA);
       }
 
       // Concorrência Otimista: Verifica se a linha foi alterada por outro usuário
