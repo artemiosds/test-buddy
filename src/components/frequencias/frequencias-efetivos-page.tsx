@@ -1242,8 +1242,12 @@ export function FrequenciasEfetivosPage() {
                       />
                     </td>
                     <td className="text-center">
-                      <Badge variant="outline">
-                        {(it.linha as any)?.status_linha ?? "pendente"}
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase tracking-wide ${statusLinhaClass(statusLinhaAtual)}`}
+                        title={ro && canEdit ? MSG_LINHA_BLOQUEADA : undefined}
+                      >
+                        {statusLinhaLabel(statusLinhaAtual)}
                       </Badge>
                     </td>
                   </tr>
