@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared";
+import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "@/lib/edicao-linha";
+import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { Input } from "@/components/ui/input";
 import {
   Select,
