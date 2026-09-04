@@ -5,6 +5,7 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
+import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "./edicao-linha";
 
 const VAL = z.union([z.number(), z.string()]).default(0);
 
