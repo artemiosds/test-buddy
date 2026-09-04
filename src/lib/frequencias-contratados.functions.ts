@@ -219,28 +219,12 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-<<<<<<< HEAD
       
       // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
       if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
          throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
 
-=======
-
-      // Após o envio, a unidade só corrige profissionais rejeitados/devolvidos.
-      if (
-        ex &&
-        !linhaEditavel({
-          statusLinha: ex.status,
-          folhaStatus: ex.status === "rascunho" ? "rascunho" : ex.status,
-          isGestor: isMasterFinal,
-        })
-      ) {
-        throw new Error(MSG_LINHA_BLOQUEADA);
-      }
-
->>>>>>> b93b0880a607d07bfb337efda6e47d0aa1e80c0a
       // Concorrência Otimista
       if (ex?.updated_at && (l as any).updated_at) {
         const bancoTime = new Date(ex.updated_at).getTime();

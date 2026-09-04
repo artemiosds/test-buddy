@@ -308,6 +308,26 @@ async function salvarPosicaoPadrao(
   }
 }
 
+/**
+ * Carimba a MESMA assinatura (posição/tamanho idênticos) em todas as páginas
+ * do documento. O seletor de página do modal serve apenas para o preview.
+ */
+export function desenharAssinaturaEmTodasPaginas(
+  doc: jsPDF,
+  a: AssinaturaResolvida,
+  pos: { xMm: number; yMm: number; tamanhoPercentual?: number },
+): void {
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    desenharAssinaturaEm(doc, a, { ...pos, pagina: p });
+  }
+  try {
+    doc.setPage(total);
+  } catch {
+    /* ignora */
+  }
+}
+
 export type FinalizarPdfOpts = {
   filename: string;
   tipo?: TipoDocumento;
@@ -322,6 +342,8 @@ export type FinalizarPdfOpts = {
   pagina?: number;
   /** desliga o modal (ex.: exportações em lote) */
   semModal?: boolean;
+  /** repete as assinaturas em todas as páginas (default: true) */
+  repetirEmTodasPaginas?: boolean;
   /** callback com o blob final (upload/arquivamento). O terceiro argumento é o hash SHA-256 real. */
   onBlob?: (blob: Blob, filename: string, hash: string) => void | Promise<void>;
   /** Metadados extras para o registro do documento */
@@ -525,10 +547,27 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   const porId = new Map(itens.map((i) => [i.id, i.assinatura]));
 
+  const repetir = opts.repetirEmTodasPaginas !== false;
+
+  const desenhar = (
+    a: AssinaturaResolvida,
+    pos: { xMm: number; yMm: number; pagina?: number; tamanhoPercentual?: number },
+  ) => {
+    if (repetir) {
+      desenharAssinaturaEmTodasPaginas(doc, a, {
+        xMm: pos.xMm,
+        yMm: pos.yMm,
+        tamanhoPercentual: pos.tamanhoPercentual,
+      });
+    } else {
+      desenharAssinaturaEm(doc, a, pos);
+    }
+  };
+
   const desenharPadroes = () => {
     for (const i of itens) {
       if (!i.incluirPadrao) continue;
-      desenharAssinaturaEm(doc, i.assinatura, {
+      desenhar(i.assinatura, {
         xMm: i.xPadraoMm,
         yMm: i.yPadraoMm,
         pagina: i.paginaPadrao,
@@ -580,7 +619,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     if (!item.incluir) continue;
     const a = porId.get(item.assinaturaId);
     if (!a) continue;
-    desenharAssinaturaEm(doc, a, {
+    desenhar(a, {
       xMm: item.xMm,
       yMm: item.yMm,
       pagina: item.pagina,
