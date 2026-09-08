@@ -325,6 +325,7 @@ export function ImportProfissionaisDialog() {
     setProgresso({ feito: 0, total: rows.length });
     let ok = 0;
     let fail = 0;
+    let skip = 0;
     const erros: string[] = [];
 
     let processadas = 0;
