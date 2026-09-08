@@ -226,10 +226,15 @@ export function FrequenciasEfetivosPage() {
     },
   });
 
-  // reset setor filter when unidade changes
+  // reset setor filter when unidade changes (preserva o setor vindo da URL na 1ª carga)
+  const primeiraCargaSetorRef = useRef(true);
   useEffect(() => {
+    if (primeiraCargaSetorRef.current) {
+      primeiraCargaSetorRef.current = false;
+      if (search.setorId) return;
+    }
     setSetorFilter([]);
-  }, [unidadeId]);
+  }, [unidadeId, search.setorId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
