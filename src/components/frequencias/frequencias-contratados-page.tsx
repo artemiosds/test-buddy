@@ -379,7 +379,8 @@ export function FrequenciasContratadosPage() {
   // Carrega última justificativa se devolvida
   const { data: ultimaAcao } = useQuery({
     queryKey: ["frequencia-ultima-acao", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId && folhaStatusUnificado === "devolvida",
+    enabled:
+      !!competenciaId && !!unidadeId && !isGlobalView && folhaStatusUnificado === "devolvida",
     queryFn: async () => {
       const { data: res } = await supabase
         .from("frequencias")
@@ -444,7 +445,8 @@ export function FrequenciasContratadosPage() {
     perfilCodigo,
     isMaster,
   });
-  const canEdit = !prazoBloqueado && !compFechada && has("frequencia.editar");
+  // Visão consolidada (todas as unidades) é SEMPRE somente leitura.
+  const canEdit = !isGlobalView && !prazoBloqueado && !compFechada && has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
