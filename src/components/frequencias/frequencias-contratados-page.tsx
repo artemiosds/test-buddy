@@ -801,7 +801,13 @@ export function FrequenciasContratadosPage() {
           funcao_id: it.profissional.funcao_id ?? null,
           setor_id: it.profissional.setor_id ?? null,
           vinculo: "Contratado",
-        };
+          ...(it.profissional.unidade_nome
+            ? {
+                unidade_nome: it.profissional.unidade_nome,
+                unidade_sigla: it.profissional.unidade_sigla ?? null,
+              }
+            : {}),
+        } as ProfConferencia;
         return { it, conf: mergeConferencia(base, confMap) };
       }),
     [filtradas, confMap],
