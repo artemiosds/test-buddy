@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaEfetivos,
+  listarConsolidadoEfetivos,
   salvarFolhaEfetivos,
   enviarFolhaEfetivos,
 } from "@/lib/frequencias-efetivos.functions";
