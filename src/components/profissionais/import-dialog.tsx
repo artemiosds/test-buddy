@@ -617,7 +617,8 @@ export function ImportProfissionaisDialog() {
           {result && (
             <div className="rounded-md border p-3 text-sm">
               <p>
-                <strong>{result.ok}</strong> importados ·{" "}
+                <strong>{result.ok}</strong> atualizados ·{" "}
+                <strong>{result.skip}</strong> ignorados ·{" "}
                 <strong className={result.fail ? "text-destructive" : ""}>{result.fail}</strong> com
                 erro
               </p>
