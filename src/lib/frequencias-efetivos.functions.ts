@@ -5,6 +5,7 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
+import { assertAcessoGlobal } from "./acesso-global.server";
 
 const VAL = z.union([z.number(), z.string()]).default(0);
 
@@ -260,6 +261,117 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
           cargo_id: p.cargo_id ?? null,
           funcao_id: p.funcao_id ?? null,
           setor_id: p.setor_id ?? null,
+          proj: p.proj,
+          h_p: p.h_p,
+          c_h: p.c_h,
+          jorn: p.jorn,
+        },
+        linha: byProf.get(p.id) ?? null,
+      })),
+    };
+  });
+
+/**
+ * Visão consolidada (TODAS AS UNIDADES) — somente leitura.
+ * Não cria nem altera folhas; apenas agrega os lançamentos existentes
+ * de todas as unidades da competência para conferência/exportação.
+ */
+export const listarConsolidadoEfetivos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { competencia_id: string }) =>
+    z.object({ competencia_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
+    await assertAcessoGlobal(supabase, userId);
+
+    const { data: profs, error: pErr } = await supabase
+      .from("profissionais")
+      .select(
+        `
+        id, matricula, nome_completo, nome_social, status,
+        proj, h_p, c_h, jorn,
+        cargo_id, funcao_id, setor_id, unidade_id,
+        cargos ( nome ),
+        funcoes ( nome ),
+        setores!profissionais_setor_id_fkey ( nome ),
+        unidades ( nome, sigla ),
+        vinculos!inner ( id, natureza, nome )
+      `,
+      )
+      .not("status", "in", "(inativo)")
+      .is("deleted_at", null)
+      .order("nome_completo");
+    if (pErr) throw new Error(pErr.message);
+
+    const profsFinais = (profs ?? []).filter((p: any) => {
+      const natureza = p.vinculos?.natureza?.toLowerCase() || "";
+      const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
+      if (natureza.includes("terceir") || nomeVinculo.includes("terceir")) return false;
+      const ehEstatutario =
+        natureza.includes("estatut") ||
+        natureza.includes("efetiv") ||
+        nomeVinculo.includes("efetiv") ||
+        nomeVinculo.includes("estatut");
+      const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
+      return ehEstatutario || ehComissionado;
+    });
+
+    // Folhas de efetivos da competência (todas as unidades/setores visíveis).
+    const { data: cus, error: cuErr } = await supabase
+      .from("competencia_unidades")
+      .select("id")
+      .eq("competencia_id", data.competencia_id)
+      .is("deleted_at", null);
+    if (cuErr) throw new Error(cuErr.message);
+    const cuIds = (cus ?? []).map((c: any) => c.id as string);
+
+    let folhaIds: string[] = [];
+    if (cuIds.length) {
+      const { data: fr, error: frErr } = await supabase
+        .from("frequencias")
+        .select("id")
+        .eq("tipo", "efetivos")
+        .in("competencia_unidade_id", cuIds)
+        .is("deleted_at", null);
+      if (frErr) throw new Error(frErr.message);
+      folhaIds = (fr ?? []).map((f: any) => f.id as string);
+    }
+
+    const profIds = profsFinais.map((p: any) => p.id);
+    let linhas: any[] = [];
+    if (profIds.length && folhaIds.length) {
+      const { data: fs, error } = await supabase
+        .from("frequencia_profissional")
+        .select("*")
+        .in("frequencia_id", folhaIds)
+        .in("profissional_id", profIds)
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      linhas = fs ?? [];
+    }
+    const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
+
+    return {
+      frequencia_id: null as string | null,
+      frequencia_status: null as string | null,
+      itens: profsFinais.map((p: any) => ({
+        profissional: {
+          id: p.id,
+          matricula: p.matricula,
+          nome: p.nome_social || p.nome_completo,
+          status: p.status ?? null,
+          cargo: p.cargos?.nome ?? null,
+          funcao: p.funcoes?.nome ?? null,
+          setor: p.setores?.nome ?? null,
+          cargo_id: p.cargo_id ?? null,
+          funcao_id: p.funcao_id ?? null,
+          setor_id: p.setor_id ?? null,
+          unidade_id: p.unidade_id ?? null,
+          unidade_nome: p.unidades?.nome ?? null,
+          unidade_sigla: p.unidades?.sigla ?? null,
           proj: p.proj,
           h_p: p.h_p,
           c_h: p.c_h,
