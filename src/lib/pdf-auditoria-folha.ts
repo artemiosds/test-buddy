@@ -97,11 +97,54 @@ export async function gerarPdfAuditoriaFolha(opts?: { dias?: number; observacoes
   currentY += 6;
 
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(
+    `Janela analisada: últimos ${dias} dias · ${(trilha ?? []).length} registros de trilha avaliados.`,
+    14,
+    currentY,
+  );
+  currentY += 6;
+
+  if (achados.length === 0) {
+    const linhas = doc.splitTextToSize(TEXTO_SEM_ACHADOS, 180);
+    doc.text(linhas, 14, currentY);
+    currentY += linhas.length * 5 + 4;
+  } else {
+    autoTable(doc, {
+      startY: currentY,
+      head: [["Criticidade", "Achado", "Ocorrências", "Ponto de controle"]],
+      body: achados.map((a) => [
+        a.nivel === "alto" ? "ALTA" : a.nivel === "medio" ? "MÉDIA" : "INFORMATIVO",
+        a.titulo,
+        String(a.ocorrencias),
+        a.detalhe,
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 45 }, 2: { cellWidth: 18, halign: "center" } },
+      margin: { left: 14, right: 14 },
+    });
+    currentY = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("5. OBSERVAÇÕES DO AUDITOR", 14, currentY);
+  currentY += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  const obs = (opts?.observacoes ?? "").trim() || "Nenhuma observação manual registrada pelo auditor.";
+  const linhasObs = doc.splitTextToSize(obs, 180);
+  doc.text(linhasObs, 14, currentY);
+  currentY += linhasObs.length * 5 + 4;
+
   let assinaturaBaseY: number | undefined;
   const assinaturas = await resolverAssinaturasDocumento("relatorio");
   if (assinaturas.length > 0) {
     assinaturaBaseY = currentY + 10;
   }
+
 
   const footerY = doc.internal.pageSize.getHeight() - 15;
   doc.setFontSize(8);
