@@ -652,6 +652,12 @@ export function FrequenciasContratadosPage() {
     );
   }, [folha, folhaStatusUnificado, isGlobalView, prazoBloqueado]);
 
+  const unidadeNomeExport = isGlobalView
+    ? "TODAS AS UNIDADES"
+    : unidadeSel
+      ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
+      : "";
+
   function mapExportItens(): ItemContratado[] {
     // Respeita os filtros aplicados na tela (competência já vem embutida
     // na consulta; cargo/função/setor/situação/busca são aplicados em
@@ -1001,6 +1007,12 @@ export function FrequenciasContratadosPage() {
           <span>{MSG_PRAZO_ENCERRADO}</span>
         </div>
       )}
+      {isGlobalView && (
+        <div className="flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{MSG_VISAO_CONSOLIDADA}</span>
+        </div>
+      )}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -1148,9 +1160,15 @@ export function FrequenciasContratadosPage() {
             options={(setoresOpts ?? []).map((s: any) => ({ label: s.nome, value: s.id }))}
             onValueChange={setSetorFilter}
             defaultValue={setorFilter}
-            placeholder={unidadeId ? "Selecionar Setores" : "Selecione uma unidade"}
+            placeholder={
+              isGlobalView
+                ? "Indisponível na visão consolidada"
+                : unidadeId
+                  ? "Selecionar Setores"
+                  : "Selecione uma unidade"
+            }
             maxCount={2}
-            disabled={!unidadeId}
+            disabled={!unidadeId || isGlobalView}
           />
         </div>
       </div>
