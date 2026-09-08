@@ -635,6 +635,7 @@ export function FrequenciasContratadosPage() {
   
   const folhaAprovada = folhaStatusUnificado === "aprovada";
   const podeEnviar = useMemo(() => {
+    if (isGlobalView) return false;
     if (!folha?.length) return false;
     if (prazoBloqueado) return false;
     if (!(isDiretor || isMaster || perfilCodigo === "GESTOR") || !has("frequencia.enviar")) return false;
