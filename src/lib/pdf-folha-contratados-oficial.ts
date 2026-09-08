@@ -409,7 +409,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { halign: "center" },
+      0: { cellWidth: 10, halign: "center" },
       1: { cellWidth: 50, halign: "left" },
       2: { cellWidth: 24, halign: "center" },
       3: { cellWidth: 35, halign: "left" },
