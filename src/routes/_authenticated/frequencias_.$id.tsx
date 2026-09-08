@@ -71,6 +71,7 @@ import { useTermoAceite } from "@/components/documentos/termo-aceite-provider";
 import { resolverAssinaturasDocumento, drawAssinaturasBlock } from "@/lib/pdf-assinaturas";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { bloqueadoPorPrazo, MSG_PRAZO_ENCERRADO } from "@/lib/prazo-envio";
+import { reenvioAnexosPendente, concluirReenvioAnexos } from "@/lib/reenvio-anexos.functions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
@@ -447,6 +448,20 @@ function FrequenciaDetalhe() {
 
   const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || frequencia?.status === "devolvida";
   const canEditar = has("frequencia.editar") && !prazoBloqueado;
+
+  // Pedido de reenvio de anexos pendente libera APENAS o envio de anexos
+  // (nunca a edição de dados da folha), mesmo com a folha em análise.
+  const subtipoFolha = frequencia?.tipo === "contratados" ? "contratados" : "efetivos";
+  const submissaoId = (frequencia?.competencia_unidade_id as string | null | undefined) ?? null;
+  const reenvioPendenteFn = useServerFn(reenvioAnexosPendente);
+  const concluirReenvioFn = useServerFn(concluirReenvioAnexos);
+  const { data: reenvioPendente, refetch: refetchReenvio } = useQuery({
+    queryKey: ["reenvio-anexos-pendente", submissaoId, subtipoFolha],
+    enabled: !!submissaoId,
+    queryFn: async () =>
+      (await reenvioPendenteFn({ data: { entidade_id: submissaoId!, subtipo: subtipoFolha } }))
+        .pendente,
+  });
 
   // Contagem de pendências abertas/respondidas por linha (frequencia_profissional_id)
   const { data: pendCounts } = useQuery({
@@ -1287,7 +1302,13 @@ function FrequenciaDetalhe() {
             tipoEntidade="frequencia_submissao"
             subtipo={frequencia.tipo === "contratados" ? "contratados" : "efetivos"}
             unidadeId={unidadeId ?? null}
-            canEdit={editable && canEditar}
+            canEdit={(editable && canEditar) || (!!reenvioPendente && has("documento.upload"))}
+            onUploaded={() => {
+              if (!reenvioPendente || !submissaoId) return;
+              void concluirReenvioFn({
+                data: { entidade_id: submissaoId, subtipo: subtipoFolha },
+              }).then(() => refetchReenvio());
+            }}
             mostrarLixeira={false}
             titulo="Documentos de justificativa da folha"
           />
