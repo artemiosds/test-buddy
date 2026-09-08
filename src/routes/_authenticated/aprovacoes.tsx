@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { valorCelula } from "@/lib/numero-ptbr";
+import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -1215,8 +1216,8 @@ function LinhasAnaliseDialog({
                       </td>
                       <td className="p-3 border-r text-center align-middle w-[100px]">
                         <div className="flex flex-col items-center gap-1">
-                          <Badge variant={STATUS_LINHA_VARIANT[l.status_linha]} className="text-[10px] px-1.5 py-0 h-5">
-                            {STATUS_LINHA_LABEL[l.status_linha]}
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 uppercase tracking-wide ${statusLinhaClass(l.status_linha)}`}>
+                            {statusLinhaLabel(l.status_linha)}
                           </Badge>
                           {excecao && (
                             <div className="text-[9px] font-bold text-destructive leading-tight max-w-[100px]" title={motivos.join(" · ")}>
