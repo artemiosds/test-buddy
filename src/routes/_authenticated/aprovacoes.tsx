@@ -13,17 +13,10 @@ import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState, StatusBadge, PageHeader } from "@/components/shared";
+import { EmptyState, StatusBadge } from "@/components/shared";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { salvarFolhaEfetivos } from "@/lib/frequencias-efetivos.functions";
 import { salvarFolhaContratados } from "@/lib/frequencias-contratados.functions";
-import { statusLabel } from "@/lib/status";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,42 +28,42 @@ import {
 import { valorCelula } from "@/lib/numero-ptbr";
 import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { toast } from "sonner";
-import { CalendarRange, LayoutList, Rows3 } from "lucide-react";
+import { CheckCircle2, LayoutList, Table2, XCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 import { NumberCell, ErpGridProvider, ErpTbody } from "@/components/erp-grid";
-import { ResumoAprovacoes, calcularResumo } from "@/components/aprovacoes/ResumoAprovacoes";
-import { FiltrosAprovacoes } from "@/components/aprovacoes/FiltrosAprovacoes";
+import { ResumoCompetencia } from "@/components/aprovacoes/ResumoCompetencia";
+import { FiltrosAprovacoes, type FiltrosState } from "@/components/aprovacoes/FiltrosAprovacoes";
 import { TabelaAprovacoes } from "@/components/aprovacoes/TabelaAprovacoes";
-import { GrupoUnidades } from "@/components/aprovacoes/GrupoUnidades";
-import {
-  competenciaExtenso,
-  situacaoConjunto,
-  type AcoesHandlers,
-  type FreqRow,
-} from "@/components/aprovacoes/tipos";
+import { AgrupadoPorUnidade } from "@/components/aprovacoes/AgrupadoPorUnidade";
+import type { AcaoTipo, FreqRow, StatusFreq } from "@/components/aprovacoes/tipos";
 
-type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
-
-const PAGE_SIZE = 20;
-
+/** Filtros da tela persistidos na URL (link compartilhável). */
 const searchSchema = z.object({
-  competencia: z.string().optional().default(""),
-  status: z.string().optional().default("todas"),
-  unidade: z.string().optional().default(""),
-  tipo: z.string().optional().default("todas"),
-  q: z.string().optional().default(""),
-  de: z.string().optional().default(""),
-  ate: z.string().optional().default(""),
-  pagina: z.coerce.number().optional().default(1),
-  visao: z.string().optional().default("tabela"),
+  competencia: z.string().optional(),
+  status: z.string().default("todas"),
+  unidade: z.string().default("todas"),
+  tipo: z.string().default("todos"),
+  q: z.string().default(""),
+  de: z.string().default(""),
+  ate: z.string().default(""),
+  pagina: z.number().default(1),
+  visao: z.string().default("tabela"),
 });
+
+type SearchState = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
   errorComponent: ErrorComponent,
-  validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
+  validateSearch: (raw: Record<string, unknown>): SearchState => {
+    const parsed = searchSchema.safeParse({
+      ...raw,
+      pagina: raw.pagina != null ? Number(raw.pagina) : undefined,
+    });
+    return parsed.success ? parsed.data : searchSchema.parse({});
+  },
   component: AprovacoesGuard,
 });
 
@@ -96,8 +89,6 @@ function AprovacoesGuard() {
   return <AprovacoesPage />;
 }
 
-type AcaoTipo = "em_analise" | "aprovar" | "rejeitar" | "retornar";
-
 const ACAO_LABEL: Record<AcaoTipo, string> = {
   em_analise: "Colocar em análise",
   aprovar: "Aprovar",
@@ -112,12 +103,24 @@ const ACAO_STATUS: Record<AcaoTipo, StatusFreq> = {
   retornar: "devolvida" as StatusFreq,
 };
 
+const SELECT_FREQ = `
+  id, tipo, status, data_envio, data_aprovacao, total_profissionais,
+  competencia_unidade_id, setor_id,
+  competencia_unidades:competencia_unidade_id!inner(
+    unidade_id,
+    competencia_id,
+    unidades:unidade_id(id, nome),
+    competencias:competencia_id(ano, mes)
+  ),
+  setores:setor_id(id, nome)
+`;
+
 function AprovacoesPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/aprovacoes" });
-  const sp = Route.useSearch();
+  const search = Route.useSearch();
 
   const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo } | null>(null);
   const [obs, setObs] = useState("");
@@ -135,82 +138,77 @@ function AprovacoesPage() {
   const canAprovar = has("frequencia.aprovar");
   const canRejeitar = has("frequencia.rejeitar");
 
-  function setSearch(patch: Record<string, unknown>) {
-    navigate({ search: (prev: any) => ({ ...prev, pagina: 1, ...patch }) });
-  }
+  const setSearch = (patch: Partial<SearchState>) => {
+    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  };
 
-  /** Competências disponíveis + quantidade de envios em cada uma. */
+  // Competências disponíveis + quantidade de envios em cada uma.
   const { data: competencias } = useQuery({
     queryKey: ["aprovacoes-competencias", me?.is_master, me?.unidades],
     enabled: !!me,
-    staleTime: 60_000,
     queryFn: async () => {
-      const { data: comps, error } = await supabase
+      const { data: comps, error: cErr } = await supabase
         .from("competencias")
         .select("id, ano, mes, status")
+        .is("deleted_at", null)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false })
         .limit(36);
-      if (error) throw error;
+      if (cErr) throw cErr;
 
-      let q = supabase
+      let cq = supabase
         .from("frequencias")
         .select("id, competencia_unidades:competencia_unidade_id!inner(competencia_id, unidade_id)")
         .is("deleted_at", null)
         .limit(5000);
       if (me && !me.is_master && me.unidades?.length > 0) {
-        q = q.in("competencia_unidades.unidade_id" as any, me.unidades);
+        cq = cq.in("competencia_unidades.unidade_id" as never, me.unidades);
       }
-      const { data: freqs, error: fErr } = await q;
-      if (fErr) throw fErr;
+      const { data: envios, error: eErr } = await cq;
+      if (eErr) throw eErr;
 
-      const contagem: Record<string, number> = {};
-      for (const f of (freqs ?? []) as any[]) {
-        const cid = f.competencia_unidades?.competencia_id;
-        if (cid) contagem[cid] = (contagem[cid] ?? 0) + 1;
+      const contagem = new Map<string, number>();
+      for (const e of (envios ?? []) as unknown as {
+        competencia_unidades: { competencia_id: string } | null;
+      }[]) {
+        const id = e.competencia_unidades?.competencia_id;
+        if (!id) continue;
+        contagem.set(id, (contagem.get(id) ?? 0) + 1);
       }
 
-      return (comps ?? []).map((c) => ({ ...c, envios: contagem[c.id] ?? 0 }));
+      return (comps ?? []).map((c) => ({
+        id: c.id,
+        ano: c.ano,
+        mes: c.mes,
+        status: c.status,
+        envios: contagem.get(c.id) ?? 0,
+      }));
     },
   });
 
-  /** Competência efetiva: da URL, senão a ativa, senão a mais recente com envios. */
-  const competenciaSel = useMemo(() => {
-    if (sp.competencia) return sp.competencia;
+  // Competência ativa (aberta) pré-selecionada; senão a mais recente com envios.
+  const competenciaId = useMemo(() => {
+    if (search.competencia) return search.competencia;
     if (!competencias?.length) return "";
-    const aberta = competencias.find((c) => c.status === "aberta" && c.envios > 0);
-    if (aberta) return aberta.id;
-    const abertaSemEnvio = competencias.find((c) => c.status === "aberta");
-    const comEnvio = competencias.find((c) => c.envios > 0);
-    return (comEnvio ?? abertaSemEnvio ?? competencias[0])?.id ?? "";
-  }, [sp.competencia, competencias]);
+    const ativa = competencias.find((c) => c.status === "aberta");
+    if (ativa) return ativa.id;
+    return (competencias.find((c) => c.envios > 0) ?? competencias[0]).id;
+  }, [search.competencia, competencias]);
 
-  const { data: rows, isLoading } = useQuery({
-    queryKey: ["aprovacoes-list", competenciaSel, me?.is_master, me?.unidades],
-    enabled: !!me && !!competenciaSel,
-    queryFn: async (): Promise<FreqRow[]> => {
+  const { data: rowsBrutas, isLoading } = useQuery({
+    queryKey: ["aprovacoes-list", competenciaId, me?.is_master, me?.unidades],
+    enabled: !!me && !!competenciaId,
+    queryFn: async () => {
       let q = supabase
         .from("frequencias")
-        .select(
-          `
-          id, tipo, status, data_envio, data_aprovacao, total_profissionais,
-          competencia_unidade_id, setor_id,
-          competencia_unidades:competencia_unidade_id!inner(
-            unidade_id,
-            competencia_id,
-            unidades:unidade_id(id, nome),
-            competencias:competencia_id(ano, mes)
-          ),
-          setores:setor_id(id, nome)
-        `,
-        )
+        .select(SELECT_FREQ)
         .is("deleted_at", null)
-        .eq("competencia_unidades.competencia_id" as any, competenciaSel)
+        .eq("competencia_unidades.competencia_id" as never, competenciaId)
         .order("data_envio", { ascending: false, nullsFirst: false })
-        .limit(1000);
+        .limit(500);
 
       if (me && !me.is_master && me.unidades?.length > 0) {
-        q = q.in("competencia_unidades.unidade_id" as any, me.unidades);
+        q = q.in("competencia_unidades.unidade_id" as never, me.unidades);
       }
 
       const { data, error } = await q;
@@ -219,63 +217,37 @@ function AprovacoesPage() {
     },
   });
 
-  const todas = rows ?? [];
+  const rows = rowsBrutas ?? [];
 
-  const contadores = useMemo(() => {
-    const c: Record<string, number> = { todas: todas.length };
-    const inc = (k: string) => (c[k] = (c[k] ?? 0) + 1);
-    for (const r of todas) {
-      inc(r.status);
-      if (r.status === "enviada" || r.status === "em_analise") inc("pendentes");
-    }
-    return c;
-  }, [todas]);
-
-  const unidadesDisponiveis = useMemo(() => {
-    const mapa = new Map<string, string>();
-    for (const r of todas) {
-      const u = r.competencia_unidades?.unidades;
-      if (u?.id) mapa.set(u.id, u.nome);
-    }
-    return [...mapa.entries()]
-      .map(([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [todas]);
+  const filtros: FiltrosState = {
+    q: search.q,
+    unidade: search.unidade,
+    tipo: search.tipo,
+    status: search.status,
+    de: search.de,
+    ate: search.ate,
+  };
 
   const filtradas = useMemo(() => {
-    const termo = sp.q.trim().toLowerCase();
-    const de = sp.de ? new Date(`${sp.de}T00:00:00`).getTime() : null;
-    const ate = sp.ate ? new Date(`${sp.ate}T23:59:59`).getTime() : null;
-
-    return todas.filter((r) => {
-      if (sp.status === "pendentes") {
+    const termo = filtros.q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filtros.unidade !== "todas" && r.competencia_unidades?.unidade_id !== filtros.unidade)
+        return false;
+      if (filtros.tipo !== "todos" && r.tipo !== filtros.tipo) return false;
+      if (filtros.status === "pendentes") {
         if (r.status !== "enviada" && r.status !== "em_analise") return false;
-      } else if (sp.status !== "todas" && r.status !== sp.status) return false;
-
-      if (sp.unidade && r.competencia_unidades?.unidade_id !== sp.unidade) return false;
-      if (sp.tipo !== "todas" && r.tipo !== sp.tipo) return false;
-
+      } else if (filtros.status === "com_pendencias") {
+        if (r.status !== "com_pendencias" && r.status !== ("devolvida" as StatusFreq)) return false;
+      } else if (filtros.status !== "todas" && r.status !== filtros.status) return false;
       if (termo) {
-        const alvo = `${r.competencia_unidades?.unidades?.nome ?? ""} ${r.setores?.nome ?? ""}`
-          .toLowerCase();
+        const alvo = `${r.competencia_unidades?.unidades?.nome ?? ""} ${r.setores?.nome ?? ""}`.toLowerCase();
         if (!alvo.includes(termo)) return false;
       }
-
-      if (de || ate) {
-        const t = r.data_envio ? new Date(r.data_envio).getTime() : null;
-        if (t == null) return false;
-        if (de && t < de) return false;
-        if (ate && t > ate) return false;
-      }
+      if (filtros.de && (!r.data_envio || r.data_envio.slice(0, 10) < filtros.de)) return false;
+      if (filtros.ate && (!r.data_envio || r.data_envio.slice(0, 10) > filtros.ate)) return false;
       return true;
     });
-  }, [todas, sp.status, sp.unidade, sp.tipo, sp.q, sp.de, sp.ate]);
-
-  const pagina = Math.max(1, sp.pagina);
-  const paginadas = filtradas.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
-  const resumo = useMemo(() => calcularResumo(todas), [todas]);
-  const situacao = situacaoConjunto(todas);
-  const compAtualInfo = competencias?.find((c) => c.id === competenciaSel);
+  }, [rows, filtros.q, filtros.unidade, filtros.tipo, filtros.status, filtros.de, filtros.ate]);
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
 
@@ -316,11 +288,11 @@ function AprovacoesPage() {
     setObs("");
   }
 
-  const acaoAtual = acao ? (todas.find((r) => r.id === acao.freqId) ?? null) : null;
+  const acaoAtual = acao ? (rows.find((r) => r.id === acao.freqId) ?? null) : null;
 
   // Indicador de anexos: conta os documentos de justificativa por submissão
   // (competência + unidade) e vínculo, para sinalizar na listagem.
-  const submissaoIds = todas
+  const submissaoIds = rows
     .map((r) => r.competencia_unidade_id)
     .filter((v): v is string => !!v);
 
@@ -347,133 +319,117 @@ function AprovacoesPage() {
     },
   });
 
-  const handlers: AcoesHandlers = {
+  const handlers = {
     canAnalisar,
     canAprovar,
     canRejeitar,
-    onAnexos: (r) =>
+    onAnexos: (r: FreqRow) =>
       setModalAnexo({
         id: r.competencia_unidade_id as string,
         subtipo: r.tipo === "contratados" ? "contratados" : "efetivos",
         unidadeId: r.competencia_unidades?.unidade_id as string,
         setorId: r.setor_id,
       }),
-    onTrilha: (r) => {
+    onTrilha: (r: FreqRow) => {
       setTrilhaFreqId(r.id);
       setTrilhaAbertura(true);
     },
-    onLinhas: (r) => setLinhasFreqId(r.id),
-    onAcao: (freqId, tipo) => abrirAcao(freqId, tipo),
+    onLinhas: (r: FreqRow) => setLinhasFreqId(r.id),
+    onAcao: abrirAcao,
   };
 
   return (
-    <div className="space-y-5">
+    <div className="w-full space-y-6">
       <PageHeader
         title="Aprovações institucionais"
         description="Fluxo formal de análise, aprovação e rejeição das frequências enviadas pelas unidades."
-      />
-
-      {/* Bloco de destaque: competência + situação */}
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-card p-4">
-        <div className="min-w-[260px] flex-1">
-          <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            <CalendarRange className="h-3.5 w-3.5" />
-            Competência
-          </label>
-          <Select
-            value={competenciaSel}
-            onValueChange={(v) => setSearch({ competencia: v })}
-          >
-            <SelectTrigger className="max-w-sm">
-              <SelectValue placeholder="Selecione a competência" />
-            </SelectTrigger>
-            <SelectContent>
-              {(competencias ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {competenciaExtenso(c.mes, c.ano)} · {c.envios} envio(s)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {compAtualInfo && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Situação da competência: {statusLabel("competencia", compAtualInfo.status)}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={"rounded-full border px-3 py-1 text-xs font-medium " + situacao.className}
-          >
-            {situacao.label}
-          </span>
-          <div className="flex rounded-md border p-0.5">
+        actions={
+          <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
             <Button
               size="sm"
-              variant={sp.visao === "agrupada" ? "ghost" : "secondary"}
+              variant={search.visao === "tabela" ? "secondary" : "ghost"}
               onClick={() => setSearch({ visao: "tabela" })}
             >
-              <Rows3 className="mr-1 h-4 w-4" />
+              <Table2 className="mr-1 h-4 w-4" />
               Tabela
             </Button>
             <Button
               size="sm"
-              variant={sp.visao === "agrupada" ? "secondary" : "ghost"}
+              variant={search.visao === "agrupada" ? "secondary" : "ghost"}
               onClick={() => setSearch({ visao: "agrupada" })}
             >
               <LayoutList className="mr-1 h-4 w-4" />
               Agrupada por unidade
             </Button>
           </div>
-        </div>
-      </div>
-
-      <ResumoAprovacoes
-        resumo={resumo}
-        loading={isLoading}
-        onFiltrar={(status) => setSearch({ status })}
+        }
       />
 
-      <div className="rounded-lg border bg-card p-4">
-        <FiltrosAprovacoes
-          valores={{
-            q: sp.q,
-            unidade: sp.unidade,
-            tipo: sp.tipo,
-            status: sp.status,
-            de: sp.de,
-            ate: sp.ate,
-          }}
-          unidades={unidadesDisponiveis}
-          contadores={contadores}
-          onChange={(patch) => setSearch(patch)}
-          onLimpar={() =>
-            setSearch({ q: "", unidade: "", tipo: "todas", status: "todas", de: "", ate: "" })
-          }
-        />
+      <ResumoCompetencia
+        competencias={competencias ?? []}
+        competenciaId={competenciaId}
+        onCompetencia={(id) => setSearch({ competencia: id, pagina: 1 })}
+        rows={rows}
+        statusAtivo={search.status}
+        onStatus={(status) => setSearch({ status, pagina: 1 })}
+      />
 
-        {sp.visao === "agrupada" ? (
-          <GrupoUnidades
-            rows={filtradas}
-            handlers={handlers}
-            loading={isLoading}
-            onVerTodas={() => setSearch({ status: "todas", q: "", unidade: "", tipo: "todas", de: "", ate: "" })}
-          />
-        ) : (
-          <TabelaAprovacoes
-            rows={paginadas}
-            total={filtradas.length}
-            pagina={pagina}
-            pageSize={PAGE_SIZE}
-            onPagina={(p) => navigate({ search: (prev: any) => ({ ...prev, pagina: p }) })}
-            anexos={anexosPorSubmissao}
-            handlers={handlers}
-            loading={isLoading}
-            onVerTodas={() => setSearch({ status: "todas", q: "", unidade: "", tipo: "todas", de: "", ate: "" })}
-          />
-        )}
-      </div>
+      <FiltrosAprovacoes
+        valores={filtros}
+        rows={rows}
+        onChange={(patch) => setSearch({ ...patch, pagina: 1 })}
+        onLimpar={() =>
+          setSearch({
+            q: "",
+            unidade: "todas",
+            tipo: "todos",
+            status: "todas",
+            de: "",
+            ate: "",
+            pagina: 1,
+          })
+        }
+      />
+
+      {isLoading ? (
+        <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+          Carregando...
+        </div>
+      ) : !filtradas.length ? (
+        <div className="rounded-xl border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            Nenhuma frequência encontrada para os filtros selecionados nesta competência.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3"
+            onClick={() =>
+              setSearch({
+                q: "",
+                unidade: "todas",
+                tipo: "todos",
+                status: "todas",
+                de: "",
+                ate: "",
+                pagina: 1,
+              })
+            }
+          >
+            Ver todas as frequências
+          </Button>
+        </div>
+      ) : search.visao === "agrupada" ? (
+        <AgrupadoPorUnidade rows={filtradas} handlers={handlers} />
+      ) : (
+        <TabelaAprovacoes
+          rows={filtradas}
+          pagina={search.pagina}
+          onPagina={(p) => setSearch({ pagina: p })}
+          anexos={anexosPorSubmissao}
+          handlers={handlers}
+        />
+      )}
 
       <Dialog
         open={!!acao}
@@ -489,10 +445,9 @@ function AprovacoesPage() {
             <DialogTitle>{acao ? ACAO_LABEL[acao.tipo] : ""}</DialogTitle>
             <DialogDescription>
               {acaoAtual?.competencia_unidades?.unidades?.nome} ·{" "}
-              {competenciaExtenso(
-                acaoAtual?.competencia_unidades?.competencias?.mes,
-                acaoAtual?.competencia_unidades?.competencias?.ano,
-              )}
+              {acaoAtual?.competencia_unidades?.competencias
+                ? `${String(acaoAtual.competencia_unidades.competencias.mes).padStart(2, "0")}/${acaoAtual.competencia_unidades.competencias.ano}`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -662,28 +617,37 @@ function TrilhaDialog({ freqId, open, onClose }: { freqId: string | null; open: 
             <EmptyState title="Nenhum registro ainda." />
           </div>
         ) : (
-          <ol className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+          <ol className="custom-scrollbar max-h-[60vh] space-y-0 overflow-y-auto border-l pl-5 pr-2">
             {data.map((r) => (
-              <li key={r.id} className="rounded-lg border bg-card p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold text-slate-800 dark:text-slate-100">{r.acao}</div>
-                  <div className="text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              <li key={r.id} className="relative pb-5 last:pb-0">
+                <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold text-foreground">{r.acao}</span>
+                  <span className="text-[11px] text-muted-foreground">
                     {new Date(r.created_at).toLocaleString("pt-BR")}
-                  </div>
+                  </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <StatusBadge domain="frequencia" value={r.status_anterior} className="h-4 text-[10px] px-1" />
-                    <span>→</span>
-                    <StatusBadge domain="frequencia" value={r.status_novo} className="h-4 text-[10px] px-1" />
-                  </div>
-                  <span className="opacity-40">|</span>
-                  <div className="font-medium text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-foreground">
                     {r.autor} {r.perfil ? `(${r.perfil})` : ""}
-                  </div>
+                  </span>
+                  <span className="opacity-40">|</span>
+                  <span className="flex items-center gap-1">
+                    <StatusBadge
+                      domain="frequencia"
+                      value={r.status_anterior}
+                      className="h-4 px-1 text-[10px]"
+                    />
+                    <span>→</span>
+                    <StatusBadge
+                      domain="frequencia"
+                      value={r.status_novo}
+                      className="h-4 px-1 text-[10px]"
+                    />
+                  </span>
                 </div>
                 {r.observacoes && (
-                  <div className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-2.5 text-[13px] border border-slate-200 dark:border-slate-800 italic text-slate-600 dark:text-slate-400">
+                  <div className="mt-2 whitespace-pre-wrap rounded-md border bg-muted/50 p-2.5 text-[13px] italic text-muted-foreground">
                     "{r.observacoes}"
                   </div>
                 )}
