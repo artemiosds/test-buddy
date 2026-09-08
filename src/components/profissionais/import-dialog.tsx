@@ -150,7 +150,12 @@ export function ImportProfissionaisDialog() {
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
   const [progresso, setProgresso] = useState({ feito: 0, total: 0 });
-  const [result, setResult] = useState<{ ok: number; fail: number; erros: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    ok: number;
+    fail: number;
+    skip: number;
+    erros: string[];
+  } | null>(null);
 
   const { data: secretarias } = useQuery({
     queryKey: ["import-secretarias"],
