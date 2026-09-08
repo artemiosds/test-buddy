@@ -165,8 +165,10 @@ export function FrequenciasEfetivosPage() {
   const { data: compAtiva } = useCompetenciaAtiva();
   const { isGlobal, unidadesPermitidas, unidadePadraoId } = useUnitScope();
 
-  const [competenciaId, setCompetenciaId] = useState<string>("");
-  const [unidadeId, setUnidadeId] = useState<string>("");
+  const search = useSearch({ from: "/_authenticated/frequencia/efetivos" });
+
+  const [competenciaId, setCompetenciaId] = useState<string>(search.competenciaId || "");
+  const [unidadeId, setUnidadeId] = useState<string>(search.unidadeId || "");
 
   // Sincroniza unidadeId com a padrão do escopo
   useEffect(() => {
