@@ -6,6 +6,7 @@ import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
 import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "./edicao-linha";
+import { assertAcessoGlobal } from "./acesso-global.server";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -150,6 +151,93 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         cargo_id: p.cargo_id ?? null,
         funcao_id: p.funcao_id ?? null,
         setor_id: p.setor_id ?? null,
+        banco: p.banco,
+        agencia: p.agencia,
+        conta_corrente: p.conta_corrente,
+      },
+      linha: byProf.get(p.id) ?? null,
+    }));
+  });
+
+/**
+ * Visão consolidada (TODAS AS UNIDADES) — somente leitura.
+ * Disponível apenas para Administrador Master / Gestor. Não cria folhas,
+ * não altera status e não é usada por nenhum fluxo de gravação.
+ */
+export const listarConsolidadoContratados = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { competencia_id: string }) =>
+    z.object({ competencia_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
+    await assertAcessoGlobal(supabase, userId);
+
+    const { data: allProfs, error: pErr } = await supabase
+      .from("profissionais")
+      .select(
+        `
+        id, matricula, nome_completo, nome_social, cpf, status,
+        banco, agencia, conta_corrente,
+        cargo_id, funcao_id, setor_id, unidade_id,
+        cargos ( nome ),
+        funcoes ( nome ),
+        setores!profissionais_setor_id_fkey ( nome ),
+        unidades ( nome, sigla ),
+        vinculos!inner ( natureza, nome )
+      `,
+      )
+      .not("status", "in", "(inativo)")
+      .is("deleted_at", null)
+      .order("nome_completo");
+    if (pErr) throw new Error(pErr.message);
+
+    const profs = (allProfs ?? []).filter((p: any) => {
+      const natureza = p.vinculos?.natureza?.toLowerCase() || "";
+      const nomeVinculo = (p.vinculos?.nome || "").toLowerCase();
+      if (natureza.includes("terceir") || nomeVinculo.includes("terceir")) return false;
+      const ehEstatutario =
+        natureza.includes("estatut") ||
+        natureza.includes("efetiv") ||
+        nomeVinculo.includes("efetiv") ||
+        nomeVinculo.includes("estatut");
+      const ehComissionado = natureza.includes("comission") || nomeVinculo.includes("comission");
+      return !ehEstatutario && !ehComissionado;
+    });
+
+    const profIds = profs.map((p: any) => p.id);
+    let freqs: any[] = [];
+    if (profIds.length) {
+      const { data: fs, error: fErr } = await supabase
+        .from("frequencias_contratados")
+        .select(
+          "status, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, observacoes, profissional_id, competencia_id, unidade_id",
+        )
+        .eq("competencia_id", data.competencia_id)
+        .in("profissional_id", profIds)
+        .is("deleted_at", null);
+      if (fErr) throw new Error(fErr.message);
+      freqs = fs ?? [];
+    }
+    const byProf = new Map(freqs.map((f) => [f.profissional_id, f]));
+
+    return profs.map((p: any) => ({
+      profissional: {
+        id: p.id,
+        matricula: p.matricula,
+        nome: p.nome_social || p.nome_completo,
+        cpf: p.cpf ?? null,
+        status: p.status ?? null,
+        cargo: p.cargos?.nome ?? null,
+        funcao: p.funcoes?.nome ?? null,
+        setor: p.setores?.nome ?? null,
+        cargo_id: p.cargo_id ?? null,
+        funcao_id: p.funcao_id ?? null,
+        setor_id: p.setor_id ?? null,
+        unidade_id: p.unidade_id ?? null,
+        unidade_nome: p.unidades?.nome ?? null,
+        unidade_sigla: p.unidades?.sigla ?? null,
         banco: p.banco,
         agencia: p.agencia,
         conta_corrente: p.conta_corrente,

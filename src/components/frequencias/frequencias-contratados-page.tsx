@@ -8,9 +8,11 @@ import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
 import { useSearch } from "@tanstack/react-router";
 import {
   listarFolhaContratados,
+  listarConsolidadoContratados,
   salvarFolhaContratados,
   enviarFolhaContratados,
 } from "@/lib/frequencias-contratados.functions";
+import { ALL_UNITS, MSG_VISAO_CONSOLIDADA } from "@/lib/unidade-escopo";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -229,9 +231,11 @@ export function FrequenciasContratadosPage() {
       return data ?? [];
     },
   });
+  const isGlobalView = unidadeId === ALL_UNITS && isGlobal;
+
   const { data: setoresOpts } = useQuery({
     queryKey: ["setores-filter", unidadeId],
-    enabled: !!unidadeId,
+    enabled: !!unidadeId && !isGlobalView,
     queryFn: async () => {
       const { data } = await supabase
         .from("setores")
@@ -315,16 +319,22 @@ export function FrequenciasContratadosPage() {
 
   // Folha
   const carregar = useServerFn(listarFolhaContratados);
+  const carregarConsolidado = useServerFn(listarConsolidadoContratados);
   const { data: folha, isFetching } = useQuery({
-    queryKey: ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
+    queryKey: isGlobalView
+      ? ["folha-contratados-consolidado", competenciaId]
+      : ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
     enabled: !!competenciaId && !!unidadeId,
-    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
+    queryFn: () =>
+      isGlobalView
+        ? carregarConsolidado({ data: { competencia_id: competenciaId } })
+        : carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
   });
 
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
   const { data: summary } = useQuery({
     queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId,
+    enabled: !!competenciaId && !!unidadeId && !isGlobalView,
     queryFn: async () => {
       let q = supabase
         .from("frequencias")
@@ -343,7 +353,11 @@ export function FrequenciasContratadosPage() {
   });
 
   const frequenciaId = summary?.id;
-  useFrequencyRealtime({ competenciaId, unidadeId, frequenciaId });
+  useFrequencyRealtime({
+    competenciaId,
+    unidadeId: isGlobalView ? undefined : unidadeId,
+    frequenciaId,
+  });
 
   const folhaStatusUnificado = useMemo(() => {
     // Se temos um resumo sincronizado no banco, ele é a fonte da verdade para o status global
@@ -365,7 +379,8 @@ export function FrequenciasContratadosPage() {
   // Carrega última justificativa se devolvida
   const { data: ultimaAcao } = useQuery({
     queryKey: ["frequencia-ultima-acao", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId && folhaStatusUnificado === "devolvida",
+    enabled:
+      !!competenciaId && !!unidadeId && !isGlobalView && folhaStatusUnificado === "devolvida",
     queryFn: async () => {
       const { data: res } = await supabase
         .from("frequencias")
@@ -430,7 +445,8 @@ export function FrequenciasContratadosPage() {
     perfilCodigo,
     isMaster,
   });
-  const canEdit = !prazoBloqueado && !compFechada && has("frequencia.editar");
+  // Visão consolidada (todas as unidades) é SEMPRE somente leitura.
+  const canEdit = !isGlobalView && !prazoBloqueado && !compFechada && has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
@@ -619,6 +635,7 @@ export function FrequenciasContratadosPage() {
   
   const folhaAprovada = folhaStatusUnificado === "aprovada";
   const podeEnviar = useMemo(() => {
+    if (isGlobalView) return false;
     if (!folha?.length) return false;
     if (prazoBloqueado) return false;
     if (!(isDiretor || isMaster || perfilCodigo === "GESTOR") || !has("frequencia.enviar")) return false;
@@ -633,7 +650,13 @@ export function FrequenciasContratadosPage() {
       it.linha.status === "devolvida" || 
       it.linha.status === "rejeitada"
     );
-  }, [folha, folhaStatusUnificado]);
+  }, [folha, folhaStatusUnificado, isGlobalView, prazoBloqueado]);
+
+  const unidadeNomeExport = isGlobalView
+    ? "TODAS AS UNIDADES"
+    : unidadeSel
+      ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
+      : "";
 
   function mapExportItens(): ItemContratado[] {
     // Respeita os filtros aplicados na tela (competência já vem embutida
@@ -671,9 +694,7 @@ export function FrequenciasContratadosPage() {
       const { gerarExcelFolhaContratados } = await import("@/lib/excel-folha-contratados");
       await gerarExcelFolhaContratados({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
       });
     } catch (e: any) {
@@ -687,9 +708,7 @@ export function FrequenciasContratadosPage() {
       const { gerarFolhaContratadosOficial } = await import("@/lib/pdf-folha-contratados-oficial");
       await gerarFolhaContratadosOficial({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
         unidadeId: unidadeSel?.id ?? null,
@@ -707,9 +726,7 @@ export function FrequenciasContratadosPage() {
         await import("@/lib/pdf-folha-contratados-modelo-cer");
       await gerarFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
       });
@@ -725,9 +742,7 @@ export function FrequenciasContratadosPage() {
         await import("@/lib/excel-folha-contratados-modelo-cer");
       await gerarExcelFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
       });
     } catch (e: any) {
@@ -784,7 +799,13 @@ export function FrequenciasContratadosPage() {
           funcao_id: it.profissional.funcao_id ?? null,
           setor_id: it.profissional.setor_id ?? null,
           vinculo: "Contratado",
-        };
+          ...(it.profissional.unidade_nome
+            ? {
+                unidade_nome: it.profissional.unidade_nome,
+                unidade_sigla: it.profissional.unidade_sigla ?? null,
+              }
+            : {}),
+        } as ProfConferencia;
         return { it, conf: mergeConferencia(base, confMap) };
       }),
     [filtradas, confMap],
@@ -806,6 +827,13 @@ export function FrequenciasContratadosPage() {
   const isAtencaoBasica =
     tipoUnidade === "UBS" || tipoUnidade.includes("ATEN"); /* ATENÇÃO BÁSICA / ATENCAO BASICA */
   const lotacaoDe = (conf: ProfConferencia): { label: string; full: string } | null => {
+    // Visão consolidada: a lotação é a unidade do próprio profissional.
+    if (isGlobalView) {
+      const uNome = (conf as any).unidade_nome ?? conf.setor ?? null;
+      if (!uNome) return null;
+      const uSigla = (conf as any).unidade_sigla ?? null;
+      return { label: uSigla || uNome, full: uNome };
+    }
     if (isAtencaoBasica) {
       const full = conf.setor ?? null;
       if (full) {
@@ -979,6 +1007,12 @@ export function FrequenciasContratadosPage() {
           <span>{MSG_PRAZO_ENCERRADO}</span>
         </div>
       )}
+      {isGlobalView && (
+        <div className="flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{MSG_VISAO_CONSOLIDADA}</span>
+        </div>
+      )}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -1126,9 +1160,15 @@ export function FrequenciasContratadosPage() {
             options={(setoresOpts ?? []).map((s: any) => ({ label: s.nome, value: s.id }))}
             onValueChange={setSetorFilter}
             defaultValue={setorFilter}
-            placeholder={unidadeId ? "Selecionar Setores" : "Selecione uma unidade"}
+            placeholder={
+              isGlobalView
+                ? "Indisponível na visão consolidada"
+                : unidadeId
+                  ? "Selecionar Setores"
+                  : "Selecione uma unidade"
+            }
             maxCount={2}
-            disabled={!unidadeId}
+            disabled={!unidadeId || isGlobalView}
           />
         </div>
       </div>
