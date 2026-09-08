@@ -364,7 +364,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "",
-      p.setor || input.unidadeNome || "-",
+      (it as any).lotacao_sigla || p.setor || input.unidadeNome || "-",
 
 
       nVal(l.dias_trabalhados),
