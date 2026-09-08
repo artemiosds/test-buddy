@@ -36,7 +36,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { NumberCell, ErpGridProvider, ErpTbody } from "@/components/erp-grid";
 import { ResumoCompetencia } from "@/components/aprovacoes/ResumoCompetencia";
 import { FiltrosAprovacoes, type FiltrosState } from "@/components/aprovacoes/FiltrosAprovacoes";
-import { TabelaAprovacoes, POR_PAGINA } from "@/components/aprovacoes/TabelaAprovacoes";
+import { TabelaAprovacoes } from "@/components/aprovacoes/TabelaAprovacoes";
 import { AgrupadoPorUnidade } from "@/components/aprovacoes/AgrupadoPorUnidade";
 import type { AcaoTipo, FreqRow, StatusFreq } from "@/components/aprovacoes/tipos";
 
