@@ -5527,6 +5527,8 @@ export type Database = {
           usuario_id: string
         }[]
       }
+      audit_actor_email: { Args: { _uid: string }; Returns: string }
+      audit_request_ip: { Args: never; Returns: string }
       check_frequencia_duplicada: {
         Args: { _competencia_id: string; _profissional_id: string }
         Returns: boolean
