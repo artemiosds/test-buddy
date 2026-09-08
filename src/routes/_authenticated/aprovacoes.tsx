@@ -617,28 +617,37 @@ function TrilhaDialog({ freqId, open, onClose }: { freqId: string | null; open: 
             <EmptyState title="Nenhum registro ainda." />
           </div>
         ) : (
-          <ol className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+          <ol className="custom-scrollbar max-h-[60vh] space-y-0 overflow-y-auto border-l pl-5 pr-2">
             {data.map((r) => (
-              <li key={r.id} className="rounded-lg border bg-card p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold text-slate-800 dark:text-slate-100">{r.acao}</div>
-                  <div className="text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              <li key={r.id} className="relative pb-5 last:pb-0">
+                <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold text-foreground">{r.acao}</span>
+                  <span className="text-[11px] text-muted-foreground">
                     {new Date(r.created_at).toLocaleString("pt-BR")}
-                  </div>
+                  </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <StatusBadge domain="frequencia" value={r.status_anterior} className="h-4 text-[10px] px-1" />
-                    <span>→</span>
-                    <StatusBadge domain="frequencia" value={r.status_novo} className="h-4 text-[10px] px-1" />
-                  </div>
-                  <span className="opacity-40">|</span>
-                  <div className="font-medium text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-foreground">
                     {r.autor} {r.perfil ? `(${r.perfil})` : ""}
-                  </div>
+                  </span>
+                  <span className="opacity-40">|</span>
+                  <span className="flex items-center gap-1">
+                    <StatusBadge
+                      domain="frequencia"
+                      value={r.status_anterior}
+                      className="h-4 px-1 text-[10px]"
+                    />
+                    <span>→</span>
+                    <StatusBadge
+                      domain="frequencia"
+                      value={r.status_novo}
+                      className="h-4 px-1 text-[10px]"
+                    />
+                  </span>
                 </div>
                 {r.observacoes && (
-                  <div className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-2.5 text-[13px] border border-slate-200 dark:border-slate-800 italic text-slate-600 dark:text-slate-400">
+                  <div className="mt-2 whitespace-pre-wrap rounded-md border bg-muted/50 p-2.5 text-[13px] italic text-muted-foreground">
                     "{r.observacoes}"
                   </div>
                 )}
