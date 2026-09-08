@@ -153,3 +153,51 @@ export const solicitarReenvioAnexos = createServerFn({ method: "POST" })
       emails,
     };
   });
+
+const PendenteSchema = z.object({
+  entidade_id: z.string().uuid(),
+  subtipo: z.string().max(30).optional(),
+});
+
+/**
+ * Indica se existe um pedido de reenvio de anexos PENDENTE (notificação não
+ * lida) para o usuário atual naquela submissão de folha. Usado apenas para
+ * liberar o ANEXO — nunca a edição de dados da folha.
+ */
+export const reenvioAnexosPendente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof PendenteSchema>) => PendenteSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("notificacoes")
+      .select("id")
+      .eq("usuario_id", context.userId)
+      .eq("entidade_id", data.entidade_id)
+      .eq("metadata->>motivo", "reenvio_anexos")
+      .eq("lida", false)
+      .limit(1);
+    if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { pendente: (rows ?? []).length > 0 };
+  });
+
+/** Encerra o pedido de reenvio após o novo anexo ser enviado. */
+export const concluirReenvioAnexos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof PendenteSchema>) => PendenteSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("notificacoes")
+      .update({ lida: true, lida_em: new Date().toISOString() } as never)
+      .eq("usuario_id", context.userId)
+      .eq("entidade_id", data.entidade_id)
+      .eq("metadata->>motivo", "reenvio_anexos")
+      .eq("lida", false);
+    if (data.subtipo) q = q.eq("metadata->>folha", data.subtipo);
+    const { error } = await q;
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
