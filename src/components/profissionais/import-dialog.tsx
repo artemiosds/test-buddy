@@ -397,9 +397,8 @@ export function ImportProfissionaisDialog() {
         vencimento_liquido: r.vencimento_liquido,
       };
 
-      // upsert por CPF via lookup manual (o índice único de cpf é parcial:
-      // WHERE deleted_at IS NULL — PostgREST não aceita como conflict target).
-      // Sem CPF, sempre insere um novo registro.
+      // Atualização por CPF; sem CPF, tenta pelo NOME exato.
+      // Não encontrando por nenhum dos dois, a linha é ignorada (skip).
       let existing: { id: string } | null = null;
       let opErr: { message: string } | null = null;
       if (r.cpf) {
@@ -411,18 +410,29 @@ export function ImportProfissionaisDialog() {
           .maybeSingle();
         opErr = findErr;
         existing = found ?? null;
+      } else if (r.nome_completo) {
+        const { data: found, error: findErr } = await supabase
+          .from("profissionais")
+          .select("id")
+          .eq("nome_completo", r.nome_completo)
+          .is("deleted_at", null)
+          .limit(1);
+        opErr = findErr;
+        existing = found?.[0] ?? null;
       }
-      if (!opErr) {
-        if (existing?.id) {
-          const { error: upErr } = await supabase
-            .from("profissionais")
-            .update(payload)
-            .eq("id", existing.id);
-          opErr = upErr;
-        } else {
-          const { error: insErr } = await supabase.from("profissionais").insert(payload);
-          opErr = insErr;
-        }
+      if (!opErr && !existing?.id) {
+        skip++;
+        erros.push(
+          `Linha ${r.linha} (${r.nome_completo}): ignorada — profissional não localizado por CPF nem por nome exato`,
+        );
+        continue;
+      }
+      if (!opErr && existing?.id) {
+        const { error: upErr } = await supabase
+          .from("profissionais")
+          .update(payload)
+          .eq("id", existing.id);
+        opErr = upErr;
       }
       if (opErr) {
         fail++;
