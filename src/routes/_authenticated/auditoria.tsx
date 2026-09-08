@@ -287,6 +287,27 @@ function AuditoriaPage() {
           </Select>
         </div>
 
+        {achados.length > 0 && (
+          <div className="rounded-lg border bg-card p-4 space-y-2">
+            <div className="text-sm font-semibold">Achados e pontos de controle (automático)</div>
+            {achados.map((a) => (
+              <div key={a.titulo} className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge
+                  variant={
+                    a.nivel === "alto" ? "destructive" : a.nivel === "medio" ? "default" : "outline"
+                  }
+                >
+                  {a.nivel === "alto" ? "Alta" : a.nivel === "medio" ? "Média" : "Informativo"}
+                </Badge>
+                <span className="font-medium">{a.titulo}</span>
+                <span className="text-muted-foreground">
+                  {a.ocorrencias} ocorrência(s) · {a.detalhe}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="rounded-lg border bg-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -297,19 +318,20 @@ function AuditoriaPage() {
                   <th className="p-3">Tabela</th>
                   <th className="p-3">Registro</th>
                   <th className="p-3">Usuário</th>
+                  <th className="p-3">IP</th>
                   <th className="p-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       Carregando...
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       Nenhum registro encontrado.
                     </td>
                   </tr>
@@ -322,12 +344,13 @@ function AuditoriaPage() {
                       <td className="p-3">
                         <Badge variant={OP_VARIANT[r.operacao]}>{OP_LABEL[r.operacao]}</Badge>
                       </td>
-                      <td className="p-3 font-mono text-xs">{r.tabela}</td>
+                      <td className="p-3 font-mono text-xs">{nomeTabela(r.tabela)}</td>
                       <td className="p-3 font-mono text-xs truncate max-w-[200px]">
                         {r.registro_id ?? "—"}
                       </td>
-                      <td className="p-3">
-                        {r.usuario_email ?? <span className="text-muted-foreground">sistema</span>}
+                      <td className="p-3">{autorLabel(r)}</td>
+                      <td className="p-3 font-mono text-xs">
+                        {r.ip ?? <span className="text-muted-foreground">não capturado</span>}
                       </td>
                       <td className="p-3">
                         <Button
@@ -346,6 +369,7 @@ function AuditoriaPage() {
             </table>
           </div>
         </div>
+
 
         <Pagination
           page={page}

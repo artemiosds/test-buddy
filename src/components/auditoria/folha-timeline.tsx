@@ -1,6 +1,7 @@
 /**
  * Linha do Tempo da Folha (Audit Trail).
- * Upload/criação ➔ envio ➔ validação ➔ aprovação/fechamento, com autor, data/hora e IP.
+ * Cobre as 6 etapas do fluxo documentado: Lançamento, Fechamento, Geração,
+ * Envio, Análise e Homologação — com autor, data/hora e IP quando disponíveis.
  * Exportação em PDF com marca d'água de rastreio e certificado de fé pública.
  */
 import { useMemo, useState } from "react";
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileDown, GitCommitVertical } from "lucide-react";
+import { CheckCircle2, CircleDashed, FileDown, GitCommitVertical } from "lucide-react";
 import { toast } from "sonner";
 import { statusLabel } from "@/lib/status";
 import {
@@ -27,13 +28,36 @@ import {
 } from "@/lib/fe-publica";
 import type { NivelPrivacidade } from "@/lib/lgpd";
 
+/** As 6 etapas do fluxo institucional da folha. */
+const ETAPAS = [
+  "Lançamento",
+  "Fechamento",
+  "Geração",
+  "Envio",
+  "Análise",
+  "Homologação",
+] as const;
+type EtapaNome = (typeof ETAPAS)[number];
+
 type Etapa = {
   quando: string;
+  etapa: EtapaNome;
   titulo: string;
   autor: string;
   detalhe: string | null;
   ip: string | null;
 };
+
+function etapaPorStatus(status: string | null | undefined, acao?: string | null): EtapaNome {
+  const s = (status ?? "").toLowerCase();
+  const a = (acao ?? "").toLowerCase();
+  if (s === "enviada" || a.includes("envio")) return "Envio";
+  if (s === "em_analise" || a.includes("análise") || a.includes("analise")) return "Análise";
+  if (s === "aprovada" || a.includes("aprov") || a.includes("homolog")) return "Homologação";
+  if (s === "rejeitada" || s === "devolvida" || s === "com_pendencias") return "Análise";
+  if (s === "rascunho") return "Lançamento";
+  return "Geração";
+}
 
 export function FolhaTimeline({
   nivel,
@@ -53,8 +77,9 @@ export function FolhaTimeline({
           `id, tipo, status, created_at, created_by, data_envio, enviada_por,
            data_aprovacao, aprovada_por,
            competencia_unidade:competencia_unidades!inner(
+             competencia_id,
              unidade:unidades!inner(nome, sigla),
-             competencia:competencias!inner(ano, mes)
+             competencia:competencias!inner(ano, mes, status, prazo_envio)
            )`,
         )
         .is("deleted_at", null)
@@ -74,22 +99,41 @@ export function FolhaTimeline({
     queryKey: ["audit-folha-timeline", folhaId],
     enabled: !!folhaId,
     queryFn: async () => {
-      const [aprov, logs] = await Promise.all([
+      const competenciaId = folha?.competencia_unidade?.competencia_id ?? null;
+      const [aprov, hist, logs, logsComp] = await Promise.all([
         supabase
           .from("frequencia_aprovacoes")
           .select("acao, status_anterior, status_novo, observacoes, created_at, executado_por")
           .eq("frequencia_id", folhaId)
           .order("created_at"),
         supabase
+          .from("frequencia_historico")
+          .select(
+            "acao, status_anterior, status_novo, justificativa, created_at, executado_por, executado_nome, executado_perfil",
+          )
+          .eq("frequencia_id", folhaId)
+          .order("created_at"),
+        supabase
           .from("audit_log")
-          .select("ocorrido_em, operacao, usuario_email, ip, contexto")
+          .select("ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto, valor_novo")
           .eq("registro_id", folhaId)
           .order("ocorrido_em")
-          .limit(200),
+          .limit(300),
+        competenciaId
+          ? supabase
+              .from("audit_log")
+              .select("ocorrido_em, operacao, usuario_email, ip, valor_novo")
+              .eq("tabela", "competencias")
+              .eq("registro_id", competenciaId)
+              .order("ocorrido_em")
+              .limit(100)
+          : Promise.resolve({ data: [] as never[] }),
       ]);
 
       const ids = new Set<string>();
       for (const a of aprov.data ?? []) if (a.executado_por) ids.add(a.executado_por);
+      for (const h of hist.data ?? []) if (h.executado_por) ids.add(h.executado_por);
+      for (const l of logs.data ?? []) if (l.usuario_id) ids.add(l.usuario_id);
       if (folha?.created_by) ids.add(folha.created_by);
       if (folha?.enviada_por) ids.add(folha.enviada_por);
       if (folha?.aprovada_por) ids.add(folha.aprovada_por);
@@ -102,57 +146,117 @@ export function FolhaTimeline({
           .in("id", Array.from(ids));
         for (const u of us ?? []) nomes.set(u.id, u.nome_completo ?? u.email ?? u.id);
       }
+      const naoIdentificado = "não identificado (investigar)";
 
       const out: Etapa[] = [];
+
+      // Etapa 1 — Lançamento
       if (folha?.created_at) {
         out.push({
           quando: folha.created_at,
-          titulo: "Folha criada / upload realizado",
-          autor: nomes.get(folha.created_by ?? "") ?? "sistema",
+          etapa: "Lançamento",
+          titulo: "Folha criada / lançamento iniciado",
+          autor: nomes.get(folha.created_by ?? "") ?? naoIdentificado,
           detalhe: folha.tipo === "contratados" ? "Folha de contratados" : "Folha de efetivos",
           ip: null,
         });
       }
-      if (folha?.data_envio) {
+
+      // Etapa 2 — Fechamento (encerramento da competência / prazo)
+      for (const l of logsComp.data ?? []) {
+        const vn = (l.valor_novo ?? {}) as { status?: string; prazo_envio?: string };
+        if (vn.status === "encerrada" || vn.status === "arquivada") {
+          out.push({
+            quando: l.ocorrido_em,
+            etapa: "Fechamento",
+            titulo: `Competência ${vn.status === "encerrada" ? "encerrada" : "arquivada"} — edições bloqueadas`,
+            autor: l.usuario_email ?? naoIdentificado,
+            detalhe: null,
+            ip: l.ip,
+          });
+        }
+      }
+
+      // Etapa 3 — Geração / consolidação (eventos de sincronização e gravação)
+      for (const l of logs.data ?? []) {
+        const ctx = (l.contexto ?? {}) as {
+          acao?: string;
+          evento?: string;
+          total_profissionais?: number;
+        };
+        const evento = ctx.evento ?? "";
+        const etapa: EtapaNome = evento.includes("ENVIADA")
+          ? "Envio"
+          : evento.includes("APROVADA")
+            ? "Homologação"
+            : etapaPorStatus(null, ctx.acao);
         out.push({
-          quando: folha.data_envio,
-          titulo: "Enviada para aprovação",
-          autor: nomes.get(folha.enviada_por ?? "") ?? "—",
-          detalhe: null,
+          quando: l.ocorrido_em,
+          etapa,
+          titulo: `Registro de auditoria — ${ctx.evento ?? ctx.acao ?? l.operacao}`,
+          autor: l.usuario_email ?? nomes.get(l.usuario_id ?? "") ?? naoIdentificado,
+          detalhe:
+            ctx.total_profissionais != null
+              ? `${ctx.total_profissionais} profissionais consolidados`
+              : null,
+          ip: l.ip,
+        });
+      }
+
+      // Etapas 4/5/6 — histórico de status (envio, análise, homologação)
+      for (const h of hist.data ?? []) {
+        out.push({
+          quando: h.created_at,
+          etapa: etapaPorStatus(h.status_novo, h.acao),
+          titulo: h.acao ?? "Transição de status",
+          autor:
+            h.executado_nome ?? nomes.get(h.executado_por ?? "") ?? naoIdentificado,
+          detalhe: `${statusLabel("frequencia", h.status_anterior)} ➔ ${statusLabel("frequencia", h.status_novo)}${h.justificativa ? ` · ${h.justificativa}` : ""}${h.executado_perfil ? ` · perfil ${h.executado_perfil}` : ""}`,
           ip: null,
         });
       }
+
       for (const a of aprov.data ?? []) {
         out.push({
           quando: a.created_at,
+          etapa: etapaPorStatus(a.status_novo, a.acao),
           titulo: `Validação — ${a.acao}`,
-          autor: nomes.get(a.executado_por ?? "") ?? "—",
+          autor: nomes.get(a.executado_por ?? "") ?? naoIdentificado,
           detalhe: `${statusLabel("frequencia", a.status_anterior)} ➔ ${statusLabel("frequencia", a.status_novo)}${a.observacoes ? ` · ${a.observacoes}` : ""}`,
           ip: null,
         });
       }
-      if (folha?.data_aprovacao) {
+
+      // Marcos consolidados da própria folha (garantem Envio/Homologação visíveis)
+      if (folha?.data_envio && !out.some((e) => e.etapa === "Envio")) {
         out.push({
-          quando: folha.data_aprovacao,
-          titulo: "Aprovação / fechamento",
-          autor: nomes.get(folha.aprovada_por ?? "") ?? "—",
+          quando: folha.data_envio,
+          etapa: "Envio",
+          titulo: "Enviada para análise",
+          autor: nomes.get(folha.enviada_por ?? "") ?? naoIdentificado,
           detalhe: null,
           ip: null,
         });
       }
-      for (const l of logs.data ?? []) {
-        const ctx = (l.contexto ?? {}) as { acao?: string };
+      if (folha?.data_aprovacao && !out.some((e) => e.etapa === "Homologação")) {
         out.push({
-          quando: l.ocorrido_em,
-          titulo: `Registro de auditoria — ${ctx.acao ?? l.operacao}`,
-          autor: l.usuario_email ?? "sistema",
+          quando: folha.data_aprovacao,
+          etapa: "Homologação",
+          titulo: "Aprovação / homologação da folha",
+          autor: nomes.get(folha.aprovada_por ?? "") ?? naoIdentificado,
           detalhe: null,
-          ip: l.ip,
+          ip: null,
         });
       }
+
       return out.sort((a, b) => a.quando.localeCompare(b.quando));
     },
   });
+
+  const cobertura = useMemo(() => {
+    const set = new Set((etapas ?? []).map((e) => e.etapa));
+    return ETAPAS.map((e) => ({ etapa: e, ok: set.has(e) }));
+  }, [etapas]);
 
   async function exportarPdf() {
     if (!folha || !etapas?.length) {
@@ -174,11 +278,18 @@ export function FolhaTimeline({
       14,
       y,
     );
+    doc.setFontSize(8);
+    doc.text(
+      `Cobertura das etapas: ${cobertura.map((c2) => `${c2.etapa}${c2.ok ? " ✔" : " (sem registro)"}`).join(" · ")}`,
+      14,
+      y + 5,
+    );
     autoTable(doc, {
-      startY: y + 4,
-      head: [["Data/hora", "Etapa", "Responsável", "Detalhe", "IP"]],
+      startY: y + 10,
+      head: [["Data/hora", "Etapa", "Evento", "Responsável", "Detalhe", "IP"]],
       body: etapas.map((e) => [
         new Date(e.quando).toLocaleString("pt-BR"),
+        e.etapa,
         e.titulo,
         e.autor,
         e.detalhe ?? "",
@@ -237,6 +348,26 @@ export function FolhaTimeline({
         </Button>
       </div>
 
+      {folhaId && (
+        <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-3">
+          {cobertura.map((c) => (
+            <Badge
+              key={c.etapa}
+              variant={c.ok ? "secondary" : "outline"}
+              className="gap-1 text-[11px]"
+            >
+              {c.ok ? (
+                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+              ) : (
+                <CircleDashed className="h-3 w-3 text-muted-foreground" />
+              )}
+              {c.etapa}
+              {!c.ok && " · sem registro"}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {!folhaId ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Escolha uma folha para ver o histórico passo a passo.
@@ -253,6 +384,9 @@ export function FolhaTimeline({
             <li key={i} className="relative">
               <GitCommitVertical className="absolute -left-[31px] top-0 h-4 w-4 text-primary" />
               <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="text-[10px] uppercase">
+                  {e.etapa}
+                </Badge>
                 <span className="text-sm font-medium">{e.titulo}</span>
                 <Badge variant="outline" className="text-[11px]">
                   {new Date(e.quando).toLocaleString("pt-BR")}

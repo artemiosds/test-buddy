@@ -69,25 +69,32 @@ export async function gerarCertificado(opts: {
   };
 }
 
-/** Marca d'água diagonal de rastreio em todas as páginas (perfil com acesso completo). */
+/**
+ * Marca d'água única de rastreio, centralizada e diagonal, com opacidade baixa,
+ * para não competir com o conteúdo (tabelas, cabeçalho institucional).
+ */
 export function drawWatermark(doc: jsPDF, r: Rastreio) {
   const total = doc.getNumberOfPages();
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
-  const linha = `${r.nome} · ${r.cpfOuEmail} · ${new Date(r.dataHora).toLocaleString("pt-BR")} · IP ${r.ip ?? "n/d"}`;
+  const linha = `${r.nome} · ${r.cpfOuEmail} · ${new Date(r.dataHora).toLocaleString("pt-BR")}`;
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
     doc.saveGraphicsState();
     // @ts-expect-error jsPDF GState existe em runtime
-    doc.setGState(new doc.GState({ opacity: 0.08 }));
-    doc.setFontSize(14);
+    doc.setGState(new doc.GState({ opacity: 0.05 }));
+    doc.setTextColor(120);
+    doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    for (let y = 40; y < h; y += 48) {
-      doc.text(linha, w / 2, y, { align: "center", angle: 20 });
-    }
+    doc.text("CÓPIA RASTREADA", w / 2, h / 2 - 6, { align: "center", angle: 30 });
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(linha, w / 2, h / 2 + 6, { align: "center", angle: 30 });
     doc.restoreGraphicsState();
+    doc.setTextColor(0);
   }
 }
+
 
 /** Rodapé de fé pública com hash SHA-256 e QR de verificação em todas as páginas. */
 export function drawCertificadoRodape(doc: jsPDF, cert: Certificado) {
