@@ -829,6 +829,13 @@ export function FrequenciasContratadosPage() {
   const isAtencaoBasica =
     tipoUnidade === "UBS" || tipoUnidade.includes("ATEN"); /* ATENÇÃO BÁSICA / ATENCAO BASICA */
   const lotacaoDe = (conf: ProfConferencia): { label: string; full: string } | null => {
+    // Visão consolidada: a lotação é a unidade do próprio profissional.
+    if (isGlobalView) {
+      const uNome = (conf as any).unidade_nome ?? conf.setor ?? null;
+      if (!uNome) return null;
+      const uSigla = (conf as any).unidade_sigla ?? null;
+      return { label: uSigla || uNome, full: uNome };
+    }
     if (isAtencaoBasica) {
       const full = conf.setor ?? null;
       if (full) {
