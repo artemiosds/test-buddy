@@ -628,6 +628,13 @@ function ProfissionaisPage() {
         h_p: (r as any).h_p || "",
         c_h: (r as any).c_h || "",
         jorn: (r as any).jorn || "",
+        salario_base: (r as any).salario_base ?? "",
+        salario_bruto: (r as any).salario_bruto ?? "",
+        salario_liquido: (r as any).salario_liquido ?? "",
+        horas_extras: (r as any).horas_extras ?? "",
+        adicional_noturno: (r as any).adicional_noturno ?? "",
+        gratificacao_incentivo: (r as any).gratificacao_incentivo ?? "",
+        vencimento_liquido: (r as any).vencimento_liquido ?? "",
         observacoes: r.observacoes || ""
       }));
 
