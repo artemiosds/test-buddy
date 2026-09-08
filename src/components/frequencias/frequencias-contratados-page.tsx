@@ -650,7 +650,7 @@ export function FrequenciasContratadosPage() {
       it.linha.status === "devolvida" || 
       it.linha.status === "rejeitada"
     );
-  }, [folha, folhaStatusUnificado]);
+  }, [folha, folhaStatusUnificado, isGlobalView, prazoBloqueado]);
 
   function mapExportItens(): ItemContratado[] {
     // Respeita os filtros aplicados na tela (competência já vem embutida
