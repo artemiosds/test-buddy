@@ -231,11 +231,27 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       if (insErr) throw insErr;
     }
 
-    // 4. Registrar no Log de Sincronização (Audit)
+    // 4. Registrar no Log de Sincronização (Audit) — com registro da folha
+    const { data: folhaAudit } = await supabaseAdmin
+      .from("frequencias")
+      .select("id")
+      .eq("competencia_unidade_id", cu.id)
+      .eq("tipo", tipo as never)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle();
+    const { data: autorAudit } = await supabaseAdmin
+      .from("usuarios")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+
     await supabaseAdmin.from("audit_log").insert({
       tabela: "frequencias",
       operacao: "update",
       usuario_id: userId,
+      usuario_email: autorAudit?.email ?? null,
+      registro_id: folhaAudit?.id ?? null,
       contexto: {
         evento,
         tipo,
@@ -245,6 +261,7 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
         total_profissionais: totalProfissionais
       }
     });
+
 
       return { 
         ok: true, 
