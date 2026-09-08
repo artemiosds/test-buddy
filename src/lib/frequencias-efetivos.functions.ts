@@ -355,8 +355,8 @@ export const listarConsolidadoEfetivos = createServerFn({ method: "POST" })
     const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
 
     return {
-      frequencia_id: null as string | null,
-      frequencia_status: null as string | null,
+      frequencia_id: "" as string,
+      frequencia_status: "" as string,
       itens: profsFinais.map((p: any) => ({
         profissional: {
           id: p.id,
