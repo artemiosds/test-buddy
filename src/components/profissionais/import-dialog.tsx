@@ -150,7 +150,12 @@ export function ImportProfissionaisDialog() {
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
   const [progresso, setProgresso] = useState({ feito: 0, total: 0 });
-  const [result, setResult] = useState<{ ok: number; fail: number; erros: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    ok: number;
+    fail: number;
+    skip: number;
+    erros: string[];
+  } | null>(null);
 
   const { data: secretarias } = useQuery({
     queryKey: ["import-secretarias"],
@@ -325,6 +330,7 @@ export function ImportProfissionaisDialog() {
     setProgresso({ feito: 0, total: rows.length });
     let ok = 0;
     let fail = 0;
+    let skip = 0;
     const erros: string[] = [];
 
     let processadas = 0;
@@ -397,9 +403,8 @@ export function ImportProfissionaisDialog() {
         vencimento_liquido: r.vencimento_liquido,
       };
 
-      // upsert por CPF via lookup manual (o índice único de cpf é parcial:
-      // WHERE deleted_at IS NULL — PostgREST não aceita como conflict target).
-      // Sem CPF, sempre insere um novo registro.
+      // Atualização por CPF; sem CPF, tenta pelo NOME exato.
+      // Não encontrando por nenhum dos dois, a linha é ignorada (skip).
       let existing: { id: string } | null = null;
       let opErr: { message: string } | null = null;
       if (r.cpf) {
@@ -411,18 +416,29 @@ export function ImportProfissionaisDialog() {
           .maybeSingle();
         opErr = findErr;
         existing = found ?? null;
+      } else if (r.nome_completo) {
+        const { data: found, error: findErr } = await supabase
+          .from("profissionais")
+          .select("id")
+          .eq("nome_completo", r.nome_completo)
+          .is("deleted_at", null)
+          .limit(1);
+        opErr = findErr;
+        existing = found?.[0] ?? null;
       }
-      if (!opErr) {
-        if (existing?.id) {
-          const { error: upErr } = await supabase
-            .from("profissionais")
-            .update(payload)
-            .eq("id", existing.id);
-          opErr = upErr;
-        } else {
-          const { error: insErr } = await supabase.from("profissionais").insert(payload);
-          opErr = insErr;
-        }
+      if (!opErr && !existing?.id) {
+        skip++;
+        erros.push(
+          `Linha ${r.linha} (${r.nome_completo}): ignorada — profissional não localizado por CPF nem por nome exato`,
+        );
+        continue;
+      }
+      if (!opErr && existing?.id) {
+        const { error: upErr } = await supabase
+          .from("profissionais")
+          .update(payload)
+          .eq("id", existing.id);
+        opErr = upErr;
       }
       if (opErr) {
         fail++;
@@ -433,7 +449,7 @@ export function ImportProfissionaisDialog() {
     }
     setImporting(false);
     setProgresso({ feito: rows.length, total: rows.length });
-    setResult({ ok, fail, erros: erros.slice(0, 50) });
+    setResult({ ok, fail, skip, erros: erros.slice(0, 50) });
     if (ok > 0) {
       // Invalida a listagem, os KPIs (Total/Ativos/Efetivos) e lookups
       // relacionados para que os cards e contagens reflitam a importação
@@ -445,8 +461,8 @@ export function ImportProfissionaisDialog() {
       qc.invalidateQueries({ queryKey: ["lookup"] });
       qc.invalidateQueries({ queryKey: ["current-user-context"] }); // Atualiza contexto se o admin importou ele mesmo
     }
-    if (fail === 0) toast.success(`${ok} profissionais importados`);
-    else toast.warning(`${ok} importados, ${fail} com erro`);
+    if (fail === 0) toast.success(`${ok} atualizados, ${skip} ignorados`);
+    else toast.warning(`${ok} atualizados, ${skip} ignorados, ${fail} com erro`);
   };
 
   const reset = () => {
@@ -601,7 +617,8 @@ export function ImportProfissionaisDialog() {
           {result && (
             <div className="rounded-md border p-3 text-sm">
               <p>
-                <strong>{result.ok}</strong> importados ·{" "}
+                <strong>{result.ok}</strong> atualizados ·{" "}
+                <strong>{result.skip}</strong> ignorados ·{" "}
                 <strong className={result.fail ? "text-destructive" : ""}>{result.fail}</strong> com
                 erro
               </p>
