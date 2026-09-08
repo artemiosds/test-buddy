@@ -461,8 +461,8 @@ export function ImportProfissionaisDialog() {
       qc.invalidateQueries({ queryKey: ["lookup"] });
       qc.invalidateQueries({ queryKey: ["current-user-context"] }); // Atualiza contexto se o admin importou ele mesmo
     }
-    if (fail === 0) toast.success(`${ok} profissionais importados`);
-    else toast.warning(`${ok} importados, ${fail} com erro`);
+    if (fail === 0) toast.success(`${ok} atualizados, ${skip} ignorados`);
+    else toast.warning(`${ok} atualizados, ${skip} ignorados, ${fail} com erro`);
   };
 
   const reset = () => {
