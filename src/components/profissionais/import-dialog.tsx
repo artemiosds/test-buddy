@@ -449,7 +449,7 @@ export function ImportProfissionaisDialog() {
     }
     setImporting(false);
     setProgresso({ feito: rows.length, total: rows.length });
-    setResult({ ok, fail, erros: erros.slice(0, 50) });
+    setResult({ ok, fail, skip, erros: erros.slice(0, 50) });
     if (ok > 0) {
       // Invalida a listagem, os KPIs (Total/Ativos/Efetivos) e lookups
       // relacionados para que os cards e contagens reflitam a importação
