@@ -1297,6 +1297,12 @@ function FrequenciaDetalhe() {
 
       {frequencia?.competencia_unidade_id && (
         <div className="rounded-lg border bg-card p-3">
+          {reenvioPendente && (
+            <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+              A gestão solicitou o reenvio de documentos desta folha. Envie os arquivos abaixo — a
+              edição dos dados permanece bloqueada.
+            </div>
+          )}
           <AnexosEntidade
             entidadeId={frequencia.competencia_unidade_id as string}
             tipoEntidade="frequencia_submissao"
