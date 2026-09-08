@@ -206,19 +206,20 @@ export const listarConsolidadoContratados = createServerFn({ method: "POST" })
       return !ehEstatutario && !ehComissionado;
     });
 
-    const profIds = profs.map((p: any) => p.id);
+    const profIds = new Set(profs.map((p: any) => p.id as string));
     let freqs: any[] = [];
-    if (profIds.length) {
+    if (profIds.size) {
+      // Sem filtro de IDs na URL (listas grandes causam 400 Bad Request).
       const { data: fs, error: fErr } = await supabase
         .from("frequencias_contratados")
         .select(
           "status, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, observacoes, profissional_id, competencia_id, unidade_id",
         )
         .eq("competencia_id", data.competencia_id)
-        .in("profissional_id", profIds)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .limit(5000);
       if (fErr) throw new Error(fErr.message);
-      freqs = fs ?? [];
+      freqs = (fs ?? []).filter((f: any) => profIds.has(f.profissional_id));
     }
     const byProf = new Map(freqs.map((f) => [f.profissional_id, f]));
 
