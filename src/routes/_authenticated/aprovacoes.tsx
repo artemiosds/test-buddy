@@ -1,18 +1,19 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { UploadAnexoModal } from "@/components/aprovacoes/UploadAnexoModal";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRetryMutation } from "@/lib/retry-mutation";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
 import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState, StatusBadge } from "@/components/shared";
+import { EmptyState, StatusBadge, PageHeader } from "@/components/shared";
 import { salvarFolhaEfetivos } from "@/lib/frequencias-efetivos.functions";
 import { salvarFolhaContratados } from "@/lib/frequencias-contratados.functions";
 import { statusLabel } from "@/lib/status";
@@ -34,36 +35,42 @@ import {
 import { valorCelula } from "@/lib/numero-ptbr";
 import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { toast } from "sonner";
-import {
-  CheckCircle2,
-  ClipboardList,
-  Eye,
-  History,
-  ListChecks,
-  Paperclip,
-  ScanSearch,
-  Upload,
-  XCircle,
-} from "lucide-react";
+import { CalendarRange, LayoutList, Rows3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
 import type { Database } from "@/integrations/supabase/types";
 import { NumberCell, ErpGridProvider, ErpTbody } from "@/components/erp-grid";
+import { ResumoAprovacoes, calcularResumo } from "@/components/aprovacoes/ResumoAprovacoes";
+import { FiltrosAprovacoes } from "@/components/aprovacoes/FiltrosAprovacoes";
+import { TabelaAprovacoes } from "@/components/aprovacoes/TabelaAprovacoes";
+import { GrupoUnidades } from "@/components/aprovacoes/GrupoUnidades";
+import {
+  competenciaExtenso,
+  situacaoConjunto,
+  type AcoesHandlers,
+  type FreqRow,
+} from "@/components/aprovacoes/tipos";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
-const FILTROS: { value: "pendentes" | StatusFreq | "todas"; label: string }[] = [
-  { value: "pendentes", label: "Pendentes (enviada + em análise)" },
-  { value: "enviada", label: "Enviadas" },
-  { value: "em_analise", label: "Em análise" },
-  { value: "aprovada", label: "Aprovadas" },
-  { value: "rejeitada", label: "Rejeitadas" },
-  { value: "com_pendencias", label: "Com pendências" },
-  { value: "todas", label: "Todas" },
-];
+const PAGE_SIZE = 20;
 
-export const Route = createFileRoute("/_authenticated/aprovacoes")({ errorComponent: ErrorComponent,
+const searchSchema = z.object({
+  competencia: z.string().optional().default(""),
+  status: z.string().optional().default("todas"),
+  unidade: z.string().optional().default(""),
+  tipo: z.string().optional().default("todas"),
+  q: z.string().optional().default(""),
+  de: z.string().optional().default(""),
+  ate: z.string().optional().default(""),
+  pagina: z.coerce.number().optional().default(1),
+  visao: z.string().optional().default("tabela"),
+});
+
+export const Route = createFileRoute("/_authenticated/aprovacoes")({
+  errorComponent: ErrorComponent,
+  validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: AprovacoesGuard,
 });
 
@@ -109,7 +116,9 @@ function AprovacoesPage() {
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<"pendentes" | StatusFreq | "todas">("pendentes");
+  const navigate = useNavigate({ from: "/aprovacoes" });
+  const sp = Route.useSearch();
+
   const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo } | null>(null);
   const [obs, setObs] = useState("");
   const [trilhaFreqId, setTrilhaFreqId] = useState<string | null>(null);
@@ -126,9 +135,60 @@ function AprovacoesPage() {
   const canAprovar = has("frequencia.aprovar");
   const canRejeitar = has("frequencia.rejeitar");
 
-  const { data: rows, isLoading } = useQuery({
-    queryKey: ["aprovacoes-list", filtro, me?.is_master, me?.unidades],
+  function setSearch(patch: Record<string, unknown>) {
+    navigate({ search: (prev: any) => ({ ...prev, pagina: 1, ...patch }) });
+  }
+
+  /** Competências disponíveis + quantidade de envios em cada uma. */
+  const { data: competencias } = useQuery({
+    queryKey: ["aprovacoes-competencias", me?.is_master, me?.unidades],
+    enabled: !!me,
+    staleTime: 60_000,
     queryFn: async () => {
+      const { data: comps, error } = await supabase
+        .from("competencias")
+        .select("id, ano, mes, status")
+        .order("ano", { ascending: false })
+        .order("mes", { ascending: false })
+        .limit(36);
+      if (error) throw error;
+
+      let q = supabase
+        .from("frequencias")
+        .select("id, competencia_unidades:competencia_unidade_id!inner(competencia_id, unidade_id)")
+        .is("deleted_at", null)
+        .limit(5000);
+      if (me && !me.is_master && me.unidades?.length > 0) {
+        q = q.in("competencia_unidades.unidade_id" as any, me.unidades);
+      }
+      const { data: freqs, error: fErr } = await q;
+      if (fErr) throw fErr;
+
+      const contagem: Record<string, number> = {};
+      for (const f of (freqs ?? []) as any[]) {
+        const cid = f.competencia_unidades?.competencia_id;
+        if (cid) contagem[cid] = (contagem[cid] ?? 0) + 1;
+      }
+
+      return (comps ?? []).map((c) => ({ ...c, envios: contagem[c.id] ?? 0 }));
+    },
+  });
+
+  /** Competência efetiva: da URL, senão a ativa, senão a mais recente com envios. */
+  const competenciaSel = useMemo(() => {
+    if (sp.competencia) return sp.competencia;
+    if (!competencias?.length) return "";
+    const aberta = competencias.find((c) => c.status === "aberta" && c.envios > 0);
+    if (aberta) return aberta.id;
+    const abertaSemEnvio = competencias.find((c) => c.status === "aberta");
+    const comEnvio = competencias.find((c) => c.envios > 0);
+    return (comEnvio ?? abertaSemEnvio ?? competencias[0])?.id ?? "";
+  }, [sp.competencia, competencias]);
+
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["aprovacoes-list", competenciaSel, me?.is_master, me?.unidades],
+    enabled: !!me && !!competenciaSel,
+    queryFn: async (): Promise<FreqRow[]> => {
       let q = supabase
         .from("frequencias")
         .select(
@@ -136,7 +196,6 @@ function AprovacoesPage() {
           id, tipo, status, data_envio, data_aprovacao, total_profissionais,
           competencia_unidade_id, setor_id,
           competencia_unidades:competencia_unidade_id!inner(
-
             unidade_id,
             competencia_id,
             unidades:unidade_id(id, nome),
@@ -146,11 +205,9 @@ function AprovacoesPage() {
         `,
         )
         .is("deleted_at", null)
+        .eq("competencia_unidades.competencia_id" as any, competenciaSel)
         .order("data_envio", { ascending: false, nullsFirst: false })
-        .limit(200);
-
-      if (filtro === "pendentes") q = q.in("status", ["enviada", "em_analise"]);
-      else if (filtro !== "todas") q = q.eq("status", filtro as StatusFreq);
+        .limit(1000);
 
       if (me && !me.is_master && me.unidades?.length > 0) {
         q = q.in("competencia_unidades.unidade_id" as any, me.unidades);
@@ -158,10 +215,67 @@ function AprovacoesPage() {
 
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as FreqRow[];
     },
-    enabled: !!me,
   });
+
+  const todas = rows ?? [];
+
+  const contadores = useMemo(() => {
+    const c: Record<string, number> = { todas: todas.length };
+    const inc = (k: string) => (c[k] = (c[k] ?? 0) + 1);
+    for (const r of todas) {
+      inc(r.status);
+      if (r.status === "enviada" || r.status === "em_analise") inc("pendentes");
+    }
+    return c;
+  }, [todas]);
+
+  const unidadesDisponiveis = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const r of todas) {
+      const u = r.competencia_unidades?.unidades;
+      if (u?.id) mapa.set(u.id, u.nome);
+    }
+    return [...mapa.entries()]
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [todas]);
+
+  const filtradas = useMemo(() => {
+    const termo = sp.q.trim().toLowerCase();
+    const de = sp.de ? new Date(`${sp.de}T00:00:00`).getTime() : null;
+    const ate = sp.ate ? new Date(`${sp.ate}T23:59:59`).getTime() : null;
+
+    return todas.filter((r) => {
+      if (sp.status === "pendentes") {
+        if (r.status !== "enviada" && r.status !== "em_analise") return false;
+      } else if (sp.status !== "todas" && r.status !== sp.status) return false;
+
+      if (sp.unidade && r.competencia_unidades?.unidade_id !== sp.unidade) return false;
+      if (sp.tipo !== "todas" && r.tipo !== sp.tipo) return false;
+
+      if (termo) {
+        const alvo = `${r.competencia_unidades?.unidades?.nome ?? ""} ${r.setores?.nome ?? ""}`
+          .toLowerCase();
+        if (!alvo.includes(termo)) return false;
+      }
+
+      if (de || ate) {
+        const t = r.data_envio ? new Date(r.data_envio).getTime() : null;
+        if (t == null) return false;
+        if (de && t < de) return false;
+        if (ate && t > ate) return false;
+      }
+      return true;
+    });
+  }, [todas, sp.status, sp.unidade, sp.tipo, sp.q, sp.de, sp.ate]);
+
+  const pagina = Math.max(1, sp.pagina);
+  const paginadas = filtradas.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
+  const resumo = useMemo(() => calcularResumo(todas), [todas]);
+  const situacao = situacaoConjunto(todas);
+  const compAtualInfo = competencias?.find((c) => c.id === competenciaSel);
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
 
@@ -202,16 +316,16 @@ function AprovacoesPage() {
     setObs("");
   }
 
-  const acaoAtual = acao ? (rows?.find((r) => r.id === acao.freqId) ?? null) : null;
+  const acaoAtual = acao ? (todas.find((r) => r.id === acao.freqId) ?? null) : null;
 
   // Indicador de anexos: conta os documentos de justificativa por submissão
   // (competência + unidade) e vínculo, para sinalizar na listagem.
-  const submissaoIds = (rows ?? [])
-    .map((r) => r.competencia_unidade_id as string | null)
+  const submissaoIds = todas
+    .map((r) => r.competencia_unidade_id)
     .filter((v): v is string => !!v);
 
   const { data: anexosPorSubmissao } = useQuery({
-    queryKey: ["aprovacoes-anexos", submissaoIds.join(","), rows?.map(r => r.setor_id).join(',')],
+    queryKey: ["aprovacoes-anexos", submissaoIds.join(",")],
     enabled: submissaoIds.length > 0,
     staleTime: 60_000,
     queryFn: async () => {
@@ -233,193 +347,131 @@ function AprovacoesPage() {
     },
   });
 
+  const handlers: AcoesHandlers = {
+    canAnalisar,
+    canAprovar,
+    canRejeitar,
+    onAnexos: (r) =>
+      setModalAnexo({
+        id: r.competencia_unidade_id as string,
+        subtipo: r.tipo === "contratados" ? "contratados" : "efetivos",
+        unidadeId: r.competencia_unidades?.unidade_id as string,
+        setorId: r.setor_id,
+      }),
+    onTrilha: (r) => {
+      setTrilhaFreqId(r.id);
+      setTrilhaAbertura(true);
+    },
+    onLinhas: (r) => setLinhasFreqId(r.id),
+    onAcao: (freqId, tipo) => abrirAcao(freqId, tipo),
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Aprovações institucionais</h1>
-          <p className="text-sm text-muted-foreground">
-            Fluxo formal de análise, aprovação e rejeição das frequências enviadas pelas unidades.
-          </p>
-        </div>
-        <div className="w-full max-w-xs">
-          <Select value={filtro} onValueChange={(v) => setFiltro(v as typeof filtro)}>
-            <SelectTrigger>
-              <SelectValue />
+    <div className="space-y-5">
+      <PageHeader
+        title="Aprovações institucionais"
+        description="Fluxo formal de análise, aprovação e rejeição das frequências enviadas pelas unidades."
+      />
+
+      {/* Bloco de destaque: competência + situação */}
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-card p-4">
+        <div className="min-w-[260px] flex-1">
+          <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <CalendarRange className="h-3.5 w-3.5" />
+            Competência
+          </label>
+          <Select
+            value={competenciaSel}
+            onValueChange={(v) => setSearch({ competencia: v })}
+          >
+            <SelectTrigger className="max-w-sm">
+              <SelectValue placeholder="Selecione a competência" />
             </SelectTrigger>
             <SelectContent>
-              {FILTROS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
+              {(competencias ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {competenciaExtenso(c.mes, c.ano)} · {c.envios} envio(s)
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {compAtualInfo && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Situação da competência: {statusLabel("competencia", compAtualInfo.status)}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={"rounded-full border px-3 py-1 text-xs font-medium " + situacao.className}
+          >
+            {situacao.label}
+          </span>
+          <div className="flex rounded-md border p-0.5">
+            <Button
+              size="sm"
+              variant={sp.visao === "agrupada" ? "ghost" : "secondary"}
+              onClick={() => setSearch({ visao: "tabela" })}
+            >
+              <Rows3 className="mr-1 h-4 w-4" />
+              Tabela
+            </Button>
+            <Button
+              size="sm"
+              variant={sp.visao === "agrupada" ? "secondary" : "ghost"}
+              onClick={() => setSearch({ visao: "agrupada" })}
+            >
+              <LayoutList className="mr-1 h-4 w-4" />
+              Agrupada por unidade
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-x-auto">
-        {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
-        ) : !rows?.length ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Nenhuma frequência para este filtro.
-          </div>
+      <ResumoAprovacoes
+        resumo={resumo}
+        loading={isLoading}
+        onFiltrar={(status) => setSearch({ status })}
+      />
+
+      <div className="rounded-lg border bg-card p-4">
+        <FiltrosAprovacoes
+          valores={{
+            q: sp.q,
+            unidade: sp.unidade,
+            tipo: sp.tipo,
+            status: sp.status,
+            de: sp.de,
+            ate: sp.ate,
+          }}
+          unidades={unidadesDisponiveis}
+          contadores={contadores}
+          onChange={(patch) => setSearch(patch)}
+          onLimpar={() =>
+            setSearch({ q: "", unidade: "", tipo: "todas", status: "todas", de: "", ate: "" })
+          }
+        />
+
+        {sp.visao === "agrupada" ? (
+          <GrupoUnidades
+            rows={filtradas}
+            handlers={handlers}
+            loading={isLoading}
+            onVerTodas={() => setSearch({ status: "todas", q: "", unidade: "", tipo: "todas", de: "", ate: "" })}
+          />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/40">
-              <tr className="text-left">
-                <th className="p-3">Unidade</th>
-                <th className="p-3">Competência</th>
-                <th className="p-3">Tipo</th>
-                <th className="p-3">Prof.</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Enviada em</th>
-                <th className="p-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const cu = r.competencia_unidades;
-                const comp = cu?.competencias;
-                const pendente = r.status === "enviada" || r.status === "em_analise";
-                const subtipo = r.tipo === "contratados" ? "contratados" : "efetivos";
-                const chaveAnexo = r.setor_id 
-                  ? `${r.competencia_unidade_id}:${subtipo}:${r.setor_id}`
-                  : `${r.competencia_unidade_id}:${subtipo}`;
-                const qtdAnexos = anexosPorSubmissao?.[chaveAnexo] ?? 0;
-                return (
-                  <tr key={r.id} className="border-b last:border-0">
-                    <td className="p-3 font-medium">
-                      <span className="flex flex-col">
-                        <span className="font-medium text-foreground">{cu?.unidades?.nome ?? "—"}</span>
-                        {(r as any).setores?.nome && (
-                          <span className="text-[11px] font-normal text-muted-foreground bg-primary/5 border border-primary/10 px-1.5 py-0 rounded w-fit">
-                            Setor: {(r as any).setores.nome}
-                          </span>
-                        )}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 ml-2">
-                        {qtdAnexos > 0 && (
-                          <span
-                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
-                            title={`${qtdAnexos} documento(s) de justificativa anexado(s)`}
-                          >
-                            <Paperclip className="h-3 w-3" />
-                            {qtdAnexos}
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      {comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—"}
-                    </td>
-                    <td className="p-3 capitalize">{r.tipo}</td>
-                    <td className="p-3">{r.total_profissionais ?? 0}</td>
-                    <td className="p-3">
-                      <StatusBadge domain="frequencia" value={r.status} />
-                    </td>
-                    <td className="p-3">
-                      {r.data_envio ? new Date(r.data_envio).toLocaleString("pt-BR") : "—"}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {r.tipo === "contratados" ? (
-                          <Button asChild size="sm" variant="ghost">
-                            <Link
-                              to="/frequencia/contratados"
-                              search={{
-                                competenciaId: cu?.competencia_id,
-                                unidadeId: cu?.unidade_id,
-                              }}
-                            >
-                              <Eye className="mr-1 h-4 w-4" />
-                              Abrir
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button asChild size="sm" variant="ghost">
-                          <Link to="/frequencias/$id" params={{ id: r.id }}>
-                            <Eye className="mr-1 h-4 w-4" />
-                            Abrir
-                          </Link>
-                        </Button>
-                      )}
-                      <OfflineButton
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          setModalAnexo({
-                            id: r.competencia_unidade_id as string,
-                            subtipo: r.tipo === "contratados" ? "contratados" : "efetivos",
-                            unidadeId: cu?.unidade_id as string,
-                            setorId: r.setor_id,
-                          })
-                        }
-                      >
-                        <Upload className="mr-1 h-4 w-4" />
-                        Anexos
-                      </OfflineButton>
-                      <OfflineButton size="sm" variant="ghost" onClick={() => { setTrilhaFreqId(r.id); setTrilhaAbertura(true); }}>
-                        <History className="mr-1 h-4 w-4" />
-                        Trilha
-                      </OfflineButton>
-                        {(canAprovar || canRejeitar) && (
-                          <OfflineButton size="sm" variant="outline" onClick={() => setLinhasFreqId(r.id)}>
-                            <ListChecks className="mr-1 h-4 w-4" />
-                            Linhas
-                          </OfflineButton>
-                        )}
-                        {pendente && canAnalisar && r.status === "enviada" && (
-                          <OfflineButton
-                            size="sm"
-                            variant="outline"
-                            onClick={() => abrirAcao(r.id, "em_analise")}
-                            requireOnline
-                          >
-                            <ScanSearch className="mr-1 h-4 w-4" />
-                            Analisar
-                          </OfflineButton>
-                        )}
-                        {pendente && canAprovar && (
-                          <OfflineButton 
-                            size="sm" 
-                            onClick={() => abrirAcao(r.id, "aprovar")}
-                            requireOnline
-                          >
-                            <CheckCircle2 className="mr-1 h-4 w-4" />
-                            Aprovar
-                          </OfflineButton>
-                        )}
-                        {pendente && canRejeitar && (
-                          <>
-                            <OfflineButton
-                              size="sm"
-                              variant="outline"
-                              onClick={() => abrirAcao(r.id, "retornar")}
-                              requireOnline
-                            >
-                              <ClipboardList className="mr-1 h-4 w-4" />
-                              Retornar
-                            </OfflineButton>
-                            <OfflineButton
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => abrirAcao(r.id, "rejeitar")}
-                              requireOnline
-                            >
-                              <XCircle className="mr-1 h-4 w-4" />
-                              Rejeitar
-                            </OfflineButton>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <TabelaAprovacoes
+            rows={paginadas}
+            total={filtradas.length}
+            pagina={pagina}
+            pageSize={PAGE_SIZE}
+            onPagina={(p) => navigate({ search: (prev: any) => ({ ...prev, pagina: p }) })}
+            anexos={anexosPorSubmissao}
+            handlers={handlers}
+            loading={isLoading}
+            onVerTodas={() => setSearch({ status: "todas", q: "", unidade: "", tipo: "todas", de: "", ate: "" })}
+          />
         )}
       </div>
 
@@ -437,9 +489,10 @@ function AprovacoesPage() {
             <DialogTitle>{acao ? ACAO_LABEL[acao.tipo] : ""}</DialogTitle>
             <DialogDescription>
               {acaoAtual?.competencia_unidades?.unidades?.nome} ·{" "}
-              {acaoAtual?.competencia_unidades?.competencias
-                ? `${String(acaoAtual.competencia_unidades.competencias.mes).padStart(2, "0")}/${acaoAtual.competencia_unidades.competencias.ano}`
-                : ""}
+              {competenciaExtenso(
+                acaoAtual?.competencia_unidades?.competencias?.mes,
+                acaoAtual?.competencia_unidades?.competencias?.ano,
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -501,16 +554,23 @@ function AprovacoesPage() {
         </DialogContent>
       </Dialog>
 
-      <TrilhaDialog freqId={trilhaFreqId} open={trilhaAberta} onClose={() => { setTrilhaFreqId(null); setTrilhaAbertura(false); }} />
-      
+      <TrilhaDialog
+        freqId={trilhaFreqId}
+        open={trilhaAberta}
+        onClose={() => {
+          setTrilhaFreqId(null);
+          setTrilhaAbertura(false);
+        }}
+      />
+
       {modalAnexo && (
         <UploadAnexoModal
           open={!!modalAnexo}
           onOpenChange={(o) => !o && setModalAnexo(null)}
           entidadeId={modalAnexo.id}
-            subtipo={modalAnexo.subtipo}
-            setorId={modalAnexo.setorId}
-            unidadeId={modalAnexo.unidadeId}
+          subtipo={modalAnexo.subtipo}
+          setorId={modalAnexo.setorId}
+          unidadeId={modalAnexo.unidadeId}
         />
       )}
 

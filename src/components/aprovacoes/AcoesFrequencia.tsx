@@ -31,7 +31,10 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
         <Button asChild size="sm" variant="outline">
           <Link
             to="/frequencia/contratados"
-            search={{ competenciaId: cu?.competencia_id, unidadeId: cu?.unidade_id }}
+            search={{
+              competenciaId: cu?.competencia_id ?? undefined,
+              unidadeId: cu?.unidade_id ?? undefined,
+            }}
           >
             <Eye className="mr-1 h-4 w-4" />
             Abrir

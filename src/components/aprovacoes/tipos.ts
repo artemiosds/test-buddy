@@ -32,6 +32,14 @@ export type AcoesHandlers = {
   onAcao: (freqId: string, tipo: AcaoTipo) => void;
 };
 
+/** Chave usada no mapa de contagem de anexos por submissão. */
+export function chaveAnexo(r: FreqRow) {
+  const subtipo = r.tipo === "contratados" ? "contratados" : "efetivos";
+  return r.setor_id
+    ? `${r.competencia_unidade_id}:${subtipo}:${r.setor_id}`
+    : `${r.competencia_unidade_id}:${subtipo}`;
+}
+
 const MESES = [
   "Janeiro",
   "Fevereiro",
