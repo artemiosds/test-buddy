@@ -86,6 +86,25 @@ export const solicitarReenvioAnexos = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Link direto para a folha correspondente (em vez da lista geral).
+    let link = "/frequencias";
+    if (data.tipo_entidade === "frequencia_submissao") {
+      const { data: cu } = await supabase
+        .from("competencia_unidades")
+        .select("competencia_id, unidade_id")
+        .eq("id", data.entidade_id)
+        .maybeSingle();
+      if (cu?.competencia_id && cu?.unidade_id) {
+        const base = data.subtipo === "contratados" ? "/frequencia/contratados" : "/frequencia/efetivos";
+        const params = new URLSearchParams({
+          competenciaId: String(cu.competencia_id),
+          unidadeId: String(cu.unidade_id),
+        });
+        if (data.subtipo !== "contratados" && data.setor_id) params.set("setorId", data.setor_id);
+        link = `${base}?${params.toString()}`;
+      }
+    }
+
     const { error: nErr, count } = await supabaseAdmin.from("notificacoes").insert(
       destinatarios.map((u) => ({
         usuario_id: u.id,
@@ -94,9 +113,14 @@ export const solicitarReenvioAnexos = createServerFn({ method: "POST" })
         canal: "interno" as const,
         titulo,
         mensagem: mensagemBase,
-        link: "/frequencias",
+        link,
         entidade_tipo: data.tipo_entidade,
         entidade_id: data.entidade_id,
+        metadata: {
+          motivo: "reenvio_anexos",
+          folha: data.subtipo ?? null,
+          setor_id: data.setor_id ?? null,
+        } as never,
         created_by: userId,
       })) as never,
       { count: "exact" },
