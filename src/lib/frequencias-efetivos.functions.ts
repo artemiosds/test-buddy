@@ -339,18 +339,22 @@ export const listarConsolidadoEfetivos = createServerFn({ method: "POST" })
       folhaIds = (fr ?? []).map((f: any) => f.id as string);
     }
 
-    const profIds = profsFinais.map((p: any) => p.id);
+    const profIds = new Set(profsFinais.map((p: any) => p.id as string));
     let linhas: any[] = [];
-    if (profIds.length && folhaIds.length) {
-      const { data: fs, error } = await supabase
-        .from("frequencia_profissional")
-        .select("*")
-        .in("frequencia_id", folhaIds)
-        .in("profissional_id", profIds)
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      linhas = fs ?? [];
+    if (profIds.size && folhaIds.length) {
+      // Consulta em lotes: listas grandes de IDs estouram o tamanho da URL (400 Bad Request).
+      const LOTE = 40;
+      for (let i = 0; i < folhaIds.length; i += LOTE) {
+        const { data: fs, error } = await supabase
+          .from("frequencia_profissional")
+          .select("*")
+          .in("frequencia_id", folhaIds.slice(i, i + LOTE))
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: true })
+          .limit(5000);
+        if (error) throw new Error(error.message);
+        for (const l of fs ?? []) if (profIds.has(l.profissional_id)) linhas.push(l);
+      }
     }
     const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
 
