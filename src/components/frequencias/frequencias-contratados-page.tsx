@@ -8,9 +8,11 @@ import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
 import { useSearch } from "@tanstack/react-router";
 import {
   listarFolhaContratados,
+  listarConsolidadoContratados,
   salvarFolhaContratados,
   enviarFolhaContratados,
 } from "@/lib/frequencias-contratados.functions";
+import { ALL_UNITS, MSG_VISAO_CONSOLIDADA } from "@/lib/unidade-escopo";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -229,9 +231,11 @@ export function FrequenciasContratadosPage() {
       return data ?? [];
     },
   });
+  const isGlobalView = unidadeId === ALL_UNITS && isGlobal;
+
   const { data: setoresOpts } = useQuery({
     queryKey: ["setores-filter", unidadeId],
-    enabled: !!unidadeId,
+    enabled: !!unidadeId && !isGlobalView,
     queryFn: async () => {
       const { data } = await supabase
         .from("setores")
