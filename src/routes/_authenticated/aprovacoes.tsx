@@ -1004,6 +1004,24 @@ function LinhasAnaliseDialog({
           .eq("id", id);
         if (error) throw error;
       }
+
+      // Avisa a unidade (sino + e-mail) quando o lançamento é rejeitado.
+      if (status === "rejeitada" && freqId) {
+        try {
+          const { notificarRejeicaoLinha } = await import("@/lib/notificar-rejeicao.functions");
+          const alvo = (linhas ?? []).find((l: any) => l.id === id) as any;
+          await notificarRejeicaoLinha({
+            data: {
+              frequencia_id: freqId,
+              status: "rejeitada",
+              profissional_nome: alvo?.profissionais?.nome_completo ?? null,
+              justificativa: obs.trim() || null,
+            },
+          });
+        } catch {
+          // O aviso não pode impedir a rejeição.
+        }
+      }
     },
     onSuccess: async () => {
       toast.success("Linha atualizada");

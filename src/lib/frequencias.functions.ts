@@ -326,6 +326,21 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       .eq("id", data.frequencia_id);
     if (upErr) throw new Error(upErr.message);
 
+    // Aviso à unidade (sino + e-mail) quando a folha é rejeitada/devolvida.
+    if (
+      data.status === "rejeitada" ||
+      data.status === "devolvida" ||
+      data.status === "com_pendencias"
+    ) {
+      const { notificarRejeicaoFolha } = await import("./notificar-rejeicao.server");
+      await notificarRejeicaoFolha({
+        frequenciaId: data.frequencia_id,
+        status: data.status,
+        justificativa: data.observacoes ?? null,
+        autorId: userId,
+      });
+    }
+
     const label = ACAO_LABEL[data.status];
     if (label) {
       // --- CAPTURA DE SNAPSHOT DE ASSINATURA ---
