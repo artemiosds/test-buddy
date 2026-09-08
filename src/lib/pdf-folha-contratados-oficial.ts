@@ -28,7 +28,7 @@ const LINHA_ALTURA = 10;
 const COR_NIVEL_1: [number, number, number] = [139, 106, 42];
 const COR_NIVEL_2: [number, number, number] = [184, 147, 74];
 const COR_NIVEL_3: [number, number, number] = [212, 168, 83];
-const COR_BORDA: [number, number, number] = [180, 180, 180];
+const COR_BORDA: [number, number, number] = [0, 0, 0];
 const COR_TEXTO: [number, number, number] = [0, 0, 0];
 
 type Col = {
@@ -390,21 +390,22 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     rowPageBreak: "avoid",
     styles: {
       fontSize: 7,
+      textColor: [0, 0, 0],
       cellPadding: 1.2,
-      lineColor: [180, 180, 180],
-      lineWidth: 0.15,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
       overflow: "linebreak",
       valign: "middle",
     },
     headStyles: {
       fillColor: [240, 243, 246],
-      textColor: [30, 41, 59],
+      textColor: [0, 0, 0],
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
       fontSize: 6.5,
       cellPadding: 1.2,
-      lineColor: [120, 120, 120],
+      lineColor: [0, 0, 0],
       lineWidth: 0.25,
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
