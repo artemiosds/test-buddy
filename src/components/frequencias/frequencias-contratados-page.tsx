@@ -319,16 +319,22 @@ export function FrequenciasContratadosPage() {
 
   // Folha
   const carregar = useServerFn(listarFolhaContratados);
+  const carregarConsolidado = useServerFn(listarConsolidadoContratados);
   const { data: folha, isFetching } = useQuery({
-    queryKey: ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
+    queryKey: isGlobalView
+      ? ["folha-contratados-consolidado", competenciaId]
+      : ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
     enabled: !!competenciaId && !!unidadeId,
-    queryFn: () => carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
+    queryFn: () =>
+      isGlobalView
+        ? carregarConsolidado({ data: { competencia_id: competenciaId } })
+        : carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
   });
 
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
   const { data: summary } = useQuery({
     queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId,
+    enabled: !!competenciaId && !!unidadeId && !isGlobalView,
     queryFn: async () => {
       let q = supabase
         .from("frequencias")
