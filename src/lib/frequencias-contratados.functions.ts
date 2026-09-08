@@ -5,6 +5,7 @@ import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
+import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "./edicao-linha";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -219,17 +220,10 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-
-      // Após o envio, a unidade só corrige profissionais rejeitados/devolvidos.
-      if (
-        ex &&
-        !linhaEditavel({
-          statusLinha: ex.status,
-          folhaStatus: ex.status === "rascunho" ? "rascunho" : ex.status,
-          isGestor: isMasterFinal,
-        })
-      ) {
-        throw new Error(MSG_LINHA_BLOQUEADA);
+      
+      // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
+      if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
+         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
 
       // Concorrência Otimista
