@@ -688,9 +688,7 @@ export function FrequenciasContratadosPage() {
       const { gerarExcelFolhaContratados } = await import("@/lib/excel-folha-contratados");
       await gerarExcelFolhaContratados({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
       });
     } catch (e: any) {
@@ -704,9 +702,7 @@ export function FrequenciasContratadosPage() {
       const { gerarFolhaContratadosOficial } = await import("@/lib/pdf-folha-contratados-oficial");
       await gerarFolhaContratadosOficial({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
         unidadeId: unidadeSel?.id ?? null,
@@ -724,9 +720,7 @@ export function FrequenciasContratadosPage() {
         await import("@/lib/pdf-folha-contratados-modelo-cer");
       await gerarFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
         emitidoPor: me?.nome_completo ?? me?.email ?? "—",
       });
@@ -742,9 +736,7 @@ export function FrequenciasContratadosPage() {
         await import("@/lib/excel-folha-contratados-modelo-cer");
       await gerarExcelFolhaContratadosModeloCer({
         competencia: { mes: compSel.mes as number, ano: compSel.ano as number },
-        unidadeNome: unidadeSel
-          ? `${unidadeSel.sigla ? unidadeSel.sigla + " — " : ""}${unidadeSel.nome}`
-          : "",
+        unidadeNome: unidadeNomeExport,
         itens: mapExportItens(),
       });
     } catch (e: any) {
