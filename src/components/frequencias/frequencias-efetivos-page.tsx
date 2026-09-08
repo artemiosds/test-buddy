@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
+import { useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -165,8 +166,10 @@ export function FrequenciasEfetivosPage() {
   const { data: compAtiva } = useCompetenciaAtiva();
   const { isGlobal, unidadesPermitidas, unidadePadraoId } = useUnitScope();
 
-  const [competenciaId, setCompetenciaId] = useState<string>("");
-  const [unidadeId, setUnidadeId] = useState<string>("");
+  const search = useSearch({ from: "/_authenticated/frequencia/efetivos" });
+
+  const [competenciaId, setCompetenciaId] = useState<string>(search.competenciaId || "");
+  const [unidadeId, setUnidadeId] = useState<string>(search.unidadeId || "");
 
   // Sincroniza unidadeId com a padrão do escopo
   useEffect(() => {
@@ -178,7 +181,9 @@ export function FrequenciasEfetivosPage() {
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
-  const [setorFilter, setSetorFilter] = useState<string[]>([]);
+  const [setorFilter, setSetorFilter] = useState<string[]>(
+    search.setorId ? [search.setorId] : [],
+  );
   const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
   const [dossieProf, setDossieProf] = useState<ProfConferencia | null>(null);
   const [dossieOpen, setDossieOpen] = useState(false);
@@ -221,10 +226,15 @@ export function FrequenciasEfetivosPage() {
     },
   });
 
-  // reset setor filter when unidade changes
+  // reset setor filter when unidade changes (preserva o setor vindo da URL na 1ª carga)
+  const primeiraCargaSetorRef = useRef(true);
   useEffect(() => {
+    if (primeiraCargaSetorRef.current) {
+      primeiraCargaSetorRef.current = false;
+      if (search.setorId) return;
+    }
     setSetorFilter([]);
-  }, [unidadeId]);
+  }, [unidadeId, search.setorId]);
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
