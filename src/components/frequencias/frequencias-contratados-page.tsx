@@ -353,7 +353,11 @@ export function FrequenciasContratadosPage() {
   });
 
   const frequenciaId = summary?.id;
-  useFrequencyRealtime({ competenciaId, unidadeId, frequenciaId });
+  useFrequencyRealtime({
+    competenciaId,
+    unidadeId: isGlobalView ? undefined : unidadeId,
+    frequenciaId,
+  });
 
   const folhaStatusUnificado = useMemo(() => {
     // Se temos um resumo sincronizado no banco, ele é a fonte da verdade para o status global
