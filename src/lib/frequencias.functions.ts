@@ -11,9 +11,6 @@ import { obterAssinaturaInstitucionalAtual } from "./pdf-pipeline";
 import { assinarUrlDocumento } from "./storage-r2.server";
 import { assertPrazoEnvioPorFrequencia } from "./prazo-envio";
 
-
-
-
 const NUM = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
@@ -95,8 +92,8 @@ export const salvarLinhasFrequencia = createServerFn({ method: "POST" })
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
       for (const l of dirty) {
         const total = Number(l.dias_trabalhados ?? 0) + Number(l.faltas_injustificadas ?? 0) + 
-                     Number(l.faltas_justificadas ?? 0) + Number(l.atestado ?? 0) + 
-                     Number(l.ferias ?? 0) + Number(l.licencas ?? 0) + Number(l.licenca_premio ?? 0);
+                      Number(l.faltas_justificadas ?? 0) + Number(l.atestado ?? 0) + 
+                      Number(l.ferias ?? 0) + Number(l.licencas ?? 0) + Number(l.licenca_premio ?? 0);
         if (total > diasNoMes) {
           throw new Error(`O total de dias (${total}) para o profissional excede os ${diasNoMes} dias do mês.`);
         }
@@ -224,7 +221,7 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     const { data: perfil } = await supabase
       .from("perfis")
       .select("nome, codigo")
-      .eq("id", (context as any).user?.user_metadata?.perfil_id || "") // Assumindo que o perfil_id está no metadata
+      .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
       .maybeSingle();
 
     const { data: freq, error: fErr } = await supabase
@@ -232,7 +229,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       .select(
         "id, tipo, status, updated_at, setor_id, competencia_unidade_id, competencia_unidades(competencia_id, unidades(id), competencias(prazo_envio))",
       )
-
       .eq("id", data.frequencia_id)
       .maybeSingle();
     if (fErr) throw new Error(fErr.message);
@@ -243,8 +239,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     // Detectar alteração concorrente
     if (data.updated_at_check && updatedAt) {
       if (new Date(updatedAt).getTime() > new Date(data.updated_at_check).getTime()) {
-        // Recarrega os dados para a orquestração e snapshot usar a versão do banco
-        // Mas avisa o usuário
         console.warn(`[Concurrency] Frequência ${data.frequencia_id} alterada desde a abertura.`);
       }
     }
@@ -281,8 +275,8 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           .from("frequencias_contratados")
           .select("profissional_id, profissionais(nome_completo)")
           .eq("competencia_id", compId)
-          .eq("unidade_id", (fInfo.competencia_unidades as any).unidade_id) // Adicionado segurança de unidade
-          .eq("status", "rascunho"); // Apenas as que estamos tentando aprovar agora
+          .eq("unidade_id", (fInfo.competencia_unidades as any).unidade_id)
+          .eq("status", "rascunho");
         
         for (const p of profs || []) {
           const { data: duplicado } = await supabase.rpc("check_frequencia_duplicada", {
@@ -349,7 +343,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           const acaoSnapshot = data.status === "enviada" ? "enviar" : "aprovar";
           const tipoDoc = freq.tipo === "efetivos" ? "folha_efetivos" : "folha_contratados";
           
-          // Busca a assinatura ativa para o usuário que está realizando a ação
           const assinatura = await obterAssinaturaInstitucionalAtual(tipoDoc as any, {
             unidadeId: (freq as any).competencia_unidades?.unidades?.id || null,
             perfilCodigo: perfil?.codigo || null,
@@ -397,7 +390,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       } as never);
     }
 
-
     const tipoEvento = EVENTO_STATUS[data.status];
     if (tipoEvento) {
       await emitEvento(supabase, tipoEvento, "frequencia", data.frequencia_id, {
@@ -431,7 +423,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
           const unidadeNome = unidade?.nome || "Unidade não identificada";
           const competenciaStr = comp ? `${String(comp.mes).padStart(2, "0")}/${comp.ano}` : "—";
           const baseUrl = process.env['VITE_APP_URL'] || "http://localhost:8080";
-
 
           // 1. Submissão (pendente/enviada) -> Notifica Gestor
           if (data.status === "enviada" && gestorEmail) {
@@ -508,11 +499,6 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/**
- * Reúne os e-mails que devem ser avisados de uma rejeição/devolução:
- * quem enviou, o contato institucional da unidade e os usuários vinculados
- * à unidade (Diretores). Nunca lança — notificação não derruba a operação.
- */
 async function destinatariosUnidade(
   supabase: any,
   unidadeId: string | null,
@@ -544,10 +530,6 @@ const RejeitarLinhaSchema = z.object({
   motivo: z.string().max(2000).optional().default(""),
 });
 
-/**
- * Aviso de rejeição de UM profissional da folha: notifica a unidade para que
- * o Diretor corrija apenas aquele lançamento e reenvie.
- */
 export const notificarLinhaRejeitada = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof RejeitarLinhaSchema>) => RejeitarLinhaSchema.parse(d))
@@ -606,8 +588,6 @@ export const notificarLinhaRejeitada = createServerFn({ method: "POST" })
     }
   });
 
-
-
 const PendenciaSchema = z.object({
   frequencia_id: z.string().uuid(),
   frequencia_profissional_id: z.string().uuid(),
@@ -635,7 +615,7 @@ export const abrirPendenciaLinha = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    // Marca a frequência como com_pendencias se estava enviada/em_analise
+    
     const { data: freq } = await supabase
       .from("frequencias")
       .select("status")
@@ -682,8 +662,7 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
-    // Idempotente: ignora profissionais já presentes e reativa linhas removidas
-    // (a constraint única não considera `deleted_at`).
+    
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
       .select("id, profissional_id, deleted_at")
@@ -713,28 +692,29 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
 
     const { data: profsStatus } = await supabase
       .from("profissionais")
-      .select("id, status")
+      .select("id, status, situacao_funcional")
       .in("id", data.profissional_ids);
 
     const rows = data.profissional_ids
       .filter((pid) => !existentesIds.has(pid))
       .map((pid) => {
-        const p = profsStatus?.find(x => x.id === pid);
-        const status = p?.status?.toLowerCase();
+        const p = profsStatus?.find((x) => x.id === pid);
+        const rawStatus = (p?.situacao_funcional || p?.status || "").toLowerCase();
         let val: number | string = 0;
         
-        if (status === "ferias") val = "Férias";
-        else if (status === "licenca_premio") val = "Licença Prêmio";
-        else if (status === "licenca_maternidade") val = "Licença Maternidade";
-        else if (status === "licenca_saude") val = "Licença Saúde";
-        else if (status === "licenca_sem_vencimento") val = "Licença sem Vencimento";
-        else if (status === "licenca_estudo") val = "Licença Estudo";
-        else if (status?.includes("licenca")) val = "Licença";
-        else if (status === "afastado" || status === "afastamento_inss") val = "Afastamento por INSS";
-        else if (status === "atestado") val = "Atestado";
-        else if (status === "falta_pad") val = "Falta informada ao RH (PAD)";
-        else if (status === "vacancia") val = "Vacância";
-        else if (status === "cedido") val = "Cedido";
+        if (rawStatus === "ferias" || rawStatus === "férias") val = "Férias";
+        else if (rawStatus === "licenca_premio") val = "Licença Prêmio";
+        else if (rawStatus === "licenca_maternidade") val = "Licença Maternidade";
+        else if (rawStatus === "licenca_saude") val = "Licença Saúde";
+        else if (rawStatus === "licenca_sem_vencimento") val = "Licença sem Vencimento";
+        else if (rawStatus === "licenca_estudo") val = "Licença Estudo";
+        else if (rawStatus.includes("licenca") || rawStatus.includes("licença")) val = "Licença";
+        else if (rawStatus === "afastado_laudo" || rawStatus === "afastado por laudo" || rawStatus === "laudo") val = "Afastado por Laudo";
+        else if (rawStatus === "afastado" || rawStatus === "afastamento_inss") val = "Afastamento por INSS";
+        else if (rawStatus === "atestado") val = "Atestado";
+        else if (rawStatus === "falta_pad") val = "Falta informada ao RH (PAD)";
+        else if (rawStatus === "vacancia") val = "Vacância";
+        else if (rawStatus === "cedido") val = "Cedido";
 
         return {
           frequencia_id: data.frequencia_id,
@@ -764,21 +744,12 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
     return { ok: true, inseridos: rows.length, reativados: paraReativar.length };
   });
 
-/** Tipos e limite aceitos vêm de `@/lib/anexos-linha` (mesma regra no cliente). */
-
-/**
- * Tipos de entidade aceitos para anexos de folha:
- * - `frequencia`: anexo da LINHA (um profissional dentro da folha);
- * - `frequencia_submissao`: anexo da SUBMISSÃO (competência + unidade + vínculo),
- *   usado como documentação de justificativa no envio para aprovação.
- */
 const TipoAnexoEnum = z.enum(["frequencia", "frequencia_submissao"]);
 export type TipoAnexoEntidade = z.infer<typeof TipoAnexoEnum>;
 
 const AnexoSchema = z.object({
   entidade_id: z.string().uuid(),
   tipo_entidade: TipoAnexoEnum.default("frequencia"),
-  /** Recorte dentro da entidade (ex.: "efetivos" | "contratados" na submissão). */
   subtipo: z.string().max(30).optional(),
   unidade_id: z.string().uuid().nullable().optional(),
   setor_id: z.string().uuid().nullable().optional(),
@@ -804,7 +775,6 @@ export const registrarAnexoLinha = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id ?? null,
         secretaria_id: data.secretaria_id ?? null,
         categoria_id: data.categoria_id ?? null,
-        
         nome: data.nome,
         storage_path: data.storage_path,
         mime_type: data.mime_type,
@@ -835,11 +805,6 @@ const ListarAnexosSchema = z.object({
   setor_id: z.string().uuid().optional(),
 });
 
-/**
- * Lista os anexos da entidade e devolve URLs assinadas de curta duração (5 min).
- * A leitura é governada apenas pela RLS de `documentos` (unidade/secretaria/master),
- * então quem aprova consegue abrir sem precisar de permissão de upload.
- */
 export const listarAnexosLinha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof ListarAnexosSchema>) => ListarAnexosSchema.parse(d))
@@ -897,11 +862,6 @@ const RemoverAnexoSchema = z.object({
   documento_id: z.string().uuid(),
 });
 
-
-/**
- * Remoção = soft-delete apenas. O binário PERMANECE no Storage até a purga
- * automática (`/api/public/hooks/purgar-documentos`), depois de `purga_apos`.
- */
 export const removerAnexoLinha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof RemoverAnexoSchema>) => RemoverAnexoSchema.parse(d))
@@ -939,7 +899,6 @@ export const removerAnexoLinha = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Lixeira: anexos removidos da entidade (somente quem tem `documento.excluir`). */
 export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof ListarAnexosSchema>) => ListarAnexosSchema.parse(d))
@@ -976,7 +935,6 @@ export const listarAnexosRemovidosLinha = createServerFn({ method: "POST" })
     };
   });
 
-/** Restaura um anexo da lixeira. */
 export const restaurarAnexoLinha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof RemoverAnexoSchema>) => RemoverAnexoSchema.parse(d))
@@ -999,14 +957,6 @@ const DescartarSchema = z.object({
   documento_ids: z.array(z.string().uuid()).min(1).max(50),
 });
 
-/**
- * Descarte de anexos ainda NÃO confirmados (ex.: o usuário fez upload no modal
- * de envio e fechou sem confirmar).
- *
- * O binário NUNCA é apagado: o bucket R2 opera com retenção indefinida e todo
- * documento vinculado a uma submissão precisa continuar consultável. Aqui o
- * registro apenas recebe soft-delete (sai das listagens ativas).
- */
 export const descartarAnexosPendentes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: z.infer<typeof DescartarSchema>) => DescartarSchema.parse(d))
@@ -1054,4 +1004,3 @@ export const descartarAnexosPendentes = createServerFn({ method: "POST" })
     });
     return { ok: true, descartados: removidos.length };
   });
-
