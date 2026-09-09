@@ -88,8 +88,11 @@ function AuditoriaPage() {
   const [busca, setBusca] = useState("");
   const [dias, setDias] = useState<string>("7");
   const [detalhe, setDetalhe] = useState<AuditRow | null>(null);
+  const [obsOpen, setObsOpen] = useState(false);
+  const [obsAuditor, setObsAuditor] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
 
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
