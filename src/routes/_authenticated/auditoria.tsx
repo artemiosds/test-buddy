@@ -423,6 +423,42 @@ function AuditoriaPage() {
 
 
 
+        <Dialog open={obsOpen} onOpenChange={setObsOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Auditoria Forense — observações do auditor</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Os achados são detectados automaticamente sobre a trilha do período
+                selecionado. Registre abaixo observações manuais, se houver.
+              </p>
+              <Textarea
+                rows={5}
+                placeholder="Observações do auditor (opcional)"
+                value={obsAuditor}
+                onChange={(e) => setObsAuditor(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setObsOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setObsOpen(false);
+                    void gerarPdfAuditoriaFolha({
+                      dias: Number(dias),
+                      observacoes: obsAuditor,
+                    });
+                  }}
+                >
+                  Gerar PDF
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
@@ -436,22 +472,37 @@ function AuditoriaPage() {
                     value={new Date(detalhe.ocorrido_em).toLocaleString("pt-BR")}
                   />
                   <Info label="Operação" value={OP_LABEL[detalhe.operacao]} />
-                  <Info label="Tabela" value={detalhe.tabela} mono />
+                  <Info label="Tabela" value={nomeTabela(detalhe.tabela)} mono />
                   <Info label="Registro" value={detalhe.registro_id ?? "—"} mono />
-                  <Info label="Usuário" value={detalhe.usuario_email ?? "sistema"} />
-                  <Info label="IP" value={detalhe.ip ?? "—"} />
+                  <Info
+                    label="Usuário"
+                    value={
+                      detalhe.usuario_email ??
+                      (detalhe.usuario_id
+                        ? `${detalhe.usuario_id} (e-mail ausente)`
+                        : "não identificado — investigar")
+                    }
+                  />
+                  <Info label="IP" value={detalhe.ip ?? "não capturado"} />
                 </div>
+                {detalhe.operacao === "update" && (
+                  <DiffBlock
+                    anterior={detalhe.valor_anterior}
+                    novo={detalhe.valor_novo}
+                  />
+                )}
                 {detalhe.valor_anterior != null && (
-                  <JsonBlock title="Valor anterior" data={detalhe.valor_anterior} />
+                  <JsonBlock title="Valor anterior (completo)" data={detalhe.valor_anterior} />
                 )}
                 {detalhe.valor_novo != null && (
-                  <JsonBlock title="Valor novo" data={detalhe.valor_novo} />
+                  <JsonBlock title="Valor novo (completo)" data={detalhe.valor_novo} />
                 )}
                 {detalhe.contexto != null && <JsonBlock title="Contexto" data={detalhe.contexto} />}
               </div>
             )}
           </DialogContent>
         </Dialog>
+
       </div>
     </PermissionGate>
   );
