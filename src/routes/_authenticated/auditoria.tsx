@@ -26,6 +26,22 @@ import { PrivacidadeLgpd } from "@/components/auditoria/privacidade-lgpd";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { nivelPrivacidade } from "@/lib/lgpd";
 import { gerarPdfAuditoriaFolha } from "@/lib/pdf-auditoria-folha";
+import { detectarAchados, type LinhaTrilha } from "@/lib/auditoria-achados";
+import { Textarea } from "@/components/ui/textarea";
+
+/** Exibição padronizada do nome da tabela (sem prefixo de schema). */
+function nomeTabela(t: string): string {
+  return t.replace(/^public\./, "");
+}
+
+/** Autoria real da operação; nunca mascara ausência de autor como "sistema". */
+function autorLabel(r: { usuario_email: string | null; usuario_id: string | null }) {
+  if (r.usuario_email) return <span>{r.usuario_email}</span>;
+  if (r.usuario_id)
+    return <span className="font-mono text-xs">{r.usuario_id.slice(0, 8)}… (e-mail ausente)</span>;
+  return <span className="text-destructive">não identificado — investigar</span>;
+}
+
 
 export const Route = createFileRoute("/_authenticated/auditoria")({ errorComponent: ErrorComponent,
   component: AuditoriaPage,
