@@ -244,10 +244,11 @@ function AuditoriaPage() {
               Atualizar
             </Button>
             <PermissionGate permission="auditoria.exportar" fallback={null}>
-              <Button variant="outline" size="sm" onClick={() => void gerarPdfAuditoriaFolha()}>
+              <Button variant="outline" size="sm" onClick={() => setObsOpen(true)}>
                 <FileText className="h-4 w-4 mr-1" />
                 Auditoria Forense (PDF)
               </Button>
+
               <Button size="sm" onClick={() => void exportarCsv()}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar CSV
