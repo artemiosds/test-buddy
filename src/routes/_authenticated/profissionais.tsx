@@ -189,6 +189,7 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   licenca_estudo: "Licença Estudo",
   vacancia: "Vacância",
   afastamento_inss: "Afastamento por INSS",
+  afastado_laudo: "Afastado por Laudo",
   falta_pad: "Falta informada ao RH (PAD)",
   cedido: "Cedido",
   afastado: "Afastado",
@@ -207,6 +208,7 @@ const SITUACOES_COM_PERIODO = new Set<string>([
   "licenca_estudo",
   "afastado",
   "afastamento_inss",
+  "afastado_laudo",
   "cedido",
 ]);
 
@@ -234,7 +236,6 @@ function ProfissionaisPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [openImportSalarios, setOpenImportSalarios] = useState(false);
-
 
   const formMethods = useForm<any>({
     resolver: zodResolver(profissionalSchema),
@@ -265,7 +266,6 @@ function ProfissionaisPage() {
   const [fMatricula, setFMatricula] = useState<string>("");
   const [fGestor, setFGestor] = useState<"todos" | "sim" | "nao">("todos");
   const [fCategorias, setFCategorias] = useState<CategoriaPiso[]>([]);
-
 
   const filtrosAtivos =
     (fNome.trim() ? 1 : 0) +
