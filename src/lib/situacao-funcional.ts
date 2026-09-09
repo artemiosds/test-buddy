@@ -24,6 +24,7 @@ export type SituacaoFuncional =
   | "licenca_estudo"
   | "vacancia"
   | "afastamento_inss"
+  | "afastado_laudo"
   | "falta_pad";
 
 /** Domínio do StatusBadge central que já cobre estes rótulos com as cores certas. */
@@ -81,14 +82,29 @@ export const ALERTA_LABEL: Record<AlertaCadastral, string> = {
 export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
   const raw = (p.situacao_funcional || p.status || "ativo").toLowerCase();
   const known: SituacaoFuncional[] = [
-    "ativo", "ferias", "licenca", "afastado", "cedido", "desligado", "inativo",
-    "atestado", "licenca_premio", "licenca_maternidade", "licenca_saude",
-    "licenca_luto", "licenca_sem_vencimento", "licenca_estudo", "vacancia",
-    "afastamento_inss", "falta_pad",
+    "ativo",
+    "ferias",
+    "licenca",
+    "afastado",
+    "cedido",
+    "desligado",
+    "inativo",
+    "atestado",
+    "licenca_premio",
+    "licenca_maternidade",
+    "licenca_saude",
+    "licenca_luto",
+    "licenca_sem_vencimento",
+    "licenca_estudo",
+    "vacancia",
+    "afastamento_inss",
+    "afastado_laudo",
+    "falta_pad",
   ];
   if ((known as string[]).includes(raw)) return raw as SituacaoFuncional;
   if (raw === "férias") return "ferias";
   if (raw === "licença") return "licenca";
+  if (raw === "afastado por laudo" || raw === "laudo") return "afastado_laudo";
   return "ativo";
 }
 
@@ -112,6 +128,7 @@ export function grupoSituacao(raw: string | null | undefined): GrupoSituacao {
     s === "cedido" ||
     s === "vacancia" ||
     s === "afastamento_inss" ||
+    s === "afastado_laudo" ||
     s === "falta_pad"
   )
     return "afastado";
@@ -135,7 +152,15 @@ export const VALORES_DO_GRUPO: Record<GrupoSituacao, string[]> = {
     "licenca_sem_vencimento",
     "licenca_estudo",
   ],
-  afastado: ["afastado", "atestado", "cedido", "vacancia", "afastamento_inss", "falta_pad"],
+  afastado: [
+    "afastado",
+    "atestado",
+    "cedido",
+    "vacancia",
+    "afastamento_inss",
+    "afastado_laudo",
+    "falta_pad",
+  ],
   desligado: ["desligado", "inativo"],
 };
 
@@ -235,6 +260,7 @@ export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
       s === "atestado" ||
       s === "vacancia" ||
       s === "afastamento_inss" ||
+      s === "afastado_laudo" ||
       s === "falta_pad"
     )
       r.afastados++;
@@ -258,6 +284,7 @@ export const SITUACAO_ORDER: SituacaoFuncional[] = [
   "atestado",
   "afastado",
   "afastamento_inss",
+  "afastado_laudo",
   "falta_pad",
   "vacancia",
   "cedido",
@@ -278,6 +305,7 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   atestado: "Atestado",
   afastado: "Afastado",
   afastamento_inss: "Afastamento por INSS",
+  afastado_laudo: "Afastado por Laudo",
   falta_pad: "Falta informada ao RH (PAD)",
   vacancia: "Vacância",
   cedido: "Cedido",
