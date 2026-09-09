@@ -151,6 +151,25 @@ function AuditoriaPage() {
   const rows = data?.rows ?? [];
   const total = data?.count ?? 0;
 
+  // Achados automáticos sobre a janela filtrada (até 5000 registros)
+  const { data: achados = [] } = useQuery({
+    queryKey: ["auditoria", "achados", { desde, tabela, operacao }],
+    queryFn: async () => {
+      let q = supabase
+        .from("audit_log")
+        .select("ocorrido_em, operacao, tabela, registro_id, usuario_id, usuario_email, ip")
+        .gte("ocorrido_em", desde)
+        .order("ocorrido_em", { ascending: false })
+        .limit(5000);
+      if (operacao !== "todas") q = q.eq("operacao", operacao);
+      if (tabela !== "todas") q = q.eq("tabela", tabela);
+      const { data: linhas, error } = await q;
+      if (error) throw error;
+      return detectarAchados((linhas ?? []) as LinhaTrilha[]);
+    },
+  });
+
+
   const exportarCsv = async () => {
     if (!total) {
       toast.error("Nada para exportar");
