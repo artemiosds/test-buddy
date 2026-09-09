@@ -527,3 +527,54 @@ function JsonBlock({ title, data }: { title: string; data: unknown }) {
     </div>
   );
 }
+
+/** Comparativo antes/depois dos campos efetivamente alterados numa atualização. */
+function DiffBlock({ anterior, novo }: { anterior: unknown; novo: unknown }) {
+  const a = (anterior ?? {}) as Record<string, unknown>;
+  const b = (novo ?? {}) as Record<string, unknown>;
+  const chaves = Array.from(new Set([...Object.keys(a), ...Object.keys(b)])).sort();
+  const fmt = (v: unknown) =>
+    v === null || v === undefined
+      ? "—"
+      : typeof v === "object"
+        ? JSON.stringify(v)
+        : String(v);
+  const alterados = chaves.filter((k) => fmt(a[k]) !== fmt(b[k]));
+
+  if (!alterados.length) {
+    return (
+      <div className="rounded border border-dashed p-3 text-xs text-muted-foreground">
+        Nenhuma diferença de campo registrada nesta atualização (gravação sem mudança de
+        valores ou sem captura de estado anterior).
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="text-xs font-semibold mb-1">
+        Campos alterados ({alterados.length})
+      </div>
+      <div className="overflow-x-auto rounded border">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50 text-left">
+            <tr>
+              <th className="p-2">Campo</th>
+              <th className="p-2">Antes</th>
+              <th className="p-2">Depois</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alterados.map((k) => (
+              <tr key={k} className="border-t">
+                <td className="p-2 font-mono">{k}</td>
+                <td className="p-2 text-destructive break-all">{fmt(a[k])}</td>
+                <td className="p-2 text-emerald-600 break-all">{fmt(b[k])}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
