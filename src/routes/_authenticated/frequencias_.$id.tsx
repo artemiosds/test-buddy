@@ -78,7 +78,8 @@ import { finalizarPdf } from "@/lib/pdf-pipeline";
 import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
 import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
 
-export const Route = createFileRoute("/_authenticated/frequencias_/$id")({ errorComponent: ErrorComponent,
+export const Route = createFileRoute("/_authenticated/frequencias_/$id")({
+  errorComponent: ErrorComponent,
   component: FrequenciaDetalhe,
 });
 
@@ -214,20 +215,21 @@ const COLS_EFETIVOS: ColunaDef[] = [
 function novaLinha(profissional_id: string, novo = true, profData?: any): Linha {
   // Identificação automática de status
   let defaultValue: number | string = 0;
-  const status = profData?.status?.toLowerCase();
-  
-  if (status === "ferias") defaultValue = "Férias";
-  else if (status === "licenca_premio") defaultValue = "Licença Prêmio";
-  else if (status === "licenca_maternidade") defaultValue = "Licença Maternidade";
-  else if (status === "licenca_saude") defaultValue = "Licença Saúde";
-  else if (status === "licenca_sem_vencimento") defaultValue = "Licença sem Vencimento";
-  else if (status === "licenca_estudo") defaultValue = "Licença Estudo";
-  else if (status?.includes("licenca")) defaultValue = "Licença";
-  else if (status === "afastado" || status === "afastamento_inss") defaultValue = "Afastamento por INSS";
-  else if (status === "atestado") defaultValue = "Atestado";
-  else if (status === "falta_pad") defaultValue = "Falta informada ao RH (PAD)";
-  else if (status === "vacancia") defaultValue = "Vacância";
-  else if (status === "cedido") defaultValue = "Cedido";
+  const rawStatus = (profData?.situacao_funcional || profData?.status || "").toLowerCase();
+
+  if (rawStatus === "ferias" || rawStatus === "férias") defaultValue = "Férias";
+  else if (rawStatus === "licenca_premio") defaultValue = "Licença Prêmio";
+  else if (rawStatus === "licenca_maternidade") defaultValue = "Licença Maternidade";
+  else if (rawStatus === "licenca_saude") defaultValue = "Licença Saúde";
+  else if (rawStatus === "licenca_sem_vencimento") defaultValue = "Licença sem Vencimento";
+  else if (rawStatus === "licenca_estudo") defaultValue = "Licença Estudo";
+  else if (rawStatus.includes("licenca") || rawStatus.includes("licença")) defaultValue = "Licença";
+  else if (rawStatus === "afastado_laudo" || rawStatus === "afastado por laudo" || rawStatus === "laudo") defaultValue = "Afastado por Laudo";
+  else if (rawStatus === "afastado" || rawStatus === "afastamento_inss") defaultValue = "Afastamento por INSS";
+  else if (rawStatus === "atestado") defaultValue = "Atestado";
+  else if (rawStatus === "falta_pad") defaultValue = "Falta informada ao RH (PAD)";
+  else if (rawStatus === "vacancia") defaultValue = "Vacância";
+  else if (rawStatus === "cedido") defaultValue = "Cedido";
 
   return {
     profissional_id,
@@ -313,7 +315,7 @@ function FrequenciaDetalhe() {
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza), status, setores(id, nome)",
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos!inner(id, nome, natureza), status, situacao_funcional, setores(id, nome)",
         )
         .eq("unidade_id", unidadeId!)
         .not("status", "in", "(inativo)")
@@ -345,30 +347,30 @@ function FrequenciaDetalhe() {
         const anterior = anteriores.get(r.profissional_id);
         if (anterior?._dirty) return anterior;
         return {
-        id: r.id,
-        profissional_id: r.profissional_id,
-        dias_trabalhados: r.dias_trabalhados ?? 0,
-        faltas_justificadas: r.faltas_justificadas ?? 0,
-        faltas_injustificadas: r.faltas_injustificadas ?? 0,
-        ferias: r.ferias ?? 0,
-        licencas: r.licencas ?? 0,
-        afastamentos: r.afastamentos ?? 0,
-        horas_extras: r.horas_extras ?? 0,
-        plantoes_extras: r.plantoes_extras ?? 0,
-        adicional_noturno: r.adicional_noturno ?? 0,
-        atestado: r.atestado ?? 0,
-        he_50: r.he_50 ?? 0,
-        he_100: r.he_100 ?? 0,
-        sobreaviso: r.sobreaviso ?? 0,
-        incentivo: r.incentivo ?? 0,
-        licenca_premio: r.licenca_premio ?? 0,
-        ferias_terco: (r as unknown as { ferias_terco?: number | string }).ferias_terco ?? 0,
-        ferias_integral: (r as unknown as { ferias_integral?: number | string }).ferias_integral ?? 0,
-        sal_sub_h: (r as unknown as { sal_sub_h?: number | string }).sal_sub_h ?? 0,
-        aulas_suplementares: (r as unknown as { aulas_suplementares?: number | string }).aulas_suplementares ?? 0,
-        observacoes: r.observacoes,
-        status_linha: r.status_linha,
-        observacao_analise: r.observacao_analise,
+          id: r.id,
+          profissional_id: r.profissional_id,
+          dias_trabalhados: r.dias_trabalhados ?? 0,
+          faltas_justificadas: r.faltas_justificadas ?? 0,
+          faltas_injustificadas: r.faltas_injustificadas ?? 0,
+          ferias: r.ferias ?? 0,
+          licencas: r.licencas ?? 0,
+          afastamentos: r.afastamentos ?? 0,
+          horas_extras: r.horas_extras ?? 0,
+          plantoes_extras: r.plantoes_extras ?? 0,
+          adicional_noturno: r.adicional_noturno ?? 0,
+          atestado: r.atestado ?? 0,
+          he_50: r.he_50 ?? 0,
+          he_100: r.he_100 ?? 0,
+          sobreaviso: r.sobreaviso ?? 0,
+          incentivo: r.incentivo ?? 0,
+          licenca_premio: r.licenca_premio ?? 0,
+          ferias_terco: (r as unknown as { ferias_terco?: number | string }).ferias_terco ?? 0,
+          ferias_integral: (r as unknown as { ferias_integral?: number | string }).ferias_integral ?? 0,
+          sal_sub_h: (r as unknown as { sal_sub_h?: number | string }).sal_sub_h ?? 0,
+          aulas_suplementares: (r as unknown as { aulas_suplementares?: number | string }).aulas_suplementares ?? 0,
+          observacoes: r.observacoes,
+          status_linha: r.status_linha,
+          observacao_analise: r.observacao_analise,
         };
       });
       linhasRef.current = next;
@@ -376,10 +378,6 @@ function FrequenciaDetalhe() {
     });
   }, [rowsExistentes]);
 
-  // Busca dados dos profissionais referenciados nas linhas existentes que
-  // eventualmente não apareçam no filtro da unidade/tipo (ex.: transferência,
-  // inativação posterior, mudança de vínculo). Garante que a planilha nunca
-  // exiba UUID cru + "Mat. —" para linhas já persistidas.
   const linhaProfIds = useMemo(
     () => Array.from(new Set((rowsExistentes ?? []).map((r) => r.profissional_id))),
     [rowsExistentes],
@@ -391,7 +389,7 @@ function FrequenciaDetalhe() {
       const { data, error } = await supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza), status, setores(id, nome)",
+          "id, nome_completo, matricula, cpf, cargo_id, funcao_id, vinculo_id, proj, h_p, c_h, jorn, vinculos(id, nome, natureza), status, situacao_funcional, setores(id, nome)",
         )
         .in("id", linhaProfIds);
       if (error) throw error;
@@ -404,6 +402,7 @@ function FrequenciaDetalhe() {
     nome_completo: string;
     matricula: string | null;
     status?: string | null;
+    situacao_funcional?: string | null;
     setores?: { id: string; nome: string } | null;
     cpf?: string | null;
     cargo_id?: string | null;
@@ -430,7 +429,7 @@ function FrequenciaDetalhe() {
     const idsProfissionais = new Set((profissionais ?? []).map((p) => p.id));
     const byProf = new Map(linhas.map((l) => [l.profissional_id, l]));
     const linhasDaUnidade = (profissionais ?? []).map(
-      (p) => byProf.get(p.id) ?? novaLinha(p.id, false),
+      (p) => byProf.get(p.id) ?? novaLinha(p.id, false, p),
     );
     const linhasPersistidasForaDaLista = linhas.filter(
       (l) => !idsProfissionais.has(l.profissional_id),
@@ -449,8 +448,6 @@ function FrequenciaDetalhe() {
   const editable = frequencia?.status === "rascunho" || frequencia?.status === "com_pendencias" || frequencia?.status === "devolvida";
   const canEditar = has("frequencia.editar") && !prazoBloqueado;
 
-  // Pedido de reenvio de anexos pendente libera APENAS o envio de anexos
-  // (nunca a edição de dados da folha), mesmo com a folha em análise.
   const subtipoFolha = frequencia?.tipo === "contratados" ? "contratados" : "efetivos";
   const submissaoId = (frequencia?.competencia_unidade_id as string | null | undefined) ?? null;
   const reenvioPendenteFn = useServerFn(reenvioAnexosPendente);
@@ -463,7 +460,6 @@ function FrequenciaDetalhe() {
         .pendente,
   });
 
-  // Contagem de pendências abertas/respondidas por linha (frequencia_profissional_id)
   const { data: pendCounts } = useQuery({
     queryKey: ["frequencia-pendencias-por-linha", id],
     queryFn: async () => {
@@ -513,7 +509,6 @@ function FrequenciaDetalhe() {
     (p) => !linhas.some((l) => l.profissional_id === p.id),
   );
 
-  // Rascunho automático: ao carregar, insere linhas faltantes para todos os profissionais ativos
   const autoInsertFn = useServerFn(inserirLinhasAuto);
   const autoInsertMutation = useMutation({
     mutationFn: async (pids: string[]) => {
@@ -537,7 +532,6 @@ function FrequenciaDetalhe() {
     } else {
       autoAdded.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profissionais, rowsExistentes, editable, canEditar]);
 
   const addProfissional = (pid: string) => {
@@ -559,7 +553,6 @@ function FrequenciaDetalhe() {
     setLinhas((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // === Item 10: Copiar mês anterior ===
   const planilhaVazia =
     linhas.length > 0 && linhas.every((l) => ALL_NUM_FIELDS.every((f) => !l[f] || Number(l[f]) === 0));
 
@@ -650,19 +643,17 @@ function FrequenciaDetalhe() {
           _dirty: true,
         };
       });
-      // profissionais que existiam antes mas não estão na planilha atual → adicionar zerados
       const idsAtuais = new Set(proximos.map((l) => l.profissional_id));
       const faltantes = [...copiarDialog.prevProfIds].filter(
         (pid) => !idsAtuais.has(pid) && (profissionais ?? []).some((p) => p.id === pid),
       );
-      for (const pid of faltantes) proximos.push(novaLinha(pid));
+      for (const pid of faltantes) proximos.push(novaLinha(pid, true, profMap.get(pid)));
       return proximos;
     });
     setCopiarDialog(null);
     toast.success(`Valores de ${copiarDialog.prevLabel} copiados. Confira e clique em Salvar.`);
   };
 
-  // === Item 11: Navegação tipo planilha ===
   const isRowEditable = (l: Linha) => !!editable && !!canEditar && l.status_linha === "pendente";
 
   const findNextEditableRow = (fromIdx: number, dir: 1 | -1) => {
@@ -684,16 +675,12 @@ function FrequenciaDetalhe() {
     if (e.key === "Enter") {
       e.preventDefault();
       if (c < colunas.length - 1) {
-        // Pula para a próxima célula na mesma linha
         focusCell(r, c + 1);
       } else {
-        // Última coluna: pula para a primeira célula da próxima linha editável
         const nr = findNextEditableRow(r, 1);
         if (nr >= 0) focusCell(nr, 0);
       }
     } else if (e.key === "Tab") {
-      // Tab natural funciona bem entre inputs na ordem do DOM (esq→dir, próxima linha)
-      // Só interceptamos para pular linhas não-editáveis
       if (!e.shiftKey && c === colunas.length - 1) {
         const nr = findNextEditableRow(r, 1);
         if (nr >= 0) {
@@ -713,14 +700,13 @@ function FrequenciaDetalhe() {
 
   const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement>, r: number, c: number) => {
     const text = e.clipboardData.getData("text");
-    if (!text.includes("\t") && !text.includes("\n")) return; // deixa colar valor único normalmente
+    if (!text.includes("\t") && !text.includes("\n")) return;
     e.preventDefault();
     const rows = text
       .replace(/\r\n?/g, "\n")
       .replace(/\n$/, "")
       .split("\n")
       .map((line) => line.split("\t"));
-    // Valida numéricos
     const errors: string[] = [];
     rows.forEach((cells, dr) =>
       cells.forEach((raw, dc) => {
@@ -857,7 +843,6 @@ function FrequenciaDetalhe() {
   });
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
-  // Idempotente: alterar_status é uma transição para um estado alvo por id.
   const statusMutation = useRetryMutation({
     retry: { operation: "frequencia.alterar_status" },
     mutationFn: async (status: StatusFreq) => {
@@ -907,7 +892,7 @@ function FrequenciaDetalhe() {
     let total = 0;
     for (let d = 1; d <= last; d++) {
       const dt = new Date(comp.ano, comp.mes - 1, d);
-      const dow = dt.getDay(); // 0 dom, 6 sab
+      const dow = dt.getDay();
       if (dow === 0 || dow === 6) continue;
       const iso = `${comp.ano}-${String(comp.mes).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       if (feriadosSet.has(iso)) continue;
@@ -932,7 +917,6 @@ function FrequenciaDetalhe() {
           GERAL: { codigo_setor: "1", nome_setor: "GERAL", itens: [] },
         };
         
-        // Coletar setores únicos se existirem nos profissionais
         for (const l of linhasEfetivosExportacao) {
           const p = profMap.get(l.profissional_id);
           const setor = p?.setores?.nome || "GERAL";
@@ -1053,8 +1037,6 @@ function FrequenciaDetalhe() {
       doc.text(doc.splitTextToSize(obs, 260), 14, finalY + 13);
     }
 
-    // Bloco dinâmico (Perfil + Unidade → Secretaria → Global). Fallback para
-    // o rodapé estático quando nenhuma regra estiver cadastrada.
     const assinDoc = await resolverAssinaturasDocumento("frequencia", {
       unidadeId: cu?.unidade_id ?? null,
       frequenciaId: frequencia.id,
@@ -1412,9 +1394,9 @@ function FrequenciaDetalhe() {
                             
                             updateLinha(idx, {
                               [c.field]: isNaN(parsed) || numericVal === "" ? val : parsed,
-                            } as any)
+                            } as any);
                           }}
-                           onBlur={() => autosave.flush()}
+                          onBlur={() => autosave.flush()}
                         />
                       </td>
                     ))}
@@ -1718,7 +1700,6 @@ function AnexosDialog({
         },
       });
 
-
       toast.success("Anexo enviado");
       refetch();
       qc.invalidateQueries({ queryKey: ["anexos-linha", linhaId] });
@@ -1732,7 +1713,6 @@ function AnexosDialog({
 
   const removerAnexo = async (doc: DocRow) => {
     try {
-      // Soft-delete apenas: o binário é retido indefinidamente no R2.
       const { error } = await supabase
         .from("documentos")
         .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
@@ -1744,7 +1724,6 @@ function AnexosDialog({
       toast.error((e as Error).message);
     }
   };
-
 
   const baixar = async (doc: DocRow) => {
     const url = await obterUrlVisualizacao(doc.storage_path, { expiraEm: 60 });
