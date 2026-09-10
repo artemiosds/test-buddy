@@ -116,7 +116,9 @@ export function FolhaTimeline({
           .order("created_at"),
         supabase
           .from("audit_log")
-          .select("ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto, valor_novo")
+          .select(
+            "ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto, valor_anterior, valor_novo",
+          )
           .eq("registro_id", folhaId)
           .order("ocorrido_em")
           .limit(300),
