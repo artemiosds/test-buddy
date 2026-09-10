@@ -333,19 +333,21 @@ export function FolhaTimeline({
     );
     doc.setFontSize(8);
     doc.text(
-      `Cobertura das etapas: ${cobertura.map((c2) => `${c2.etapa}${c2.ok ? " ✔" : " (sem registro)"}`).join(" · ")}`,
+      `Cobertura das etapas: ${cobertura.map((c2) => `${c2.etapa}${c2.ok ? " (registrado)" : " (sem registro)"}`).join(" · ")}`,
       14,
       y + 5,
     );
+    // A fonte padrão do PDF não possui os símbolos de seta/marcação usados na tela.
+    const txt = (v: string) => v.replace(/➔/g, "->").replace(/✔/g, "OK");
     autoTable(doc, {
       startY: y + 10,
       head: [["Data/hora", "Etapa", "Evento", "Responsável", "Detalhe", "IP"]],
       body: etapas.map((e) => [
         new Date(e.quando).toLocaleString("pt-BR"),
         e.etapa,
-        e.titulo,
+        txt(e.titulo),
         e.autor,
-        e.detalhe ?? "",
+        txt(e.detalhe ?? ""),
         e.ip ?? "",
       ]),
       styles: { fontSize: 7.5, cellPadding: 1.4 },
