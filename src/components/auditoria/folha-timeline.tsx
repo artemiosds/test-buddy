@@ -77,7 +77,7 @@ export function FolhaTimeline({
           `id, tipo, status, created_at, created_by, data_envio, enviada_por,
            data_aprovacao, aprovada_por,
            competencia_unidade:competencia_unidades!inner(
-             competencia_id,
+             competencia_id, unidade_id,
              unidade:unidades!inner(nome, sigla),
              competencia:competencias!inner(ano, mes, status, prazo_envio)
            )`,
@@ -100,7 +100,8 @@ export function FolhaTimeline({
     enabled: !!folhaId,
     queryFn: async () => {
       const competenciaId = folha?.competencia_unidade?.competencia_id ?? null;
-      const [aprov, hist, logs, logsComp] = await Promise.all([
+      const unidadeId = folha?.competencia_unidade?.unidade_id ?? null;
+      const [aprov, hist, logs, logsComp, logsLegado] = await Promise.all([
         supabase
           .from("frequencia_aprovacoes")
           .select("acao, status_anterior, status_novo, observacoes, created_at, executado_por")
@@ -115,7 +116,9 @@ export function FolhaTimeline({
           .order("created_at"),
         supabase
           .from("audit_log")
-          .select("ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto, valor_novo")
+          .select(
+            "ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto, valor_anterior, valor_novo",
+          )
           .eq("registro_id", folhaId)
           .order("ocorrido_em")
           .limit(300),
@@ -127,6 +130,17 @@ export function FolhaTimeline({
               .eq("registro_id", competenciaId)
               .order("ocorrido_em")
               .limit(100)
+          : Promise.resolve({ data: [] as never[] }),
+        // Eventos legados de sincronização: gravados sem vínculo direto à folha,
+        // identificados apenas pelo contexto (competência + unidade + tipo).
+        competenciaId
+          ? supabase
+              .from("audit_log")
+              .select("ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto")
+              .is("registro_id", null)
+              .filter("contexto->>competencia_id", "eq", competenciaId)
+              .order("ocorrido_em")
+              .limit(500)
           : Promise.resolve({ data: [] as never[] }),
       ]);
 
@@ -177,23 +191,62 @@ export function FolhaTimeline({
         }
       }
 
-      // Etapa 3 — Geração / consolidação (eventos de sincronização e gravação)
+      // Etapa 3 — Geração / consolidação e transições registradas na trilha da folha
       for (const l of logs.data ?? []) {
         const ctx = (l.contexto ?? {}) as {
           acao?: string;
           evento?: string;
           total_profissionais?: number;
         };
+        const va = (l.valor_anterior ?? {}) as { status?: string };
+        const vn = (l.valor_novo ?? {}) as { status?: string };
+        const mudouStatus = !!vn.status && vn.status !== va.status;
         const evento = ctx.evento ?? "";
-        const etapa: EtapaNome = evento.includes("ENVIADA")
-          ? "Envio"
-          : evento.includes("APROVADA")
-            ? "Homologação"
-            : etapaPorStatus(null, ctx.acao);
+        const etapa: EtapaNome = mudouStatus
+          ? etapaPorStatus(vn.status)
+          : evento.includes("ENVIADA")
+            ? "Envio"
+            : evento.includes("APROVADA")
+              ? "Homologação"
+              : etapaPorStatus(null, ctx.acao);
         out.push({
           quando: l.ocorrido_em,
           etapa,
-          titulo: `Registro de auditoria — ${ctx.evento ?? ctx.acao ?? l.operacao}`,
+          titulo: mudouStatus
+            ? `Transição de status — ${statusLabel("frequencia", va.status)} ➔ ${statusLabel("frequencia", vn.status)}`
+            : `Registro de auditoria — ${ctx.evento ?? ctx.acao ?? l.operacao}`,
+          autor: l.usuario_email ?? nomes.get(l.usuario_id ?? "") ?? naoIdentificado,
+          detalhe:
+            ctx.total_profissionais != null
+              ? `${ctx.total_profissionais} profissionais consolidados`
+              : null,
+          ip: l.ip,
+        });
+      }
+
+      // Eventos legados de sincronização (sem vínculo direto), casados por contexto
+      for (const l of logsLegado.data ?? []) {
+        const ctx = (l.contexto ?? {}) as {
+          evento?: string;
+          tipo?: string;
+          unidade_id?: string;
+          total_profissionais?: number;
+        };
+        if (!ctx.evento) continue;
+        if (unidadeId && ctx.unidade_id && ctx.unidade_id !== unidadeId) continue;
+        if (folha?.tipo && ctx.tipo && ctx.tipo !== folha.tipo) continue;
+        const ev = ctx.evento;
+        const etapa: EtapaNome = ev.includes("ENVIADA")
+          ? "Envio"
+          : ev.includes("APROVADA") || ev.includes("HOMOLOG")
+            ? "Homologação"
+            : ev.includes("ANALISE") || ev.includes("REJEIT") || ev.includes("DEVOLV")
+              ? "Análise"
+              : "Geração";
+        out.push({
+          quando: l.ocorrido_em,
+          etapa,
+          titulo: `Sincronização — ${ev}`,
           autor: l.usuario_email ?? nomes.get(l.usuario_id ?? "") ?? naoIdentificado,
           detalhe:
             ctx.total_profissionais != null
@@ -280,19 +333,21 @@ export function FolhaTimeline({
     );
     doc.setFontSize(8);
     doc.text(
-      `Cobertura das etapas: ${cobertura.map((c2) => `${c2.etapa}${c2.ok ? " ✔" : " (sem registro)"}`).join(" · ")}`,
+      `Cobertura das etapas: ${cobertura.map((c2) => `${c2.etapa}${c2.ok ? " (registrado)" : " (sem registro)"}`).join(" · ")}`,
       14,
       y + 5,
     );
+    // A fonte padrão do PDF não possui os símbolos de seta/marcação usados na tela.
+    const txt = (v: string) => v.replace(/➔/g, "->").replace(/✔/g, "OK");
     autoTable(doc, {
       startY: y + 10,
       head: [["Data/hora", "Etapa", "Evento", "Responsável", "Detalhe", "IP"]],
       body: etapas.map((e) => [
         new Date(e.quando).toLocaleString("pt-BR"),
         e.etapa,
-        e.titulo,
+        txt(e.titulo),
         e.autor,
-        e.detalhe ?? "",
+        txt(e.detalhe ?? ""),
         e.ip ?? "",
       ]),
       styles: { fontSize: 7.5, cellPadding: 1.4 },
