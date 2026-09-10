@@ -191,23 +191,62 @@ export function FolhaTimeline({
         }
       }
 
-      // Etapa 3 — Geração / consolidação (eventos de sincronização e gravação)
+      // Etapa 3 — Geração / consolidação e transições registradas na trilha da folha
       for (const l of logs.data ?? []) {
         const ctx = (l.contexto ?? {}) as {
           acao?: string;
           evento?: string;
           total_profissionais?: number;
         };
+        const va = (l.valor_anterior ?? {}) as { status?: string };
+        const vn = (l.valor_novo ?? {}) as { status?: string };
+        const mudouStatus = !!vn.status && vn.status !== va.status;
         const evento = ctx.evento ?? "";
-        const etapa: EtapaNome = evento.includes("ENVIADA")
-          ? "Envio"
-          : evento.includes("APROVADA")
-            ? "Homologação"
-            : etapaPorStatus(null, ctx.acao);
+        const etapa: EtapaNome = mudouStatus
+          ? etapaPorStatus(vn.status)
+          : evento.includes("ENVIADA")
+            ? "Envio"
+            : evento.includes("APROVADA")
+              ? "Homologação"
+              : etapaPorStatus(null, ctx.acao);
         out.push({
           quando: l.ocorrido_em,
           etapa,
-          titulo: `Registro de auditoria — ${ctx.evento ?? ctx.acao ?? l.operacao}`,
+          titulo: mudouStatus
+            ? `Transição de status — ${statusLabel("frequencia", va.status)} ➔ ${statusLabel("frequencia", vn.status)}`
+            : `Registro de auditoria — ${ctx.evento ?? ctx.acao ?? l.operacao}`,
+          autor: l.usuario_email ?? nomes.get(l.usuario_id ?? "") ?? naoIdentificado,
+          detalhe:
+            ctx.total_profissionais != null
+              ? `${ctx.total_profissionais} profissionais consolidados`
+              : null,
+          ip: l.ip,
+        });
+      }
+
+      // Eventos legados de sincronização (sem vínculo direto), casados por contexto
+      for (const l of logsLegado.data ?? []) {
+        const ctx = (l.contexto ?? {}) as {
+          evento?: string;
+          tipo?: string;
+          unidade_id?: string;
+          total_profissionais?: number;
+        };
+        if (!ctx.evento) continue;
+        if (unidadeId && ctx.unidade_id && ctx.unidade_id !== unidadeId) continue;
+        if (folha?.tipo && ctx.tipo && ctx.tipo !== folha.tipo) continue;
+        const ev = ctx.evento;
+        const etapa: EtapaNome = ev.includes("ENVIADA")
+          ? "Envio"
+          : ev.includes("APROVADA") || ev.includes("HOMOLOG")
+            ? "Homologação"
+            : ev.includes("ANALISE") || ev.includes("REJEIT") || ev.includes("DEVOLV")
+              ? "Análise"
+              : "Geração";
+        out.push({
+          quando: l.ocorrido_em,
+          etapa,
+          titulo: `Sincronização — ${ev}`,
           autor: l.usuario_email ?? nomes.get(l.usuario_id ?? "") ?? naoIdentificado,
           detalhe:
             ctx.total_profissionais != null
