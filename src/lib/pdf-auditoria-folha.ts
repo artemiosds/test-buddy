@@ -33,128 +33,210 @@ export async function gerarPdfAuditoriaFolha(opts?: { dias?: number; observacoes
     format: "a4",
   });
 
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const MARGEM = 14;
+  const LARGURA = PW - MARGEM * 2;
+  /** Zona reservada ao rodapé institucional — nada pode ser escrito abaixo. */
+  const LIMITE = PH - 22;
+
   const info = await loadMunicipioInfo();
   let currentY = drawInstitutionalHeader(doc, info, "AUDITORIA FORENSE — FLUXO DE ENVIO DA FOLHA");
+  const topoConteudo = currentY;
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("1. OBJETIVO", 14, currentY);
-  currentY += 6;
+  /** Garante espaço útil; abre nova página (com cabeçalho) quando necessário. */
+  const garantirEspaco = (altura: number) => {
+    if (currentY + altura <= LIMITE) return;
+    doc.addPage();
+    currentY = drawInstitutionalHeader(doc, info, "AUDITORIA FORENSE — FLUXO DE ENVIO DA FOLHA");
+  };
 
-  doc.setFont("helvetica", "normal");
-  const objetivo = "Realizar uma auditoria completa, real e rastreável do fluxo de envio da folha para análise, garantindo a integridade dos dados desde o lançamento da frequência até a homologação final.";
-  const linesObjetivo = doc.splitTextToSize(objetivo, 180);
-  doc.text(linesObjetivo, 14, currentY);
-  currentY += (linesObjetivo.length * 5) + 5;
+  const titulo = (texto: string) => {
+    garantirEspaco(16);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text(texto, MARGEM, currentY);
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.line(MARGEM, currentY + 1.6, PW - MARGEM, currentY + 1.6);
+    currentY += 7;
+  };
 
-  doc.setFont("helvetica", "bold");
-  doc.text("2. MAPA DO FLUXO ATUAL", 14, currentY);
-  currentY += 6;
+  const paragrafo = (texto: string, tamanho = 9.5) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(tamanho);
+    doc.setTextColor(0, 0, 0);
+    const linhas = doc.splitTextToSize(texto, LARGURA) as string[];
+    garantirEspaco(linhas.length * 4.6 + 2);
+    doc.text(linhas, MARGEM, currentY);
+    currentY += linhas.length * 4.6 + 4;
+  };
 
-  const fluxoData = [
-    ["1. Lançamento", "Diretor/Responsável lança frequências diárias/mensais."],
-    ["2. Fechamento", "Bloqueio de edições na competência ativa."],
-    ["3. Geração", "Cálculo e consolidação dos valores da folha."],
-    ["4. Envio", "Transição de RASCUNHO para ENVIADA_ANALISE."],
-    ["5. Análise", "Revisão técnica pelo Gestor ou Perfil Master."],
-    ["6. Homologação", "Status final que autoriza o pagamento/emissão."],
-  ];
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [["Etapa", "Descrição Detalhada"]],
-    body: fluxoData,
-    theme: "grid",
-    headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
-    styles: { fontSize: 9, cellPadding: 3 },
-  });
-
-  currentY = (doc as any).lastAutoTable.finalY + 10;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("3. MATRIZ DE PERMISSÕES E STATUS", 14, currentY);
-  currentY += 6;
-
-  const matrizData = [
-    ["DIRETOR", "Visualiza Unidade", "Envia p/ Análise", "Corrige Reprovada"],
-    ["GESTOR", "Visualiza Secretaria", "Analisa/Reprova", "Aprova"],
-    ["MASTER", "Visualiza Global", "Homologa", "Bypassa RLS"],
-  ];
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [["Perfil", "Escopo", "Ações Principais", "Responsabilidade"]],
-    body: matrizData,
-    theme: "striped",
-    headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
-    styles: { fontSize: 9 },
-  });
-
-  currentY = (doc as any).lastAutoTable.finalY + 10;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("4. ACHADOS E PONTOS DE CONTROLE", 14, currentY);
-  currentY += 6;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(
-    `Janela analisada: últimos ${dias} dias · ${(trilha ?? []).length} registros de trilha avaliados.`,
-    14,
-    currentY,
-  );
-  currentY += 6;
-
-  if (achados.length === 0) {
-    const linhas = doc.splitTextToSize(TEXTO_SEM_ACHADOS, 180);
-    doc.text(linhas, 14, currentY);
-    currentY += linhas.length * 5 + 4;
-  } else {
+  const tabela = (
+    head: string[],
+    body: (string | number)[][],
+    extra: Record<string, unknown> = {},
+  ) => {
+    garantirEspaco(24);
     autoTable(doc, {
       startY: currentY,
-      head: [["Criticidade", "Achado", "Ocorrências", "Ponto de controle"]],
-      body: achados.map((a) => [
-        a.nivel === "alto" ? "ALTA" : a.nivel === "medio" ? "MÉDIA" : "INFORMATIVO",
+      head: [head],
+      body: body as never,
+      theme: "grid",
+      headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: "bold", lineColor: 0, lineWidth: 0.15 },
+      bodyStyles: { textColor: 0, lineColor: 0, lineWidth: 0.15 },
+      styles: { fontSize: 8.5, cellPadding: 2.2, overflow: "linebreak" },
+      margin: { left: MARGEM, right: MARGEM, top: topoConteudo, bottom: PH - LIMITE },
+      didDrawPage: () => {
+        /* páginas geradas pela tabela já entram com margem superior reservada */
+      },
+      ...extra,
+    });
+    currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  };
+
+  const contagem = {
+    alto: achados.filter((a) => a.nivel === "alto").length,
+    medio: achados.filter((a) => a.nivel === "medio").length,
+    baixo: achados.filter((a) => a.nivel !== "alto" && a.nivel !== "medio").length,
+  };
+
+  // ---------------------------------------------------------------- 1
+  titulo("1. OBJETIVO E ESCOPO");
+  paragrafo(
+    "Auditoria completa, real e rastreável do fluxo de envio da folha para análise, garantindo a integridade dos dados desde o lançamento da frequência até a homologação final. Documento de fé pública emitido pelo sistema HSM Gestão, com registro de validação institucional no rodapé.",
+  );
+  tabela(
+    ["Item", "Conteúdo"],
+    [
+      ["Janela analisada", `Últimos ${dias} dias (desde ${format(desde, "dd/MM/yyyy")})`],
+      ["Registros avaliados", `${(trilha ?? []).length} eventos da trilha de operações`],
+      ["Emissão", format(new Date(), "dd/MM/yyyy 'às' HH:mm:ss")],
+      [
+        "Resumo dos achados",
+        `${contagem.alto} de criticidade alta · ${contagem.medio} média · ${contagem.baixo} informativos`,
+      ],
+    ],
+    { columnStyles: { 0: { cellWidth: 42, fontStyle: "bold" } } },
+  );
+
+  // ---------------------------------------------------------------- 2
+  titulo("2. MAPA DO FLUXO OFICIAL");
+  tabela(
+    ["Etapa", "Descrição detalhada", "Responsável"],
+    [
+      ["1. Lançamento", "Lançamento das frequências mensais na folha da unidade.", "Diretor de Unidade"],
+      ["2. Fechamento", "Encerramento do prazo e bloqueio de edições na competência.", "Gestor / Master"],
+      ["3. Geração", "Cálculo e consolidação dos valores da folha.", "Sistema"],
+      ["4. Envio", "Transição de RASCUNHO para ENVIADA para análise.", "Diretor de Unidade"],
+      ["5. Análise", "Revisão técnica, devolução ou rejeição por linha.", "Gestor / Master"],
+      ["6. Homologação", "Status final que autoriza o pagamento e a emissão oficial.", "Master"],
+    ],
+    { columnStyles: { 0: { cellWidth: 32, fontStyle: "bold" }, 2: { cellWidth: 36 } } },
+  );
+
+  // ---------------------------------------------------------------- 3
+  titulo("3. MATRIZ DE PERMISSÕES E STATUS");
+  tabela(
+    ["Perfil", "Escopo de visão", "Ações principais", "Responsabilidade"],
+    [
+      ["DIRETOR", "Apenas a própria unidade", "Lança e envia para análise", "Corrige linhas devolvidas"],
+      ["GESTOR", "Secretaria completa", "Analisa, devolve e aprova", "Conferência técnica"],
+      ["MASTER", "Visão global", "Homologa e reabre prazos", "Guarda da integridade"],
+    ],
+    { columnStyles: { 0: { cellWidth: 24, fontStyle: "bold" } } },
+  );
+
+  // ---------------------------------------------------------------- 4
+  titulo("4. ACHADOS E PONTOS DE CONTROLE");
+  if (achados.length === 0) {
+    paragrafo(TEXTO_SEM_ACHADOS);
+  } else {
+    tabela(
+      ["Criticidade", "Achado", "Ocorr.", "Ponto de controle"],
+      achados.map((a) => [
+        a.nivel === "alto" ? "ALTA" : a.nivel === "medio" ? "MÉDIA" : "INFORM.",
         a.titulo,
         String(a.ocorrencias),
         a.detalhe,
       ]),
-      theme: "grid",
-      headStyles: { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 45 }, 2: { cellWidth: 18, halign: "center" } },
-      margin: { left: 14, right: 14 },
-    });
-    currentY = (doc as any).lastAutoTable.finalY + 8;
+      {
+        styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+        columnStyles: {
+          0: { cellWidth: 20, halign: "center", fontStyle: "bold" },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 14, halign: "center" },
+        },
+      },
+    );
   }
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("5. OBSERVAÇÕES DO AUDITOR", 14, currentY);
-  currentY += 6;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  // ---------------------------------------------------------------- 5
+  titulo("5. OBSERVAÇÕES DO AUDITOR");
   const obs = (opts?.observacoes ?? "").trim() || "Nenhuma observação manual registrada pelo auditor.";
-  const linhasObs = doc.splitTextToSize(obs, 180);
-  doc.text(linhasObs, 14, currentY);
-  currentY += linhasObs.length * 5 + 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const linhasObs = doc.splitTextToSize(obs, LARGURA - 6) as string[];
+  const alturaBox = linhasObs.length * 4.6 + 8;
+  garantirEspaco(alturaBox + 4);
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.2);
+  doc.rect(MARGEM, currentY - 4, LARGURA, alturaBox);
+  doc.text(linhasObs, MARGEM + 3, currentY + 1);
+  currentY += alturaBox + 6;
 
-  let assinaturaBaseY: number | undefined;
+  // ---------------------------------------------------------------- 6
+  titulo("6. ASSINATURAS");
   const assinaturas = await resolverAssinaturasDocumento("relatorio");
-  if (assinaturas.length > 0) {
-    assinaturaBaseY = currentY + 10;
+
+  // Reserva o espaço físico do bloco de assinaturas (imagem + linha + nome)
+  const ALTURA_BLOCO = 40;
+  garantirEspaco(ALTURA_BLOCO + 6);
+  const assinaturaBaseY = currentY + 4;
+
+  // Linhas de fé pública desenhadas sempre — mesmo sem carimbo cadastrado,
+  // o documento sai assinável. As imagens são injetadas pelo pipeline.
+  if (assinaturas.length === 0) {
+    const largura = 70;
+    const y = assinaturaBaseY + 22;
+    const xs = [MARGEM + 8, PW - MARGEM - 8 - largura];
+    const rotulos = ["Auditor responsável", "Gestor / Administrador Master"];
+    xs.forEach((x, i) => {
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.line(x, y, x + largura, y);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(rotulos[i], x + largura / 2, y + 4, { align: "center" });
+    });
   }
+  currentY = assinaturaBaseY + ALTURA_BLOCO;
 
-
-  const footerY = doc.internal.pageSize.getHeight() - 15;
-  doc.setFontSize(8);
-  doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm:ss")}`, 14, footerY);
-  doc.text("HSM Gestão - Auditoria Forense", doc.internal.pageSize.getWidth() - 14, footerY, { align: "right" });
+  // ---------------------------------------------------------- rodapé
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    const footerY = PH - 12;
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.15);
+    doc.line(MARGEM, footerY - 4, PW - MARGEM, footerY - 4);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm:ss")}`, MARGEM, footerY);
+    doc.text("HSM Gestão — Auditoria Forense", PW / 2, footerY, { align: "center" });
+    doc.text(`Página ${p} de ${total}`, PW - MARGEM, footerY, { align: "right" });
+  }
+  doc.setPage(total);
+  doc.setTextColor(0, 0, 0);
 
   await finalizarPdf(doc, {
     filename: `auditoria_forense_folha_${format(new Date(), "yyyyMMdd")}.pdf`,
     tipo: "relatorio",
     assinaturas,
     yPadraoMm: assinaturaBaseY,
+    pagina: total,
+    repetirEmTodasPaginas: false,
   });
 }
