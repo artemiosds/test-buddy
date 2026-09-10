@@ -131,6 +131,17 @@ export function FolhaTimeline({
               .order("ocorrido_em")
               .limit(100)
           : Promise.resolve({ data: [] as never[] }),
+        // Eventos legados de sincronização: gravados sem vínculo direto à folha,
+        // identificados apenas pelo contexto (competência + unidade + tipo).
+        competenciaId
+          ? supabase
+              .from("audit_log")
+              .select("ocorrido_em, operacao, usuario_id, usuario_email, ip, contexto")
+              .is("registro_id", null)
+              .filter("contexto->>competencia_id", "eq", competenciaId)
+              .order("ocorrido_em")
+              .limit(500)
+          : Promise.resolve({ data: [] as never[] }),
       ]);
 
       const ids = new Set<string>();
