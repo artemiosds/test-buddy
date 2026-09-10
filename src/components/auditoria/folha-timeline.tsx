@@ -100,7 +100,8 @@ export function FolhaTimeline({
     enabled: !!folhaId,
     queryFn: async () => {
       const competenciaId = folha?.competencia_unidade?.competencia_id ?? null;
-      const [aprov, hist, logs, logsComp] = await Promise.all([
+      const unidadeId = folha?.competencia_unidade?.unidade_id ?? null;
+      const [aprov, hist, logs, logsComp, logsLegado] = await Promise.all([
         supabase
           .from("frequencia_aprovacoes")
           .select("acao, status_anterior, status_novo, observacoes, created_at, executado_por")
