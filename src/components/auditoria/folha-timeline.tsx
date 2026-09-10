@@ -77,7 +77,7 @@ export function FolhaTimeline({
           `id, tipo, status, created_at, created_by, data_envio, enviada_por,
            data_aprovacao, aprovada_por,
            competencia_unidade:competencia_unidades!inner(
-             competencia_id,
+             competencia_id, unidade_id,
              unidade:unidades!inner(nome, sigla),
              competencia:competencias!inner(ano, mes, status, prazo_envio)
            )`,
