@@ -451,6 +451,81 @@ export type Database = {
         }
         Relationships: []
       }
+      cargo_categoria_map: {
+        Row: {
+          cargo_id: string | null
+          categoria_id: string | null
+          created_at: string | null
+          id: string
+          is_pmm: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          cargo_id?: string | null
+          categoria_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_pmm?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          cargo_id?: string | null
+          categoria_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_pmm?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargo_categoria_map_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargo_categoria_map_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "cargo_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cargo_categorias: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          grupo: string
+          id: string
+          nome: string
+          ordem: number | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          grupo?: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          grupo?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cargos: {
         Row: {
           area_profissional: string | null
