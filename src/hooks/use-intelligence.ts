@@ -22,14 +22,21 @@ import {
 const CAMPO_LABELS: Record<string, string> = {
   cargo: "Sem cargo",
   funcao: "Sem função",
-  setor: "Sem setor",
   unidade: "Sem unidade",
   vinculo: "Sem vínculo",
   matricula: "Sem matrícula",
   telefone: "Sem telefone",
   email: "Sem e-mail",
-  banco: "Sem dados bancários",
 };
+
+/**
+ * Campos que NÃO entram na nota de integridade cadastral:
+ * - `setor`: agrupamento opcional (unidade já regulariza a lotação);
+ * - `banco`: só se aplica a contratados/prestadores — efetivos não têm
+ *   dados bancários no cadastro e não podem rebaixar a nota.
+ */
+const CAMPOS_NAO_APLICAVEIS = ["setor", "banco"] as const;
+
 
 export type IntelligenceResult = {
   semaforo: SemaforoResult;
@@ -53,10 +60,10 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
     const alertas = a.alertas.data;
     const semLotacao = Math.max(
       alertas?.semUnidade ?? 0,
-      alertas?.semSetor ?? 0,
       alertas?.semCargo ?? 0,
       alertas?.semFuncao ?? 0,
     );
+
 
     const semaforo = classifySemaforo({
       totalProfessionals: total,
@@ -69,12 +76,20 @@ export function useIntelligence(a: ReturnType<typeof useAnalytics>): Intelligenc
     });
 
     const integ = a.integridade.data;
+    const faltasAplicaveis = Object.fromEntries(
+      Object.entries(integ?.faltas ?? {}).filter(
+        ([k]) => !(CAMPOS_NAO_APLICAVEIS as readonly string[]).includes(k),
+      ),
+    );
     const integridade = computeIntegridade({
       total: integ?.total ?? 0,
-      faltas: integ?.faltas ?? {},
+      faltas: faltasAplicaveis,
       labels: CAMPO_LABELS,
-      cadastrosIncompletos: integ?.cadastrosIncompletos,
+      // `cadastros_incompletos` da view inclui setor/banco — recalculamos a
+      // partir dos campos aplicáveis para não rebaixar a nota indevidamente.
+
     });
+
 
     const prev = a.frequenciasAnterior.data ?? [];
     const prevHoras = sumField(prev, "total_horas_extras");

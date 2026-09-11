@@ -10,7 +10,7 @@ export type SemaforoInput = {
   totalProfessionals: number;
   afastados: number;
   pendencias: number;
-  /** Profissionais sem lotação (união aproximada de unidade/setor/cargo/função — usa o maior valor). */
+  /** Profissionais sem lotação (união aproximada de unidade/cargo/função — usa o maior valor). */
   semLotacao: number;
   unidadesSemGestor: number;
   horasExtras: number;
@@ -49,7 +49,7 @@ export function classifySemaforo(input: SemaforoInput): SemaforoResult {
     bump("critico");
   }
   if (input.semLotacao > 0) {
-    motivos.push(`${input.semLotacao} profissional(is) sem lotação (unidade/setor/cargo/função)`);
+    motivos.push(`${input.semLotacao} profissional(is) sem lotação (unidade/cargo/função)`);
     bump("atencao");
   }
   if ((input.frequenciasPendentes ?? 0) > 0) {
@@ -153,7 +153,9 @@ export function generateInsights(input: {
   tendenciaHoras?: TendenciaValor;
   alertas?: {
     semUnidade: number;
-    semSetor: number;
+    /** Informativo — setor é agrupamento opcional, não pendência. */
+    semSetor?: number;
+
     unidadesSemGestor: number;
     setoresSemResponsavel: number;
   };

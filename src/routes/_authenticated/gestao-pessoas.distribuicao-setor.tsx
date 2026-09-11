@@ -6,6 +6,9 @@ import { useState, useMemo } from "react";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { EmptyState, KpiCard, PageHeader, FilterBar, DataTable, type DataTableColumn } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -207,24 +210,114 @@ function DistribuicaoSetor() {
       <PageHeader
         title="Distribuição por Setor"
         description="Análise da setorização da força de trabalho por unidades de saúde."
+        actions={
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={isLoading}
+            relatorio={() =>
+              relatorioPainelAbnt({
+                arquivo: "distribuicao-setor",
+                titulo: "Distribuição por Setor",
+                subtitulo: "Setorização da força de trabalho por unidade",
+                filtros: [
+                  {
+                    label: "Unidade",
+                    valor: unidadeId
+                      ? (unidadesQ.data ?? []).find((u) => u.id === unidadeId)?.nome ?? "—"
+                      : "Todas as unidades",
+                  },
+                ],
+                kpis: [
+                  {
+                    label: "Profissionais com Unidade",
+                    valor: summary.profWithUnit.toLocaleString("pt-BR"),
+                  },
+                  { label: "Com Setor", valor: summary.profWithSetor.toLocaleString("pt-BR") },
+                  {
+                    label: "Sem Setor (informativo)",
+                    valor: summary.profWithoutSetor.toLocaleString("pt-BR"),
+                  },
+                  { label: "Cobertura", valor: `${summary.cobertura.toFixed(1)}%` },
+                  {
+                    label: "Setores com Profissionais",
+                    valor: summary.sectorsWithProfCount.toLocaleString("pt-BR"),
+                  },
+                  { label: "Setores cadastrados", valor: summary.totalSectors.toLocaleString("pt-BR") },
+                ],
+                registros: rows.length,
+                blocos: [
+                  {
+                    titulo: "Ranking por setor",
+                    nota: `Baseado nos ${summary.profWithSetor} profissionais com setor definido.`,
+                    head: ["#", "Setor", "Profissionais", "% dos prof. com setor"],
+                    body: rows.map((r: any, i: number) => [
+                      i + 1,
+                      r.nome,
+                      r.total,
+                      `${summary.profWithSetor > 0 ? ((r.total / summary.profWithSetor) * 100).toFixed(1) : "0"}%`,
+                    ]),
+                    align: ["right", "left", "right", "right"],
+                    keepTogether: false,
+                  },
+                  {
+                    titulo: "Setorização por unidade",
+                    head: ["Unidade", "Total", "Com setor", "Sem setor", "Cobertura", "Setores"],
+                    body: summary.coberturaPorUnidade.map((u: any) => [
+                      u.sigla ? `${u.sigla} — ${u.unidade}` : u.unidade,
+                      u.total,
+                      u.comSetor,
+                      u.semSetor,
+                      `${u.cobertura.toFixed(1)}%`,
+                      u.setoresUtilizados ?? 0,
+                    ]),
+                    keepTogether: false,
+                  },
+                  {
+                    titulo: "Setores sem profissionais vinculados",
+                    head: ["Setor"],
+                    body: summary.emptySectors.map((s: any) => [s.nome]),
+                    keepTogether: false,
+                  },
+                ],
+                graficos: [
+                  {
+                    tipo: "barras",
+                    titulo: "Maiores setores",
+                    dados: rows.map((r: any) => ({ label: r.nome, valor: r.total })),
+                    limite: 12,
+                  },
+                ],
+                notas: [
+                  "O setor é agrupamento complementar e opcional: profissionais com unidade definida têm cadastro regular.",
+                  "Os totais sem setor são informativos e não configuram pendência cadastral.",
+                ],
+              })
+            }
+          />
+        }
       />
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
-        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+
+      {/* Setor é agrupamento opcional: ter unidade já basta para o cadastro
+          ser regular. Por isso este bloco é apenas informativo. */}
+      <div className="bg-muted/40 border rounded-lg p-3 flex items-start gap-3 shadow-sm">
+        <Info className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-sm flex-1">
-          <p className="font-semibold text-amber-900">Atenção: Pendência de Setorização</p>
-          <p className="text-amber-700">
-            Existem <strong>{summary.profWithoutSetor.toLocaleString("pt-BR")} profissionais</strong> vinculados a uma Unidade, mas ainda sem Setor definido. 
+          <p className="font-semibold">Informativo: setorização</p>
+          <p className="text-muted-foreground">
+            Existem <strong>{summary.profWithoutSetor.toLocaleString("pt-BR")} profissionais</strong> com Unidade definida e ainda sem Setor. O Setor é um agrupamento complementar e opcional — esses cadastros seguem regulares.
           </p>
         </div>
         <Link 
           to="/gestao-pessoas/distribuicao-setor" 
           search={{ ...Route.useSearch(), activeTab: 'pendencias' }}
-          className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-md hover:bg-amber-700 transition-colors font-medium self-center"
+          className="text-xs border px-3 py-1.5 rounded-md hover:bg-muted transition-colors font-medium self-center"
         >
-          Ver pendências
+          Ver lista
         </Link>
       </div>
+
 
       <FilterBar>
         <FilterBar.Field label="Filtrar por Unidade">
@@ -262,18 +355,18 @@ function DistribuicaoSetor() {
           icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
           description={`${summary.profWithSetor} de ${summary.profWithUnit} possuem setor definido (B).`}
         />
-        <Card className="border-amber-200 bg-amber-50/30">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-amber-700 flex items-center justify-between">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
               SEM SETOR
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <Info className="h-4 w-4 text-muted-foreground" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-900">
+            <div className="text-2xl font-bold">
               {isLoading ? "..." : summary.profWithoutSetor.toLocaleString("pt-BR")}
             </div>
-            <p className="text-[10px] text-amber-600 mt-1">Pendência de setorização (C).</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Informativo — setor é opcional (C).</p>
           </CardContent>
         </Card>
         <Card>
@@ -339,15 +432,15 @@ function DistribuicaoSetor() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-amber-500">
+        <Card className="border-l-4 border-l-muted">
           <CardContent className="pt-4 flex items-center gap-4">
-            <div className="p-3 bg-amber-100 rounded-full text-amber-600">
+            <div className="p-3 bg-muted rounded-full text-muted-foreground">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Unidade com Maior Pendência</p>
               <p className="font-bold">
-                {summary.coberturaPorUnidade[0]?.unidade || "—"} ({summary.coberturaPorUnidade[0]?.semSetor || 0} pendentes)
+                {summary.coberturaPorUnidade[0]?.unidade || "—"} ({summary.coberturaPorUnidade[0]?.semSetor || 0} sem setor)
               </p>
             </div>
           </CardContent>
@@ -358,7 +451,7 @@ function DistribuicaoSetor() {
         <TabsList>
           <TabsTrigger value="distribuicao">Ranking por Setor</TabsTrigger>
           <TabsTrigger value="cobertura">Cobertura por Unidade</TabsTrigger>
-          <TabsTrigger value="pendencias" className="text-amber-700 data-[state=active]:bg-amber-50">
+          <TabsTrigger value="pendencias">
             Profissionais sem Setor ({summary.profWithoutSetor})
           </TabsTrigger>
           <TabsTrigger value="setores-vazios">Setores Vazios ({summary.emptySectors.length})</TabsTrigger>
@@ -437,15 +530,15 @@ function DistribuicaoSetor() {
         </TabsContent>
 
         <TabsContent value="pendencias" className="mt-4">
-          <Card className="border-amber-200">
-            <CardHeader className="py-3 border-b bg-amber-50/50 flex flex-row items-center justify-between space-y-0">
+          <Card>
+            <CardHeader className="py-3 border-b flex flex-row items-center justify-between space-y-0">
               <div>
-                <CardTitle className="text-sm font-semibold text-amber-800">
-                  Lista de Profissionais sem Setor Definido
+                <CardTitle className="text-sm font-semibold">
+                  Profissionais sem Setor Definido (informativo)
                 </CardTitle>
-                <p className="text-[10px] text-amber-600">Somente profissionais ativos, com unidade e sem setor.</p>
+                <p className="text-[10px] text-muted-foreground">Somente profissionais ativos, com unidade e sem setor. O setor é opcional.</p>
               </div>
-              <div className="px-2 py-1 bg-amber-100 rounded text-[10px] text-amber-700 border border-amber-200 flex items-center gap-1">
+              <div className="px-2 py-1 bg-muted rounded text-[10px] text-muted-foreground border flex items-center gap-1">
                 <Info className="h-3 w-3" />
                 Diagnóstico: A ({summary.profWithUnit}) = B ({summary.profWithSetor}) + C ({summary.profWithoutSetor})
               </div>

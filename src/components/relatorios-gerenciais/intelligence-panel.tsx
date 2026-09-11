@@ -6,6 +6,7 @@
 import { useGerencial } from "@/hooks/use-gerencial";
 import { KpiCardSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { RelatoriosOficiaisLinks } from "@/components/relatorios-oficiais-links";
 import {
   Section,
   ExecutiveSummary,
@@ -58,7 +59,7 @@ function buildKpis(a: GerencialAggregate, foco: FocoGerencial): KpiSpec[] {
       { label: "Licença", value: s["licenciado"] ?? 0 },
       { label: "Inativos", value: (s["inativo"] ?? 0) + (s["desligado"] ?? 0) },
       { label: "Sem Unidade", value: p.semUnidade, tone: p.semUnidade ? "danger" : "success" },
-      { label: "Sem Setor", value: p.semSetor, tone: p.semSetor ? "warning" : "success" },
+      // Setor é agrupamento opcional — não entra como pendência cadastral.
       { label: "Sem Cargo", value: p.semCargo, tone: p.semCargo ? "warning" : "success" },
       { label: "Sem Função", value: p.semFuncao },
       {
@@ -140,11 +141,8 @@ function buildKpis(a: GerencialAggregate, foco: FocoGerencial): KpiSpec[] {
         value: t.unidades ? Math.round((t.setores / t.unidades) * 10) / 10 : 0,
       },
       { label: "Estrutura Organizacional", value: a.qualidade.estruturaOrganizacional + "%" },
-      {
-        label: "Profissionais sem Setor",
-        value: p.semSetor,
-        tone: p.semSetor ? "warning" : "success",
-      },
+      { label: "Sem Setor Vinculado (informativo)", value: p.semSetor },
+
       { label: "Unidades c/ Setores", value: t.unidades - u.semProfissionais },
       { label: "Qualidade Geral", value: a.qualidade.geral + "%" },
     ];
@@ -259,7 +257,7 @@ function buildKpis(a: GerencialAggregate, foco: FocoGerencial): KpiSpec[] {
         tone: st.semCoordenador ? "warning" : "success",
       },
       { label: "Profissionais sem Unidade", value: p.semUnidade },
-      { label: "Profissionais sem Setor", value: p.semSetor },
+      { label: "Sem Setor Vinculado (informativo)", value: p.semSetor },
       { label: "Unidades sem Profissionais", value: u.semProfissionais },
       { label: "Setores sem Profissionais", value: st.semProfissionais },
       {
@@ -371,6 +369,10 @@ export function IntelligencePanel({
 
   return (
     <div className="space-y-4">
+      <Section title="Relatórios Oficiais">
+        <RelatoriosOficiaisLinks />
+      </Section>
+
       <Section title="Resumo Executivo">
         <ExecutiveSummary frases={a.resumoExecutivo} />
       </Section>

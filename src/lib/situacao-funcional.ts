@@ -45,6 +45,8 @@ export type ProfConferencia = {
   status?: string | null;
   situacao_funcional?: string | null;
   vinculo?: string | null;
+  vinculo_natureza?: string | null;
+
   cargo_id?: string | null;
   funcao_id?: string | null;
   setor_id?: string | null;
@@ -164,10 +166,62 @@ export const VALORES_DO_GRUPO: Record<GrupoSituacao, string[]> = {
   desligado: ["desligado", "inativo"],
 };
 
+/* ------------------------------------------------------------------------
+ * Regra institucional única de "Ativos" e "Disponível para escala".
+ * ATIVOS = ativo + férias + licença prêmio (o vínculo segue vigente).
+ * DISPONÍVEL PARA ESCALA = apenas ativo (quem pode ser escalado hoje).
+ * Não altera VALORES_DO_GRUPO, usado pelos filtros já existentes.
+ * ---------------------------------------------------------------------- */
+
+export const ATIVOS_STATUS = ["ativo", "ferias", "licenca_premio"] as const;
+export const DISPONIVEL_STATUS = ["ativo"] as const;
+
+/** Situação normalizada do profissional (situacao_funcional ou status). */
+export function situacaoNormalizada(p: {
+  status?: string | null;
+  situacao_funcional?: string | null;
+}): SituacaoFuncional {
+  return derivarSituacao({
+    id: "",
+    status: p.status ?? null,
+    situacao_funcional: p.situacao_funcional ?? null,
+  });
+}
+
+/** Conta como ATIVO (vínculo vigente): ativo, férias ou licença prêmio. */
+export function ehAtivoAmpliado(p: {
+  status?: string | null;
+  situacao_funcional?: string | null;
+}): boolean {
+  return (ATIVOS_STATUS as readonly string[]).includes(situacaoNormalizada(p));
+}
+
+/** Conta como DISPONÍVEL PARA ESCALA: apenas ativo. */
+export function ehDisponivelEscala(p: {
+  status?: string | null;
+  situacao_funcional?: string | null;
+}): boolean {
+  return (DISPONIVEL_STATUS as readonly string[]).includes(situacaoNormalizada(p));
+}
+
 /** Valores de banco correspondentes a um filtro de painel. */
 export function valoresDoFiltroSituacao(valor: string): string[] {
   return VALORES_DO_GRUPO[valor as GrupoSituacao] ?? [valor];
 }
+
+/**
+ * Expressão PostgREST (`.or(...)`) para filtrar por situação respeitando a
+ * prioridade institucional `situacao_funcional` > `status`. Cada valor recebido
+ * é expandido para os valores equivalentes gravados no banco.
+ * Retorna `null` quando não há nada a filtrar.
+ */
+export function expressaoFiltroSituacao(valores: readonly string[]): string | null {
+  const expandidos = Array.from(new Set(valores.flatMap((v) => valoresDoFiltroSituacao(v))));
+  if (expandidos.length === 0) return null;
+  const csv = expandidos.join(",");
+  return `situacao_funcional.in.(${csv}),and(situacao_funcional.is.null,status.in.(${csv}))`;
+}
+
 
 /** Conta os profissionais por grupo (chaves sempre presentes, mesmo zeradas). */
 export function contarPorGrupo(
@@ -184,18 +238,36 @@ export function contarPorGrupo(
   return acc;
 }
 
+/**
+ * Servidor efetivo/estatutário. Mesma heurística de `classificarVinculo`
+ * (src/lib/geral-cargos.ts): olha a natureza e o nome do vínculo.
+ */
+export function ehEfetivo(p: {
+  vinculo?: string | null;
+  vinculo_natureza?: string | null;
+}): boolean {
+  const n = `${p.vinculo_natureza ?? ""} ${p.vinculo ?? ""}`.toLowerCase();
+  return n.includes("efetiv") || n.includes("estatut");
+}
+
 export function derivarAlertas(p: ProfConferencia): AlertaCadastral[] {
   const out: AlertaCadastral[] = [];
   if (!p.cpf || String(p.cpf).replace(/\D/g, "").length !== 11) out.push("sem_cpf");
   if (!p.cargo && !p.cargo_id) out.push("sem_cargo");
   if (!p.funcao && !p.funcao_id) out.push("sem_funcao");
-  if (!p.setor && !p.setor_id && !p.unidade_id) out.push("sem_lotacao");
-  if (!p.banco) out.push("sem_banco");
-  if (!p.agencia) out.push("sem_agencia");
-  if (!p.conta_corrente) out.push("sem_conta");
+  // Setor é agrupamento opcional: ter unidade já regulariza a lotação.
+  if (!p.unidade_id && !p.setor && !p.setor_id) out.push("sem_lotacao");
+  // Dados bancários só se aplicam a contratados/prestadores — efetivos são
+  // pagos por folha própria e não têm esses campos preenchidos.
+  if (!ehEfetivo(p)) {
+    if (!p.banco) out.push("sem_banco");
+    if (!p.agencia) out.push("sem_agencia");
+    if (!p.conta_corrente) out.push("sem_conta");
+  }
   if (p.tem_pendencia) out.push("pendencia_aberta");
   return out;
 }
+
 
 /** Cargos considerados elegíveis ao Piso Nacional da Enfermagem. */
 const CARGOS_ENFERMAGEM =

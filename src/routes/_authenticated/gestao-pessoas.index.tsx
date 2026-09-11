@@ -22,11 +22,15 @@ import {
 } from "lucide-react";
 
 import { useAnalytics } from "@/hooks/use-analytics";
+import { categoriaDoCargo } from "@/lib/cargo-categorias";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 import { useIntelligence } from "@/hooks/use-intelligence";
 import { buildWorkforceAlertItems } from "@/lib/workforce-alerts";
 import { EmptyState, KpiCard, PageHeader, StatusBadge, FilterBar } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -112,16 +116,29 @@ function DashboardExecutivo() {
   const competenciaLabel = (mes: number, ano: number) => `${String(mes).padStart(2, "0")}/${ano}`;
 
   const status = a.statusBreakdown.data ?? {};
+  // Regra institucional única de contagem (src/lib/kpis-forca-trabalho.ts).
+  const kpisSit = a.kpisSituacao.data;
   const vinc = a.vinculoBreakdown.data;
 
   const topUnidades = useMemo(
     () => (a.distribuicaoUnidade.data ?? []).slice(0, 10),
     [a.distribuicaoUnidade.data],
   );
-  const topCargos = useMemo(
-    () => (a.distribuicaoCargo.data ?? []).slice(0, 10),
-    [a.distribuicaoCargo.data],
-  );
+  // Ranking consolidado pelo De-Para gerencial de cargos: variações
+  // descritivas do mesmo cargo (Técnico em Enfermagem etc.) somam numa linha.
+  const topCargos = useMemo(() => {
+    const acc = new Map<string, { nome: string; total: number }>();
+    for (const r of a.distribuicaoCargo.data ?? []) {
+      const cat = categoriaDoCargo(r.nome);
+      const atual = acc.get(cat.slug) ?? { nome: cat.nome, total: 0 };
+      atual.total += r.total ?? 0;
+      acc.set(cat.slug, atual);
+    }
+    return [...acc.entries()]
+      .map(([slug, v]) => ({ id: slug, nome: v.nome, total: v.total }))
+      .sort((x, y) => y.total - x.total)
+      .slice(0, 10);
+  }, [a.distribuicaoCargo.data]);
 
   const alertItems = useMemo(
     () =>
@@ -144,7 +161,92 @@ function DashboardExecutivo() {
             ? "Visão consolidada de pessoas, estrutura e operação de toda a rede em tempo real."
             : "Visão consolidada de pessoas, estrutura e operação da unidade em tempo real."
         }
+        actions={
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={a.loading}
+            relatorio={() =>
+              relatorioPainelAbnt({
+                arquivo: "dashboard-executivo",
+                titulo: isMasterUser
+                  ? "Dashboard Executivo (Secretaria)"
+                  : "Dashboard Executivo (Unidade)",
+                subtitulo: "Visão consolidada de pessoas, estrutura e operação",
+                filtros: [
+                  {
+                    label: "Unidade",
+                    valor:
+                      effectiveUnidadeId
+                        ? (unidadesQ.data ?? []).find((u) => u.id === effectiveUnidadeId)?.nome ??
+                          "—"
+                        : "Todas",
+                  },
+                  { label: "Status", valor: resolved.status || "Todos" },
+                  {
+                    label: "Período",
+                    valor:
+                      (competenciasQ.data ?? [])
+                        .filter((c) => c.id === resolved.competenciaId)
+                        .map((c) => competenciaLabel(c.mes, c.ano))[0] ??
+                      (competenciaAtiva
+                        ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)
+                        : "Competência ativa"),
+                  },
+                ],
+                kpis: [
+                  { label: "Total de profissionais", valor: kpisSit.total.toLocaleString("pt-BR") },
+                  { label: "Ativos", valor: kpisSit.ativos.toLocaleString("pt-BR") },
+                  {
+                    label: "Disponível p/ escala",
+                    valor: kpisSit.disponiveis.toLocaleString("pt-BR"),
+                  },
+                  { label: "Afastados", valor: kpisSit.afastados.toLocaleString("pt-BR") },
+                  {
+                    label: "Férias / licença prêmio",
+                    valor: kpisSit.feriasLicencaPremio.toLocaleString("pt-BR"),
+                  },
+                  { label: "Desligados", valor: kpisSit.desligados.toLocaleString("pt-BR") },
+                ],
+                registros: kpisSit.total,
+                blocos: [
+                  {
+                    titulo: "Top 10 unidades por profissionais",
+                    head: ["Unidade", "Profissionais"],
+                    body: topUnidades.map((u: any) => [u.nome, u.total]),
+                    keepTogether: true,
+                  },
+                  {
+                    titulo: "Top 10 cargos (consolidados pelo De-Para)",
+                    head: ["Cargo", "Profissionais"],
+                    body: topCargos.map((c) => [c.nome, c.total]),
+                    keepTogether: true,
+                  },
+                  {
+                    titulo: "Alertas da força de trabalho",
+                    head: ["Alerta", "Quantidade"],
+                    body: alertItems.map((i: any) => [i.label, i.value ?? 0]),
+                    keepTogether: true,
+                  },
+                ],
+                graficos: [
+                  {
+                    tipo: "barras",
+                    titulo: "Profissionais por unidade",
+                    dados: topUnidades.map((u: any) => ({ label: u.nome, valor: u.total })),
+                    limite: 10,
+                  },
+                ],
+                notas: [
+                  "Ativos = em exercício + férias + licença prêmio; Disponível para escala = somente exercício pleno.",
+                  "Cargos consolidados pelo De-Para gerencial para evitar listas fragmentadas.",
+                ],
+              })
+            }
+          />
+        }
       />
+
 
       <div className="mt-4">
         <SemaforoCard
@@ -271,21 +373,30 @@ function DashboardExecutivo() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <KpiCard
             label="Total de profissionais"
-            value={n(a.totalProfessionals.data)}
+            value={n(kpisSit.total || a.totalProfessionals.data)}
             loading={a.totalProfessionals.isLoading}
             icon={<Users className="h-4 w-4" />}
           />
           <KpiCard
             label="Ativos"
-            value={n(status["ativo"])}
-            loading={a.statusBreakdown.isLoading}
+            value={n(kpisSit.ativos)}
+            hint="Em exercício + férias + licença prêmio"
+            loading={a.kpisSituacao.isLoading}
             tone="success"
             icon={<UserCheck className="h-4 w-4" />}
           />
           <KpiCard
+            label="Disponível p/ Escala"
+            value={n(kpisSit.disponiveis)}
+            hint="Em exercício pleno hoje"
+            loading={a.kpisSituacao.isLoading}
+            icon={<UserCheck className="h-4 w-4" />}
+          />
+          <KpiCard
             label="Afastados"
-            value={n(status["afastado"])}
-            loading={a.statusBreakdown.isLoading}
+            value={n(kpisSit.afastados)}
+            hint="Afastamentos e licenças legais (inclui afastado por laudo)"
+            loading={a.kpisSituacao.isLoading}
             tone="warning"
             icon={<UserMinus className="h-4 w-4" />}
           />
@@ -296,14 +407,14 @@ function DashboardExecutivo() {
             icon={<Umbrella className="h-4 w-4" />}
           />
           <KpiCard
-            label="Licenças"
-            value={n(status["licenca"])}
+            label="Licença prêmio"
+            value={n(status["licenca_premio"])}
             loading={a.statusBreakdown.isLoading}
             icon={<FileText className="h-4 w-4" />}
           />
           <KpiCard
             label="Desligados"
-            value={n(status["desligado"])}
+            value={n(kpisSit.desligados)}
             loading={a.statusBreakdown.isLoading}
             tone="danger"
             icon={<UserX className="h-4 w-4" />}
@@ -392,7 +503,7 @@ function DashboardExecutivo() {
               const map: Record<string, string> = {
                 cargo: "sem-cargo",
                 funcao: "sem-funcao",
-                setor: "sem-setor",
+                
                 unidade: "sem-unidade",
                 vinculo: "sem-vinculo",
               };

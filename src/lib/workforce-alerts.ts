@@ -10,7 +10,7 @@ export type WorkforceAlertsInput = {
   alertas:
     | {
         semUnidade: number;
-        semSetor: number;
+        semSetor?: number;
         semCargo: number;
         semFuncao: number;
         unidadesSemGestor: number;
@@ -45,14 +45,8 @@ export function buildWorkforceAlertItems(input: WorkforceAlertsInput): Workforce
       to: "/profissionais",
       search: { integridade: "sem-unidade" },
     },
-    {
-      id: "prof-sem-setor",
-      label: "Profissionais sem setor",
-      count: a?.semSetor ?? 0,
-      tone: "warning",
-      to: "/profissionais",
-      search: { integridade: "sem-setor" },
-    },
+    // Setor é agrupamento opcional — não gera alerta cadastral.
+
     {
       id: "prof-sem-cargo",
       label: "Profissionais sem cargo",

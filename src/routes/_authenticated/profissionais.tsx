@@ -104,6 +104,13 @@ import {
 } from "@/hooks/use-lookups";
 import { profissionalSchema, type ProfissionalFormValues } from "@/lib/schemas/profissional.schema";
 import { saveProfissionalComplete } from "@/lib/profissionais.functions";
+import {
+  ATIVOS_STATUS,
+  DISPONIVEL_STATUS,
+  expressaoFiltroSituacao,
+} from "@/lib/situacao-funcional";
+import { CATEGORIAS, categoriaDoCargo } from "@/lib/cargo-categorias";
+
 import { useProfessionalRealtime } from "@/lib/realtime/professional-realtime";
 
 import * as XLSX from "xlsx";
@@ -266,6 +273,8 @@ function ProfissionaisPage() {
   const [fMatricula, setFMatricula] = useState<string>("");
   const [fGestor, setFGestor] = useState<"todos" | "sim" | "nao">("todos");
   const [fCategorias, setFCategorias] = useState<CategoriaPiso[]>([]);
+  // De-Para gerencial (mesmos agrupamentos da tela Geral Cargos) — slugs.
+  const [fCatConsolidada, setFCatConsolidada] = useState<string[]>([]);
 
   const filtrosAtivos =
     (fNome.trim() ? 1 : 0) +
@@ -278,6 +287,7 @@ function ProfissionaisPage() {
     fFuncao.length +
     fSetor.length +
     fCategorias.length +
+    fCatConsolidada.length +
     (fGestor !== "todos" ? 1 : 0);
 
   const limparFiltros = () => {
@@ -291,8 +301,10 @@ function ProfissionaisPage() {
     setFFuncao([]);
     setFSetor([]);
     setFCategorias([]);
+    setFCatConsolidada([]);
     setFGestor("todos");
   };
+
 
   // Ordenação e visualização
   type SortKey =
@@ -331,9 +343,11 @@ function ProfissionaisPage() {
     fMatricula,
     fGestor,
     fCategorias,
+    fCatConsolidada,
     sortBy,
     pageSize,
   ]);
+
 
   const canCreate = hasPermission("profissional.criar");
   const canEdit = hasPermission("profissional.editar");
@@ -378,6 +392,39 @@ function ProfissionaisPage() {
     };
   }, [fCategorias, cargosLookup, funcoesLookup]);
 
+  // De-Para gerencial: traduz as categorias consolidadas escolhidas nos
+  // cargos/funções cadastrados que caem nelas (mesma regra de Geral Cargos).
+  const catConsolidadaIds = useMemo(() => {
+    if (fCatConsolidada.length === 0) return null;
+    const sel = new Set(fCatConsolidada);
+    const match = (nome: string | null | undefined) => sel.has(categoriaDoCargo(nome).slug);
+    return {
+      cargos: (cargosLookup ?? []).filter((c) => match(c.nome)).map((c) => c.id),
+      funcoes: (funcoesLookup ?? []).filter((f) => match(f.nome)).map((f) => f.id),
+    };
+  }, [fCatConsolidada, cargosLookup, funcoesLookup]);
+
+  /** Chave estável para arrays de filtro (evita resultado velho em tela). */
+  const ser = (v: readonly string[]) => [...v].sort().join(",");
+
+  /**
+   * Aplica um par cargo/função vindo de um De-Para. Quando a seleção não casa
+   * com nenhum cargo/função cadastrado, força resultado vazio (`vazio: true`).
+   */
+  const aplicarIdsCategoria = <T extends { or: (expr: string) => T }>(
+    q: T,
+    ids: { cargos: string[]; funcoes: string[] } | null,
+  ): { query: T; vazio: boolean } => {
+    if (!ids) return { query: q, vazio: false };
+    const ors: string[] = [];
+    if (ids.cargos.length) ors.push(`cargo_id.in.(${ids.cargos.join(",")})`);
+    if (ids.funcoes.length) ors.push(`funcao_id.in.(${ids.funcoes.join(",")})`);
+    if (ors.length === 0) return { query: q.or("id.is.null"), vazio: true };
+    return { query: q.or(ors.join(",")), vazio: false };
+  };
+
+
+
   const {
     data: profissionaisPage,
     isLoading,
@@ -387,18 +434,22 @@ function ProfissionaisPage() {
     queryKey: [
       "profissionais",
       debouncedSearch,
-      fUnidade,
-      fVinculo,
-      fStatus,
-      fCargo,
-      fFuncao,
-      fSetor,
+      ser(fUnidade),
+      ser(fVinculo),
+      ser(fStatus),
+      ser(fCargo),
+      ser(fFuncao),
+      ser(fSetor),
       fNome,
       fCpf,
       fMatricula,
       fGestor,
-      fCategorias.join(","),
+      ser(fCategorias),
+      ser(fCatConsolidada),
       categoriaIds ? `${categoriaIds.cargos.length}-${categoriaIds.funcoes.length}` : "",
+      catConsolidadaIds
+        ? `${catConsolidadaIds.cargos.length}-${catConsolidadaIds.funcoes.length}`
+        : "",
       sortBy,
       fGestor !== "todos" ? (gestorIds?.length ?? 0) : 0,
       page,
@@ -409,7 +460,9 @@ function ProfissionaisPage() {
     placeholderData: keepPreviousData,
     enabled:
       (fGestor === "todos" || !!gestorIds) &&
-      (fCategorias.length === 0 || (!!cargosLookup && !!funcoesLookup)),
+      (fCategorias.length === 0 || (!!cargosLookup && !!funcoesLookup)) &&
+      (fCatConsolidada.length === 0 || (!!cargosLookup && !!funcoesLookup)),
+
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -458,18 +511,21 @@ function ProfissionaisPage() {
       if (fMatricula.trim()) q = q.ilike("matricula", `%${fMatricula.trim()}%`);
       if (fUnidade.length) q = q.in("unidade_id", fUnidade);
       if (fVinculo.length) q = q.in("vinculo_id", fVinculo);
-      if (fStatus.length) q = q.in("status", fStatus as StatusProf[]);
+      if (fStatus.length) {
+        const expr = expressaoFiltroSituacao(fStatus);
+        if (expr) q = q.or(expr);
+      }
       if (fCargo.length) q = q.in("cargo_id", fCargo);
       if (fFuncao.length) q = q.in("funcao_id", fFuncao);
       if (fSetor.length) q = q.in("setor_id", fSetor);
-      if (categoriaIds) {
-        const ors: string[] = [];
-        if (categoriaIds.cargos.length) ors.push(`cargo_id.in.(${categoriaIds.cargos.join(",")})`);
-        if (categoriaIds.funcoes.length)
-          ors.push(`funcao_id.in.(${categoriaIds.funcoes.join(",")})`);
-        if (ors.length === 0) return { rows: [], count: 0 };
-        q = q.or(ors.join(","));
+      {
+        const a = aplicarIdsCategoria(q, categoriaIds);
+        if (a.vazio) return { rows: [], count: 0 };
+        const b = aplicarIdsCategoria(a.query, catConsolidadaIds);
+        if (b.vazio) return { rows: [], count: 0 };
+        q = b.query;
       }
+
       if (fGestor === "sim") {
         const ids = gestorIds ?? [];
         if (ids.length === 0) return { rows: [], count: 0 };
@@ -568,17 +624,25 @@ function ProfissionaisPage() {
       if (fMatricula.trim()) q = q.ilike("matricula", `%${fMatricula.trim()}%`);
       if (fUnidade.length) q = q.in("unidade_id", fUnidade);
       if (fVinculo.length) q = q.in("vinculo_id", fVinculo);
-      if (fStatus.length) q = q.in("status", fStatus as StatusProf[]);
+      if (fStatus.length) {
+        const expr = expressaoFiltroSituacao(fStatus);
+        if (expr) q = q.or(expr);
+      }
       if (fCargo.length) q = q.in("cargo_id", fCargo);
       if (fFuncao.length) q = q.in("funcao_id", fFuncao);
       if (fSetor.length) q = q.in("setor_id", fSetor);
-      
-      if (categoriaIds) {
-        const ors: string[] = [];
-        if (categoriaIds.cargos.length) ors.push(`cargo_id.in.(${categoriaIds.cargos.join(",")})`);
-        if (categoriaIds.funcoes.length) ors.push(`funcao_id.in.(${categoriaIds.funcoes.join(",")})`);
-        if (ors.length > 0) q = q.or(ors.join(","));
+
+      {
+        const a = aplicarIdsCategoria(q, categoriaIds);
+        const b = aplicarIdsCategoria(a.query, catConsolidadaIds);
+        if (a.vazio || b.vazio) {
+          toast.info("Nenhum profissional encontrado para exportação.");
+          return;
+        }
+        q = b.query;
       }
+
+
 
       if (fGestor === "sim" && gestorIds?.length) {
         q = q.in("id", gestorIds);
@@ -873,15 +937,13 @@ function ProfissionaisPage() {
     if (fFuncao.length) out = out.in("funcao_id", fFuncao);
     if (fSetor.length) out = out.in("setor_id", fSetor);
 
-    if (categoriaIds) {
-      const ors: string[] = [];
-      if (categoriaIds.cargos.length) ors.push(`cargo_id.in.(${categoriaIds.cargos.join(",")})`);
-      if (categoriaIds.funcoes.length)
-        ors.push(`funcao_id.in.(${categoriaIds.funcoes.join(",")})`);
-      if (ors.length > 0) {
-        out = out.or(ors.join(","));
-      }
+    out = aplicarIdsCategoria(out, categoriaIds).query;
+    out = aplicarIdsCategoria(out, catConsolidadaIds).query;
+    if (fStatus.length) {
+      const expr = expressaoFiltroSituacao(fStatus);
+      if (expr) out = out.or(expr);
     }
+
 
     if (fGestor === "sim") {
       const ids = gestorIds ?? [];
@@ -896,30 +958,39 @@ function ProfissionaisPage() {
 
   const kpiFiltersKey = [
     search,
-    fUnidade.join(","),
-    fVinculo.join(","),
-    fCargo.join(","),
-    fFuncao.join(","),
-    fSetor.join(","),
-    fCategorias.join(","),
+    ser(fUnidade),
+    ser(fVinculo),
+    ser(fCargo),
+    ser(fFuncao),
+    ser(fSetor),
+    ser(fCategorias),
+    ser(fCatConsolidada),
+    ser(fStatus),
     fGestor,
   ];
 
   const kpiTotal = useQuery({
-    queryKey: ["profissionais-kpi", "total", ...kpiFiltersKey, fStatus.join(",")],
+    queryKey: ["profissionais-kpi", "total", ...kpiFiltersKey],
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null);
       q = applyProfFilters(q);
-      if (fStatus.length) q = q.in("status", fStatus as StatusProf[]);
+
 
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
   });
+
+  // Regra institucional (mesma da tela Geral Cargos): prioridade
+  // situacao_funcional > status. ATIVOS = ativo + férias + licença prêmio;
+  // DISPONÍVEL PARA ESCALA = somente ativo.
+  const filtroSituacao = (lista: readonly string[]) =>
+    expressaoFiltroSituacao(lista) ?? "id.is.null";
+
 
   const kpiAtivos = useQuery({
     queryKey: ["profissionais-kpi", "ativos", ...kpiFiltersKey],
@@ -928,7 +999,7 @@ function ProfissionaisPage() {
         .from("profissionais")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null)
-        .eq("status", "ativo");
+        .or(filtroSituacao(ATIVOS_STATUS));
       q = applyProfFilters(q);
       const { count, error } = await q;
       if (error) throw error;
@@ -936,8 +1007,24 @@ function ProfissionaisPage() {
     },
   });
 
+  const kpiDisponivel = useQuery({
+    queryKey: ["profissionais-kpi", "disponivel", ...kpiFiltersKey],
+    queryFn: async () => {
+      let q = supabase
+        .from("profissionais")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .or(filtroSituacao(DISPONIVEL_STATUS));
+      q = applyProfFilters(q);
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+
   const kpiEfetivos = useQuery({
-    queryKey: ["profissionais-kpi", "efetivos", ...kpiFiltersKey, fStatus.join(",")],
+    queryKey: ["profissionais-kpi", "efetivos", ...kpiFiltersKey],
     queryFn: async () => {
       let q = supabase
         .from("profissionais")
@@ -945,7 +1032,7 @@ function ProfissionaisPage() {
         .is("deleted_at", null)
         .eq("vinculos.natureza", "efetivo");
       q = applyProfFilters(q);
-      if (fStatus.length) q = q.in("status", fStatus as StatusProf[]);
+
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
@@ -1152,7 +1239,7 @@ function ProfissionaisPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard
           label="Total (após filtros)"
           value={kpiTotal.data ?? 0}
@@ -1163,10 +1250,18 @@ function ProfissionaisPage() {
         <KpiCard
           label="Ativos"
           value={kpiAtivos.data ?? 0}
-          hint="Status = ativo (ignora filtro de status)"
+          hint="ativo + férias + licença prêmio (ignora filtro de situação)"
           loading={kpiAtivos.isLoading}
           icon={<UserCheck className="h-4 w-4" />}
         />
+        <KpiCard
+          label="Disponível para escala"
+          value={kpiDisponivel.data ?? 0}
+          hint="Somente situação ativo"
+          loading={kpiDisponivel.isLoading}
+          icon={<UserCheck className="h-4 w-4" />}
+        />
+
         <KpiCard
           label="Efetivos"
           value={kpiEfetivos.data ?? 0}
@@ -1318,6 +1413,21 @@ function ProfissionaisPage() {
             options={CATEGORIAS_PISO.map((c) => ({ value: c, label: CATEGORIA_LABEL[c] }))}
           />
         </FilterBar.Field>
+        <FilterBar.Field label="Categoria Consolidada">
+          <MultiSelect
+            value={fCatConsolidada}
+            onChange={setFCatConsolidada}
+            placeholder="Todas"
+            searchPlaceholder="Buscar categoria consolidada..."
+            options={[...CATEGORIAS]
+              .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+              .map((c) => ({
+                value: c.slug,
+                label: c.grupo === "medico" ? `Médico — ${c.nome}` : c.nome,
+              }))}
+          />
+        </FilterBar.Field>
+
         <FilterBar.Field label="Setor">
           <MultiSelect
             value={fSetor}

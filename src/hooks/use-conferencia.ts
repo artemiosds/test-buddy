@@ -20,8 +20,9 @@ export function useConferenciaProfissionais(ids: string[]) {
       const { data: profs } = await supabase
         .from("profissionais")
         .select(
-          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, cargos(nome), funcoes(nome), setores!profissionais_setor_id_fkey(nome, sigla)",
+          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, vinculo_id, cargos(nome), funcoes(nome), vinculos(nome, natureza), setores!profissionais_setor_id_fkey(nome, sigla)",
         )
+
         .in("id", ids);
 
       // Pendências abertas — via frequencia_profissional (schema atual não
@@ -52,6 +53,7 @@ export function useConferenciaProfissionais(ids: string[]) {
         const row = p as Record<string, unknown> & {
           cargos?: { nome: string | null } | null;
           funcoes?: { nome: string | null } | null;
+          vinculos?: { nome: string | null; natureza?: string | null } | null;
           setores?: { nome: string | null; sigla?: string | null } | null;
         };
         const id = String(row.id);
@@ -70,10 +72,13 @@ export function useConferenciaProfissionais(ids: string[]) {
           unidade_id: (row.unidade_id as string | null) ?? null,
           cargo: row.cargos?.nome ?? null,
           funcao: row.funcoes?.nome ?? null,
+          vinculo: row.vinculos?.nome ?? null,
+          vinculo_natureza: row.vinculos?.natureza ?? null,
           setor: row.setores?.nome ?? null,
           setor_sigla: row.setores?.sigla ?? null,
           tem_pendencia: pendSet.has(id),
         });
+
       }
       return map;
     },
@@ -109,7 +114,10 @@ export function mergeConferencia(
     conta_corrente: nn(base.conta_corrente) ?? nn(extra.conta_corrente),
     cargo: nn(base.cargo) ?? nn(extra.cargo),
     funcao: nn(base.funcao) ?? nn(extra.funcao),
+    vinculo: nn(base.vinculo) ?? nn(extra.vinculo),
+    vinculo_natureza: nn(base.vinculo_natureza) ?? nn(extra.vinculo_natureza),
     setor: nn(base.setor) ?? nn(extra.setor),
     setor_sigla: nn((base as any).setor_sigla) ?? nn((extra as any).setor_sigla),
   };
 }
+

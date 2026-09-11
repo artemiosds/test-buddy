@@ -6,6 +6,7 @@
 import type { BlocoExport } from "./export-multi";
 import type { ParecerBloco } from "./parecer";
 import type { IndiceAutomatico } from "./indice";
+import { formatarValor, type TipoCampo } from "./formato";
 
 export function exportarWord(opts: {
   filename: string;
@@ -28,26 +29,8 @@ export function exportarWord(opts: {
   URL.revokeObjectURL(url);
 }
 
-function esc(v: unknown, fieldId?: string): string {
-  if (v == null) return "";
-  let s: string;
-  if (typeof v === "number") {
-    const k = fieldId?.toLowerCase() || "";
-    const isCurrency = k.includes("salario") || 
-                      k.includes("valor") || 
-                      k.includes("vencimento") || 
-                      k.includes("bruto") || 
-                      k.includes("liquido") ||
-                      k.includes("remunera");
-    
-    if (isCurrency) {
-      s = v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    } else {
-      s = v.toLocaleString("pt-BR");
-    }
-  } else {
-    s = String(v);
-  }
+function esc(v: unknown, fieldId?: string, tipo?: TipoCampo): string {
+  const s = formatarValor(v, tipo, fieldId);
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 

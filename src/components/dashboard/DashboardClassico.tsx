@@ -2,6 +2,9 @@ import React from "react";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useUnitScope } from "@/hooks/use-unit-scope";
 import { KpiCard, PageHeader } from "@/components/shared";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import { 
   Users, 
   UserCheck, 
@@ -39,6 +42,8 @@ export function DashboardClassico() {
   const a = useAnalytics({ unidadeId: isGlobal ? undefined : unidadePadraoId });
   
   const status = a.statusBreakdown.data ?? {};
+  // Regra institucional única (Total / Ativos / Disponível / Afastados).
+  const kpis = a.kpisSituacao.data;
   const vinc = a.vinculoBreakdown.data;
   const unidadesTop = a.distribuicaoUnidade.data ?? [];
   const isLoading = a.summary.isLoading;
@@ -66,35 +71,99 @@ export function DashboardClassico() {
       <PageHeader 
         title="Visão Geral do Sistema" 
         description="Resumo simplificado dos principais indicadores de gestão."
+        actions={
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={isLoading}
+            relatorio={() =>
+              relatorioPainelAbnt({
+                arquivo: "visao-geral-sistema",
+                titulo: "Visão Geral do Sistema",
+                subtitulo: "Resumo dos principais indicadores de gestão",
+                filtros: [{ label: "Escopo", valor: isGlobal ? "Rede completa" : "Unidade padrão" }],
+                kpis: [
+                  { label: "Total de Profissionais", valor: n(kpis.total) },
+                  { label: "Ativos", valor: n(kpis.ativos) },
+                  { label: "Disponível p/ Escala", valor: n(kpis.disponiveis) },
+                  { label: "Afastados", valor: n(kpis.afastados) },
+                  { label: "Unidades Ativas", valor: n(a.totalUnidades.data) },
+                ],
+                registros: kpis.total,
+                blocos: [
+                  {
+                    titulo: "Profissionais por unidade",
+                    head: ["Unidade", "Profissionais"],
+                    body: unidadesTop.map((u) => [u.sigla ? `${u.sigla} — ${u.nome}` : u.nome, u.total]),
+                    keepTogether: false,
+                  },
+                  {
+                    titulo: "Distribuição por vínculo",
+                    head: ["Vínculo", "Profissionais"],
+                    body: pieData.map((p) => [p.name, p.value]),
+                    keepTogether: true,
+                  },
+                  {
+                    titulo: "Situação funcional",
+                    head: ["Situação", "Profissionais"],
+                    body: Object.entries(status).map(([k, v]) => [k, Number(v ?? 0)]),
+                    keepTogether: true,
+                  },
+                ],
+                graficos: [
+                  {
+                    tipo: "barras",
+                    titulo: "Profissionais por unidade",
+                    dados: barData.map((b) => ({ label: b.nome, valor: b.total })),
+                    limite: 12,
+                  },
+                  {
+                    tipo: "rosca",
+                    titulo: "Distribuição por vínculo",
+                    dados: pieData.map((p) => ({ label: p.name, valor: p.value })),
+                  },
+                ],
+                notas: [
+                  "Ativos = em exercício + férias + licença prêmio; Disponível para escala = somente exercício pleno.",
+                ],
+              })
+            }
+          />
+        }
       />
+
 
       {/* Cards de Indicadores no Topo */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Total de Profissionais"
-          value={n(a.totalProfessionals.data)}
+          value={n(kpis.total || a.totalProfessionals.data)}
           loading={a.totalProfessionals.isLoading || isLoading}
           icon={<Users className="h-4 w-4" />}
         />
         <KpiCard
           label="Ativos"
-          value={n(status["ativo"])}
+          value={n(kpis.ativos)}
+          hint="Em exercício + férias + licença prêmio"
           loading={isLoading}
           tone="success"
           icon={<UserCheck className="h-4 w-4" />}
         />
         <KpiCard
+          label="Disponível p/ Escala"
+          value={n(kpis.disponiveis)}
+          hint="Em exercício pleno hoje"
+          loading={isLoading}
+          iconTone="info"
+          icon={<Calendar className="h-4 w-4" />}
+        />
+        <KpiCard
           label="Afastados"
-          value={n(Object.entries(status).reduce((acc, [k, v]) => k !== 'ativo' && k !== 'desligado' ? acc + (v as number) : acc, 0))}
+          value={n(kpis.afastados)}
+          hint="Afastamentos e licenças legais"
           loading={isLoading}
           tone="warning"
           icon={<UserMinus className="h-4 w-4" />}
-        />
-        <KpiCard
-          label="Férias"
-          value={n(status["ferias"])}
-          loading={isLoading}
-          icon={<Calendar className="h-4 w-4" />}
         />
         <KpiCard
           label="Unidades Ativas"

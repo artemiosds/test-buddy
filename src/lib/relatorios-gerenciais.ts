@@ -4,7 +4,9 @@
  * passam pelo cliente publishable (RLS aplica-se ao usuário logado).
  */
 import { supabase } from "@/integrations/supabase/client";
-import { valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
+import { ATIVOS_STATUS, valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
+import { AFASTADOS_STATUS, ehAtivo } from "@/lib/kpis-forca-trabalho";
+import { derivarSituacao } from "@/lib/situacao-funcional";
 
 export type ProfViewFilters = {
   q?: string | null;
@@ -88,18 +90,44 @@ function applyPreset<Q extends { is: Function; or: Function; eq: Function; in: F
       return query.is("data_nascimento", null) as Q;
     case "sem_carga_horaria":
       return query.or("carga_horaria_semanal.is.null,carga_horaria_semanal.eq.0") as Q;
+    // Presets de situação seguem a regra institucional única
+    // (src/lib/kpis-forca-trabalho.ts): a situação vale quando informada,
+    // com fallback para `status` quando estiver vazia.
     case "ativos":
-      return query.eq("status", "ativo") as Q;
+      return query.or(filtroSituacao(ATIVOS_STATUS)) as Q;
     case "afastados":
-      return query.eq("status", "afastado") as Q;
+      return query.or(filtroSituacao(AFASTADOS_STATUS)) as Q;
     case "ferias":
-      return query.eq("status", "ferias") as Q;
+      return query.or(filtroSituacao(["ferias"])) as Q;
     case "licenciados":
-      return query.eq("status", "licenciado") as Q;
+      return query.or(
+        filtroSituacao([
+          "licenca",
+          "licenca_premio",
+          "licenca_maternidade",
+          "licenca_saude",
+          "licenca_luto",
+          "licenca_sem_vencimento",
+          "licenca_estudo",
+        ]),
+      ) as Q;
     case "inativos":
-      return query.in("status", ["inativo", "desligado"]) as Q;
+      return query.or(filtroSituacao(["inativo", "desligado"])) as Q;
   }
   return query;
+}
+
+/**
+ * Monta a expressão PostgREST que respeita a precedência
+ * `situacao_funcional` → `status` (fallback quando vazia/nula).
+ */
+function filtroSituacao(valores: readonly string[]): string {
+  const lista = valores.join(",");
+  return [
+    `situacao_funcional.in.(${lista})`,
+    `and(situacao_funcional.is.null,status.in.(${lista}))`,
+    `and(situacao_funcional.eq.,status.in.(${lista}))`,
+  ].join(",");
 }
 
 export async function listProfissionais(filters: ProfViewFilters, page = 1, pageSize = 25) {
@@ -332,6 +360,7 @@ type ProfMini = {
   cargo_id: string | null;
   funcao_id: string | null;
   status: string | null;
+  situacao_funcional: string | null;
 };
 
 async function loadProfissionaisMini(): Promise<ProfMini[]> {
@@ -342,7 +371,7 @@ async function loadProfissionaisMini(): Promise<ProfMini[]> {
 
   let q = supabase
     .from("profissionais")
-    .select("id, unidade_id, setor_id, cargo_id, funcao_id, status")
+    .select("id, unidade_id, setor_id, cargo_id, funcao_id, status, situacao_funcional")
     .is("deleted_at", null);
 
   if (!isMaster && userCtx?.unidades?.length > 0) {
@@ -418,8 +447,11 @@ export async function listUnidadesGerencial(
   const { data, error } = await q;
   const profs = await loadProfissionaisMini();
   const totalMap = countBy(profs, (p) => p.unidade_id);
+  // Ativos pela regra institucional única (exercício + férias + licença prêmio).
   const ativoMap = countBy(
-    profs.filter((p) => p.status === "ativo"),
+    profs.filter((p) =>
+      ehAtivo(derivarSituacao({ id: p.id, status: p.status, situacao_funcional: p.situacao_funcional })),
+    ),
     (p) => p.unidade_id,
   );
 

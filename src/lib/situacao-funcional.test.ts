@@ -31,6 +31,24 @@ describe("situacao-funcional", () => {
     expect(alertas).toContain("sem_cargo");
   });
 
+  it("não cobra dados bancários de servidor efetivo", () => {
+    const efetivo = derivarAlertas({ id: "1", vinculo_natureza: "efetivo" });
+    expect(efetivo).not.toContain("sem_banco");
+    expect(efetivo).not.toContain("sem_agencia");
+    expect(efetivo).not.toContain("sem_conta");
+    const contratado = derivarAlertas({ id: "2", vinculo_natureza: "temporario" });
+    expect(contratado).toContain("sem_banco");
+    expect(contratado).toContain("sem_agencia");
+    expect(contratado).toContain("sem_conta");
+  });
+
+  it("unidade sem setor não gera pendência de lotação", () => {
+    expect(derivarAlertas({ id: "1", unidade_id: "u1", setor_id: null })).not.toContain(
+      "sem_lotacao",
+    );
+  });
+
+
   it("elegibilidade ao piso: enfermeiro sem pendências = elegível", () => {
     expect(derivarElegibilidadePiso(base)).toBe("elegivel");
   });

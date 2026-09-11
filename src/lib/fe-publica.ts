@@ -129,6 +129,50 @@ export function drawCertificadoRodape(doc: jsPDF, cert: Certificado) {
   }
 }
 
+/**
+ * Box discreto de fé pública desenhado UMA única vez, no fechamento do
+ * documento (última página), abaixo do bloco de assinatura.
+ * Devolve o Y final ocupado.
+ */
+export function drawCertificadoBox(
+  doc: jsPDF,
+  cert: Certificado,
+  x: number,
+  y: number,
+  largura: number,
+): number {
+  const alt = 22;
+  doc.setDrawColor(210);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(x, y, largura, alt, 1.5, 1.5, "S");
+
+  let tx = x + 3;
+  const ty = y + 4;
+  if (cert.qrDataUrl) {
+    try {
+      doc.addImage(cert.qrDataUrl, "PNG", x + 3, y + 3, 16, 16);
+      tx = x + 22;
+    } catch {
+      /* ignore */
+    }
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(90);
+  doc.text("Documento com fé pública", tx, ty);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text(`SHA-256: ${cert.hash}`, tx, ty + 4);
+  doc.text(
+    `Emitido por ${cert.rastreio.nome} em ${new Date(cert.rastreio.dataHora).toLocaleString("pt-BR")} · IP ${cert.rastreio.ip ?? "n/d"}`,
+    tx,
+    ty + 8,
+  );
+  doc.text(`Validação: ${cert.verificacaoUrl}`, tx, ty + 12);
+  doc.setTextColor(0);
+  return y + alt;
+}
+
 /** Bloco de fé pública para exportações XLSX/CSV (última linha da planilha). */
 export function linhasCertificadoPlanilha(cert: Certificado): string[][] {
   return [

@@ -12,6 +12,12 @@ import {
   type FrequenciaRow,
 } from "@/lib/analytics-aggregations";
 import { valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
+import {
+  kpisDaRpc,
+  kpisDoBreakdown,
+  type KpisForcaTrabalho,
+  type KpisSituacaoRpc,
+} from "@/lib/kpis-forca-trabalho";
 
 export type AnalyticsFilters = {
   competenciaId?: string | null;
@@ -210,6 +216,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
       if (error) throw error;
       return data as {
         status_breakdown: Record<string, number>;
+        kpis_situacao: KpisSituacaoRpc;
         top_unidades: Array<{ id: string; nome: string; sigla: string | null; total: number }>;
         top_cargos: Array<{ id: string; nome: string; total: number }>;
         vinculo_breakdown: Record<string, number>;
@@ -377,6 +384,20 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     isSuccess: summaryQuery.isSuccess,
     isError: summaryQuery.isError,
   };
+
+  /**
+   * Indicadores institucionais de força de trabalho (regra única de
+   * `src/lib/kpis-forca-trabalho.ts`). A RPC já devolve calculado; quando a
+   * competência ainda não resolveu, derivamos do breakdown.
+   */
+  const kpisSituacao: { data: KpisForcaTrabalho; isLoading: boolean } = {
+    data: summaryQuery.data?.kpis_situacao
+      ? kpisDaRpc(summaryQuery.data.kpis_situacao)
+      : kpisDoBreakdown(summaryQuery.data?.status_breakdown),
+    isLoading: summaryQuery.isLoading,
+  };
+
+
 
   const vinculoBreakdown = {
     data: summaryQuery.data?.vinculo_breakdown ?? {},
@@ -622,6 +643,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     alertas,
     rhKpis,
     statusBreakdown,
+    kpisSituacao,
     vinculoBreakdown,
     distribuicaoUnidade,
     distribuicaoCargo,

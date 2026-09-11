@@ -65,14 +65,13 @@ describe("Alertas de Força de Trabalho — buildWorkforceAlertItems", () => {
     setoresVazios: 6,
   };
 
-  it("gera 7 alertas cobrindo todos os gatilhos exigidos", () => {
+  it("gera 6 alertas cobrindo os gatilhos exigidos (setor é opcional)", () => {
     const items = buildWorkforceAlertItems({ alertas: alertasFull, pendenciasVencidas: 7 });
-    expect(items).toHaveLength(7);
+    expect(items).toHaveLength(6);
     const ids = items.map((i) => i.id);
     expect(ids).toEqual(
       expect.arrayContaining([
         "prof-sem-unidade",
-        "prof-sem-setor",
         "prof-sem-cargo",
         "prof-sem-funcao",
         "uni-sem-gestor",
@@ -80,7 +79,9 @@ describe("Alertas de Força de Trabalho — buildWorkforceAlertItems", () => {
         "pend-vencidas",
       ]),
     );
+    expect(ids).not.toContain("prof-sem-setor");
   });
+
 
   it("cada alerta aponta para uma rota de detalhes existente (nunca ação de escrita)", () => {
     const items = buildWorkforceAlertItems({ alertas: alertasFull, pendenciasVencidas: 7 });
@@ -95,7 +96,7 @@ describe("Alertas de Força de Trabalho — buildWorkforceAlertItems", () => {
     const items = buildWorkforceAlertItems({ alertas: alertasFull, pendenciasVencidas: 9 });
     const byId = Object.fromEntries(items.map((i) => [i.id, i.count]));
     expect(byId["prof-sem-unidade"]).toBe(1);
-    expect(byId["prof-sem-setor"]).toBe(2);
+    expect(byId["prof-sem-setor"]).toBeUndefined();
     expect(byId["prof-sem-cargo"]).toBe(3);
     expect(byId["prof-sem-funcao"]).toBe(4);
     expect(byId["uni-sem-gestor"]).toBe(5);

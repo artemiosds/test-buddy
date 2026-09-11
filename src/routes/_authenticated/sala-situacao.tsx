@@ -50,6 +50,9 @@ import {
 import { PermissionGate } from "@/components/permission-gate";
 import { SemaforoCard, TendenciaKpi, InsightsCard } from "@/components/intelligence";
 import { Button } from "@/components/ui/button";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -233,18 +236,24 @@ function SalaSituacaoPage() {
       .slice(0, 10);
   }, [pendCriticasQ.data]);
 
-  // KPIs de status — quando "Todos", derivamos do statusBreakdown.
+  // KPIs de situação — regra institucional única (kpis-forca-trabalho).
   const sb = a.statusBreakdown.data ?? {};
+  const kpisSit = a.kpisSituacao.data;
   const kpiAtivos = status
     ? status === "ativo"
       ? (a.totalProfessionals.data ?? 0)
       : 0
-    : (sb["ativo"] ?? 0);
+    : kpisSit.ativos;
+  const kpiDisponiveis = status
+    ? status === "ativo"
+      ? (a.totalProfessionals.data ?? 0)
+      : 0
+    : kpisSit.disponiveis;
   const kpiAfast = status
     ? status === "afastado"
       ? (a.totalProfessionals.data ?? 0)
       : 0
-    : (sb["afastado"] ?? 0);
+    : kpisSit.afastados;
   const kpiFerias = status
     ? status === "ferias"
       ? (a.totalProfessionals.data ?? 0)
@@ -410,10 +419,107 @@ function SalaSituacaoPage() {
             : "Painel executivo com visão consolidada da força de trabalho na sua unidade."
         }
         actions={
-          <Button variant="outline" size="sm" onClick={() => a.refetch()}>
-            <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
-          </Button>
+          <>
+            <BotaoRelatorioAbnt
+              label="Imprimir PDF (ABNT)"
+              variant="outline"
+              disabled={a.loading}
+              relatorio={() =>
+                relatorioPainelAbnt({
+                  arquivo: "sala-situacao",
+                  titulo: isMasterUser
+                    ? "Sala de Situação (Secretaria)"
+                    : "Sala de Situação (Unidade)",
+                  subtitulo: "Painel executivo da força de trabalho",
+                  orientacao: "landscape",
+                  filtros: [
+                    {
+                      label: "Unidade",
+                      valor: effectiveUnidadeId
+                        ? (unidadesQ.data ?? []).find((u) => u.id === effectiveUnidadeId)?.nome ??
+                          "—"
+                        : "Todas",
+                    },
+                    { label: "Status", valor: status || "Todos" },
+                  ],
+                  kpis: [
+                    { label: "Ativos", valor: kpiAtivos.toLocaleString("pt-BR") },
+                    { label: "Disponível p/ escala", valor: kpiDisponiveis.toLocaleString("pt-BR") },
+                    { label: "Afastados", valor: kpiAfast.toLocaleString("pt-BR") },
+                    { label: "Férias", valor: kpiFerias.toLocaleString("pt-BR") },
+                    { label: "Licenças", valor: kpiLic.toLocaleString("pt-BR") },
+                    {
+                      label: "Pendências vencidas",
+                      valor: (pendCriticasQ.data?.length ?? 0).toLocaleString("pt-BR"),
+                    },
+                  ],
+                  registros: rankingUnidades.length,
+                  blocos: [
+                    {
+                      titulo: "Ranking de unidades",
+                      head: ["Unidade", "Profissionais", "Folhas aprovadas"],
+                      body: rankingUnidades.map((r) => [
+                        r.unidade_nome,
+                        r.total_profissionais,
+                        `${r.aprovadas}/${r.total_folhas}`,
+                      ]),
+                      keepTogether: true,
+                    },
+                    {
+                      titulo: "Maiores volumes de horas extras",
+                      head: ["Unidade", "Horas extras", "Faltas"],
+                      body: rankingHe.map((r) => [
+                        r.unidade_nome,
+                        r.total_horas_extras,
+                        r.total_faltas,
+                      ]),
+                      keepTogether: true,
+                    },
+                    {
+                      titulo: "Top cargos",
+                      head: ["Cargo", "Profissionais"],
+                      body: rankingCargos.map((c: any) => [c.nome, c.total]),
+                      keepTogether: true,
+                    },
+                    {
+                      titulo: "Unidades críticas (pendências vencidas)",
+                      head: ["Unidade", "Pendências vencidas"],
+                      body: rankingCriticas.map((r) => [
+                        r.sigla ? `${r.sigla} — ${r.unidade_nome}` : r.unidade_nome,
+                        r.total,
+                      ]),
+                      keepTogether: true,
+                    },
+                    {
+                      titulo: "Alertas da força de trabalho",
+                      head: ["Alerta", "Quantidade"],
+                      body: alertaItems.map((i: any) => [i.label, i.value ?? 0]),
+                      keepTogether: true,
+                    },
+                  ],
+                  graficos: [
+                    {
+                      tipo: "barras",
+                      titulo: "Profissionais por unidade",
+                      dados: rankingUnidades.map((r) => ({
+                        label: r.unidade_sigla ?? r.unidade_nome,
+                        valor: r.total_profissionais,
+                      })),
+                      limite: 10,
+                    },
+                  ],
+                  notas: [
+                    "Ativos = em exercício + férias + licença prêmio; Disponível para escala = somente exercício pleno.",
+                  ],
+                })
+              }
+            />
+            <Button variant="outline" size="sm" onClick={() => a.refetch()}>
+              <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
+            </Button>
+          </>
         }
+
       />
 
       <SemaforoCard
@@ -499,9 +605,18 @@ function SalaSituacaoPage() {
         <KpiCard
           label="Ativos"
           value={kpiAtivos.toLocaleString("pt-BR")}
+          hint="Em exercício + férias + licença prêmio"
           icon={<UserCheck className="h-4 w-4" />}
           loading={a.statusBreakdown.isLoading}
         />
+        <KpiCard
+          label="Disponível p/ Escala"
+          value={kpiDisponiveis.toLocaleString("pt-BR")}
+          hint="Em exercício pleno hoje"
+          icon={<UserCheck className="h-4 w-4" />}
+          loading={a.statusBreakdown.isLoading}
+        />
+
         <KpiCard
           label="Setores"
           value={(a.totalSetores.data ?? 0).toLocaleString("pt-BR")}

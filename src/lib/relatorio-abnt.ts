@@ -9,7 +9,12 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { loadMunicipioInfo } from "@/lib/pdf-institucional";
-import { gerarCertificado, drawCertificadoRodape, registrarDownload } from "@/lib/fe-publica";
+import {
+  gerarCertificado,
+  drawCertificadoRodape,
+  drawCertificadoBox,
+  registrarDownload,
+} from "@/lib/fe-publica";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
 
 /* ---------------------------------------------------------------- tipos */
@@ -36,6 +41,24 @@ export type AbntGrafico = {
   sufixo?: string;
 };
 
+/** Tabela independente, com título próprio e linha de total opcional. */
+export type AbntBloco = {
+  titulo: string;
+  /** Texto curto exibido logo abaixo do título. */
+  nota?: string;
+  head: string[];
+  body: Array<Array<string | number>>;
+  foot?: Array<string | number>;
+  /** Alinhamento por coluna (default: 1ª à esquerda, demais à direita). */
+  align?: Array<"left" | "center" | "right">;
+  /** Mantém título + nota + tabela na mesma página (pula antes, se preciso). */
+  keepTogether?: boolean;
+  /** Textos de célula destacados em vermelho (alerta). */
+  alertas?: string[];
+  /** Largura fixa por coluna, em mm (posições sem valor ficam automáticas). */
+  larguras?: Array<number | undefined>;
+};
+
 export type AbntRelatorio<T> = {
   arquivo: string;
   titulo: string;
@@ -50,7 +73,30 @@ export type AbntRelatorio<T> = {
   notas?: string[];
   /** Linhas de assinatura ao final do relatório. */
   assinaturas?: string[];
+  /**
+   * Fecha o documento uma única vez, na última página: bloco de assinatura,
+   * carimbo e box de fé pública. Nas páginas intermediárias fica apenas o
+   * rodapé simples de numeração e data/hora.
+   */
+  fechamentoUnico?: boolean;
+  /** Assinatura nominal do fechamento (nome + cargo, centralizados). */
+  assinaturaFinal?: { nome: string; cargo: string };
+  /** Carimbo institucional na coluna esquerda do fechamento (texto de apoio). */
+  carimboFinal?: { nome: string; cargo: string; decreto?: string };
+  /** Parecer técnico em caixa destacada, antes do fechamento. */
+  parecer?: { titulo: string; paragrafos: string[]; rodape?: string };
+  /** Resumo executivo em parágrafos curtos, após os indicadores. */
+  resumo?: string[];
+  /** Tabelas independentes (uma por seção), renderizadas em sequência. */
+  blocos?: AbntBloco[];
+  /** Renderiza os gráficos depois dos blocos de tabela. */
+  graficosApos?: boolean;
+
+  /** Margens explícitas do quadro analítico, em mm. */
+  margemTabela?: { top: number; bottom: number; left: number; right: number };
   emitidoPor?: { nome: string; identificador: string };
+  /** Quantidade de registros informada na ficha técnica (quando não há `linhas`). */
+  registros?: number;
 };
 
 /* --------------------------------------------------------------- paleta */
@@ -390,21 +436,143 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
 
   const info = await loadMunicipioInfo();
   cabecalho(ctx, info, opts.titulo, opts.subtitulo);
-  fichaTecnica(ctx, opts.filtros ?? [], opts.linhas.length);
+  fichaTecnica(ctx, opts.filtros ?? [], opts.registros ?? opts.linhas.length);
 
   if (opts.kpis?.length) {
     tituloSecao(ctx, "1 Indicadores consolidados");
     kpis(ctx, opts.kpis);
   }
 
+  /* -------------------------------------------------- resumo executivo */
+  if (opts.resumo?.length) {
+    tituloSecao(ctx, "2 Resumo executivo");
+    doc.setFont("times", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(TINTA);
+    for (const par of opts.resumo) {
+      const linhas = doc.splitTextToSize(par, ctx.larg - M.esq - M.dir);
+      garantir(ctx, linhas.length * 4.4 + 3);
+      doc.text(linhas, M.esq, ctx.y);
+      ctx.y += linhas.length * 4.4 + 3;
+    }
+    doc.setTextColor(0);
+    ctx.y += 3;
+  }
+
+  const margemTab = opts.margemTabela ?? {
+    left: M.esq,
+    right: M.dir,
+    top: M.sup + 8,
+    bottom: M.inf + 4,
+  };
+
   const graficos = (opts.graficos ?? []).filter((g) => g.dados.some((d) => d.valor > 0));
-  if (graficos.length) {
+  const desenharGraficos = () => {
     for (const g of graficos) {
       if (g.tipo === "rosca") grafRosca(ctx, g);
       else grafBarras(ctx, g);
       ctx.y += 4;
     }
+  };
+
+  if (graficos.length && !opts.graficosApos) desenharGraficos();
+
+  /* ------------------------------------------- blocos (tabelas próprias) */
+  for (const b of opts.blocos ?? []) {
+    if (!b.body.length) continue;
+
+    // Bloco indivisível: se não couber inteiro na página atual, começa na próxima.
+    if (b.keepTogether) {
+      doc.setFont("times", "italic");
+      doc.setFontSize(8);
+      const notaLinhas = b.nota
+        ? doc.splitTextToSize(b.nota, ctx.larg - M.esq - M.dir).length
+        : 0;
+      const alturaBloco =
+        14 + // título + régua
+        (notaLinhas ? notaLinhas * 3.8 + 2 : 0) +
+        6 + // cabeçalho da tabela
+        b.body.length * 5.8 +
+        (b.foot ? 6 : 0) +
+        9; // respiro depois da tabela
+      const util = ctx.alt - M.sup - M.inf;
+      if (alturaBloco <= util && ctx.y + alturaBloco > ctx.alt - M.inf) novaPagina(ctx);
+    }
+
+    tituloSecao(ctx, b.titulo);
+    if (b.nota) {
+      doc.setFont("times", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(TINTA_SUAVE);
+      const nl = doc.splitTextToSize(b.nota, ctx.larg - M.esq - M.dir);
+      doc.text(nl, M.esq, ctx.y);
+      ctx.y += nl.length * 3.8 + 2;
+      doc.setTextColor(0);
+    }
+    autoTable(doc, {
+      startY: ctx.y,
+      head: [b.head],
+      body: b.body.map((r) => r.map((v) => (typeof v === "number" ? nf(v) : String(v)))),
+      ...(b.foot ? { foot: [b.foot.map((v) => (typeof v === "number" ? nf(v) : String(v)))] } : {}),
+      showHead: "everyPage",
+      styles: {
+        font: "times",
+        fontSize: 8,
+        cellPadding: { top: 1.4, bottom: 1.4, left: 1.8, right: 1.8 },
+        overflow: "linebreak",
+        lineColor: [220, 216, 210],
+        lineWidth: 0.1,
+        textColor: TINTA,
+        valign: "middle",
+      },
+      headStyles: {
+        font: "times",
+        fontStyle: "bold",
+        fontSize: 8,
+        fillColor: PALETA[0],
+        textColor: 255,
+        halign: "left",
+      },
+      footStyles: {
+        font: "times",
+        fontStyle: "bold",
+        fontSize: 8,
+        fillColor: [238, 234, 228],
+        textColor: TINTA,
+      },
+      alternateRowStyles: { fillColor: [250, 248, 245] },
+      columnStyles: Object.fromEntries(
+        b.head.map((_h, i) => [
+          i,
+          {
+            halign: b.align?.[i] ?? (i === 0 ? "left" : "right"),
+            ...(b.larguras?.[i] ? { cellWidth: b.larguras[i] } : {}),
+          },
+        ]),
+      ),
+      margin: margemTab,
+      tableWidth: "auto",
+      ...(b.alertas?.length
+        ? {
+            didParseCell: (dados: {
+              section: string;
+              cell: { text: string[]; styles: { textColor: unknown; fontStyle: string } };
+            }) => {
+              if (dados.section !== "body") return;
+              const txt = dados.cell.text.join(" ").trim();
+              if (b.alertas?.some((a) => txt === a)) {
+                dados.cell.styles.textColor = [176, 42, 42];
+                dados.cell.styles.fontStyle = "bold";
+              }
+            },
+          }
+        : {}),
+    });
+    // @ts-expect-error lastAutoTable é injetado pelo plugin
+    ctx.y = (doc.lastAutoTable?.finalY ?? ctx.y) + 9;
   }
+
+  if (graficos.length && opts.graficosApos) desenharGraficos();
 
   // Tabela analítica
   if (opts.linhas.length) {
@@ -450,7 +618,12 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
           { halign: c.align ?? "left", ...(c.width ? { cellWidth: c.width } : {}) },
         ]),
       ),
-      margin: { left: M.esq, right: M.dir, top: M.sup + 8, bottom: M.inf + 4 },
+      margin: opts.margemTabela ?? {
+        left: M.esq,
+        right: M.dir,
+        top: M.sup + 8,
+        bottom: M.inf + 4,
+      },
       tableWidth: "auto",
     });
     // @ts-expect-error lastAutoTable é injetado pelo plugin
@@ -472,7 +645,103 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
     ctx.y += 4;
   }
 
-  if (opts.assinaturas?.length) {
+  /* ------------------------------------------------ parecer técnico gerencial */
+  if (opts.parecer?.paragrafos.length) {
+    const larguraUtil = ctx.larg - M.esq - M.dir;
+    const pad = 4;
+    doc.setFont("times", "normal");
+    doc.setFontSize(9);
+    const blocos = opts.parecer.paragrafos.map((p) =>
+      doc.splitTextToSize(p, larguraUtil - pad * 2),
+    );
+    const rodapeLinhas = opts.parecer.rodape
+      ? doc.splitTextToSize(opts.parecer.rodape, larguraUtil - pad * 2)
+      : [];
+    const alturaTexto = blocos.reduce((a, b) => a + b.length * 4.2 + 2.5, 0);
+    const alturaBox = 9 + alturaTexto + (rodapeLinhas.length ? rodapeLinhas.length * 3.6 + 2 : 0) + pad;
+
+    garantir(ctx, Math.min(alturaBox + 6, ctx.alt - M.sup - M.inf));
+    const topo = ctx.y;
+    doc.setFillColor(242, 246, 250);
+    doc.setDrawColor(198, 212, 226);
+    doc.setLineWidth(0.2);
+    doc.rect(M.esq, topo, larguraUtil, alturaBox, "FD");
+
+    doc.setFont("times", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(TINTA);
+    doc.text(opts.parecer.titulo, M.esq + pad, topo + 6);
+
+    let y = topo + 11.5;
+    doc.setFont("times", "normal");
+    doc.setFontSize(9);
+    for (const b of blocos) {
+      doc.text(b, M.esq + pad, y);
+      y += b.length * 4.2 + 2.5;
+    }
+    if (rodapeLinhas.length) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(TINTA_SUAVE);
+      doc.text(rodapeLinhas, M.esq + pad, y);
+      y += rodapeLinhas.length * 3.6;
+    }
+    doc.setTextColor(0);
+    ctx.y = topo + alturaBox + 8;
+  }
+
+  const cert = await gerarCertificado({
+    conteudo: {
+      titulo: opts.titulo,
+      filtros: opts.filtros,
+      registros: opts.registros ?? opts.linhas.length,
+    },
+    usuario: opts.emitidoPor ?? { nome: "Gestão Saúde", identificador: "—" },
+  });
+
+  /** Posição sugerida do carimbo institucional (coluna esquerda do fechamento). */
+  let carimbo: { x: number; y: number } | null = null;
+
+  if (opts.fechamentoUnico) {
+    // ------------------------------------------------ fechamento único (última página)
+    doc.setPage(doc.getNumberOfPages());
+    const larguraUtil = ctx.larg - M.esq - M.dir;
+
+    // Espaço de segurança: 2 colunas de assinatura + respiro + fé pública.
+    if (ctx.alt - ctx.y < 70) {
+      doc.addPage();
+      ctx.y = M.sup + 12;
+    }
+
+    const colLarg = (larguraUtil - 14) / 2;
+    const baseY = ctx.y + 12;
+
+    // ---- coluna esquerda: SOMENTE o carimbo institucional (imagem do pipeline).
+    // Nenhum texto antes ou depois: o carimbo já traz nome, cargo e decreto.
+    carimbo = { x: M.esq + Math.max(0, (colLarg - 60) / 2), y: baseY - 26 };
+
+    // ---- coluna direita: traço de assinatura do gabinete (cargo em destaque)
+    const assinatura = opts.assinaturaFinal ?? null;
+    const dirX = M.esq + colLarg + 14;
+    if (assinatura) {
+      doc.setDrawColor(140);
+      doc.setLineWidth(0.3);
+      doc.line(dirX, baseY, dirX + colLarg, baseY);
+      doc.setFont("times", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(TINTA);
+      doc.text(assinatura.nome, dirX + colLarg / 2, baseY + 4.5, { align: "center" });
+      doc.setFont("times", "normal");
+      doc.setFontSize(8);
+      doc.text(assinatura.cargo, dirX + colLarg / 2, baseY + 9, { align: "center" });
+      doc.setTextColor(0);
+    }
+
+    ctx.y = baseY + 12;
+
+    // Box de fé pública com 15 mm de respiro abaixo do fechamento.
+    drawCertificadoBox(doc, cert, M.esq, ctx.y + 15, larguraUtil);
+
+  } else if (opts.assinaturas?.length) {
     const larguraUtil = ctx.larg - M.esq - M.dir;
     const cols = Math.min(2, opts.assinaturas.length);
     const bloco = larguraUtil / cols;
@@ -495,7 +764,7 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
     doc.setTextColor(0);
   }
 
-  // Paginação ABNT: canto superior direito.
+  // Paginação ABNT: canto superior direito + data/hora de emissão no pé.
   const totalPaginas = doc.getNumberOfPages();
   for (let p = 1; p <= totalPaginas; p++) {
     doc.setPage(p);
@@ -503,6 +772,10 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
     doc.setFontSize(8);
     doc.setTextColor(TINTA_SUAVE);
     doc.text(`Página ${p} de ${totalPaginas}`, ctx.larg - M.dir, 12, { align: "right" });
+    if (opts.fechamentoUnico) {
+      doc.setFontSize(8);
+      doc.text(new Date().toLocaleString("pt-BR"), M.esq, ctx.alt - 8);
+    }
     if (p > 1) {
       doc.setFontSize(7.5);
       doc.text(opts.titulo, M.esq, 12);
@@ -513,21 +786,29 @@ export async function gerarRelatorioAbnt<T>(opts: AbntRelatorio<T>): Promise<voi
     doc.setTextColor(0);
   }
 
-  // Fé pública: hash + QR + rastreio no rodapé de todas as páginas.
-  const cert = await gerarCertificado({
-    conteudo: { titulo: opts.titulo, filtros: opts.filtros, registros: opts.linhas.length },
-    usuario: opts.emitidoPor ?? { nome: "Gestão Saúde", identificador: "—" },
-  });
-  drawCertificadoRodape(doc, cert);
+  // Fé pública repetida em todas as páginas apenas no modo clássico.
+  if (!opts.fechamentoUnico) drawCertificadoRodape(doc, cert);
 
   const nome = opts.arquivo.endsWith(".pdf") ? opts.arquivo : `${opts.arquivo}.pdf`;
-  await finalizarPdf(doc, { filename: nome, tipo: "relatorio" });
+  await finalizarPdf(doc, {
+    filename: nome,
+    tipo: "relatorio",
+    ...(opts.fechamentoUnico
+      ? {
+          repetirEmTodasPaginas: false,
+          pagina: doc.getNumberOfPages(),
+          somenteImagem: true,
+          ...(carimbo ? { xPadraoMm: carimbo.x, yPadraoMm: carimbo.y } : {}),
+        }
+      : {}),
+  });
+
 
   registrarDownload({
     relatorio: `gerencial.${opts.arquivo}`,
     formato: "pdf",
     filtros: Object.fromEntries((opts.filtros ?? []).map((f) => [f.label, f.valor])),
     hash: cert.hash,
-    registros: opts.linhas.length,
+    registros: opts.registros ?? opts.linhas.length,
   });
 }

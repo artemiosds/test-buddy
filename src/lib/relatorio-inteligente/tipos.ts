@@ -12,8 +12,11 @@ export type FieldDef = {
   label: string;
   /** Marcado por padrão ao selecionar o bloco. */
   default?: boolean;
-  /** "number" imprime alinhado à direita e permite estatísticas. */
-  tipo?: "text" | "number";
+  /**
+   * "number" imprime alinhado à direita e permite estatísticas.
+   * "moeda" formata em R$; "percentual" acrescenta "%" com uma decimal.
+   */
+  tipo?: "text" | "number" | "moeda" | "percentual";
   /** Sugerido para agrupamento. */
   groupable?: boolean;
 };

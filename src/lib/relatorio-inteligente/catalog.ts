@@ -211,7 +211,7 @@ export const CATALOG: BlockDef[] = [
       const p = a.pendencias;
       return [
         pendRow("Sem Unidade", p.semUnidade, t),
-        pendRow("Sem Setor", p.semSetor, t),
+        // "Sem Setor" removido: setor é agrupamento opcional, não pendência.
         pendRow("Sem Cargo", p.semCargo, t),
         pendRow("Sem Função", p.semFuncao, t),
         pendRow("Sem Matrícula", p.semMatricula, t),

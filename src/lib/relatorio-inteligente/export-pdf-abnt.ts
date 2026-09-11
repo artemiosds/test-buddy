@@ -9,6 +9,8 @@ import type { BlocoExport } from "./export-multi";
 import type { ParecerBloco } from "./parecer";
 import type { IndiceAutomatico } from "./indice";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
+import { formatarValor } from "./formato";
+import { desenharFechamentoOficial, type FechamentoAssinatura } from "./fechamento";
 
 export async function exportarPdfAbnt(opts: {
   filename: string;
@@ -18,6 +20,7 @@ export async function exportarPdfAbnt(opts: {
   indice?: IndiceAutomatico;
   pareceres?: ParecerBloco[];
   blocos: BlocoExport[];
+  fechamento?: FechamentoAssinatura[];
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
@@ -155,21 +158,7 @@ export async function exportarPdfAbnt(opts: {
     autoTable(doc, {
       startY: y,
       head: [b.colunas.map((c) => c.header)],
-      body: b.linhas.map((r) =>
-        b.colunas.map((c) => {
-          const v = r[c.key];
-          if (v == null || v === "") return "";
-          if (typeof v === "number") {
-             // Formatação BRL para campos salariais no PDF
-             const k = c.key.toLowerCase();
-             if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto") || k.includes("remunera")) {
-               return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-             }
-             return v.toLocaleString("pt-BR");
-          }
-          return String(v);
-        }),
-      ),
+      body: b.linhas.map((r) => b.colunas.map((c) => formatarValor(r[c.key], c.tipo, c.key))),
       styles: { font: "times", fontSize: 10, cellPadding: 1.5 },
       headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [250, 246, 240] },
@@ -178,7 +167,18 @@ export async function exportarPdfAbnt(opts: {
     });
   });
 
-  await finalizarPdf(doc, { filename: opts.filename, tipo: "relatorio" });
+  await desenharFechamentoOficial(doc, {
+    titulo: opts.titulo,
+    registros: opts.blocos.reduce((s, b) => s + b.linhas.length, 0),
+    margem: 30,
+    assinaturas: opts.fechamento,
+  });
+
+  await finalizarPdf(doc, {
+    filename: opts.filename,
+    tipo: "relatorio",
+    repetirEmTodasPaginas: false,
+  });
 }
 
 function titulo(doc: jsPDF, texto: string, y: number) {

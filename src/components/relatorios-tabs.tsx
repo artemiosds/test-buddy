@@ -23,6 +23,7 @@ const GERENCIAIS = [
   { to: "/relatorios-gerenciais/salarios", label: "Dados Salariais" },
   { to: "/relatorios-gerenciais/auditoria", label: "Auditoria" },
   { to: "/relatorio-inteligente", label: "⭐ Relatório Geral Inteligente" },
+  { to: "/relatorios-gerenciais/geral-cargos", label: "Geral Cargos" },
 ] as const;
 
 function Row({

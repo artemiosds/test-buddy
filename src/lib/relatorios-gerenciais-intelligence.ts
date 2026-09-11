@@ -10,6 +10,7 @@
  * React Query com uma única chave — reaproveitando o cache entre páginas.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { categoriaDoCargo } from "@/lib/cargo-categorias";
 
 export type Semaforo = "verde" | "amarelo" | "vermelho";
 
@@ -344,7 +345,10 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
     p.unidade_id ? (mU[p.unidade_id] ?? "—") : "Sem unidade",
   );
   const porSetor = group(profs, (p) => (p.setor_id ? (mS[p.setor_id] ?? "—") : "Sem setor"));
-  const porCargo = group(profs, (p) => (p.cargo_id ? (mC[p.cargo_id] ?? "—") : "Sem cargo"));
+  // Cargos consolidados pelo De-Para de categorias (mesma regra da tela Geral Cargos).
+  const porCargo = group(profs, (p) =>
+    p.cargo_id ? categoriaDoCargo(mC[p.cargo_id] ?? "—").nome : "Sem cargo",
+  );
   const porFuncao = group(profs, (p) => (p.funcao_id ? (mF[p.funcao_id] ?? "—") : "Sem função"));
   const porVinculo = group(profs, (p) =>
     p.vinculo_id ? (mV[p.vinculo_id] ?? "—") : "Sem vínculo",
@@ -466,13 +470,6 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
       percentual: pct(total - pendencias.semUnidade, total),
     },
     {
-      chave: "setor",
-      rotulo: "Lotação (setor)",
-      total,
-      ok: total - pendencias.semSetor,
-      percentual: pct(total - pendencias.semSetor, total),
-    },
-    {
       chave: "cargo",
       rotulo: "Cargo",
       total,
@@ -480,8 +477,10 @@ export async function getGerencialAggregate(): Promise<GerencialAggregate> {
       percentual: pct(total - pendencias.semCargo, total),
     },
   ];
+  // Setor é agrupamento opcional — fora da nota de integridade/lotação.
   const integridadeCadastral = metricas.slice(0, 6).reduce((a, m) => a + m.percentual, 0) / 6;
-  const lotacao = metricas.slice(6).reduce((a, m) => a + m.percentual, 0) / 3;
+  const lotacao = metricas.slice(6).reduce((a, m) => a + m.percentual, 0) / 2;
+
   const coberturaResponsaveis =
     unidades.length + setores.length === 0
       ? 100

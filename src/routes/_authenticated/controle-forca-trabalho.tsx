@@ -1,5 +1,6 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
-import { grupoSituacao } from "@/lib/situacao-funcional";
+import { derivarSituacao, grupoSituacao } from "@/lib/situacao-funcional";
+import { ehAfastado, ehAtivo, ehDisponivel } from "@/lib/kpis-forca-trabalho";
 import { createFileRoute, useNavigate, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,9 @@ import {
 } from "@/lib/workforce-filters";
 import { PageHeader, KpiCard, StatusBadge, EmptyState, FilterBar } from "@/components/shared";
 import { PermissionGate } from "@/components/permission-gate";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -65,6 +69,7 @@ type UnidadeCardData = {
   sigla: string | null;
   total: number;
   ativos: number;
+  disponiveis: number;
   afastados: number;
   ferias: number;
   licencas: number;
@@ -194,17 +199,24 @@ function ControleForcaTrabalhoPage() {
       const uFreqs = freqs.filter((f) => f.competencia_unidades?.unidade_id === u.id);
 
       let ativos = 0,
+        disponiveis = 0,
         afastados = 0,
         ferias = 0,
         licencas = 0;
       let last: string | null = u.updated_at ?? null;
       for (const p of uProfs) {
-        // Situações detalhadas do cadastro (afastamento_inss, licenca_saude,
-        // falta_pad, vacancia…) consolidadas nos grupos do painel.
-        const g = grupoSituacao(p.situacao_funcional ?? p.status);
-        if (g === "ativo") ativos += 1;
-        else if (g === "afastado") afastados += 1;
-        else if (g === "ferias") ferias += 1;
+        // Regra institucional única: Ativos = exercício + férias + licença
+        // prêmio; Disponível para escala = apenas exercício pleno.
+        const sit = derivarSituacao({
+          id: "",
+          status: p.status,
+          situacao_funcional: p.situacao_funcional,
+        });
+        if (ehAtivo(sit)) ativos += 1;
+        if (ehDisponivel(sit)) disponiveis += 1;
+        if (ehAfastado(sit)) afastados += 1;
+        const g = grupoSituacao(sit);
+        if (g === "ferias") ferias += 1;
         else if (g === "licenca") licencas += 1;
         last = maxDate(last, p.updated_at);
       }
@@ -217,6 +229,7 @@ function ControleForcaTrabalhoPage() {
         sigla: u.sigla,
         total: uProfs.length,
         ativos,
+        disponiveis,
         afastados,
         ferias,
         licencas,
@@ -236,6 +249,7 @@ function ControleForcaTrabalhoPage() {
 
   const totalProf = cards.reduce((s, r) => s + r.total, 0);
   const totalAtivos = cards.reduce((s, r) => s + r.ativos, 0);
+  const totalDisponiveis = cards.reduce((s, r) => s + r.disponiveis, 0);
   const totalAfast = cards.reduce((s, r) => s + r.afastados, 0);
   const totalFerias = cards.reduce((s, r) => s + r.ferias, 0);
   const totalLic = cards.reduce((s, r) => s + r.licencas, 0);
@@ -268,11 +282,112 @@ function ControleForcaTrabalhoPage() {
         title="Centro de Controle da Força de Trabalho"
         description="Visão operacional por Unidade — período selecionável."
         actions={
-          <Button variant="outline" size="sm" onClick={refetchAll}>
-            <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
-          </Button>
+          <>
+            <BotaoRelatorioAbnt
+              label="Imprimir PDF (ABNT)"
+              variant="outline"
+              disabled={loading && cards.length === 0}
+              relatorio={() =>
+                relatorioPainelAbnt({
+                  arquivo: "controle-forca-trabalho",
+                  titulo: "Centro de Controle da Força de Trabalho",
+                  subtitulo: "Visão operacional por unidade",
+                  orientacao: "landscape",
+                  filtros: [
+                    {
+                      label: "Período",
+                      valor:
+                        competenciaSel === "__ativa__" && competenciaAtiva
+                          ? competenciaLabel(competenciaAtiva.mes, competenciaAtiva.ano)
+                          : (competenciasQ.data ?? [])
+                              .filter((c) => c.id === competenciaSel)
+                              .map((c) => competenciaLabel(c.mes, c.ano))[0] ?? "Competência ativa",
+                    },
+                    { label: "Unidades", valor: String(cards.length) },
+                  ],
+                  kpis: [
+                    { label: "Profissionais", valor: totalProf.toLocaleString("pt-BR") },
+                    { label: "Ativos", valor: totalAtivos.toLocaleString("pt-BR") },
+                    {
+                      label: "Disponível p/ Escala",
+                      valor: totalDisponiveis.toLocaleString("pt-BR"),
+                    },
+                    { label: "Afastados", valor: totalAfast.toLocaleString("pt-BR") },
+                    { label: "Férias", valor: totalFerias.toLocaleString("pt-BR") },
+                    { label: "Licenças", valor: totalLic.toLocaleString("pt-BR") },
+                  ],
+                  registros: cards.length,
+                  blocos: [
+                    {
+                      titulo: "Quadro por unidade",
+                      head: [
+                        "Unidade",
+                        "Total",
+                        "Ativos",
+                        "Disponível",
+                        "Afastados",
+                        "Férias",
+                        "Licenças",
+                        "Pendências",
+                      ],
+                      body: cards.map((c) => [
+                        c.sigla ? `${c.sigla} — ${c.nome}` : c.nome,
+                        c.total,
+                        c.ativos,
+                        c.disponiveis,
+                        c.afastados,
+                        c.ferias,
+                        c.licencas,
+                        c.pendencias,
+                      ]),
+                      foot: [
+                        "Total",
+                        totalProf,
+                        totalAtivos,
+                        totalDisponiveis,
+                        totalAfast,
+                        totalFerias,
+                        totalLic,
+                        cards.reduce((s, c) => s + c.pendencias, 0),
+                      ],
+                      keepTogether: false,
+                    },
+                    {
+                      titulo: "Produtividade e ocorrências por unidade",
+                      head: ["Unidade", "Horas extras", "Faltas"],
+                      body: cards.map((c) => [
+                        c.sigla ? `${c.sigla} — ${c.nome}` : c.nome,
+                        c.horas_extras,
+                        c.faltas,
+                      ]),
+                      keepTogether: false,
+                    },
+                  ],
+                  graficos: [
+                    {
+                      tipo: "barras",
+                      titulo: "Disponível para escala por unidade",
+                      dados: cards.map((c) => ({
+                        label: c.sigla ?? c.nome,
+                        valor: c.disponiveis,
+                      })),
+                      limite: 12,
+                    },
+                  ],
+                  notas: [
+                    "Ativos = em exercício + férias + licença prêmio.",
+                    "Disponível para escala = apenas profissionais em exercício pleno.",
+                  ],
+                })
+              }
+            />
+            <Button variant="outline" size="sm" onClick={refetchAll}>
+              <RefreshCw className="mr-1 h-4 w-4" /> Atualizar
+            </Button>
+          </>
         }
       />
+
 
       <FilterBar>
         <FilterBar.Field label="Período">
@@ -312,9 +427,18 @@ function ControleForcaTrabalhoPage() {
         <KpiCard
           label="Ativos"
           value={totalAtivos.toLocaleString("pt-BR")}
+          hint="Em exercício + férias + licença prêmio"
           icon={<UserCheck className="h-4 w-4" />}
           loading={loading && cards.length === 0}
         />
+        <KpiCard
+          label="Disponível p/ Escala"
+          value={totalDisponiveis.toLocaleString("pt-BR")}
+          hint="Em exercício pleno hoje"
+          icon={<UserCheck className="h-4 w-4" />}
+          loading={loading && cards.length === 0}
+        />
+
         <KpiCard
           label="Afastados"
           value={totalAfast.toLocaleString("pt-BR")}

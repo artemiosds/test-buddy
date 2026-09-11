@@ -26,6 +26,9 @@ import {
   type DataTableColumn,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import {
   Select,
   SelectContent,
@@ -76,12 +79,37 @@ function GestaoRhContent() {
     return formatCompetencia(c.mes, c.ano, "num");
   }, [filters.competenciaId, a.competenciaId, competencias]);
 
+  // Números de força de trabalho pela regra institucional única
+  // (src/lib/kpis-forca-trabalho.ts) — os mesmos de Profissionais.
+  const kpisSit = a.kpisSituacao.data;
+
   const kpis = [
     {
       label: "Profissionais",
-      value: a.totalProfessionals.data ?? 0,
+      value: kpisSit.total || (a.totalProfessionals.data ?? 0),
       loading: a.totalProfessionals.isLoading,
       icon: <Users className="h-4 w-4" />,
+    },
+    {
+      label: "Ativos",
+      value: kpisSit.ativos,
+      loading: a.kpisSituacao.isLoading,
+      hint: "Em exercício + férias + licença prêmio",
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      label: "Disponível p/ escala",
+      value: kpisSit.disponiveis,
+      loading: a.kpisSituacao.isLoading,
+      hint: "Em exercício pleno hoje",
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      label: "Afastados",
+      value: kpisSit.afastados,
+      loading: a.kpisSituacao.isLoading,
+      hint: "Afastamentos e licenças legais",
+      icon: <AlertCircle className="h-4 w-4" />,
     },
     {
       label: "Unidades ativas",
@@ -196,6 +224,67 @@ function GestaoRhContent() {
         description={`Indicadores da competência ${competenciaLabel}. Filtre por unidade para ver o recorte específico.`}
         actions={
           <>
+            <BotaoRelatorioAbnt
+              label="Imprimir PDF (ABNT)"
+              variant="outline"
+              disabled={a.loading}
+              relatorio={() =>
+                relatorioPainelAbnt({
+                  arquivo: "dashboard-executivo-rh",
+                  titulo: "Dashboard Executivo — RH",
+                  subtitulo: `Indicadores da competência ${competenciaLabel}`,
+                  orientacao: "landscape",
+                  filtros: [
+                    { label: "Competência", valor: competenciaLabel },
+                    {
+                      label: "Unidade",
+                      valor: filters.unidadeId
+                        ? unidades?.find((u) => u.id === filters.unidadeId)?.nome ?? "—"
+                        : "Todas",
+                    },
+                  ],
+                  kpis: kpis.map((k) => ({ label: k.label, valor: String(k.value) })),
+                  registros: rankingRows.length,
+                  blocos: [
+                    {
+                      titulo: "Ranking de unidades",
+                      head: [
+                        "#",
+                        "Unidade",
+                        "Profissionais",
+                        "Horas extras",
+                        "Faltas",
+                        "Folhas aprovadas",
+                      ],
+                      body: rankingRows.map((r) => [
+                        r._pos,
+                        r.unidade_sigla ? `${r.unidade_sigla} — ${r.unidade_nome}` : r.unidade_nome,
+                        r.total_profissionais,
+                        r.total_horas_extras,
+                        r.total_faltas,
+                        `${r.aprovadas}/${r.total_folhas}`,
+                      ]),
+                      align: ["right", "left", "right", "right", "right", "right"],
+                      keepTogether: false,
+                    },
+                  ],
+                  graficos: [
+                    {
+                      tipo: "barras",
+                      titulo: "Profissionais por unidade",
+                      dados: rankingRows.map((r) => ({
+                        label: r.unidade_sigla ?? r.unidade_nome,
+                        valor: r.total_profissionais,
+                      })),
+                      limite: 12,
+                    },
+                  ],
+                  notas: [
+                    "Ativos = em exercício + férias + licença prêmio; Disponível para escala = apenas em exercício pleno.",
+                  ],
+                })
+              }
+            />
             <Button variant="outline" size="sm" onClick={() => void a.refetch()}>
               <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
             </Button>
@@ -209,6 +298,7 @@ function GestaoRhContent() {
             </Button>
           </>
         }
+
       />
 
       <FilterBar>

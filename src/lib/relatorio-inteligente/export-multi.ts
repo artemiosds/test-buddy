@@ -7,11 +7,13 @@ import { resolverAssinaturasDocumento } from "@/lib/pdf-assinaturas";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
 import type { Row } from "./tipos";
 import type { GroupNode } from "./agrupamento";
+import { formatarValor, type TipoCampo } from "./formato";
+import { desenharFechamentoOficial, type FechamentoAssinatura } from "./fechamento";
 
 export type BlocoExport = {
   titulo: string;
   descricao?: string;
-  colunas: { header: string; key: string; width?: number }[];
+  colunas: { header: string; key: string; width?: number; tipo?: TipoCampo }[];
   linhas: Row[];
   /** Se informado, o bloco é renderizado agrupado (subtotais por grupo folha). */
   grupos?: GroupNode[];
@@ -27,6 +29,8 @@ export async function exportarPdfMulti(opts: {
   blocos: BlocoExport[];
   secretariaId?: string | null;
   unidadeId?: string | null;
+  /** Assinaturas do fechamento oficial (impressas uma única vez, no final). */
+  fechamento?: FechamentoAssinatura[];
 }) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const info = await loadMunicipioInfo();
@@ -85,7 +89,7 @@ export async function exportarPdfMulti(opts: {
       autoTable(doc, {
         startY: y + 2,
         head: [b.colunas.map((c) => c.header)],
-        body: b.linhas.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key))),
+        body: b.linhas.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key, c.tipo))),
         styles: { fontSize: 7, cellPadding: 1.2 },
         headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [250, 246, 240] },
@@ -97,37 +101,26 @@ export async function exportarPdfMulti(opts: {
     y = (doc as any).lastAutoTable?.finalY ?? y + 20;
   });
   
-  let assinaturaBaseY: number | undefined;
-  if (assinaturas.length > 0) {
-    const pageH = doc.internal.pageSize.getHeight();
-    const finalY = (doc as any).lastAutoTable?.finalY ?? y;
-    if (finalY + 40 > pageH - 20) {
-      doc.addPage();
-      drawInstitutionalHeader(doc, info, opts.titulo);
-      assinaturaBaseY = 52;
-    } else {
-      assinaturaBaseY = finalY + 15;
-    }
-  }
+  // Fechamento oficial: assinaturas em duas colunas + fé pública, só no final.
+  await desenharFechamentoOficial(doc, {
+    titulo: opts.titulo,
+    registros: opts.blocos.reduce((s, b) => s + b.linhas.length, 0),
+    margem: 14,
+    assinaturas: opts.fechamento,
+  });
+  const assinaturaBaseY = 60;
 
   await finalizarPdf(doc, {
     filename: opts.filename,
     tipo: "relatorio",
     assinaturas,
     yPadraoMm: assinaturaBaseY,
+    repetirEmTodasPaginas: false,
   });
 }
 
-function cellStr(v: unknown, fieldId?: string): string {
-  if (v == null || v === "") return "";
-  if (typeof v === "number") {
-    const k = fieldId?.toLowerCase() || "";
-    if (k.includes("salario") || k.includes("valor") || k.includes("vencimento") || k.includes("liquido") || k.includes("bruto")) {
-      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    }
-    return v.toLocaleString("pt-BR");
-  }
-  return String(v);
+function cellStr(v: unknown, fieldId?: string, tipo?: TipoCampo): string {
+  return formatarValor(v, tipo, fieldId);
 }
 
 function rodape(doc: jsPDF) {
@@ -171,7 +164,7 @@ function renderGruposPdf(doc: jsPDF, b: BlocoExport, startY: number): number {
         autoTable(doc, {
           startY: y + 2,
           head: [b.colunas.map((c) => c.header)],
-          body: n.rows.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key))),
+          body: n.rows.map((r) => b.colunas.map((c) => cellStr(r[c.key], c.key, c.tipo))),
           foot: buildFootRow(b, n),
           styles: { fontSize: 7, cellPadding: 1.1 },
           headStyles: { fillColor: [92, 64, 32], textColor: 255, fontStyle: "bold" },
@@ -200,7 +193,7 @@ function buildFootRow(b: BlocoExport, n: GroupNode): string[][] | undefined {
         if (c === b.colunas[0]) return "Subtotal";
         return "";
       }
-      return cellStr(s.soma, c.key);
+      return cellStr(s.soma, c.key, c.tipo);
     }),
   ];
 }

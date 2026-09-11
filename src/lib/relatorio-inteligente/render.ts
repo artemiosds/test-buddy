@@ -1,5 +1,6 @@
 /** Aplica ordenação e projeção de campos às linhas de um bloco. */
 import type { Row, SortSpec } from "./tipos";
+import { formatarValor, type TipoCampo } from "./formato";
 
 export function applySort(rows: Row[], sort: SortSpec): Row[] {
   if (!sort) return rows;
@@ -25,48 +26,7 @@ export function projectFields(rows: Row[], fieldIds: string[]): Row[] {
   });
 }
 
-export function fmtCell(v: unknown, fieldId?: string): string {
+export function fmtCell(v: unknown, fieldId?: string, tipo?: TipoCampo): string {
   if (v == null || v === "") return "—";
-  if (typeof v === "number") {
-    // Lista completa de campos que devem ser tratados como moeda BRL
-    const salariais = [
-      "salario_base",
-      "salario_bruto",
-      "salario_liquido",
-      "horas_extras",
-      "adicional_noturno",
-      "gratificacao_incentivo",
-      "vencimento_liquido",
-      "valor_piso",
-      "valor_bruto",
-      "valor_liquido",
-      "remuneracao_bruta",
-      "remuneracao_liquida",
-      "piso_complementacao",
-      "valor_final",
-      "valor_a",
-      "valor_b",
-      "diff",
-    ];
-    
-    const k = fieldId?.toLowerCase() || "";
-    const matches = salariais.includes(k) || 
-                   k.includes("salario") || 
-                   k.includes("valor") || 
-                   k.includes("vencimento") || 
-                   k.includes("remunera") ||
-                   k.includes("total_pago");
-
-    if (matches) {
-      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    }
-    
-    // Heurística para valores que parecem ser salários se o campo for ambíguo
-    if (v > 200 && (k.includes("soma") || k.includes("media") || k.includes("total"))) {
-       return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    }
-    
-    return v.toLocaleString("pt-BR");
-  }
-  return String(v);
+  return formatarValor(v, tipo, fieldId) || "—";
 }

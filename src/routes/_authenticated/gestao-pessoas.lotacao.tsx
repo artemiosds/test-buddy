@@ -3,10 +3,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Building2, Users, Layers, AlertCircle, ArrowUp, ArrowDown } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { derivarSituacao, grupoSituacao } from "@/lib/situacao-funcional";
+import { ehAfastado, ehAtivo } from "@/lib/kpis-forca-trabalho";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useUnidadesLookup, useSetoresLookup, useCargosLookup } from "@/hooks/use-lookups";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import { PermissionGate } from "@/components/permission-gate";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+
 import {
   EmptyState,
   KpiCard,
@@ -96,20 +103,61 @@ function QuadroLotacaoPage() {
   
   const alertas = a.alertas.data;
 
+  // Contagens reais de situação por unidade, seguindo a regra institucional
+  // única (Ativos = exercício + férias + licença prêmio).
+  const situacaoPorUnidadeQ = useQuery({
+    queryKey: ["lotacao-situacao-por-unidade"],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("unidade_id, status, situacao_funcional")
+        .is("deleted_at", null)
+        .limit(10000);
+      if (error) throw error;
+      const mapa = new Map<
+        string,
+        { ativos: number; afastados: number; ferias: number; licencas: number }
+      >();
+      for (const p of data ?? []) {
+        const uid = p.unidade_id ?? "__sem__";
+        const atual =
+          mapa.get(uid) ?? { ativos: 0, afastados: 0, ferias: 0, licencas: 0 };
+        const sit = derivarSituacao({
+          id: "",
+          status: p.status,
+          situacao_funcional: p.situacao_funcional,
+        });
+        if (ehAtivo(sit)) atual.ativos += 1;
+        if (ehAfastado(sit)) atual.afastados += 1;
+        const g = grupoSituacao(sit);
+        if (g === "ferias") atual.ferias += 1;
+        else if (g === "licenca") atual.licencas += 1;
+        mapa.set(uid, atual);
+      }
+      return mapa;
+    },
+  });
+
   const rowsAll: QuadroLotacaoRow[] = useMemo(() => {
     const raw = (a.frequencias ?? []) as any[];
-    
+    const situacao = situacaoPorUnidadeQ.data;
+
     return raw.map((r) => {
       const unidadeNome = r.competencia_unidade?.unidades?.sigla 
         ? `${r.competencia_unidade.unidades.sigla} — ${r.competencia_unidade.unidades.nome}` 
         : (r.competencia_unidade?.unidades?.nome ?? "Sem Unidade");
-      
-      // REVERSÃO DE ESCOPO: Usar .total_profissionais estático como era antes
-      // para manter o comportamento de "Quadro de Lotação" intocado.
-      // O bug de KPI zerado em rascunho é aceito aqui conforme instrução.
+      const unidadeId = r.competencia_unidade?.unidade_id ?? null;
+      const sit = (unidadeId ? situacao?.get(unidadeId) : undefined) ?? {
+        ativos: 0,
+        afastados: 0,
+        ferias: 0,
+        licencas: 0,
+      };
+
       return {
         key: `${r.competencia_unidade?.unidade_id}-${r.id}`,
-        unidadeId: r.competencia_unidade?.unidade_id,
+        unidadeId,
         setorId: null, // No schema atual de frequências, não há setor_id direto no pai
         cargoId: null,
         funcaoId: null,
@@ -118,13 +166,13 @@ function QuadroLotacaoPage() {
         cargo: "—",
         funcao: "—",
         total: Number(r.total_profissionais || 0),
-        ativos: 0, // FrequenciaRow não tem ativos/afastados etc no snapshot estático do pai
-        afastados: 0,
-        ferias: 0,
-        licencas: 0,
+        ativos: sit.ativos,
+        afastados: sit.afastados,
+        ferias: sit.ferias,
+        licencas: sit.licencas,
       };
     });
-  }, [a.frequencias]);
+  }, [a.frequencias, situacaoPorUnidadeQ.data]);
 
   const rows = useMemo(() => {
     let r = rowsAll;
@@ -215,7 +263,97 @@ function QuadroLotacaoPage() {
       <PageHeader
         title="Quadro de Lotação"
         description="Distribuição consolidada por Unidade, Setor, Cargo e Função."
+        actions={
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={a.loading}
+            relatorio={() =>
+              relatorioPainelAbnt({
+                arquivo: "quadro-lotacao",
+                titulo: "Quadro de Lotação",
+                subtitulo: "Distribuição consolidada por Unidade, Setor, Cargo e Função",
+                orientacao: "landscape",
+                filtros: [
+                  {
+                    label: "Unidade",
+                    valor:
+                      unidadeId === "__all__"
+                        ? "Todas"
+                        : (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? "—",
+                  },
+                  {
+                    label: "Setor",
+                    valor:
+                      setorId === "__all__"
+                        ? "Todos"
+                        : (setores.data ?? []).find((s) => s.id === setorId)?.nome ?? "—",
+                  },
+                  {
+                    label: "Cargo",
+                    valor:
+                      cargoId === "__all__"
+                        ? "Todos"
+                        : (cargos.data ?? []).find((c) => c.id === cargoId)?.nome ?? "—",
+                  },
+                ],
+                kpis: [
+                  {
+                    label: "Profissionais com lotação",
+                    valor: totalProfLotados.toLocaleString("pt-BR"),
+                  },
+                  {
+                    label: "Unidades com lotação",
+                    valor: unidadesComLotacao.toLocaleString("pt-BR"),
+                  },
+                  {
+                    label: "Setores com lotação",
+                    valor: setoresComLotacao.toLocaleString("pt-BR"),
+                  },
+                  {
+                    label: "Unidades sem gestor",
+                    valor: (alertas?.unidadesSemGestor ?? 0).toLocaleString("pt-BR"),
+                  },
+                ],
+                registros: rows.length,
+                blocos: [
+                  {
+                    titulo: "Quadro de lotação",
+                    head: [
+                      "Unidade",
+                      "Setor",
+                      "Cargo",
+                      "Função",
+                      "Qtd atual",
+                      "Ativos",
+                      "Afastados",
+                      "Férias",
+                      "Licenças",
+                    ],
+                    body: rows.map((r) => [
+                      r.unidade,
+                      r.setor,
+                      r.cargo,
+                      r.funcao,
+                      r.total,
+                      r.ativos,
+                      r.afastados,
+                      r.ferias,
+                      r.licencas,
+                    ]),
+                    keepTogether: false,
+                  },
+                ],
+                notas: [
+                  "Ativos = em exercício + férias + licença prêmio, conforme a regra institucional única.",
+                  "Setor é agrupamento complementar: a lotação é regular com a unidade definida.",
+                ],
+              })
+            }
+          />
+        }
       />
+
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <KpiCard

@@ -72,6 +72,12 @@ const CARDS: Card[] = [
     icon: ShieldCheck,
   },
   {
+    to: "/relatorios-gerenciais/geral-cargos",
+    title: "Geral Cargos",
+    desc: "Ativos e disponível para escala, quadro por unidade, cargos consolidados, seção médica e afastamentos.",
+    icon: Zap,
+  },
+  {
     to: "/relatorio-inteligente",
     search: { mode: "salarios" },
     title: "Dados Salariais",

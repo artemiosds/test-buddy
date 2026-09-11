@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
+import { RelatoriosOficiaisLinks } from "@/components/relatorios-oficiais-links";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bot,
@@ -398,6 +399,7 @@ export default function HsmExpertPanel({
                 {!conversaId && !pendente ? (
                   <>
                     <Markdown texto={BOAS_VINDAS} />
+                    <RelatoriosOficiaisLinks compacto />
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {(agentePorSlug(agente).sugestoes ?? SUGESTOES).map((s) => (
                         <button

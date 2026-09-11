@@ -244,12 +244,19 @@ export function drawSignatureStamp(
 export function desenharAssinaturaEm(
   doc: jsPDF,
   a: AssinaturaResolvida,
-  pos: { xMm: number; yMm: number; pagina?: number; tamanhoPercentual?: number },
+  pos: {
+    xMm: number;
+    yMm: number;
+    pagina?: number;
+    tamanhoPercentual?: number;
+    /** Desenha apenas a imagem do carimbo, sem traço, nome, cargo ou matrícula. */
+    somenteImagem?: boolean;
+  },
 ): void {
   const factor = (pos.tamanhoPercentual ?? a.tamanho_percentual ?? 80) / 100;
   const w = BASE_W * factor;
   const h = BASE_H * factor;
-  
+
   try {
     if (pos.pagina && pos.pagina >= 1) doc.setPage(pos.pagina);
   } catch {
@@ -261,6 +268,8 @@ export function desenharAssinaturaEm(
   if (a.imageData) {
     desenharImagemProporcional(doc, a.imageData, x, y, w, h);
   }
+
+  if (pos.somenteImagem) return;
 
   const lineY = y + h + 1.5;
   doc.setDrawColor(120, 120, 120);
@@ -315,7 +324,7 @@ async function salvarPosicaoPadrao(
 export function desenharAssinaturaEmTodasPaginas(
   doc: jsPDF,
   a: AssinaturaResolvida,
-  pos: { xMm: number; yMm: number; tamanhoPercentual?: number },
+  pos: { xMm: number; yMm: number; tamanhoPercentual?: number; somenteImagem?: boolean },
 ): void {
   const total = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
@@ -344,6 +353,8 @@ export type FinalizarPdfOpts = {
   semModal?: boolean;
   /** repete as assinaturas em todas as páginas (default: true) */
   repetirEmTodasPaginas?: boolean;
+  /** Carimba apenas a imagem da assinatura (sem traço/nome/cargo abaixo). */
+  somenteImagem?: boolean;
   /** callback com o blob final (upload/arquivamento). O terceiro argumento é o hash SHA-256 real. */
   onBlob?: (blob: Blob, filename: string, hash: string) => void | Promise<void>;
   /** Metadados extras para o registro do documento */
@@ -549,6 +560,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   const repetir = opts.repetirEmTodasPaginas !== false;
 
+  const somenteImagem = opts.somenteImagem === true;
+
   const desenhar = (
     a: AssinaturaResolvida,
     pos: { xMm: number; yMm: number; pagina?: number; tamanhoPercentual?: number },
@@ -558,9 +571,10 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
         xMm: pos.xMm,
         yMm: pos.yMm,
         tamanhoPercentual: pos.tamanhoPercentual,
+        somenteImagem,
       });
     } else {
-      desenharAssinaturaEm(doc, a, pos);
+      desenharAssinaturaEm(doc, a, { ...pos, somenteImagem });
     }
   };
 
