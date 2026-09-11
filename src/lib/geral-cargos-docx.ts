@@ -115,6 +115,63 @@ export async function exportarGeralCargosDocx(
     }),
   ];
 
+  /* ---------------- tabelas de afastamentos por unidade e por setor */
+  const colsLocal = [3760, 1120, 1120, 3360];
+  const celulaLocal = (
+    texto: string,
+    i: number,
+    o: { bold?: boolean; right?: boolean; fill?: string } = {},
+  ) =>
+    new TableCell({
+      borders: bordas,
+      width: { size: colsLocal[i]!, type: WidthType.DXA },
+      margins: { top: 60, bottom: 60, left: 100, right: 100 },
+      ...(o.fill ? { shading: { fill: o.fill, type: ShadingType.CLEAR } } : {}),
+      children: [
+        new Paragraph({
+          alignment: o.right ? AlignmentType.RIGHT : AlignmentType.LEFT,
+          children: [new TextRun({ text: texto, bold: o.bold ?? false, size: 18 })],
+        }),
+      ],
+    });
+
+  const tabelaLocal = (colLocal: string, linhasLocal: GeralCargosDados["afastamentosPorUnidade"]) => {
+    const total = linhasLocal.reduce((s, l) => s + l.qtd, 0);
+    const pctL = (q: number) =>
+      total > 0 ? `${((q / total) * 100).toFixed(1).replace(".", ",")}%` : "—";
+    return new Table({
+      width: { size: LARG_TOTAL, type: WidthType.DXA },
+      columnWidths: colsLocal,
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          children: [colLocal, "Quantidade", "%", "Principais tipos"].map((h, i) =>
+            celulaLocal(h, i, { bold: true, fill: "E4E9EF", right: i === 1 || i === 2 }),
+          ),
+        }),
+        ...linhasLocal.map((l, idx) => {
+          const fill = idx % 2 === 1 ? "F6F7F9" : undefined;
+          return new TableRow({
+            children: [
+              celulaLocal(l.nome, 0, { ...(fill ? { fill } : {}) }),
+              celulaLocal(String(l.qtd), 1, { right: true, ...(fill ? { fill } : {}) }),
+              celulaLocal(pctL(l.qtd), 2, { right: true, ...(fill ? { fill } : {}) }),
+              celulaLocal(l.tipos.join(" · ") || "—", 3, { ...(fill ? { fill } : {}) }),
+            ],
+          });
+        }),
+        new TableRow({
+          children: [
+            celulaLocal(`TOTAL (${linhasLocal.length})`, 0, { bold: true, fill: "E4E9EF" }),
+            celulaLocal(String(total), 1, { bold: true, right: true, fill: "E4E9EF" }),
+            celulaLocal("100,0%", 2, { bold: true, right: true, fill: "E4E9EF" }),
+            celulaLocal("", 3, { fill: "E4E9EF" }),
+          ],
+        }),
+      ],
+    });
+  };
+
   const kpis: Array<[string, number]> =
     opts.modo === "ativos"
       ? [
@@ -246,6 +303,25 @@ export async function exportarGeralCargosDocx(
             rows: linhas,
           }),
           new Paragraph({ text: "" }),
+
+          ...(dados.afastamentosPorUnidade.length
+            ? [
+                p("4 Afastamentos e ausências por unidade", { bold: true }),
+                tabelaLocal("Unidade", dados.afastamentosPorUnidade),
+                new Paragraph({ text: "" }),
+              ]
+            : []),
+          ...(dados.afastamentosPorSetor.length
+            ? [
+                p("5 Afastamentos e ausências por setor", { bold: true }),
+                tabelaLocal("Setor", dados.afastamentosPorSetor),
+                p(
+                  "Setor é agrupamento complementar e opcional; a linha “Sem setor informado” é apenas informativa.",
+                  { size: 16, italic: true },
+                ),
+                new Paragraph({ text: "" }),
+              ]
+            : []),
 
           ...(opts.parecer
             ? [

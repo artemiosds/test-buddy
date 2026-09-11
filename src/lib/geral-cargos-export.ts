@@ -154,5 +154,23 @@ export function exportarGeralCargosXlsx(
     ["TOTAL", dados.afastamentos.reduce((s, a) => s + a.qtd, 0), ""],
   );
 
+  aba(
+    wb,
+    "Afast. Unidades",
+    "Afastamentos e ausências por unidade",
+    ["Unidade", "Quantidade", "Principais tipos"],
+    dados.afastamentosPorUnidade.map((u) => [u.nome, u.qtd, u.tipos.join(" · ")]),
+    ["TOTAL", dados.afastamentosPorUnidade.reduce((s, u) => s + u.qtd, 0), ""],
+  );
+
+  aba(
+    wb,
+    "Afast. Setores",
+    "Afastamentos e ausências por setor (setor é opcional)",
+    ["Setor", "Quantidade", "Principais tipos"],
+    dados.afastamentosPorSetor.map((s) => [s.nome, s.qtd, s.tipos.join(" · ")]),
+    ["TOTAL", dados.afastamentosPorSetor.reduce((s, x) => s + x.qtd, 0), ""],
+  );
+
   XLSX.writeFile(wb, `geral-cargos-${opts.modo}.xlsx`, { bookType: "xlsx" });
 }

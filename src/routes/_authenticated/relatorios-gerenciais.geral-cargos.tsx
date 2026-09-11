@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 import {
   getGeralCargos,
+  type AfastamentoPorLocal,
   type AgrupamentoCargos,
   type LinhaCargo,
   type ModoGeralCargos,
@@ -71,6 +72,71 @@ function useCompetencias() {
       }));
     },
   });
+}
+
+function TabelaAfastLocal({
+  titulo,
+  colLocal,
+  linhas,
+  nota,
+}: {
+  titulo: string;
+  colLocal: string;
+  linhas: AfastamentoPorLocal[];
+  nota?: string;
+}) {
+  const total = linhas.reduce((s, l) => s + l.qtd, 0);
+  const pctLocal = (q: number) =>
+    total > 0 ? `${((q / total) * 100).toFixed(1).replace(".", ",")}%` : "—";
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {titulo}
+      </h2>
+      <div className="overflow-auto rounded-md border bg-card">
+        <table className="w-full table-auto text-sm">
+          <thead className="bg-muted/40 text-left">
+            <tr>
+              <th className="p-2">{colLocal}</th>
+              <th className="p-2 text-right">Qtd</th>
+              <th className="p-2 text-right">%</th>
+              <th className="p-2">Principais tipos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.length === 0 && (
+              <tr>
+                <td colSpan={4}>
+                  <EmptyState
+                    title="Nenhum afastamento registrado"
+                    description="Todos os cadastros estão dentro dos ativos."
+                  />
+                </td>
+              </tr>
+            )}
+            {linhas.map((l) => (
+              <tr key={l.chave} className="border-t">
+                <td className="p-2 font-medium">{l.nome}</td>
+                <td className="p-2 text-right tabular-nums">{l.qtd}</td>
+                <td className="p-2 text-right tabular-nums">{pctLocal(l.qtd)}</td>
+                <td className="p-2 text-xs text-muted-foreground">{l.tipos.join(" · ") || "—"}</td>
+              </tr>
+            ))}
+            {linhas.length > 0 && (
+              <tr className="border-t bg-muted/30 font-semibold">
+                <td className="p-2">TOTAL ({linhas.length})</td>
+                <td className="p-2 text-right tabular-nums">{total}</td>
+                <td className="p-2 text-right tabular-nums">100,0%</td>
+                <td className="p-2" />
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {nota && <p className="text-xs text-muted-foreground">{nota}</p>}
+    </section>
+  );
 }
 
 function TabelaCargos({ linhas, titulo }: { linhas: LinhaCargo[]; titulo: string }) {
@@ -200,6 +266,9 @@ function GeralCargosPage() {
         qtd: a.qtd,
         cargos: a.cargos.slice(0, 6),
       })),
+      afastamentosUnidades: d.afastamentosPorUnidade
+        .slice(0, 5)
+        .map((u) => ({ nome: u.nome, qtd: u.qtd })),
       topCargos: [...d.cargos]
         .sort((a, b) => b.total - a.total)
         .slice(0, 10)
@@ -435,6 +504,42 @@ function GeralCargosPage() {
           ],
         ],
         foot: ["TOTAL", totalAfast, "100,0%", ""],
+      });
+    }
+
+    /* --------------------------- 8-A Afastamentos por unidade */
+    if (d.afastamentosPorUnidade.length) {
+      blocos.push({
+        titulo: "8-A Afastamentos e ausências por unidade",
+        nota: "Mesma base do bloco 8: registros fora dos ativos, distribuídos pela unidade de lotação.",
+        head: ["Unidade", "Quantidade", "% dos afastamentos", "Principais tipos"],
+        body: d.afastamentosPorUnidade.map((u) => [
+          u.nome,
+          u.qtd,
+          pct(u.qtd, totalAfast),
+          u.tipos.join(" · ") || "—",
+        ]),
+        foot: ["TOTAL", totalAfast, "100,0%", ""],
+        align: ["left", "right", "right", "left"],
+        keepTogether: true,
+      });
+    }
+
+    /* --------------------------- 8-B Afastamentos por setor */
+    if (d.afastamentosPorSetor.length) {
+      blocos.push({
+        titulo: "8-B Afastamentos e ausências por setor",
+        nota: "Setor é um agrupamento complementar e opcional; a linha “Sem setor informado” é apenas informativa.",
+        head: ["Setor", "Quantidade", "% dos afastamentos", "Principais tipos"],
+        body: d.afastamentosPorSetor.map((s) => [
+          s.nome,
+          s.qtd,
+          pct(s.qtd, totalAfast),
+          s.tipos.join(" · ") || "—",
+        ]),
+        foot: ["TOTAL", totalAfast, "100,0%", ""],
+        align: ["left", "right", "right", "left"],
+        keepTogether: true,
       });
     }
 
@@ -760,6 +865,19 @@ function GeralCargosPage() {
               </table>
             </div>
           </section>
+
+          {/* ------------------------------- afastamentos por unidade e setor */}
+          <TabelaAfastLocal
+            titulo="Afastamentos e ausências por unidade"
+            colLocal="Unidade"
+            linhas={data.afastamentosPorUnidade}
+          />
+          <TabelaAfastLocal
+            titulo="Afastamentos e ausências por setor"
+            colLocal="Setor"
+            linhas={data.afastamentosPorSetor}
+            nota="Setor é agrupamento complementar e opcional — “Sem setor informado” é apenas informativo."
+          />
 
           {/* -------------------------------------------- conferência De-Para */}
           <details className="rounded-md border bg-card p-3">

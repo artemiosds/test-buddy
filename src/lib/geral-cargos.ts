@@ -83,6 +83,14 @@ export type LinhaAfastamento = {
   cargos: string[];
 };
 
+/** Afastamentos agregados por local (unidade ou setor). */
+export type AfastamentoPorLocal = {
+  chave: string;
+  nome: string;
+  qtd: number;
+  tipos: string[];
+};
+
 export type GeralCargosDados = {
   /** Todos os registros não excluídos. */
   total: number;
@@ -104,6 +112,10 @@ export type GeralCargosDados = {
   cargos: LinhaCargo[];
   medicos: LinhaCargo[];
   afastamentos: LinhaAfastamento[];
+  /** Afastamentos e ausências agrupados por unidade de lotação. */
+  afastamentosPorUnidade: AfastamentoPorLocal[];
+  /** Afastamentos e ausências agrupados por setor (setor é opcional). */
+  afastamentosPorSetor: AfastamentoPorLocal[];
   /** Top 5 unidades por total, com os 5 cargos mais numerosos de cada uma. */
   cruzamento: CruzamentoUnidade[];
   /** Mesmas unidades do cruzamento, abertas por setor cadastrado. */
@@ -310,6 +322,32 @@ export async function getGeralCargos(
   /* ----------------------------------------------- bloco de afastamentos */
   const foraDosAtivosLinhas = profs.filter((p) => !ehAtivoAmpliado(p));
   const afastMap = new Map<SituacaoFuncional, { qtd: number; cargos: Map<string, number> }>();
+
+  type LocalAcum = { nome: string; qtd: number; tipos: Map<string, number> };
+  const afastUnidade = new Map<string, LocalAcum>();
+  const afastSetor = new Map<string, LocalAcum>();
+  const nomeUnidade = new Map(unidades.map((u) => [u.id, u.sigla ? `${u.nome} (${u.sigla})` : u.nome]));
+  const nomeSetor = new Map(
+    setores.map((s) => {
+      const u = s.unidade_id ? nomeUnidade.get(s.unidade_id) : null;
+      return [s.id, u ? `${s.nome} — ${u}` : s.nome];
+    }),
+  );
+  const acumularLocal = (
+    mapa: Map<string, LocalAcum>,
+    chave: string,
+    nome: string,
+    label: string,
+  ) => {
+    let l = mapa.get(chave);
+    if (!l) {
+      l = { nome, qtd: 0, tipos: new Map() };
+      mapa.set(chave, l);
+    }
+    l.qtd += 1;
+    l.tipos.set(label, (l.tipos.get(label) ?? 0) + 1);
+  };
+
   for (const p of foraDosAtivosLinhas) {
     const s = situacaoNormalizada(p);
     let a = afastMap.get(s);
@@ -320,7 +358,37 @@ export async function getGeralCargos(
     a.qtd += 1;
     const cat = categoriaDoCargo(p.cargo_id ? (nomeCargo.get(p.cargo_id) ?? null) : null);
     a.cargos.set(cat.nome, (a.cargos.get(cat.nome) ?? 0) + 1);
+
+    const label = SITUACAO_LABEL[s];
+    const chaveU = p.unidade_id ?? "sem-unidade";
+    acumularLocal(
+      afastUnidade,
+      chaveU,
+      p.unidade_id ? (nomeUnidade.get(p.unidade_id) ?? "Sem unidade") : "Sem unidade",
+      label,
+    );
+    const chaveS = p.setor_id ?? "sem-setor";
+    acumularLocal(
+      afastSetor,
+      chaveS,
+      p.setor_id ? (nomeSetor.get(p.setor_id) ?? "Setor não identificado") : "Sem setor informado",
+      label,
+    );
   }
+
+  const localParaLinhas = (mapa: Map<string, LocalAcum>): AfastamentoPorLocal[] =>
+    Array.from(mapa, ([chave, l]) => ({
+      chave,
+      nome: l.nome,
+      qtd: l.qtd,
+      tipos: Array.from(l.tipos)
+        .sort((x, y) => y[1] - x[1])
+        .slice(0, 3)
+        .map(([nome, qtd]) => `${nome} (${qtd})`),
+    })).sort((a, b) => b.qtd - a.qtd || a.nome.localeCompare(b.nome, "pt-BR"));
+
+  const afastamentosPorUnidade = localParaLinhas(afastUnidade);
+  const afastamentosPorSetor = localParaLinhas(afastSetor);
   const afastamentos: LinhaAfastamento[] = Array.from(afastMap, ([situacao, a]) => ({
     situacao,
     label: SITUACAO_LABEL[situacao],
@@ -380,6 +448,8 @@ export async function getGeralCargos(
     cargos,
     medicos,
     afastamentos,
+    afastamentosPorUnidade,
+    afastamentosPorSetor,
     cruzamento,
     setoresPorUnidade,
   };

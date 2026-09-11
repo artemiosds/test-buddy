@@ -26,6 +26,10 @@ const Input = z.object({
   afastamentos: z
     .array(z.object({ label: z.string(), qtd: z.number().int().nonnegative(), cargos: z.array(z.string()) }))
     .max(30),
+  afastamentosUnidades: z
+    .array(z.object({ nome: z.string(), qtd: z.number().int().nonnegative() }))
+    .max(10)
+    .optional(),
   topCargos: z
     .array(z.object({ nome: z.string(), total: z.number().int().nonnegative() }))
     .max(15),
