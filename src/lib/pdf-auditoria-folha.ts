@@ -87,6 +87,7 @@ export async function gerarPdfAuditoriaFolha(opts?: { dias?: number; observacoes
       headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: "bold", lineColor: 0, lineWidth: 0.15 },
       bodyStyles: { textColor: 0, lineColor: 0, lineWidth: 0.15 },
       styles: { fontSize: 8.5, cellPadding: 2.2, overflow: "linebreak" },
+      rowPageBreak: "avoid",
       margin: { left: MARGEM, right: MARGEM, top: topoConteudo, bottom: PH - LIMITE },
       didDrawPage: () => {
         /* páginas geradas pela tabela já entram com margem superior reservada */
