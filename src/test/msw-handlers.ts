@@ -25,9 +25,19 @@ export function analyticsHeadCounts(counts: {
   cargos?: number;
   funcoes?: number;
   frequencia_pendencias?: number;
+  /** Pendências institucionais (fonte única de contagem). */
+  pendencias?: number;
 }): HttpHandler[] {
   return (
-    ["profissionais", "unidades", "setores", "cargos", "funcoes", "frequencia_pendencias"] as const
+    [
+      "profissionais",
+      "unidades",
+      "setores",
+      "cargos",
+      "funcoes",
+      "frequencia_pendencias",
+      "pendencias",
+    ] as const
   ).map((table) => http.head(`${BASE}/${table}`, () => countResponse(counts[table] ?? 0)));
 }
 

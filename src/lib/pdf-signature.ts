@@ -136,10 +136,27 @@ export async function armazenarPdfAssinado(sig: SignResult, blob: Blob): Promise
     const up = await supabase.storage
       .from("documentos-assinados")
       .upload(path, blob, { contentType: "application/pdf", upsert: true });
-    if (up.error) return;
-    await supabase.from("documentos_assinados").update({ metadata: { pdf_storage_path: path } } as any).eq("id", sig.id);
-  } catch {
-    /* best effort */
+    if (up.error) {
+      console.error("[documento] falha ao guardar PDF original:", up.error.message);
+      return;
+    }
+    // Preserva o metadata existente e apenas acrescenta o caminho do arquivo.
+    const { data: atual } = await supabase
+      .from("documentos_assinados")
+      .select("metadata")
+      .eq("id", sig.id)
+      .maybeSingle();
+    const metadataAtual = (atual?.metadata ?? {}) as Record<string, unknown>;
+    const { error } = await supabase
+      .from("documentos_assinados")
+      .update({
+        pdf_storage_path: path,
+        metadata: { ...metadataAtual, pdf_storage_path: path },
+      } as never)
+      .eq("id", sig.id);
+    if (error) console.error("[documento] falha ao gravar caminho do PDF:", error.message);
+  } catch (e) {
+    console.error("[documento] erro ao armazenar PDF assinado:", e);
   }
 }
 

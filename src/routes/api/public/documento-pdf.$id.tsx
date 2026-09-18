@@ -7,17 +7,29 @@ export const Route = createFileRoute('/api/public/documento-pdf/$id')({
       GET: async ({ params, request }) => {
         const id = params.id
 
-        // 1. Busca os metadados do documento
-        const { data: doc, error } = await supabaseAdmin
+        // 1. Busca os metadados do documento (aceita o id ou o código de validação)
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const base = supabaseAdmin
           .from('documentos_assinados')
-          .select('documento_tipo, metadata')
-          .eq('id', id)
-          .single()
+          .select('documento_tipo, status, pdf_storage_path, metadata')
+        const { data: doc, error } = await (uuidRe.test(id)
+          ? base.eq('id', id)
+          : base.eq('codigo_validacao', id)
+        ).maybeSingle()
 
-        const storagePath = (doc?.metadata as any)?.pdf_storage_path;
+        if (error || !doc) {
+          return new Response('Documento não encontrado', { status: 404 })
+        }
 
-        if (error || !storagePath) {
-          return new Response('PDF não encontrado', { status: 404 })
+        if (doc.status === 'revogado') {
+          return new Response('Documento revogado', { status: 410 })
+        }
+
+        const storagePath =
+          doc.pdf_storage_path ?? (doc.metadata as any)?.pdf_storage_path ?? null
+
+        if (!storagePath) {
+          return new Response('PDF original não disponível para este documento', { status: 404 })
         }
 
         // 2. Valida se o documento exige autenticação (LGPD)

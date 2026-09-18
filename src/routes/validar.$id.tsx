@@ -33,30 +33,42 @@ function ValidarPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["validar-doc", id],
     queryFn: async () => {
-      // Consulta a VIEW pública restrita — NÃO expõe dados_json nem outros campos sensíveis.
-      const { data, error } = await supabase
+      // Aceita tanto o identificador interno quanto o código impresso no PDF.
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const base = supabase
         .from("documentos_assinados")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+        .select(
+          "id, documento_tipo, descricao, hash_sha256, nome_assinante, assinado_em, status, revogado_em, motivo_revogacao, codigo_validacao, pdf_storage_path, metadata",
+        );
+      const { data, error } = await (uuidRe.test(id)
+        ? base.eq("id", id)
+        : base.eq("codigo_validacao", id)
+      ).maybeSingle();
       if (error) throw error;
-      
+
       if (!data) return null;
 
-      // Mapear para o formato da UI
+      const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+
       return {
         id: data.id,
         tipo: data.documento_tipo,
-        descricao: data.nome_assinante + " - " + data.documento_tipo,
+        descricao:
+          data.descricao ??
+          ((metadata["filename"] as string | undefined) ??
+            `${data.documento_tipo} — ${data.nome_assinante ?? "Sistema"}`),
         hash_conteudo: data.hash_sha256,
         assinado_por_nome: data.nome_assinante,
         assinado_em: data.assinado_em,
-        status: (data.metadata as any)?.revogado ? "revogado" : "ativo",
-        revogado_em: (data.metadata as any)?.revogado_em || null,
-        motivo_revogacao: (data.metadata as any)?.motivo_revogacao || null,
-        timestamp_confiavel: (data.metadata as any)?.timestamp_confiavel || null,
-        termo_aceite: (data.metadata as any)?.termo_aceite ?? true,
-        metadata: data.metadata
+        status: data.status ?? "ativo",
+        revogado_em: data.revogado_em,
+        motivo_revogacao: data.motivo_revogacao,
+        codigo_validacao: data.codigo_validacao,
+        pdf_storage_path:
+          data.pdf_storage_path ?? (metadata["pdf_storage_path"] as string | undefined) ?? null,
+        timestamp_confiavel: (metadata["timestamp_confiavel"] as string | undefined) ?? null,
+        termo_aceite: (metadata["termo_aceite"] as boolean | undefined) ?? true,
+        metadata: data.metadata,
       };
     },
   });
@@ -71,16 +83,7 @@ function ValidarPage() {
         toast.error("Faça login para baixar o PDF original.");
         return;
       }
-      const { data: doc, error } = await supabase
-        .from("documentos_assinados")
-        .select("id, metadata, assinado_por_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (error || !doc) {
-        toast.error("Acesso restrito ao autor do documento.");
-        return;
-      }
-      const storagePath = (doc.metadata as any)?.pdf_storage_path;
+      const storagePath = data?.pdf_storage_path;
       if (!storagePath) {
         toast.error("PDF original não disponível para este documento.");
         return;

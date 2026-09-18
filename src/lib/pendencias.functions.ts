@@ -73,60 +73,102 @@ async function registrarHistorico(
 // =============================================================
 // LISTAR
 // =============================================================
+/** Status considerados "em aberto" para badge, KPIs e relatórios. */
+export const PENDENCIA_STATUS_EM_ABERTO = [
+  "aberta",
+  "em_analise",
+  "aguardando_resposta",
+  "respondida",
+  "reaberta",
+] as const;
+
+const FiltroSchema = z.object({
+  status: z.string().nullish(),
+  categoria: z.string().nullish(),
+  prioridade: z.string().nullish(),
+  unidade_id: z.string().uuid().nullish(),
+  secretaria_id: z.string().uuid().nullish(),
+  responsavel_id: z.string().uuid().nullish(),
+  frequencia_id: z.string().uuid().nullish(),
+  somente_atrasadas: z.boolean().nullish(),
+  q: z.string().nullish(),
+  limit: z.number().int().positive().max(500).default(50),
+  offset: z.number().int().min(0).default(0),
+});
+
+export type PendenciaFiltro = z.input<typeof FiltroSchema>;
+
+function aplicarFiltros(q: any, data: z.infer<typeof FiltroSchema>) {
+  if (data.status) q = q.eq("status", data.status as any);
+  if (data.categoria) q = q.eq("categoria", data.categoria as any);
+  if (data.prioridade) q = q.eq("prioridade", data.prioridade as any);
+  if (data.unidade_id) q = q.eq("unidade_id", data.unidade_id);
+  if (data.secretaria_id) q = q.eq("secretaria_id", data.secretaria_id);
+  if (data.responsavel_id) q = q.eq("responsavel_id", data.responsavel_id);
+  if (data.frequencia_id) q = q.eq("frequencia_id", data.frequencia_id);
+  if (data.q) q = q.or(`titulo.ilike.%${data.q}%,numero.ilike.%${data.q}%`);
+  if (data.somente_atrasadas) {
+    q = q
+      .lt("prazo", new Date().toISOString())
+      .in("status", [...PENDENCIA_STATUS_EM_ABERTO]);
+  }
+  return q;
+}
+
 export const listPendencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator(
-    (
-      input:
-        | {
-            status?: string | null;
-            categoria?: string | null;
-            unidade_id?: string | null;
-            secretaria_id?: string | null;
-            responsavel_id?: string | null;
-            frequencia_id?: string | null;
-            q?: string | null;
-            limit?: number;
-          }
-        | undefined,
-    ) =>
-      z
-        .object({
-          status: z.string().nullish(),
-          categoria: z.string().nullish(),
-          unidade_id: z.string().uuid().nullish(),
-          secretaria_id: z.string().uuid().nullish(),
-          responsavel_id: z.string().uuid().nullish(),
-          frequencia_id: z.string().uuid().nullish(),
-          q: z.string().nullish(),
-          limit: z.number().int().positive().max(500).default(200),
-        })
-        .parse(input ?? {}),
-  )
+  .validator((input: PendenciaFiltro | undefined) => FiltroSchema.parse(input ?? {}))
   .handler(
     withObservability("pendencia.listar", async ({ data, context }) => {
       const { supabase } = context;
       let q = supabase
         .from("pendencias")
         .select(
-          "id, numero, titulo, categoria, prioridade, status, secretaria_id, unidade_id, responsavel_id, prazo, aberta_em, respondida_em, resolvida_em, frequencia_id, frequencia_profissional_id",
+          "id, numero, titulo, categoria, prioridade, status, secretaria_id, unidade_id, responsavel_id, prazo, aberta_em, respondida_em, resolvida_em, frequencia_id, frequencia_profissional_id, origem_tipo",
+          { count: "exact" },
         )
         .is("deleted_at", null)
         .order("aberta_em", { ascending: false })
-        .limit(data.limit);
+        .range(data.offset, data.offset + data.limit - 1);
 
-      if (data.status) q = q.eq("status", data.status as any);
-      if (data.categoria) q = q.eq("categoria", data.categoria as any);
+      q = aplicarFiltros(q, data);
 
-      if (data.unidade_id) q = q.eq("unidade_id", data.unidade_id);
-      if (data.secretaria_id) q = q.eq("secretaria_id", data.secretaria_id);
-      if (data.responsavel_id) q = q.eq("responsavel_id", data.responsavel_id);
-      if (data.frequencia_id) q = q.eq("frequencia_id", data.frequencia_id);
-      if (data.q) q = q.ilike("titulo", `%${data.q}%`);
-
-      const { data: rows, error } = await q;
+      const { data: rows, error, count } = await q;
       if (error) throw new Error(error.message);
-      return rows ?? [];
+      return { rows: rows ?? [], total: count ?? 0, offset: data.offset, limit: data.limit };
+    }),
+  );
+
+/**
+ * Contagem única de pendências institucionais em aberto — fonte de verdade
+ * do badge do menu, dos painéis e dos relatórios (evita números divergentes).
+ */
+export const contarPendenciasAbertas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { unidade_id?: string | null } | undefined) =>
+    z.object({ unidade_id: z.string().uuid().nullish() }).parse(input ?? {}),
+  )
+  .handler(
+    withObservability("pendencia.contar", async ({ data, context }) => {
+      const { supabase } = context;
+      const base = () => {
+        let q = supabase
+          .from("pendencias")
+          .select("id", { count: "exact", head: true })
+          .is("deleted_at", null);
+        if (data.unidade_id) q = q.eq("unidade_id", data.unidade_id);
+        return q;
+      };
+
+      const [abertas, atrasadas] = await Promise.all([
+        base().in("status", [...PENDENCIA_STATUS_EM_ABERTO]),
+        base()
+          .in("status", [...PENDENCIA_STATUS_EM_ABERTO])
+          .lt("prazo", new Date().toISOString()),
+      ]);
+      if (abertas.error) throw new Error(abertas.error.message);
+      if (atrasadas.error) throw new Error(atrasadas.error.message);
+      return { abertas: abertas.count ?? 0, atrasadas: atrasadas.count ?? 0 };
     }),
   );
 
@@ -638,5 +680,101 @@ export const alterarPrazo = createServerFn({ method: "POST" })
       });
 
       return { ok: true };
+    }),
+  );
+
+// =============================================================
+// ANEXOS (comprovantes da pendência)
+// Binário vai para o bucket privado `documentos`; aqui só metadados.
+// =============================================================
+const AnexoPendenciaSchema = z.object({
+  pendencia_id: z.string().uuid(),
+  nome: z.string().min(1).max(200),
+  storage_path: z.string().min(3),
+  mime_type: z.string().min(3),
+  tamanho_bytes: z.number().int().nonnegative(),
+});
+
+export const registrarAnexoPendencia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => AnexoPendenciaSchema.parse(input))
+  .handler(
+    withObservability("pendencia.anexar", async ({ data, context }) => {
+      const { supabase, userId } = context;
+      const p = await loadEscopo(supabase, data.pendencia_id);
+      await ensurePermission(supabase, userId, ACOES.DOCUMENTO_UPLOAD, {
+        _unidade_id: p.unidade_id,
+        _secretaria_id: p.secretaria_id,
+      });
+
+      const { data: doc, error } = await supabase
+        .from("documentos")
+        .insert({
+          tipo_entidade: "outros",
+          entidade_id: data.pendencia_id,
+          unidade_id: p.unidade_id,
+          secretaria_id: p.secretaria_id,
+          nome: data.nome,
+          storage_path: data.storage_path,
+          mime_type: data.mime_type,
+          tamanho_bytes: data.tamanho_bytes,
+          metadata: { pendencia_id: data.pendencia_id, origem: "pendencia" },
+          created_by: userId,
+        } as never)
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+
+      const eventId = await emitEvento(
+        supabase,
+        "pendencia.anexo_adicionado",
+        "pendencia",
+        data.pendencia_id,
+        { documento_id: (doc as any)?.id ?? null, nome: data.nome },
+        { correlation_id: p.correlation_id },
+      );
+
+      await registrarHistorico(supabase, {
+        pendencia_id: data.pendencia_id,
+        acao: "anexar",
+        status_anterior: p.status,
+        status_novo: p.status,
+        comentario: `Anexo adicionado: ${data.nome}`,
+        autor_id: userId,
+        evento_id: eventId,
+      });
+
+      return { ok: true, id: (doc as any)?.id as string };
+    }),
+  );
+
+export const listarAnexosPendencia = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { pendencia_id: string }) =>
+    z.object({ pendencia_id: z.string().uuid() }).parse(input),
+  )
+  .handler(
+    withObservability("pendencia.anexos", async ({ data, context }) => {
+      const { supabase } = context;
+      const { data: docs, error } = await supabase
+        .from("documentos")
+        .select("id, nome, mime_type, tamanho_bytes, storage_path, created_at")
+        .eq("tipo_entidade", "outros")
+        .eq("entidade_id", data.pendencia_id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+
+      const { assinarUrlDocumento } = await import("./storage-r2.server");
+      return await Promise.all(
+        (docs ?? []).map(async (d: any) => ({
+          id: d.id as string,
+          nome: d.nome as string,
+          mime_type: (d.mime_type ?? null) as string | null,
+          tamanho_bytes: Number(d.tamanho_bytes ?? 0),
+          created_at: d.created_at as string,
+          url: await assinarUrlDocumento(supabase, d.storage_path as string),
+        })),
+      );
     }),
   );

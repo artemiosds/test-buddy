@@ -335,6 +335,46 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       });
     }
 
+    // Pendência institucional automática quando a folha volta para correção.
+    if (data.status === "rejeitada" || data.status === "devolvida") {
+      const fInfo = freq as any;
+      const cu = fInfo.competencia_unidades ?? null;
+      const { abrirPendenciaAutomatica } = await import("./pendencias-auto.server");
+      const prazo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await abrirPendenciaAutomatica({
+        titulo:
+          data.status === "rejeitada"
+            ? "Folha de frequência rejeitada — correção necessária"
+            : "Folha de frequência devolvida para correção",
+        descricao: data.observacoes ?? "A folha precisa ser corrigida e reenviada.",
+        categoria: "folha",
+        prioridade: data.status === "rejeitada" ? "alta" : "media",
+        origem_tipo: `folha_${data.status}`,
+        origem_id: data.frequencia_id,
+        unidade_id: cu?.unidades?.id ?? null,
+        competencia_id: cu?.competencia_id ?? null,
+        competencia_unidade_id: fInfo.competencia_unidade_id ?? null,
+        frequencia_id: data.frequencia_id,
+        prazo,
+        sla_horas: 7 * 24,
+        autor_id: userId,
+        dados: { status_anterior: anterior, status_novo: data.status },
+      });
+    }
+
+    // Aprovação encerra as pendências automáticas da folha.
+    if (data.status === "aprovada") {
+      const { resolverPendenciaAutomatica } = await import("./pendencias-auto.server");
+      for (const origem of ["folha_rejeitada", "folha_devolvida", "prazo_envio_vencido"]) {
+        await resolverPendenciaAutomatica({
+          origem_tipo: origem,
+          origem_id: data.frequencia_id,
+          comentario: "Folha aprovada — pendência encerrada automaticamente.",
+          autor_id: userId,
+        });
+      }
+    }
+
     const label = ACAO_LABEL[data.status];
     if (label) {
       // --- CAPTURA DE SNAPSHOT DE ASSINATURA ---
@@ -618,10 +658,30 @@ export const abrirPendenciaLinha = createServerFn({ method: "POST" })
     
     const { data: freq } = await supabase
       .from("frequencias")
-      .select("status")
+      .select(
+        "status, competencia_unidade_id, competencia_unidades(competencia_id, unidade_id, unidades(secretaria_id))",
+      )
       .eq("id", data.frequencia_id)
       .maybeSingle();
     const st = (freq as any)?.status;
+    const cu = (freq as any)?.competencia_unidades ?? null;
+
+    // Espelha a pendência de linha na fila institucional (fonte única de contagem).
+    const { abrirPendenciaAutomatica } = await import("./pendencias-auto.server");
+    await abrirPendenciaAutomatica({
+      titulo: data.titulo,
+      descricao: data.descricao ?? null,
+      categoria: "frequencia",
+      origem_tipo: "frequencia_pendencia_linha",
+      origem_id: (inserted as any)?.id as string,
+      unidade_id: cu?.unidade_id ?? null,
+      secretaria_id: cu?.unidades?.secretaria_id ?? null,
+      competencia_id: cu?.competencia_id ?? null,
+      competencia_unidade_id: (freq as any)?.competencia_unidade_id ?? null,
+      frequencia_id: data.frequencia_id,
+      frequencia_profissional_id: data.frequencia_profissional_id,
+      autor_id: userId,
+    });
     if (st === "enviada" || st === "em_analise") {
       await supabase
         .from("frequencias")

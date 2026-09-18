@@ -397,10 +397,11 @@ function AuthenticatedLayoutInner() {
     queryKey: ["pendencias-abertas-count"],
     enabled: !!userCtx?.id && (userCtx.is_master || has("pendencia.gerenciar")),
     queryFn: async () => {
+      // Fonte única: pendências institucionais em aberto (mesma da tela).
       const { count, error } = await supabase
-        .from("frequencia_pendencias")
+        .from("pendencias")
         .select("id", { count: "exact", head: true })
-        .in("status", ["aberta", "respondida"])
+        .in("status", ["aberta", "em_analise", "aguardando_resposta", "respondida", "reaberta"])
         .is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;

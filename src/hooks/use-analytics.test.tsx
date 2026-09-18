@@ -50,18 +50,30 @@ function permsHandler() {
   return http.post(`${BASE}/rpc/get_my_permissions`, () => HttpResponse.json([]));
 }
 
+function userContextHandler() {
+  return http.post(`${BASE}/rpc/get_my_user_context`, () =>
+    HttpResponse.json({ id: "user-1", is_master: true, perfil: "MASTER", unidades: [] }),
+  );
+}
+
+function unidadesLookupHandler() {
+  return http.get(`${BASE}/unidades`, () => HttpResponse.json([]));
+}
+
 function competenciaAtivaHandler() {
   return http.get(`${BASE}/competencias`, () => HttpResponse.json([]));
 }
 
 function baseAnalyticsFixture() {
-  return [permsHandler(), competenciaAtivaHandler(), ...baseCountHandlers({})];
+  return [permsHandler(), userContextHandler(), unidadesLookupHandler(), competenciaAtivaHandler(), ...baseCountHandlers({})];
 }
 
 describe("useAnalytics", () => {
   it("mapeia frequencias em contagens/agregações e counts em KPIs", async () => {
     server.use(
       permsHandler(),
+      userContextHandler(),
+      unidadesLookupHandler(),
       competenciaAtivaHandler(),
       ...baseCountHandlers({
         profissionais: 42,
@@ -70,6 +82,7 @@ describe("useAnalytics", () => {
         cargos: 9,
         funcoes: 4,
         frequencia_pendencias: 5,
+        pendencias: 5,
       }),
       ...analyticsQueriesOk(),
       http.get(`${BASE}/frequencias`, () => HttpResponse.json([FREQ_ROW_A, FREQ_ROW_B])),

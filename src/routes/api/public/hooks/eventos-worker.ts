@@ -49,75 +49,36 @@ async function notificar(
     evento_id?: string;
   },
 ): Promise<void> {
-  const ids = Array.from(new Set(destinatarios.filter((x): x is string => !!x)));
-  if (ids.length === 0) return;
+  // Ponto único de notificação: valida canal/tipo/prioridade, grava o aviso
+  // interno, dispara e-mail nos casos críticos e registra tudo no log.
+  const { notificarUsuarios } = await import("@/lib/notificar.server");
 
-  const rows = ids.map((uid) => ({
-    usuario_id: uid,
+  const critico =
+    input.prioridade === "urgente" ||
+    input.prioridade === "alta" ||
+    input.tipo === "aprovacao" ||
+    input.tipo === "pendencia";
+
+  const r = await notificarUsuarios({
+    client: supa,
+    destinatarios,
     titulo: input.titulo,
     mensagem: input.mensagem,
     tipo: input.tipo,
     prioridade: input.prioridade ?? "normal",
-    canal: "in_app" as const,
+    canal: "interno",
     link: input.link ?? null,
     entidade_tipo: input.entidade_tipo ?? null,
     entidade_id: input.entidade_id ?? null,
-    metadata: {
-      ...(input.metadata ?? {}),
-      ...(input.evento_id ? { evento_id: input.evento_id } : {}),
-    },
-  }));
+    metadata: input.metadata,
+    eventoId: input.evento_id ?? null,
+    email: critico,
+  });
 
-  // Idempotência simples: se já existe notificação para este evento+usuário, ignora.
-  if (input.evento_id) {
-    const { data: existentes } = await supa
-      .from("notificacoes")
-      .select("usuario_id")
-      .in("usuario_id", ids)
-      .contains("metadata", { evento_id: input.evento_id });
-    const jaTem = new Set(
-      ((existentes ?? []) as Array<{ usuario_id: string }>).map((r) => r.usuario_id),
-    );
-    const filtradas = rows.filter((r) => !jaTem.has(r.usuario_id));
-    if (filtradas.length === 0) return;
-    await supa.from("notificacoes").insert(filtradas);
-    return;
-  }
-  await supa.from("notificacoes").insert(rows);
-  
-  // Disparo de E-mail Assíncrono para eventos críticos
-  // Nota: Importamos dinamicamente para manter o worker leve se não houver e-mails
-  if (input.prioridade === "urgente" || input.prioridade === "alta" || input.tipo === "aprovacao" || input.tipo === "pendencia") {
-    try {
-      const { sendEmail, generateEmailTemplate } = await import("@/lib/email.server");
-      
-      // Busca e-mails dos destinatários
-      const { data: users } = await supa
-        .from("profiles")
-        .select("email")
-        .in("id", ids)
-        .is("deleted_at", null);
-        
-      const emails = (users ?? []).map((u: { email: string | null }) => u.email).filter(Boolean);
-      
-      if (emails.length > 0) {
-        const html = generateEmailTemplate({
-          title: input.titulo,
-          message: input.mensagem,
-          ctaLabel: "Abrir no Sistema",
-          ctaUrl: input.link ? `${process.env.APP_URL || 'https://hsm-gestao.lovable.app'}${input.link}` : undefined
-        });
-
-        await sendEmail({
-          to: emails as string[],
-          subject: `[HSM Gestão] ${input.titulo}`,
-          html
-        });
-      }
-    } catch (err) {
-      console.error("Falha ao disparar e-mail no worker:", err);
-      // Não falhamos o worker por erro de e-mail
-    }
+  // Falha de gravação do aviso interno não pode ficar invisível: derruba o
+  // evento para retentativa (nack) com o motivo real.
+  if (r.erro && r.notificacoes === 0 && r.ja_existentes === 0) {
+    throw new Error(`notificacao_falhou: ${r.erro}`);
   }
 }
 
@@ -311,21 +272,21 @@ async function handleCompetencia(supa: Supa, ev: EventoDominio): Promise<void> {
 
 async function handleDocumento(supa: Supa, ev: EventoDominio): Promise<void> {
   if (!ev.agregado_id || ev.tipo !== "documento.assinado_total") return;
-  
+
   const { data: doc } = await supa
     .from("documentos_assinados")
-    .select("id, titulo, usuario_id, numero_protocolo")
+    .select("id, descricao, documento_tipo, assinado_por_id, codigo_validacao")
     .eq("id", ev.agregado_id)
     .maybeSingle();
-    
-  if (!doc) return;
 
-  await notificar(supa, [doc.usuario_id], {
+  if (!doc?.assinado_por_id) return;
+
+  await notificar(supa, [doc.assinado_por_id], {
     titulo: "Documento Totalmente Assinado",
-    mensagem: `O documento "${doc.titulo}" (Protocolo: ${doc.numero_protocolo}) recebeu todas as assinaturas.`,
+    mensagem: `O documento "${doc.descricao ?? doc.documento_tipo}" (Protocolo: ${doc.codigo_validacao}) recebeu todas as assinaturas.`,
     tipo: "sucesso",
     prioridade: "normal",
-    link: "/documentos-emitidos",
+    link: `/validar/${doc.codigo_validacao}`,
     entidade_tipo: "documento_assinado",
     entidade_id: doc.id,
     evento_id: ev.id,

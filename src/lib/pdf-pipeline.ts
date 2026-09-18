@@ -387,28 +387,48 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     const randomSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
     validationCode = `HSM-2026-${randomSuffix}`;
 
-    const { data: newDoc } = await supabase
+    const competencia = opts.competencia;
+    const descricao = competencia
+      ? `${finalFilename.replace(/\.pdf$/i, "")} — ${String(competencia.mes).padStart(2, "0")}/${competencia.ano}`
+      : finalFilename.replace(/\.pdf$/i, "");
+
+    const { data: newDoc, error: erroRegistro } = await supabase
       .from("documentos_assinados")
       .insert({
         documento_tipo: opts.tipo || "relatorio",
-        descricao: finalFilename,
+        descricao,
         hash_sha256: hashHex,
         codigo_validacao: validationCode,
         nome_assinante: me?.nome_completo || "Sistema",
         assinado_por_id: me?.id || null,
+        status: "ativo",
         metadata: {
           filename: finalFilename,
-          competencia: (opts as any).competencia,
-        }
-      } as any)
+          competencia: opts.competencia ?? null,
+          unidade_id: opts.unidadeId ?? null,
+          secretaria_id: opts.secretariaId ?? null,
+        },
+      } as never)
       .select("id")
       .single();
 
+    if (erroRegistro) throw erroRegistro;
     if (newDoc) {
       documentoId = newDoc.id;
     }
   } catch (err) {
-    console.warn("Erro ao registrar documento para validação:", err);
+    console.error("Erro ao registrar documento para validação:", err);
+    validationCode = null;
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      const { toast } = await import("sonner");
+      toast.warning(
+        "O PDF foi gerado, mas não pôde ser registrado em Documentos Emitidos.",
+        { description: msg },
+      );
+    } catch {
+      /* ambiente sem toast */
+    }
   }
   /** Calcula o hash SHA-256 real do conteúdo do PDF */
   const calcularHashPdf = async (pdfDoc: jsPDF): Promise<string> => {
@@ -423,8 +443,45 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     }
   };
 
+  /** Guarda o PDF final na área privada para reemissão fiel e download pelo portal. */
+  const guardarPdfOriginal = async (pdfDoc: jsPDF, hash: string) => {
+    if (!documentoId) return;
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) return;
+      const path = `${uid}/${documentoId}.pdf`;
+      const blob = pdfDoc.output("blob");
+      const up = await supabase.storage
+        .from("documentos-assinados")
+        .upload(path, blob, { contentType: "application/pdf", upsert: true });
+      if (up.error) {
+        console.error("[documento] falha ao guardar PDF original:", up.error.message);
+        return;
+      }
+      const { data: atual } = await supabase
+        .from("documentos_assinados")
+        .select("metadata")
+        .eq("id", documentoId)
+        .maybeSingle();
+      const metadataAtual = (atual?.metadata ?? {}) as Record<string, unknown>;
+      const { error } = await supabase
+        .from("documentos_assinados")
+        .update({
+          pdf_storage_path: path,
+          hash_sha256: hash,
+          metadata: { ...metadataAtual, pdf_storage_path: path },
+        } as never)
+        .eq("id", documentoId);
+      if (error) console.error("[documento] falha ao gravar caminho do PDF:", error.message);
+    } catch (e) {
+      console.error("[documento] erro ao guardar PDF original:", e);
+    }
+  };
+
   const baixar = async (pdfDoc: jsPDF = doc) => {
     const hash = await calcularHashPdf(pdfDoc);
+    await guardarPdfOriginal(pdfDoc, hash);
     if (opts.onBlob) {
       const blob = pdfDoc.output("blob");
       await opts.onBlob(blob, finalFilename, hash);

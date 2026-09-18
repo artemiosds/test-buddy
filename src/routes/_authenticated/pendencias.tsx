@@ -8,6 +8,8 @@ import { useRetryMutation, type RetryConfig } from "@/lib/retry-mutation";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listPendencias,
+  contarPendenciasAbertas,
+  criarPendencia,
   getPendencia,
   atribuirPendencia,
   responderPendencia,
@@ -16,11 +18,14 @@ import {
   cancelarPendencia,
   alterarPrioridade,
   alterarPrazo,
+  registrarAnexoPendencia,
+  listarAnexosPendencia,
 } from "@/lib/pendencias.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, StatusBadge } from "@/components/shared";
 import { statusLabel, statusOptions } from "@/lib/status";
@@ -28,6 +33,14 @@ import { formatDate as fmtDate, formatDateTime as fmtDateTime } from "@/lib/form
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -57,7 +70,10 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  Download,
   MessageSquare,
+  Paperclip,
+  Plus,
   Repeat2,
   Search,
   UserPlus2,
@@ -66,16 +82,42 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+import { ANEXO_ACCEPT, validarArquivoAnexo, formatarBytes } from "@/lib/anexos-linha";
+
+const PAGE_SIZE = 50;
 
 const searchSchema = z.object({
   status: z.string().optional(),
   categoria: z.string().optional(),
   prioridade: z.string().optional(),
+  unidade_id: z.string().uuid().optional(),
+  responsavel_id: z.string().uuid().optional(),
+  atrasadas: z.boolean().optional(),
+  page: z.number().int().min(1).optional(),
   q: z.string().optional(),
   id: z.string().uuid().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/pendencias")({ errorComponent: ErrorComponent,
+  head: () => ({
+    meta: [
+      { title: "Pendências Institucionais | Gestão Saúde" },
+      {
+        name: "description",
+        content:
+          "Abertura, análise, resposta e resolução de pendências institucionais das unidades de saúde.",
+      },
+      { property: "og:title", content: "Pendências Institucionais" },
+      {
+        property: "og:description",
+        content: "Fluxo corporativo de pendências: abertura, análise, resposta e resolução.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   validateSearch: searchSchema,
   component: PendenciasPage,
 });
@@ -120,48 +162,120 @@ function slaBadge(prazo?: string | null, status?: Status) {
   return <Badge variant="outline">{dias}d</Badge>;
 }
 
+/** Unidades ativas (para filtro e formulário de abertura). */
+function useUnidades() {
+  return useQuery({
+    queryKey: ["unidades-min-pendencias"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("id, nome, secretaria_id")
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function useUsuarios() {
+  return useQuery({
+    queryKey: ["usuarios-ativos-min"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("id, nome_completo, email")
+        .eq("status", "ativo")
+        .is("deleted_at", null)
+        .order("nome_completo")
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 function PendenciasPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const perms = usePermissions();
   const qc = useQueryClient();
+  const [novaAberta, setNovaAberta] = useState(false);
+
+  const unidades = useUnidades();
+  const usuarios = useUsuarios();
+
+  const page = search.page ?? 1;
+  const filtros = {
+    status: search.status ?? null,
+    categoria: search.categoria ?? null,
+    prioridade: search.prioridade ?? null,
+    unidade_id: search.unidade_id ?? null,
+    responsavel_id: search.responsavel_id ?? null,
+    somente_atrasadas: search.atrasadas ?? null,
+    q: search.q ?? null,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  };
 
   const listFn = useServerFn(listPendencias);
   const list = useQuery({
-    queryKey: ["pendencias", "list", search.status, search.categoria, search.q],
-    queryFn: () =>
-      listFn({
-        data: {
-          status: search.status ?? null,
-          categoria: search.categoria ?? null,
-          q: search.q ?? null,
-        },
-      }),
+    queryKey: ["pendencias", "list", JSON.stringify(filtros)],
+    queryFn: () => listFn({ data: filtros }),
   });
 
-  const rows = useMemo(() => {
-    let r = list.data ?? [];
-    if (search.prioridade) r = r.filter((x: any) => x.prioridade === search.prioridade);
-    return r;
-  }, [list.data, search.prioridade]);
+  const contarFn = useServerFn(contarPendenciasAbertas);
+  const contagem = useQuery({
+    queryKey: ["pendencias", "contagem", search.unidade_id ?? null],
+    queryFn: () => contarFn({ data: { unidade_id: search.unidade_id ?? null } }),
+  });
 
-  const kpis = useMemo(() => {
-    const all = list.data ?? [];
-    return {
-      total: all.length,
-      abertas: all.filter((x: any) => x.status === "aberta" || x.status === "reaberta").length,
-      analise: all.filter(
-        (x: any) => x.status === "em_analise" || x.status === "aguardando_resposta",
-      ).length,
-      resolvidas: all.filter((x: any) => x.status === "resolvida").length,
-    };
-  }, [list.data]);
+  const rows: any[] = (list.data as any)?.rows ?? [];
+  const total: number = (list.data as any)?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const setSearch = (patch: Record<string, string | undefined>) =>
-    navigate({ to: ".", search: (prev: any) => ({ ...prev, ...patch }) });
+  const kpis = useMemo(
+    () => ({
+      total,
+      abertas: (contagem.data as any)?.abertas ?? 0,
+      atrasadas: (contagem.data as any)?.atrasadas ?? 0,
+      naPagina: rows.length,
+    }),
+    [total, contagem.data, rows.length],
+  );
+
+  const setSearch = (patch: Record<string, string | number | boolean | undefined>) =>
+    navigate({ to: ".", search: (prev: any) => ({ ...prev, page: undefined, ...patch }) });
+
+  const nomeUnidade = (id?: string | null) =>
+    (unidades.data ?? []).find((u: any) => u.id === id)?.nome ?? "—";
+  const nomeUsuario = (id?: string | null) =>
+    (usuarios.data ?? []).find((u: any) => u.id === id)?.nome_completo ?? "—";
+
+  function exportarExcel() {
+    void (async () => {
+      const XLSX = await import("xlsx-js-style");
+      const dados = rows.map((p) => ({
+        Número: p.numero,
+        Título: p.titulo,
+        Categoria: CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria,
+        Prioridade: PRIORIDADE_LABEL[p.prioridade as Prioridade] ?? p.prioridade,
+        Status: statusLabel("pendencia", p.status),
+        Unidade: nomeUnidade(p.unidade_id),
+        Responsável: p.responsavel_id ? nomeUsuario(p.responsavel_id) : "Não atribuída",
+        Prazo: fmtDate(p.prazo),
+        "Aberta em": fmtDateTime(p.aberta_em),
+      }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dados), "Pendências");
+      XLSX.writeFile(wb, "pendencias-institucionais.xlsx", { bookType: "xlsx" });
+    })();
+  }
 
   const openId = search.id;
-  const closeSheet = () => setSearch({ id: undefined });
+  const closeSheet = () => navigate({ to: ".", search: (prev: any) => ({ ...prev, id: undefined }) });
 
   return (
     <div className="p-6 space-y-6">
@@ -172,38 +286,129 @@ function PendenciasPage() {
             Fluxo corporativo: abertura, análise, resposta, resolução e reabertura.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportarExcel} disabled={!rows.length}>
+            <Download className="mr-1 h-4 w-4" />
+            Excel
+          </Button>
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={!rows.length}
+            relatorio={() =>
+              relatorioPainelAbnt({
+                arquivo: "pendencias-institucionais",
+                titulo: "Pendências Institucionais",
+                subtitulo: "Abertura, análise, resposta e resolução",
+                orientacao: "landscape",
+                filtros: [
+                  {
+                    label: "Status",
+                    valor: search.status ? statusLabel("pendencia", search.status) : "Todos",
+                  },
+                  {
+                    label: "Categoria",
+                    valor: search.categoria
+                      ? (CATEGORIA_LABEL[search.categoria as Categoria] ?? search.categoria)
+                      : "Todas",
+                  },
+                  {
+                    label: "Prioridade",
+                    valor: search.prioridade
+                      ? (PRIORIDADE_LABEL[search.prioridade as Prioridade] ?? search.prioridade)
+                      : "Todas",
+                  },
+                  { label: "Unidade", valor: search.unidade_id ? nomeUnidade(search.unidade_id) : "Todas" },
+                  { label: "Somente atrasadas", valor: search.atrasadas ? "Sim" : "Não" },
+                ],
+                kpis: [
+                  { label: "Total no filtro", valor: total },
+                  { label: "Em aberto", valor: kpis.abertas },
+                  { label: "Atrasadas", valor: kpis.atrasadas },
+                ],
+                blocos: [
+                  {
+                    titulo: `Relação de pendências (página ${page} de ${totalPaginas})`,
+                    head: [
+                      "Número",
+                      "Título",
+                      "Categoria",
+                      "Prioridade",
+                      "Status",
+                      "Unidade",
+                      "Responsável",
+                      "Prazo",
+                    ],
+                    align: [
+                      "left",
+                      "left",
+                      "left",
+                      "left",
+                      "left",
+                      "left",
+                      "left",
+                      "center",
+                    ],
+                    larguras: [24, 62, 24, 22, 28, 46, 42, 22],
+                    body: rows.map((p) => [
+                      p.numero,
+                      p.titulo,
+                      CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria,
+                      PRIORIDADE_LABEL[p.prioridade as Prioridade] ?? p.prioridade,
+                      statusLabel("pendencia", p.status),
+                      nomeUnidade(p.unidade_id),
+                      p.responsavel_id ? nomeUsuario(p.responsavel_id) : "Não atribuída",
+                      fmtDate(p.prazo),
+                    ]),
+                  },
+                ],
+                registros: rows.length,
+              })
+            }
+          />
+          {((perms.data as any)?.is_master || perms.has("pendencia.criar")) && (
+            <Button size="sm" onClick={() => setNovaAberta(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Nova pendência
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={<ClipboardList className="h-4 w-4" />} label="Total" value={kpis.total} />
+        <KpiCard
+          icon={<ClipboardList className="h-4 w-4" />}
+          label="Total no filtro"
+          value={kpis.total}
+        />
         <KpiCard
           icon={<AlertCircle className="h-4 w-4" />}
-          label="Abertas / Reabertas"
+          label="Em aberto (institucional)"
           value={kpis.abertas}
           tone="warning"
         />
         <KpiCard
-          icon={<Loader2 className="h-4 w-4" />}
-          label="Em análise"
-          value={kpis.analise}
-          tone="info"
+          icon={<CalendarClock className="h-4 w-4" />}
+          label="Atrasadas"
+          value={kpis.atrasadas}
+          tone="warning"
         />
         <KpiCard
           icon={<CheckCircle2 className="h-4 w-4" />}
-          label="Resolvidas"
-          value={kpis.resolvidas}
-          tone="success"
+          label="Exibidas nesta página"
+          value={kpis.naPagina}
+          tone="info"
         />
       </div>
 
       {/* Filtros */}
       <Card>
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
-          <div className="relative md:col-span-2">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="relative lg:col-span-2">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por título…"
+              placeholder="Buscar por número ou título…"
               className="pl-8"
               defaultValue={search.q ?? ""}
               onBlur={(e) => setSearch({ q: e.target.value || undefined })}
@@ -246,6 +451,34 @@ function PendenciasPage() {
               })),
             ]}
           />
+          <FilterSelect
+            value={search.unidade_id ?? "todas"}
+            onValueChange={(v) => setSearch({ unidade_id: v === "todas" ? undefined : v })}
+            placeholder="Unidade"
+            options={[
+              { v: "todas", l: "Todas as unidades" },
+              ...(unidades.data ?? []).map((u: any) => ({ v: u.id, l: u.nome })),
+            ]}
+          />
+          <FilterSelect
+            value={search.responsavel_id ?? "todos"}
+            onValueChange={(v) => setSearch({ responsavel_id: v === "todos" ? undefined : v })}
+            placeholder="Responsável"
+            options={[
+              { v: "todos", l: "Todos os responsáveis" },
+              ...(usuarios.data ?? []).map((u: any) => ({ v: u.id, l: u.nome_completo })),
+            ]}
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              variant={search.atrasadas ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSearch({ atrasadas: search.atrasadas ? undefined : true })}
+            >
+              <CalendarClock className="mr-1 h-4 w-4" />
+              Somente atrasadas
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -258,7 +491,7 @@ function PendenciasPage() {
             <div className="p-4">
               <EmptyState
                 title="Nenhuma pendência encontrada."
-                description="Ajuste os filtros ou aguarde novos registros."
+                description="Ajuste os filtros ou abra uma nova pendência."
               />
             </div>
           ) : (
@@ -271,6 +504,7 @@ function PendenciasPage() {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Prioridade</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Unidade</TableHead>
                     <TableHead>Prazo</TableHead>
                     <TableHead>Aberta em</TableHead>
                   </TableRow>
@@ -280,10 +514,12 @@ function PendenciasPage() {
                     <TableRow
                       key={p.id}
                       className="cursor-pointer"
-                      onClick={() => setSearch({ id: p.id })}
+                      onClick={() =>
+                        navigate({ to: ".", search: (prev: any) => ({ ...prev, id: p.id }) })
+                      }
                     >
                       <TableCell className="font-mono text-xs">{p.numero}</TableCell>
-                      <TableCell className="max-w-[420px] truncate">{p.titulo}</TableCell>
+                      <TableCell className="max-w-[380px] truncate">{p.titulo}</TableCell>
                       <TableCell>
                         {CATEGORIA_LABEL[p.categoria as Categoria] ?? p.categoria}
                       </TableCell>
@@ -297,6 +533,9 @@ function PendenciasPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge domain="pendencia" value={p.status} />
+                      </TableCell>
+                      <TableCell className="max-w-[220px] truncate">
+                        {nomeUnidade(p.unidade_id)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -313,8 +552,46 @@ function PendenciasPage() {
               </Table>
             </div>
           )}
+
+          {total > PAGE_SIZE && (
+            <div className="flex items-center justify-between border-t p-3 text-sm">
+              <span className="text-muted-foreground">
+                Página {page} de {totalPaginas} — {total} pendência(s)
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() =>
+                    navigate({ to: ".", search: (prev: any) => ({ ...prev, page: page - 1 }) })
+                  }
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPaginas}
+                  onClick={() =>
+                    navigate({ to: ".", search: (prev: any) => ({ ...prev, page: page + 1 }) })
+                  }
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <NovaPendenciaDialog
+        open={novaAberta}
+        onOpenChange={setNovaAberta}
+        unidades={unidades.data ?? []}
+        usuarios={usuarios.data ?? []}
+        onCriada={() => qc.invalidateQueries({ queryKey: ["pendencias"] })}
+      />
 
       <Sheet open={!!openId} onOpenChange={(o) => !o && closeSheet()}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
@@ -330,6 +607,271 @@ function PendenciasPage() {
           )}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+/** Abertura manual de pendência institucional. */
+function NovaPendenciaDialog({
+  open,
+  onOpenChange,
+  unidades,
+  usuarios,
+  onCriada,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  unidades: any[];
+  usuarios: any[];
+  onCriada: () => void;
+}) {
+  const criarFn = useServerFn(criarPendencia);
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [categoria, setCategoria] = useState<Categoria>("geral");
+  const [prioridade, setPrioridade] = useState<Prioridade>("media");
+  const [unidadeId, setUnidadeId] = useState<string>("");
+  const [responsavelId, setResponsavelId] = useState<string>("");
+  const [prazo, setPrazo] = useState<string>("");
+
+  const unidade = unidades.find((u) => u.id === unidadeId);
+
+  const criar = useMutation({
+    mutationFn: () =>
+      criarFn({
+        data: {
+          titulo,
+          descricao: descricao || null,
+          categoria,
+          prioridade,
+          secretaria_id: unidade?.secretaria_id as string,
+          unidade_id: unidadeId || null,
+          responsavel_id: responsavelId || null,
+          prazo: prazo || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Pendência aberta.");
+      setTitulo("");
+      setDescricao("");
+      setPrazo("");
+      setResponsavelId("");
+      onOpenChange(false);
+      onCriada();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao abrir a pendência."),
+  });
+
+  const podeSalvar = titulo.trim().length >= 3 && !!unidade?.secretaria_id;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nova pendência</DialogTitle>
+          <DialogDescription>
+            A pendência é registrada com número oficial, histórico e aviso ao responsável.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Título</Label>
+            <Input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Ex.: Folha de março sem comprovante de plantão"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Descrição</Label>
+            <Textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Detalhe o que precisa ser corrigido ou enviado."
+              rows={3}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Categoria</Label>
+              <Select value={categoria} onValueChange={(v) => setCategoria(v as Categoria)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(CATEGORIA_LABEL) as Categoria[]).map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {CATEGORIA_LABEL[c]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Prioridade</Label>
+              <Select value={prioridade} onValueChange={(v) => setPrioridade(v as Prioridade)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PRIORIDADE_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Unidade</Label>
+            <Select value={unidadeId} onValueChange={setUnidadeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {unidades.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Responsável (opcional)</Label>
+              <Select value={responsavelId} onValueChange={setResponsavelId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Definir depois" />
+                </SelectTrigger>
+                <SelectContent>
+                  {usuarios.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome_completo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Prazo (opcional)</Label>
+              <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button disabled={!podeSalvar || criar.isPending} onClick={() => criar.mutate()}>
+            {criar.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+            Abrir pendência
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Anexos de comprovação da pendência. */
+function AnexosPendencia({ pendencia }: { pendencia: any }) {
+  const listarFn = useServerFn(listarAnexosPendencia);
+  const registrarFn = useServerFn(registrarAnexoPendencia);
+  const [enviando, setEnviando] = useState(false);
+
+  const anexos = useQuery({
+    queryKey: ["pendencia-anexos", pendencia.id],
+    queryFn: () => listarFn({ data: { pendencia_id: pendencia.id } }),
+  });
+
+  async function enviar(file: File) {
+    const check = validarArquivoAnexo(file);
+    if (!check.ok) {
+      toast.error(check.erro);
+      return;
+    }
+    setEnviando(true);
+    try {
+      const pasta = pendencia.unidade_id ?? pendencia.secretaria_id;
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+      const path = `${pendencia.secretaria_id}/${pasta}/pendencias/${pendencia.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("documentos")
+        .upload(path, file, { contentType: check.mime, upsert: false });
+      if (error) throw new Error(error.message);
+      await registrarFn({
+        data: {
+          pendencia_id: pendencia.id,
+          nome: file.name,
+          storage_path: path,
+          mime_type: check.mime,
+          tamanho_bytes: file.size,
+        },
+      });
+      toast.success("Anexo enviado.");
+      anexos.refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao enviar o anexo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium flex items-center gap-2">
+          <Paperclip className="h-4 w-4" /> Anexos
+        </div>
+        <label className="inline-flex">
+          <input
+            type="file"
+            accept={ANEXO_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void enviar(f);
+            }}
+          />
+          <Button size="sm" variant="outline" asChild disabled={enviando}>
+            <span>
+              {enviando ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="mr-1 h-4 w-4" />
+              )}
+              Anexar arquivo
+            </span>
+          </Button>
+        </label>
+      </div>
+      {(anexos.data ?? []).length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Nenhum anexo. Aceita PDF, JPG, PNG ou WEBP (até 10 MB).
+        </p>
+      ) : (
+        <ul className="space-y-1 text-sm">
+          {(anexos.data ?? []).map((a: any) => (
+            <li key={a.id} className="flex items-center justify-between gap-2">
+              <a
+                href={a.url ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-primary hover:underline"
+              >
+                {a.nome}
+              </a>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {formatarBytes(a.tamanho_bytes)} · {fmtDateTime(a.created_at)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -537,6 +1079,10 @@ function PendenciaDetail({
           <Info label="Unidade" value={p.unidade_id ? p.unidade_id.slice(0, 8) : "—"} />
         </div>
       </div>
+
+      <Separator className="my-4" />
+
+      <AnexosPendencia pendencia={p} />
 
       <Separator className="my-4" />
 
