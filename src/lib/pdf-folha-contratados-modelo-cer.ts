@@ -36,11 +36,12 @@ const MESES = [
 
 
 function fmtNum(v: number | string | null | undefined): string {
-  if (v == null || v === "") return "";
-  if (typeof v === "string") return v;
-  const x = Number(String(v).replace(",", "."));
+  if (v == null || v === "") return "-";
+  const texto = String(v).trim();
+  if (!texto) return "-";
+  const x = Number(texto.replace(",", "."));
   if (isNaN(x)) return String(v);
-  if (x === 0) return "0";
+  if (x === 0) return "-";
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
 }
 
@@ -164,10 +165,11 @@ export async function gerarFolhaContratadosModeloCer(
     body,
     startY: 44,
     tableWidth: "auto",
-    margin: { top: 44, left: 10, right: 10, bottom: 15 },
+    // Mesmo zoneamento seguro do PDF Oficial.
+    margin: { top: 44, left: 10, right: 10, bottom: 65 },
     rowPageBreak: "avoid",
     styles: {
-      fontSize: 7,
+      fontSize: 7.5,
       cellPadding: 1.2,
       lineColor: [180, 180, 180],
       lineWidth: 0.15,
@@ -180,7 +182,7 @@ export async function gerarFolhaContratadosModeloCer(
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
-      fontSize: 6.5,
+      fontSize: 7,
       cellPadding: 1.2,
       lineColor: [120, 120, 120],
       lineWidth: 0.25,
@@ -188,10 +190,10 @@ export async function gerarFolhaContratadosModeloCer(
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       0: { halign: "center" },
-      1: { cellWidth: 50, halign: "left" },
+      1: { cellWidth: 45, halign: "left" },
       2: { cellWidth: 24, halign: "center" },
-      3: { cellWidth: 35, halign: "left" },
-      4: { cellWidth: 18, halign: "center" },
+      3: { cellWidth: 32, halign: "left" },
+      4: { cellWidth: 28, halign: "center" },
       5: { halign: "center" },
       6: { halign: "center" },
       7: { halign: "center" },
@@ -201,7 +203,7 @@ export async function gerarFolhaContratadosModeloCer(
       11: { halign: "center" },
       12: { halign: "center" },
       13: { halign: "center" },
-      14: { cellWidth: 40, halign: "left" },
+      14: { cellWidth: 38, halign: "left" },
     },
     didDrawPage: () => {
       drawHeader();
@@ -218,17 +220,7 @@ export async function gerarFolhaContratadosModeloCer(
     },
   });
 
-  let assinaturaBaseY: number | undefined;
-  if (assinaturas.length > 0) {
-    const lastY = (doc as any).lastAutoTable?.finalY || 44;
-    let signY = lastY + 5;
-    if (signY + 35 > pageH - 15) {
-      doc.addPage();
-      drawHeader();
-      signY = 44 + 5;
-    }
-    assinaturaBaseY = signY;
-  }
+  const assinaturaBaseY = assinaturas.length > 0 ? pageH - 62 : undefined;
 
   const compFile = `${String(input.competencia.mes).padStart(2, "0")}-${input.competencia.ano}`;
   await finalizarPdf(doc, {
@@ -238,6 +230,10 @@ export async function gerarFolhaContratadosModeloCer(
     secretariaId: input.secretariaId ?? null,
     assinaturas,
     yPadraoMm: assinaturaBaseY,
+    ySeloValidacaoMm: pageH - 30,
+    tamanhoMaximoAssinaturaPercentual: 55,
+    forcarYPadraoAssinaturas: true,
     xPadraoMm: MARGEM,
+    competencia: input.competencia,
   });
 }

@@ -197,7 +197,7 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   vacancia: "Vacância",
   afastamento_inss: "Afastamento por INSS",
   afastado_laudo: "Afastado por Laudo",
-  falta_pad: "Falta informada ao RH (PAD)",
+  falta_pad: "Falta informada ao RH",
   cedido: "Cedido",
   afastado: "Afastado",
   desligado: "Desligado",

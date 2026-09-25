@@ -227,7 +227,7 @@ function novaLinha(profissional_id: string, novo = true, profData?: any): Linha 
   else if (rawStatus === "afastado_laudo" || rawStatus === "afastado por laudo" || rawStatus === "laudo") defaultValue = "Afastado por Laudo";
   else if (rawStatus === "afastado" || rawStatus === "afastamento_inss") defaultValue = "Afastamento por INSS";
   else if (rawStatus === "atestado") defaultValue = "Atestado";
-  else if (rawStatus === "falta_pad") defaultValue = "Falta informada ao RH (PAD)";
+  else if (rawStatus === "falta_pad") defaultValue = "Falta informada ao RH";
   else if (rawStatus === "vacancia") defaultValue = "Vacância";
   else if (rawStatus === "cedido") defaultValue = "Cedido";
 

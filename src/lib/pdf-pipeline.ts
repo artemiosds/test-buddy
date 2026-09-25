@@ -181,11 +181,12 @@ export function drawSignatureStamp(
   data: string,
   validationCode: string,
   marginX = 14,
-  qrDataUrl?: string
+  qrDataUrl?: string,
+  yOverride?: number,
 ) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const y = pageHeight - 24;
+  const y = yOverride ?? pageHeight - 24;
   const usableWidth = pageWidth - marginX * 2;
   const colWidth = usableWidth / 2;
 
@@ -280,14 +281,22 @@ export function desenharAssinaturaEm(
   if (a.mostrar_nome && a.titular_nome) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(a.titular_nome, x + w / 2, ty, { align: "center", maxWidth: w });
-    ty += 3.4;
+    const linhasNome = (doc.splitTextToSize(a.titular_nome, Math.max(1, w - 2)) as string[])
+      .slice(0, 3);
+    for (const linha of linhasNome) {
+      doc.text(linha, x + w / 2, ty, { align: "center" });
+      ty += 3.4;
+    }
   }
   if (a.mostrar_cargo && a.titular_cargo) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
-    doc.text(a.titular_cargo, x + w / 2, ty, { align: "center", maxWidth: w });
-    ty += 3.2;
+    const linhasCargo = (doc.splitTextToSize(a.titular_cargo, Math.max(1, w - 2)) as string[])
+      .slice(0, 2);
+    for (const linha of linhasCargo) {
+      doc.text(linha, x + w / 2, ty, { align: "center" });
+      ty += 3.2;
+    }
   }
   const matricula = a.metadata?.matricula as string | undefined;
   if (matricula) {
@@ -359,6 +368,12 @@ export type FinalizarPdfOpts = {
   onBlob?: (blob: Blob, filename: string, hash: string) => void | Promise<void>;
   /** Metadados extras para o registro do documento */
   competencia?: { mes: number; ano: number };
+  /** Posição vertical do bloco de validação; permite reservar uma faixa exclusiva no documento. */
+  ySeloValidacaoMm?: number;
+  /** Limita o tamanho das assinaturas para caberem em uma faixa compacta de rodapé. */
+  tamanhoMaximoAssinaturaPercentual?: number;
+  /** Ignora posições verticais antigas e usa a faixa segura definida pelo gerador. */
+  forcarYPadraoAssinaturas?: boolean;
 };
 
 
@@ -552,6 +567,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
         validationCode,
         14,
         qrDataUrl,
+        opts.ySeloValidacaoMm,
       );
     } catch (err) {
       console.warn("Falha ao aplicar selo de validação:", err);
@@ -572,7 +588,9 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     if (temPadraoSalvo) {
       return {
         x: ((a.posicao_x as number) / REF_W) * pageWidthMm,
-        y: ((a.posicao_y as number) / REF_H) * pageHeightMm,
+        y: opts.forcarYPadraoAssinaturas
+          ? (opts.yPadraoMm ?? pageHeightMm - 42)
+          : ((a.posicao_y as number) / REF_H) * pageHeightMm,
       };
     }
     const colunas = Math.max(1, Math.min(candidatas.length, 3));
@@ -605,7 +623,10 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       xPadraoMm: x,
       yPadraoMm: y,
       paginaPadrao: paginaBase,
-      tamanhoPercentualPadrao: a.tamanho_percentual ?? 80,
+      tamanhoPercentualPadrao: Math.min(
+        a.tamanho_percentual ?? 80,
+        opts.tamanhoMaximoAssinaturaPercentual ?? Number.POSITIVE_INFINITY,
+      ),
       incluirPadrao:
         (!!meuPerfil && a.perfil_codigo === meuPerfil) || a.perfil_codigo === "DIRETOR_UNIDADE",
     };
@@ -623,15 +644,28 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     a: AssinaturaResolvida,
     pos: { xMm: number; yMm: number; pagina?: number; tamanhoPercentual?: number },
   ) => {
+    // Quando o documento reservou uma faixa para validação, uma posição antiga
+    // salva no editor nunca pode empurrar a assinatura para dentro dessa faixa.
+    const tamanho = Math.min(
+      pos.tamanhoPercentual ?? a.tamanho_percentual ?? 80,
+      opts.tamanhoMaximoAssinaturaPercentual ?? Number.POSITIVE_INFINITY,
+    );
+    // Reserva a altura máxima do texto multilinha abaixo do carimbo. Assim,
+    // nomes compridos não invadem cargo, validação ou rodapé.
+    const alturaAssinatura = BASE_H * (tamanho / 100) + (somenteImagem ? 0 : 20);
+    const ySeguro = opts.ySeloValidacaoMm == null
+      ? pos.yMm
+      : Math.min(pos.yMm, Math.max(0, opts.ySeloValidacaoMm - alturaAssinatura - 3));
+    const posSegura = { ...pos, yMm: ySeguro };
     if (repetir) {
       desenharAssinaturaEmTodasPaginas(doc, a, {
-        xMm: pos.xMm,
-        yMm: pos.yMm,
-        tamanhoPercentual: pos.tamanhoPercentual,
+        xMm: posSegura.xMm,
+        yMm: posSegura.yMm,
+        tamanhoPercentual: tamanho,
         somenteImagem,
       });
     } else {
-      desenharAssinaturaEm(doc, a, { ...pos, somenteImagem });
+      desenharAssinaturaEm(doc, a, { ...posSegura, tamanhoPercentual: tamanho, somenteImagem });
     }
   };
 

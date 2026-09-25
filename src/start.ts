@@ -5,10 +5,16 @@ import { logger } from "./lib/logger";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { recordRequest } from "./lib/perf-metrics.server";
 
-const errorMiddleware = createMiddleware().server(async ({ next }) => {
+const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
   try {
     return await next();
   } catch (error) {
+    // Server Functions possuem seu próprio envelope de erro serializado.
+    // Transformá-las em uma página HTML 500 faz o cliente perder a resposta
+    // e pode derrubar a tela inteira após uma atualização do servidor local.
+    if (new URL(request.url).pathname.startsWith("/_serverFn/")) {
+      throw error;
+    }
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }

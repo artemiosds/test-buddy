@@ -316,7 +316,7 @@ export function FrequenciasEfetivosPage() {
 
   const carregar = useServerFn(listarFolhaEfetivos);
   const carregarConsolidado = useServerFn(listarConsolidadoEfetivos);
-  const { data: folha, isFetching } = useQuery({
+  const { data: folha, isFetching, isError: folhaComErro, error: folhaErro, refetch: recarregarFolha } = useQuery({
     queryKey: isGlobalView
       ? ["folha-efetivos-consolidado", competenciaId]
       : ["folha-efetivos", competenciaId, unidadeId, setorParam ?? "all"],
@@ -792,6 +792,21 @@ export function FrequenciasEfetivosPage() {
         <div className="flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{MSG_VISAO_CONSOLIDADA}</span>
+        </div>
+      )}
+      {folhaComErro && (
+        <div className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {folhaErro instanceof Error
+                ? folhaErro.message
+                : "Não foi possível carregar a folha de efetivos."}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void recarregarFolha()}>
+            Tentar novamente
+          </Button>
         </div>
       )}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">

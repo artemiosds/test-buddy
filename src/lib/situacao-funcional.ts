@@ -107,6 +107,7 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
   if (raw === "férias") return "ferias";
   if (raw === "licença") return "licenca";
   if (raw === "afastado por laudo" || raw === "laudo") return "afastado_laudo";
+  if (raw === "falta informada ao rh") return "falta_pad";
   return "ativo";
 }
 
@@ -378,7 +379,7 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   afastado: "Afastado",
   afastamento_inss: "Afastamento por INSS",
   afastado_laudo: "Afastado por Laudo",
-  falta_pad: "Falta informada ao RH (PAD)",
+  falta_pad: "Falta informada ao RH",
   vacancia: "Vacância",
   cedido: "Cedido",
   desligado: "Desligado",

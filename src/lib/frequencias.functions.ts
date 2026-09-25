@@ -772,7 +772,7 @@ export const inserirLinhasAuto = createServerFn({ method: "POST" })
         else if (rawStatus === "afastado_laudo" || rawStatus === "afastado por laudo" || rawStatus === "laudo") val = "Afastado por Laudo";
         else if (rawStatus === "afastado" || rawStatus === "afastamento_inss") val = "Afastamento por INSS";
         else if (rawStatus === "atestado") val = "Atestado";
-        else if (rawStatus === "falta_pad") val = "Falta informada ao RH (PAD)";
+        else if (rawStatus === "falta_pad") val = "Falta informada ao RH";
         else if (rawStatus === "vacancia") val = "Vacância";
         else if (rawStatus === "cedido") val = "Cedido";
 

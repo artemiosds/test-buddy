@@ -123,13 +123,13 @@ const PADDING_CELULA = 0.3; // mm de cada lado
 /* -------------------- Helpers de desenho -------------------- */
 
 function fmt(v: number | string | null | undefined): string {
-  if (v == null || v === "") return "";
+  if (v == null || v === "") return "-";
   if (typeof v === "string") {
     // Textos (ocorrências, situações) são preservados; números em pt-BR são normalizados.
     if (!/^\s*R?\$?\s*-?[\d.,]+\s*$/.test(v)) return v;
   }
   const x = parseNumeroPtBr(v);
-  if (x === 0) return "0";
+  if (x === 0) return "-";
   return formatarNumeroPtBr(x);
 }
 
@@ -142,14 +142,14 @@ function fmt(v: number | string | null | undefined): string {
  * número maior que zero vira "X", vazio/zero fica em branco.
  */
 function fmtMarcacao(v: number | string | null | undefined): string {
-  if (v == null || v === "") return "";
+  if (v == null || v === "") return "-";
   if (typeof v === "string") {
     const s = v.trim();
-    if (!s) return "";
+    if (!s) return "-";
     if (!/^R?\$?\s*-?[\d.,]+$/.test(s)) return s.toUpperCase();
-    return parseNumeroPtBr(s) > 0 ? "X" : "";
+    return parseNumeroPtBr(s) > 0 ? "X" : "-";
   }
-  return v > 0 ? "X" : "";
+  return v > 0 ? "X" : "-";
 }
 
 function diasTrabalhados(item: ItemFolha): string {
@@ -158,7 +158,7 @@ function diasTrabalhados(item: ItemFolha): string {
   if (n > 0) return formatarNumeroPtBr(n);
   if (typeof bruto === "string" && bruto.trim() && !/^[\d.,\s]+$/.test(bruto)) return bruto;
   const proj = parseNumeroPtBr(item.profissional.proj);
-  return proj > 0 ? formatarNumeroPtBr(proj) : "";
+  return proj > 0 ? formatarNumeroPtBr(proj) : "-";
 }
 
 
@@ -255,7 +255,7 @@ function calcularAlturaLinha(doc: jsPDF, item: ItemFolha): number {
     const val = valores[c.key] ?? "";
     if (!val) continue;
 
-    const fontSize = isStatus && val === situacao ? 5.5 : 7.5;
+    const fontSize = isStatus && val === situacao ? 5.8 : 8;
     const lineHeight = ptToMm(fontSize) * 1.1;
     const maxWidth = c.w - PADDING_CELULA * 2;
     doc.setFontSize(fontSize);
@@ -375,7 +375,7 @@ function drawTableHeader(doc: jsPDF, y: number): number {
   doc.setDrawColor(...COR_BORDA);
   doc.setLineWidth(0.2);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
+  doc.setFontSize(8);
 
   doc.setTextColor(...COR_TEXTO);
 
@@ -480,7 +480,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
       // linha horizontal do meio (divide matricula/cargo-label)
       doc.line(xCursor, y + halfH, xCursor + c.w, y + halfH);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
 
       doc.text(String(item.profissional.matricula ?? ""), xCursor + c.w / 2, y + halfH - 1.5, {
         align: "center",
@@ -492,7 +492,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
     } else if (c.key === "nome") {
       doc.line(xCursor, y + halfH, xCursor + c.w, y + halfH);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
+      doc.setFontSize(7.5);
 
       const nome = item.profissional.nome ?? "";
       const nomeLinhas = doc.splitTextToSize(nome, c.w - 2) as string[];
@@ -500,7 +500,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
         nomeLinhas.length > 1 ? nomeLinhas[0].trimEnd() + "…" : (nomeLinhas[0] ?? "");
       doc.text(nomeShow, xCursor + c.w / 2, y + halfH - 1.5, { align: "center" });
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
       const cargo = item.profissional.cargo ?? "";
       const cargoLinhas = doc.splitTextToSize(cargo, c.w - 2) as string[];
       const cargoShow =
@@ -509,12 +509,12 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
     } else {
       // valor numérico ou ocorrência, centralizado vertical e horizontalmente
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
 
       const val = values[c.key] ?? "";
       if (val) {
         const isLongText = isStatus && val === situacao;
-        const fontSize = isLongText ? 5.5 : 7.5;
+        const fontSize = isLongText ? 5.8 : 8;
         const lineHeight = ptToMm(fontSize) * 1.1;
         const maxWidth = c.w - PADDING_CELULA * 2;
 
@@ -554,7 +554,8 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
 
 
   const pageHeight = doc.internal.pageSize.getHeight();
-  const rodapeReserva = 55;
+  // Faixa compacta: assinaturas em todas as páginas e validação só na última.
+  const rodapeReserva = 65;
   const limiteBaixo = pageHeight - rodapeReserva;
 
   const emissaoStr = new Date().toLocaleString("pt-BR");
@@ -639,7 +640,10 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
     unidadeId: input.unidadeId ?? null,
     secretariaId: input.secretariaId ?? null,
     assinaturas,
-    yPadraoMm: pageHeight - 50,
+    yPadraoMm: pageHeight - 62,
+    ySeloValidacaoMm: pageHeight - 30,
+    tamanhoMaximoAssinaturaPercentual: 55,
+    forcarYPadraoAssinaturas: true,
     xPadraoMm: MARGEM,
     competencia: input.competencia, // Passa a competência para o metadado
   });
