@@ -5,6 +5,7 @@
 import type jsPDF from "jspdf";
 import { auditClient } from "./audit-client";
 import { capturarMetadadosDocumento } from "./documento-metadata.functions";
+import { getCanonicalPublicOrigin } from "./document-validation-url";
 
 export type Rastreio = {
   nome: string;
@@ -59,8 +60,11 @@ export async function gerarCertificado(opts: {
     /* fallback silencioso */
   }
 
-  const origem = typeof window !== "undefined" ? window.location.origin : "";
-  const verificacaoUrl = `${origem}/validar/hash-${hash.slice(0, 16)}`;
+  const origem = getCanonicalPublicOrigin();
+  if (!origem) {
+    throw new Error("Defina o endereço público oficial antes de gerar um certificado com QR Code.");
+  }
+  const verificacaoUrl = `${origem}/api/public/validar-documento`;
   return {
     hash,
     qrDataUrl: await qrDataUrl(verificacaoUrl),

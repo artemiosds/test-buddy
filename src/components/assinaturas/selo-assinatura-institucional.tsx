@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ShieldCheck, BadgeCheck } from "lucide-react";
+import { tryGetDocumentValidationUrl } from "@/lib/document-validation-url";
 
 export type SeloAssinaturaProps = {
   nome?: string | null;
@@ -67,8 +68,7 @@ export function SeloAssinaturaInstitucional({
 }: SeloAssinaturaProps) {
   const alvoQr =
     codigo
-      ? (validationUrl ??
-        (typeof window !== "undefined" ? `${window.location.origin}/validar/${codigo}` : codigo))
+      ? (validationUrl ?? tryGetDocumentValidationUrl(codigo))
       : null;
   const qr = useQrDataUrl(alvoQr);
 

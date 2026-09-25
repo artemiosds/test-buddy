@@ -1,17 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
 
 export const Route = createFileRoute('/api/public/documento-pdf/$id')({
   server: {
     handlers: {
       GET: async ({ params, request }) => {
         const id = params.id
+        const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
         // 1. Busca os metadados do documento (aceita o id ou o código de validação)
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         const base = supabaseAdmin
           .from('documentos_assinados')
-          .select('documento_tipo, status, pdf_storage_path, metadata')
+          .select('documento_tipo, status, pdf_storage_path, metadata, assinado_por_id')
         const { data: doc, error } = await (uuidRe.test(id)
           ? base.eq('id', id)
           : base.eq('codigo_validacao', id)
@@ -32,24 +32,24 @@ export const Route = createFileRoute('/api/public/documento-pdf/$id')({
           return new Response('PDF original não disponível para este documento', { status: 404 })
         }
 
-        // 2. Valida se o documento exige autenticação (LGPD)
-        // Documentos de Frequência, Folha e Piso contêm CPFs e dados salariais sensíveis.
-        const tiposSensiveis = ['frequencia', 'folha_efetivos', 'folha_contratados', 'piso'];
-        const isSensivel = tiposSensiveis.includes(doc.documento_tipo);
-
-        if (isSensivel) {
-          // Verifica se o usuário está autenticado
-          const authHeader = request.headers.get('Authorization');
-          if (!authHeader) {
-             return new Response('Acesso negado: Este documento contém dados sensíveis e exige autenticação.', { status: 401 });
-          }
-          
-          const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-          
-          if (authError || !user) {
-            return new Response('Sessão inválida ou expirada.', { status: 403 });
-          }
+        // 2. O original nunca é público: somente o autor ou um Master pode acessá-lo.
+        const authHeader = request.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+          return new Response('Acesso negado: autenticação obrigatória.', { status: 401 });
+        }
+        const token = authHeader.slice('Bearer '.length);
+        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+        if (authError || !user) {
+          return new Response('Sessão inválida ou expirada.', { status: 403 });
+        }
+        const { data: masterRole } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        if (doc.assinado_por_id !== user.id && !masterRole) {
+          return new Response('Acesso negado: somente o autor ou administrador Master.', { status: 403 });
         }
 
         // 3. Download do PDF do storage

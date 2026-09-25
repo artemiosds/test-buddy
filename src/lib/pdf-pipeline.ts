@@ -15,6 +15,7 @@ import {
 } from "@/lib/pdf-assinaturas";
 import { getSignatureSignedUrl } from "@/lib/assinatura-storage";
 import { requestPdfPosicao } from "@/lib/pdf-posicao-bus";
+import { getDocumentValidationUrl } from "@/lib/document-validation-url";
 
 /** Dimensões de referência usadas pelo editor visual (A4 retrato em px) */
 const REF_W = 400;
@@ -217,7 +218,7 @@ export function drawSignatureStamp(
   ty += 3;
   doc.text(`Hash SHA-256: ${hash.slice(0, 32)}...`, textX, ty);
   ty += 3;
-  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+  const validationUrl = getDocumentValidationUrl(validationCode);
   doc.setTextColor(37, 99, 235);
   doc.text("Valide em:", textX, ty);
   doc.text(validationUrl, textX + 10, ty);
@@ -384,6 +385,17 @@ export type FinalizarPdfOpts = {
  */
 export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<void> {
   const finalFilename = opts.filename.endsWith(".pdf") ? opts.filename : `${opts.filename}.pdf`;
+  let publicOriginReady = true;
+  try {
+    getDocumentValidationUrl("verificar-endereco");
+  } catch (error) {
+    publicOriginReady = false;
+    const { toast } = await import("sonner");
+    toast.error("PDF oficial não emitido", {
+      description: error instanceof Error ? error.message : "Endereço público oficial indisponível.",
+    });
+  }
+  if (!publicOriginReady) return;
 
   // Persiste o registro do documento no banco para permitir validação futura
   let documentoId: string | null = null;
@@ -552,7 +564,7 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
       const hashHex = Array.from(new Uint8Array(hashBuffer))
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
-      const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${validationCode}`;
+      const validationUrl = getDocumentValidationUrl(validationCode);
       const QRCode = await import("qrcode");
       const qrDataUrl = await (QRCode.toDataURL ?? (QRCode as any).default?.toDataURL)(
         validationUrl,
@@ -682,8 +694,8 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
   };
 
   if (opts.semModal) {
-    await aplicarSelo();
     desenharPadroes();
+    await aplicarSelo();
     await baixar();
     return;
   }
@@ -709,16 +721,14 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
 
   // Modal indisponível → posições padrão (nunca quebra o download)
   if (escolha === undefined) {
-    await aplicarSelo();
     desenharPadroes();
+    await aplicarSelo();
     await baixar();
     return;
   }
 
   // Usuário cancelou
   if (escolha === null) return;
-
-  await aplicarSelo();
 
   for (const item of escolha.itens) {
     if (!item.incluir) continue;
@@ -740,5 +750,6 @@ export async function finalizarPdf(doc: jsPDF, opts: FinalizarPdfOpts): Promise<
     }
   }
 
+  await aplicarSelo();
   await baixar();
 }

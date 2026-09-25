@@ -8,6 +8,7 @@
  * Tipos oficiais: frequencia | folha_efetivos | folha_contratados | piso | relatorio
  */
 import type jsPDF from "jspdf";
+import { tryGetDocumentValidationUrl } from "./document-validation-url";
 import { supabase } from "@/integrations/supabase/client";
 import { getSignatureSignedUrl } from "@/lib/assinatura-storage";
 
@@ -443,8 +444,10 @@ export function drawAssinaturasBlock(
     doc.setFontSize(6);
     doc.setTextColor(150, 150, 150);
     doc.setFont("helvetica", "normal");
-    const validationUrl = `${window.location.origin}/validar/${docId}`;
-    doc.text(`Para verificar a autenticidade deste documento, acesse: ${validationUrl}`, marginX, stampY);
+    const validationUrl = tryGetDocumentValidationUrl(docId);
+    if (validationUrl) {
+      doc.text(`Para verificar a autenticidade deste documento, acesse: ${validationUrl}`, marginX, stampY);
+    }
     doc.text(`Código de Autenticidade (Hash): ${docId}`, marginX, stampY + 3);
   }
 

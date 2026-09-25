@@ -1,6 +1,7 @@
 import type jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { capturarMetadadosDocumento } from "./documento-metadata.functions";
+import { getDocumentValidationUrl } from "./document-validation-url";
 
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -107,7 +108,7 @@ export async function registrarDocumentoAssinado(input: SignInput): Promise<Sign
 
   if (error || !data) throw error ?? new Error("Falha ao registrar documento");
 
-  const validationUrl = `${window.location.origin}/api/public/validar-documento?codigo=${codigoValidacao}`;
+  const validationUrl = getDocumentValidationUrl(codigoValidacao);
   const qrDataUrl = await createQrDataUrl(validationUrl);
 
   return {

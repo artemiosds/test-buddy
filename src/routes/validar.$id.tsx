@@ -1,233 +1,125 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  CheckCircle2,
-  XCircle,
-  ShieldCheck,
-  AlertTriangle,
-  Download,
-  ScrollText,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useState, type ChangeEvent } from "react";
+import { AlertTriangle, CheckCircle2, FileCheck2, FileWarning, ShieldCheck, Upload, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getPublicDocumentValidation } from "@/lib/document-validation.functions";
 
 export const Route = createFileRoute("/validar/$id")({
   head: () => ({
     meta: [
-      { title: "Validação de Documento — SMS Oriximiná" },
-      {
-        name: "description",
-        content:
-          "Verifique a autenticidade de um documento emitido pela Secretaria Municipal de Saúde.",
-      },
+      { title: "Validar Documento | Gestão Saúde Oriximiná" },
+      { name: "description", content: "Consulte a autenticidade e a situação de um documento emitido pela Secretaria Municipal de Saúde de Oriximiná." },
+      { property: "og:title", content: "Validar Documento | Gestão Saúde Oriximiná" },
+      { property: "og:description", content: "Consulta pública de autenticidade de documentos da Secretaria Municipal de Saúde de Oriximiná." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ValidarPage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
-  notFoundComponent: () => <div className="p-6">Documento não encontrado.</div>,
+  errorComponent: () => <ValidationShell><p className="text-destructive">Não foi possível consultar o documento agora.</p></ValidationShell>,
+  notFoundComponent: () => <ValidationShell><p>Documento não encontrado.</p></ValidationShell>,
 });
 
-function ValidarPage() {
-  const { id } = Route.useParams();
-  const { data, isLoading } = useQuery({
-    queryKey: ["validar-doc", id],
-    queryFn: async () => {
-      // Aceita tanto o identificador interno quanto o código impresso no PDF.
-      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const base = supabase
-        .from("documentos_assinados")
-        .select(
-          "id, documento_tipo, descricao, hash_sha256, nome_assinante, assinado_em, status, revogado_em, motivo_revogacao, codigo_validacao, pdf_storage_path, metadata",
-        );
-      const { data, error } = await (uuidRe.test(id)
-        ? base.eq("id", id)
-        : base.eq("codigo_validacao", id)
-      ).maybeSingle();
-      if (error) throw error;
+type FileCheck = "idle" | "checking" | "match" | "different";
 
-      if (!data) return null;
-
-      const metadata = (data.metadata ?? {}) as Record<string, unknown>;
-
-      return {
-        id: data.id,
-        tipo: data.documento_tipo,
-        descricao:
-          data.descricao ??
-          ((metadata["filename"] as string | undefined) ??
-            `${data.documento_tipo} — ${data.nome_assinante ?? "Sistema"}`),
-        hash_conteudo: data.hash_sha256,
-        assinado_por_nome: data.nome_assinante,
-        assinado_em: data.assinado_em,
-        status: data.status ?? "ativo",
-        revogado_em: data.revogado_em,
-        motivo_revogacao: data.motivo_revogacao,
-        codigo_validacao: data.codigo_validacao,
-        pdf_storage_path:
-          data.pdf_storage_path ?? (metadata["pdf_storage_path"] as string | undefined) ?? null,
-        timestamp_confiavel: (metadata["timestamp_confiavel"] as string | undefined) ?? null,
-        termo_aceite: (metadata["termo_aceite"] as boolean | undefined) ?? true,
-        metadata: data.metadata,
-      };
-    },
-  });
-
-  const [downloading, setDownloading] = useState(false);
-
-  async function baixarPdfOriginal() {
-    try {
-      setDownloading(true);
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        toast.error("Faça login para baixar o PDF original.");
-        return;
-      }
-      const storagePath = data?.pdf_storage_path;
-      if (!storagePath) {
-        toast.error("PDF original não disponível para este documento.");
-        return;
-      }
-      const signed = await supabase.storage
-        .from("documentos-assinados")
-        .createSignedUrl(storagePath, 60);
-      if (signed.error || !signed.data?.signedUrl) {
-        toast.error("Não foi possível gerar o link de download.");
-        return;
-      }
-      window.open(signed.data.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao baixar PDF.");
-    } finally {
-      setDownloading(false);
-    }
-  }
-
+function ValidationShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-muted flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border overflow-hidden">
-        <header className="bg-success text-success-foreground px-6 py-4 flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7" />
+    <main className="flex min-h-dvh items-center justify-center bg-muted p-4">
+      <section className="w-full max-w-2xl overflow-hidden rounded-lg border bg-card shadow-lg">
+        <header className="flex items-center gap-3 bg-primary px-6 py-5 text-primary-foreground">
+          <ShieldCheck className="h-8 w-8" />
           <div>
-            <h1 className="text-lg font-bold">Validação de Documento</h1>
+            <h1 className="text-xl font-bold">Validação de Documento</h1>
             <p className="text-sm opacity-90">Prefeitura Municipal de Oriximiná — SMS</p>
           </div>
         </header>
+        <div className="space-y-5 p-6">{children}</div>
+      </section>
+    </main>
+  );
+}
 
-        <div className="p-6 space-y-4">
-          {isLoading ? (
-            <p className="text-muted-foreground">Consultando…</p>
-          ) : !data ? (
-            <div className="flex items-start gap-3 rounded-md bg-danger-soft border border-destructive/30 p-4">
-              <XCircle className="h-6 w-6 text-destructive shrink-0" />
-              <div>
-                <p className="font-semibold text-danger-soft-foreground">
-                  Documento não encontrado
-                </p>
-                <p className="text-sm text-danger-soft-foreground">
-                  O identificador informado não corresponde a nenhum documento emitido oficialmente.
-                  Verifique o ID impresso no PDF ou solicite reemissão.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {data.status === "revogado" ? (
-                <div className="flex items-start gap-3 rounded-md bg-danger-soft border border-destructive/30 p-4">
-                  <AlertTriangle className="h-6 w-6 text-destructive shrink-0" />
-                  <div>
-                    <p className="font-semibold text-danger-soft-foreground">Documento REVOGADO</p>
-                    <p className="text-sm text-danger-soft-foreground">
-                      Revogado em{" "}
-                      {data.revogado_em ? new Date(data.revogado_em).toLocaleString("pt-BR") : "—"}.
-                      {data.motivo_revogacao ? ` Motivo: ${data.motivo_revogacao}` : ""}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-3 rounded-md bg-success-soft border border-success/30 p-4">
-                  <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
-                  <div>
-                    <p className="font-semibold text-success-soft-foreground">
-                      Documento autêntico
-                    </p>
-                    <p className="text-sm text-success-soft-foreground">
-                      Este documento consta como emitido oficialmente pela SMS de Oriximiná.
-                    </p>
-                  </div>
-                </div>
-              )}
+function ValidarPage() {
+  const { id } = Route.useParams();
+  const validateDocument = useServerFn(getPublicDocumentValidation);
+  const [fileCheck, setFileCheck] = useState<FileCheck>("idle");
+  const [fileName, setFileName] = useState("");
+  const { data, isLoading } = useQuery({
+    queryKey: ["validar-documento-publico", id],
+    queryFn: () => validateDocument({ data: { code: id } }),
+  });
 
-              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                <dt className="font-medium text-muted-foreground">Tipo</dt>
-                <dd className="sm:col-span-2 text-foreground">{data.tipo}</dd>
+  async function checkFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !data) return;
+    setFileName(file.name);
+    setFileCheck("checking");
+    try {
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      setFileCheck(hash.toLowerCase() === data.hash.toLowerCase() ? "match" : "different");
+    } catch {
+      setFileCheck("different");
+    }
+  }
 
-                <dt className="font-medium text-muted-foreground">Descrição</dt>
-                <dd className="sm:col-span-2 text-foreground">{data.descricao}</dd>
+  if (isLoading) return <ValidationShell><p className="text-muted-foreground">Consultando autenticidade…</p></ValidationShell>;
+  if (!data) {
+    return (
+      <ValidationShell>
+        <div className="flex gap-3 rounded-md border border-destructive/30 bg-danger-soft p-4">
+          <XCircle className="h-6 w-6 shrink-0 text-destructive" />
+          <div><p className="font-semibold text-danger-soft-foreground">Documento não encontrado</p><p className="text-sm text-danger-soft-foreground">Confira o código impresso no documento e tente novamente.</p></div>
+        </div>
+        <Link to="/api/public/validar-documento" className="text-sm font-medium text-primary hover:underline">Consultar outro código</Link>
+      </ValidationShell>
+    );
+  }
 
-                <dt className="font-medium text-muted-foreground">Assinado por</dt>
-                <dd className="sm:col-span-2 text-foreground">{data.assinado_por_nome ?? "—"}</dd>
-
-                <dt className="font-medium text-muted-foreground">Emitido em</dt>
-                <dd className="sm:col-span-2 text-foreground">
-                  {new Date(data.timestamp_confiavel ?? data.assinado_em).toLocaleString("pt-BR")}
-                  {data.timestamp_confiavel ? (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (timestamp confiável)
-                    </span>
-                  ) : null}
-                </dd>
-
-                <dt className="font-medium text-muted-foreground">Código de Validação</dt>
-                <dd className="sm:col-span-2 font-mono text-xs text-foreground break-all">
-                  {(data as any).metadata?.codigo_validacao || (data as any).codigo_validacao || data.id}
-                </dd>
-
-                <dt className="font-medium text-muted-foreground">Identificador</dt>
-                <dd className="sm:col-span-2 font-mono text-xs text-foreground break-all">
-                  {data.id}
-                </dd>
-
-                <dt className="font-medium text-muted-foreground">Hash SHA-256</dt>
-                <dd className="sm:col-span-2 font-mono text-xs text-foreground break-all">
-                  {data.hash_conteudo}
-                </dd>
-              </dl>
-
-              {data.termo_aceite ? (
-                <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-                  <ScrollText className="h-4 w-4 shrink-0 text-primary" />
-                  <span>
-                    Termo de responsabilidade aceito pelo signatário em{" "}
-                    {new Date(data.timestamp_confiavel ?? data.assinado_em).toLocaleString("pt-BR")}
-                    .
-                  </span>
-                </div>
-              ) : null}
-
-              <div className="pt-2">
-                <button
-                  onClick={baixarPdfOriginal}
-                  disabled={downloading}
-                  className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
-                >
-                  <Download className="h-4 w-4" />
-                  {downloading ? "Gerando link..." : "Baixar PDF original"}
-                </button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Disponível apenas para o autor do documento ou administrador Master.
-                </p>
-              </div>
-            </>
-          )}
-
-          <div className="pt-4 border-t text-xs text-muted-foreground">
-            <Link to="/" className="text-success hover:underline">
-              ← Voltar ao portal
-            </Link>
-          </div>
+  const revoked = data.status === "revogado";
+  return (
+    <ValidationShell>
+      <div className={`flex gap-3 rounded-md border p-4 ${revoked ? "border-destructive/30 bg-danger-soft" : "border-success/30 bg-success-soft"}`}>
+        {revoked ? <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" /> : <CheckCircle2 className="h-6 w-6 shrink-0 text-success" />}
+        <div>
+          <p className={`font-semibold ${revoked ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}>{revoked ? "Documento revogado" : "Documento autêntico"}</p>
+          <p className={`text-sm ${revoked ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}>
+            {revoked ? `Revogado em ${data.revogadoEm ? new Date(data.revogadoEm).toLocaleString("pt-BR") : "data não informada"}.${data.motivoRevogacao ? ` Motivo: ${data.motivoRevogacao}` : ""}` : "Este código consta nos registros oficiais da SMS de Oriximiná."}
+          </p>
         </div>
       </div>
-    </div>
+
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+        <dt className="font-medium text-muted-foreground">Tipo</dt><dd className="text-foreground sm:col-span-2">{data.tipo}</dd>
+        <dt className="font-medium text-muted-foreground">Descrição</dt><dd className="text-foreground sm:col-span-2">{data.descricao}</dd>
+        <dt className="font-medium text-muted-foreground">Assinado por</dt><dd className="text-foreground sm:col-span-2">{data.nomeAssinante ?? "—"}</dd>
+        <dt className="font-medium text-muted-foreground">Emitido em</dt><dd className="text-foreground sm:col-span-2">{new Date(data.assinadoEm).toLocaleString("pt-BR")}</dd>
+        <dt className="font-medium text-muted-foreground">Código</dt><dd className="break-all font-mono text-xs text-foreground sm:col-span-2">{data.codigoValidacao}</dd>
+        <dt className="font-medium text-muted-foreground">Hash SHA-256</dt><dd className="break-all font-mono text-xs text-foreground sm:col-span-2">{data.hash}</dd>
+      </dl>
+
+      <div className="space-y-3 border-t pt-5">
+        <div>
+          <h2 className="font-semibold text-foreground">Conferir o arquivo PDF</h2>
+          <p className="text-sm text-muted-foreground">Selecione o PDF recebido. A conferência acontece neste dispositivo e o arquivo não é enviado.</p>
+        </div>
+        <Button asChild variant="outline">
+          <label><Upload className="h-4 w-4" />Selecionar PDF<input className="sr-only" type="file" accept="application/pdf,.pdf" onChange={checkFile} /></label>
+        </Button>
+        {fileCheck !== "idle" ? (
+          <div className={`flex items-start gap-2 rounded-md border p-3 text-sm ${fileCheck === "match" ? "border-success/30 bg-success-soft text-success-soft-foreground" : fileCheck === "different" ? "border-destructive/30 bg-danger-soft text-danger-soft-foreground" : "bg-muted text-muted-foreground"}`}>
+            {fileCheck === "match" ? <FileCheck2 className="h-5 w-5 shrink-0" /> : <FileWarning className="h-5 w-5 shrink-0" />}
+            <span>{fileCheck === "checking" ? "Conferindo o arquivo…" : fileCheck === "match" ? `${fileName}: arquivo íntegro e correspondente ao registro oficial.` : `${fileName}: o conteúdo não corresponde ao arquivo oficial.`}</span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="border-t pt-4 text-xs text-muted-foreground">
+        <Link to="/api/public/validar-documento" className="font-medium text-primary hover:underline">Consultar outro código</Link>
+      </div>
+    </ValidationShell>
   );
 }

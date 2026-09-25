@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
  * A validação em si acontece em /validar/{codigo} — página única e oficial.
  */
 export const Route = createFileRoute("/api/public/validar-documento")({
+  head: () => ({
+    meta: [
+      { title: "Consulta de Autenticidade | Gestão Saúde Oriximiná" },
+      { name: "description", content: "Informe o código de um documento para consultar sua autenticidade." },
+      { property: "og:title", content: "Consulta de Autenticidade | Gestão Saúde Oriximiná" },
+      { property: "og:description", content: "Consulta pública de documentos emitidos pela Secretaria Municipal de Saúde de Oriximiná." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ValidarDocumentoPage,
 });
 
@@ -24,7 +34,7 @@ function ValidarDocumentoPage() {
 
   return (
     <div className="min-h-dvh bg-muted flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-card rounded-2xl shadow-lg border overflow-hidden">
+      <div className="w-full max-w-xl bg-card rounded-lg shadow-lg border overflow-hidden">
         <div className="bg-primary text-primary-foreground p-8 text-center space-y-3">
           <ShieldCheck className="w-14 h-14 mx-auto" />
           <h1 className="text-2xl font-bold tracking-tight">Portal de Autenticidade Digital</h1>
