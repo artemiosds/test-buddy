@@ -244,13 +244,21 @@ export function ImportProfissionaisDialog() {
     const json = XLSX.utils.sheet_to_json<Row>(ws, { defval: "", raw: true });
 
     const parsed: Parsed[] = json.map((r, i) => {
+      // Aceita cabeçalhos como "salario_base", "Salário Base" ou "SALARIO-BASE".
+      const hkey = (s: unknown) => norm(s).replace(/[^a-z0-9]/g, "");
       const get = (k: string) => {
-        const key = Object.keys(r).find((h) => norm(h) === norm(k));
+        const key = Object.keys(r).find((h) => hkey(h) === hkey(k));
         return key ? r[key] : "";
       };
+      // Aceita 1234.56, 1234,56, 1.234,56 e "R$ 1.234,56".
       const numOrNull = (v: unknown): number | null => {
         if (v == null || v === "") return null;
-        const n = Number(String(v).replace(",", "."));
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        let s = String(v).replace(/[^\d,.\-]/g, "");
+        if (!s) return null;
+        if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+        else if ((s.match(/\./g) ?? []).length > 1) s = s.replace(/\./g, "");
+        const n = Number(s);
         return Number.isFinite(n) ? n : null;
       };
       const cpf = String(get("cpf") ?? "").replace(/\D/g, "");
