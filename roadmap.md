@@ -11,4 +11,5 @@
 - [x] QR das assinaturas: consulta pública mínima, endereço oficial estável e conferência local do PDF por SHA-256
 
 ## Pendente
+- [ ] Implementar envio consolidado por unidade para Efetivos/Contratados, agrupamento e ações conjuntas em Aprovações, e reparar com segurança o caso de Outubro/2026 da Vigilância Sanitária
 - [ ] Alinhar filtros/contagem de ativos dos painéis de Relatórios (Visão Geral do Sistema, Dashboard Executivo Secretaria, Sala de Situação, Dashboard Executivo RH, Situação Funcional, Centro de Controle da Força de Trabalho, Quadro de Lotação, Distribuição por Setor) à regra de `src/lib/situacao-funcional.ts` usada em Profissionais e Geral Cargos
