@@ -404,7 +404,12 @@
   }
 }
 
-#lovable-badge,
+#lovable-badge {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .lovable-badge {
   display: none !important;
 }
