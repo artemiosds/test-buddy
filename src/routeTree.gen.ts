@@ -9,104 +9,95 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SmtpTestRouteImport } from './routes/smtp-test'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
-import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
-import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
-import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated/assinar-pdf'
-import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
-import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
-import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
-import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authenticated/competencias'
-import { Route as AuthenticatedControleForcaTrabalhoRouteImport } from './routes/_authenticated/controle-forca-trabalho'
-import { Route as AuthenticatedDocumentosEmitidosRouteImport } from './routes/_authenticated/documentos-emitidos'
-import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
-import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
-import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
-import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticated/gestao-rh'
-import { Route as AuthenticatedLayoutsImportacaoRouteImport } from './routes/_authenticated/layouts-importacao'
-import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
-import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
-import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
-import { Route as AuthenticatedRelatorioInteligenteRouteImport } from './routes/_authenticated/relatorio-inteligente'
-import { Route as AuthenticatedRelatorioNotificacoesRouteImport } from './routes/_authenticated/relatorio-notificacoes'
-import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
-import { Route as AuthenticatedRelatoriosCadastroRouteImport } from './routes/_authenticated/relatorios-cadastro'
-import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
-import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
-import { Route as AuthenticatedRelatoriosGerenciaisRouteImport } from './routes/_authenticated/relatorios-gerenciais'
-import { Route as AuthenticatedRelatoriosPisoRouteImport } from './routes/_authenticated/relatorios-piso'
-import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
-import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
-import { Route as AuthenticatedSalaSituacaoRouteImport } from './routes/_authenticated/sala-situacao'
-import { Route as AuthenticatedSaudeRouteImport } from './routes/_authenticated/saude'
-import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
-import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
-import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
-import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
-import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_authenticated/administracao/mural'
-import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
-import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
-import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
-import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
-import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_authenticated/configuracao.perfis'
-import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
-import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
-import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
-import { Route as AuthenticatedFuncoesIdRouteImport } from './routes/_authenticated/funcoes.$id'
-import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
-import { Route as AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport } from './routes/_authenticated/gestao-pessoas.distribuicao-setor'
-import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
-import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
-import { Route as AuthenticatedMeuPerfilAssinaturaRouteImport } from './routes/_authenticated/meu-perfil.assinatura'
-import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
-import { Route as AuthenticatedPisoEnfermagemExtracaoRouteImport } from './routes/_authenticated/piso-enfermagem.extracao'
-import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
-import { Route as AuthenticatedPisoEnfermagemImportarContratadosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-contratados'
-import { Route as AuthenticatedPisoEnfermagemImportarEfetivosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-efetivos'
-import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
-import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './routes/_authenticated/relatorios-gerenciais.index'
-import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
-import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
-import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
-import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './routes/_authenticated/relatorios-gerenciais.funcoes'
-import { Route as AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.geral-cargos'
-import { Route as AuthenticatedRelatoriosGerenciaisPisoRouteImport } from './routes/_authenticated/relatorios-gerenciais.piso'
-import { Route as AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport } from './routes/_authenticated/relatorios-gerenciais.profissionais'
-import { Route as AuthenticatedRelatoriosGerenciaisSalariosRouteImport } from './routes/_authenticated/relatorios-gerenciais.salarios'
-import { Route as AuthenticatedRelatoriosGerenciaisSetoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.setores'
-import { Route as AuthenticatedRelatoriosGerenciaisUnidadesRouteImport } from './routes/_authenticated/relatorios-gerenciais.unidades'
-import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
+import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticated/setores'
+import { Route as AuthenticatedSegurancaRouteImport } from './routes/_authenticated/seguranca'
+import { Route as AuthenticatedSaudeRouteImport } from './routes/_authenticated/saude'
+import { Route as AuthenticatedSalaSituacaoRouteImport } from './routes/_authenticated/sala-situacao'
+import { Route as AuthenticatedRelatoriosStatusRouteImport } from './routes/_authenticated/relatorios-status'
+import { Route as AuthenticatedRelatoriosProfissionalRouteImport } from './routes/_authenticated/relatorios-profissional'
+import { Route as AuthenticatedRelatoriosPisoRouteImport } from './routes/_authenticated/relatorios-piso'
+import { Route as AuthenticatedRelatoriosGerenciaisRouteImport } from './routes/_authenticated/relatorios-gerenciais'
+import { Route as AuthenticatedRelatoriosExecutivoRouteImport } from './routes/_authenticated/relatorios-executivo'
+import { Route as AuthenticatedRelatoriosConsolidadoRouteImport } from './routes/_authenticated/relatorios-consolidado'
+import { Route as AuthenticatedRelatoriosCadastroRouteImport } from './routes/_authenticated/relatorios-cadastro'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedRelatorioNotificacoesRouteImport } from './routes/_authenticated/relatorio-notificacoes'
+import { Route as AuthenticatedRelatorioInteligenteRouteImport } from './routes/_authenticated/relatorio-inteligente'
+import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
+import { Route as AuthenticatedPendenciasRouteImport } from './routes/_authenticated/pendencias'
+import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
+import { Route as AuthenticatedLayoutsImportacaoRouteImport } from './routes/_authenticated/layouts-importacao'
+import { Route as AuthenticatedGestaoRhRouteImport } from './routes/_authenticated/gestao-rh'
+import { Route as AuthenticatedGestaoProfissionaisRouteImport } from './routes/_authenticated/gestao-profissionais'
+import { Route as AuthenticatedFrequenciasRouteImport } from './routes/_authenticated/frequencias'
+import { Route as AuthenticatedFeriadosRouteImport } from './routes/_authenticated/feriados'
+import { Route as AuthenticatedDocumentosEmitidosRouteImport } from './routes/_authenticated/documentos-emitidos'
+import { Route as AuthenticatedControleForcaTrabalhoRouteImport } from './routes/_authenticated/controle-forca-trabalho'
+import { Route as AuthenticatedCompetenciasRouteImport } from './routes/_authenticated/competencias'
+import { Route as AuthenticatedCargosFuncoesRouteImport } from './routes/_authenticated/cargos-funcoes'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedAssinarPdfRouteImport } from './routes/_authenticated/assinar-pdf'
+import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
+import { Route as AuthenticatedAnaliticoRouteImport } from './routes/_authenticated/analitico'
 import { Route as AuthenticatedUnidadesIndexRouteImport } from './routes/_authenticated/unidades.index'
-import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
-import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
-import { Route as ApiPublicHsmStreamRouteImport } from './routes/api/public/hsm-stream'
+import { Route as AuthenticatedRelatoriosGerenciaisIndexRouteImport } from './routes/_authenticated/relatorios-gerenciais.index'
+import { Route as AuthenticatedPisoEnfermagemIndexRouteImport } from './routes/_authenticated/piso-enfermagem.index'
+import { Route as AuthenticatedGestaoPessoasIndexRouteImport } from './routes/_authenticated/gestao-pessoas.index'
+import { Route as AuthenticatedConfiguracaoIndexRouteImport } from './routes/_authenticated/configuracao.index'
 import { Route as ApiPublicValidarDocumentoRouteImport } from './routes/api/public/validar-documento'
-import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
-import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
-import { Route as ApiPublicHooksAuditarAnexosRouteImport } from './routes/api/public/hooks/auditar-anexos'
-import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
-import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
-import { Route as ApiPublicHooksMuralLembretesRouteImport } from './routes/api/public/hooks/mural-lembretes'
+import { Route as ApiPublicHsmStreamRouteImport } from './routes/api/public/hsm-stream'
+import { Route as AuthenticatedUsuariosIdRouteImport } from './routes/_authenticated/usuarios.$id'
+import { Route as AuthenticatedUnidadesIdRouteImport } from './routes/_authenticated/unidades.$id'
+import { Route as AuthenticatedSetoresIdRouteImport } from './routes/_authenticated/setores.$id'
+import { Route as AuthenticatedRelatoriosGerenciaisUnidadesRouteImport } from './routes/_authenticated/relatorios-gerenciais.unidades'
+import { Route as AuthenticatedRelatoriosGerenciaisSetoresRouteImport } from './routes/_authenticated/relatorios-gerenciais.setores'
+import { Route as AuthenticatedRelatoriosGerenciaisSalariosRouteImport } from './routes/_authenticated/relatorios-gerenciais.salarios'
+import { Route as AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport } from './routes/_authenticated/relatorios-gerenciais.profissionais'
+import { Route as AuthenticatedRelatoriosGerenciaisPisoRouteImport } from './routes/_authenticated/relatorios-gerenciais.piso'
+import { Route as AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.geral-cargos'
+import { Route as AuthenticatedRelatoriosGerenciaisFuncoesRouteImport } from './routes/_authenticated/relatorios-gerenciais.funcoes'
+import { Route as AuthenticatedRelatoriosGerenciaisEstruturaRouteImport } from './routes/_authenticated/relatorios-gerenciais.estrutura'
+import { Route as AuthenticatedRelatoriosGerenciaisCargosRouteImport } from './routes/_authenticated/relatorios-gerenciais.cargos'
+import { Route as AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport } from './routes/_authenticated/relatorios-gerenciais.auditoria'
+import { Route as AuthenticatedProfissionaisIdRouteImport } from './routes/_authenticated/profissionais.$id'
+import { Route as AuthenticatedPisoEnfermagemImportarEfetivosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-efetivos'
+import { Route as AuthenticatedPisoEnfermagemImportarContratadosRouteImport } from './routes/_authenticated/piso-enfermagem.importar-contratados'
+import { Route as AuthenticatedPisoEnfermagemImportarRouteImport } from './routes/_authenticated/piso-enfermagem.importar'
+import { Route as AuthenticatedPisoEnfermagemExtracaoRouteImport } from './routes/_authenticated/piso-enfermagem.extracao'
+import { Route as AuthenticatedMeuPerfilAssinaturaRouteImport } from './routes/_authenticated/meu-perfil.assinatura'
+import { Route as AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport } from './routes/_authenticated/gestao-pessoas.situacao-funcional'
+import { Route as AuthenticatedGestaoPessoasLotacaoRouteImport } from './routes/_authenticated/gestao-pessoas.lotacao'
+import { Route as AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport } from './routes/_authenticated/gestao-pessoas.distribuicao-setor'
+import { Route as AuthenticatedFuncoesIdRouteImport } from './routes/_authenticated/funcoes.$id'
+import { Route as AuthenticatedFrequenciasIdRouteImport } from './routes/_authenticated/frequencias_.$id'
+import { Route as AuthenticatedFrequenciaEfetivosRouteImport } from './routes/_authenticated/frequencia.efetivos'
+import { Route as AuthenticatedFrequenciaContratadosRouteImport } from './routes/_authenticated/frequencia.contratados'
+import { Route as AuthenticatedConfiguracaoPerfisRouteImport } from './routes/_authenticated/configuracao.perfis'
+import { Route as AuthenticatedCompetenciasIdRouteImport } from './routes/_authenticated/competencias.$id'
+import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
+import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
+import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_authenticated/administracao/mural'
 import { Route as ApiPublicHooksPurgarDocumentosRouteImport } from './routes/api/public/hooks/purgar-documentos'
+import { Route as ApiPublicHooksMuralLembretesRouteImport } from './routes/api/public/hooks/mural-lembretes'
+import { Route as ApiPublicHooksEventosWorkerRouteImport } from './routes/api/public/hooks/eventos-worker'
+import { Route as ApiPublicHooksDeadlineCheckRouteImport } from './routes/api/public/hooks/deadline-check'
+import { Route as ApiPublicHooksAuditarAnexosRouteImport } from './routes/api/public/hooks/auditar-anexos'
+import { Route as ApiPublicDocumentoPdfIdRouteImport } from './routes/api/public/documento-pdf.$id'
+import { Route as AuthenticatedConfiguracaoPerfisIdRouteImport } from './routes/_authenticated/configuracao.perfis.$id'
 
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const SmtpTestRoute = SmtpTestRouteImport.update({
+  id: '/smtp-test',
+  path: '/smtp-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -114,9 +105,18 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SmtpTestRoute = SmtpTestRouteImport.update({
-  id: '/smtp-test',
-  path: '/smtp-test',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -124,179 +124,14 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAnaliticoRoute = AuthenticatedAnaliticoRouteImport.update({
-  id: '/analitico',
-  path: '/analitico',
-  getParentRoute: () => AuthenticatedRoute,
+const ValidarIdRoute = ValidarIdRouteImport.update({
+  id: '/validar/$id',
+  path: '/validar/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
-  id: '/aprovacoes',
-  path: '/aprovacoes',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAssinarPdfRoute = AuthenticatedAssinarPdfRouteImport.update({
-  id: '/assinar-pdf',
-  path: '/assinar-pdf',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAssinaturasRoute =
-  AuthenticatedAssinaturasRouteImport.update({
-    id: '/assinaturas',
-    path: '/assinaturas',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
-  id: '/auditoria',
-  path: '/auditoria',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCargosFuncoesRoute =
-  AuthenticatedCargosFuncoesRouteImport.update({
-    id: '/cargos-funcoes',
-    path: '/cargos-funcoes',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedCompetenciasRoute =
-  AuthenticatedCompetenciasRouteImport.update({
-    id: '/competencias',
-    path: '/competencias',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedControleForcaTrabalhoRoute =
-  AuthenticatedControleForcaTrabalhoRouteImport.update({
-    id: '/controle-forca-trabalho',
-    path: '/controle-forca-trabalho',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedDocumentosEmitidosRoute =
-  AuthenticatedDocumentosEmitidosRouteImport.update({
-    id: '/documentos-emitidos',
-    path: '/documentos-emitidos',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFeriadosRoute = AuthenticatedFeriadosRouteImport.update({
-  id: '/feriados',
-  path: '/feriados',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedFrequenciasRoute =
-  AuthenticatedFrequenciasRouteImport.update({
-    id: '/frequencias',
-    path: '/frequencias',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedGestaoProfissionaisRoute =
-  AuthenticatedGestaoProfissionaisRouteImport.update({
-    id: '/gestao-profissionais',
-    path: '/gestao-profissionais',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedGestaoRhRoute = AuthenticatedGestaoRhRouteImport.update({
-  id: '/gestao-rh',
-  path: '/gestao-rh',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedLayoutsImportacaoRoute =
-  AuthenticatedLayoutsImportacaoRouteImport.update({
-    id: '/layouts-importacao',
-    path: '/layouts-importacao',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedNotificacoesRoute =
-  AuthenticatedNotificacoesRouteImport.update({
-    id: '/notificacoes',
-    path: '/notificacoes',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedPendenciasRoute = AuthenticatedPendenciasRouteImport.update({
-  id: '/pendencias',
-  path: '/pendencias',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedProfissionaisRoute =
-  AuthenticatedProfissionaisRouteImport.update({
-    id: '/profissionais',
-    path: '/profissionais',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatorioInteligenteRoute =
-  AuthenticatedRelatorioInteligenteRouteImport.update({
-    id: '/relatorio-inteligente',
-    path: '/relatorio-inteligente',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatorioNotificacoesRoute =
-  AuthenticatedRelatorioNotificacoesRouteImport.update({
-    id: '/relatorio-notificacoes',
-    path: '/relatorio-notificacoes',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRelatoriosCadastroRoute =
-  AuthenticatedRelatoriosCadastroRouteImport.update({
-    id: '/relatorios-cadastro',
-    path: '/relatorios-cadastro',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosConsolidadoRoute =
-  AuthenticatedRelatoriosConsolidadoRouteImport.update({
-    id: '/relatorios-consolidado',
-    path: '/relatorios-consolidado',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosExecutivoRoute =
-  AuthenticatedRelatoriosExecutivoRouteImport.update({
-    id: '/relatorios-executivo',
-    path: '/relatorios-executivo',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosGerenciaisRoute =
-  AuthenticatedRelatoriosGerenciaisRouteImport.update({
-    id: '/relatorios-gerenciais',
-    path: '/relatorios-gerenciais',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosPisoRoute =
-  AuthenticatedRelatoriosPisoRouteImport.update({
-    id: '/relatorios-piso',
-    path: '/relatorios-piso',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosProfissionalRoute =
-  AuthenticatedRelatoriosProfissionalRouteImport.update({
-    id: '/relatorios-profissional',
-    path: '/relatorios-profissional',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRelatoriosStatusRoute =
-  AuthenticatedRelatoriosStatusRouteImport.update({
-    id: '/relatorios-status',
-    path: '/relatorios-status',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSalaSituacaoRoute =
-  AuthenticatedSalaSituacaoRouteImport.update({
-    id: '/sala-situacao',
-    path: '/sala-situacao',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSaudeRoute = AuthenticatedSaudeRouteImport.update({
-  id: '/saude',
-  path: '/saude',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSegurancaRoute = AuthenticatedSegurancaRouteImport.update({
-  id: '/seguranca',
-  path: '/seguranca',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSetoresRoute = AuthenticatedSetoresRouteImport.update({
-  id: '/setores',
-  path: '/setores',
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTiposUnidadeRoute =
@@ -305,139 +140,186 @@ const AuthenticatedTiposUnidadeRoute =
     path: '/tipos-unidade',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
+const AuthenticatedSetoresRoute = AuthenticatedSetoresRouteImport.update({
+  id: '/setores',
+  path: '/setores',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ValidarIdRoute = ValidarIdRouteImport.update({
-  id: '/validar/$id',
-  path: '/validar/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAdministracaoMuralRoute =
-  AuthenticatedAdministracaoMuralRouteImport.update({
-    id: '/administracao/mural',
-    path: '/administracao/mural',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAdministracaoSistemasExternosRoute =
-  AuthenticatedAdministracaoSistemasExternosRouteImport.update({
-    id: '/administracao/sistemas-externos',
-    path: '/administracao/sistemas-externos',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedCargosIdRoute = AuthenticatedCargosIdRouteImport.update({
-  id: '/cargos/$id',
-  path: '/cargos/$id',
+const AuthenticatedSegurancaRoute = AuthenticatedSegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedCompetenciasIdRoute =
-  AuthenticatedCompetenciasIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedCompetenciasRoute,
-  } as any)
-const AuthenticatedConfiguracaoIndexRoute =
-  AuthenticatedConfiguracaoIndexRouteImport.update({
-    id: '/configuracao/',
-    path: '/configuracao/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedConfiguracaoPerfisRoute =
-  AuthenticatedConfiguracaoPerfisRouteImport.update({
-    id: '/configuracao/perfis',
-    path: '/configuracao/perfis',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFrequenciaContratadosRoute =
-  AuthenticatedFrequenciaContratadosRouteImport.update({
-    id: '/frequencia/contratados',
-    path: '/frequencia/contratados',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFrequenciaEfetivosRoute =
-  AuthenticatedFrequenciaEfetivosRouteImport.update({
-    id: '/frequencia/efetivos',
-    path: '/frequencia/efetivos',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFrequenciasIdRoute =
-  AuthenticatedFrequenciasIdRouteImport.update({
-    id: '/frequencias_/$id',
-    path: '/frequencias/$id',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFuncoesIdRoute = AuthenticatedFuncoesIdRouteImport.update({
-  id: '/funcoes/$id',
-  path: '/funcoes/$id',
+const AuthenticatedSaudeRoute = AuthenticatedSaudeRouteImport.update({
+  id: '/saude',
+  path: '/saude',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedGestaoPessoasIndexRoute =
-  AuthenticatedGestaoPessoasIndexRouteImport.update({
-    id: '/gestao-pessoas/',
-    path: '/gestao-pessoas/',
+const AuthenticatedSalaSituacaoRoute =
+  AuthenticatedSalaSituacaoRouteImport.update({
+    id: '/sala-situacao',
+    path: '/sala-situacao',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedGestaoPessoasDistribuicaoSetorRoute =
-  AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport.update({
-    id: '/gestao-pessoas/distribuicao-setor',
-    path: '/gestao-pessoas/distribuicao-setor',
+const AuthenticatedRelatoriosStatusRoute =
+  AuthenticatedRelatoriosStatusRouteImport.update({
+    id: '/relatorios-status',
+    path: '/relatorios-status',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedGestaoPessoasLotacaoRoute =
-  AuthenticatedGestaoPessoasLotacaoRouteImport.update({
-    id: '/gestao-pessoas/lotacao',
-    path: '/gestao-pessoas/lotacao',
+const AuthenticatedRelatoriosProfissionalRoute =
+  AuthenticatedRelatoriosProfissionalRouteImport.update({
+    id: '/relatorios-profissional',
+    path: '/relatorios-profissional',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedGestaoPessoasSituacaoFuncionalRoute =
-  AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport.update({
-    id: '/gestao-pessoas/situacao-funcional',
-    path: '/gestao-pessoas/situacao-funcional',
+const AuthenticatedRelatoriosPisoRoute =
+  AuthenticatedRelatoriosPisoRouteImport.update({
+    id: '/relatorios-piso',
+    path: '/relatorios-piso',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedMeuPerfilAssinaturaRoute =
-  AuthenticatedMeuPerfilAssinaturaRouteImport.update({
-    id: '/meu-perfil/assinatura',
-    path: '/meu-perfil/assinatura',
+const AuthenticatedRelatoriosGerenciaisRoute =
+  AuthenticatedRelatoriosGerenciaisRouteImport.update({
+    id: '/relatorios-gerenciais',
+    path: '/relatorios-gerenciais',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemIndexRoute =
-  AuthenticatedPisoEnfermagemIndexRouteImport.update({
-    id: '/piso-enfermagem/',
-    path: '/piso-enfermagem/',
+const AuthenticatedRelatoriosExecutivoRoute =
+  AuthenticatedRelatoriosExecutivoRouteImport.update({
+    id: '/relatorios-executivo',
+    path: '/relatorios-executivo',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemExtracaoRoute =
-  AuthenticatedPisoEnfermagemExtracaoRouteImport.update({
-    id: '/piso-enfermagem/extracao',
-    path: '/piso-enfermagem/extracao',
+const AuthenticatedRelatoriosConsolidadoRoute =
+  AuthenticatedRelatoriosConsolidadoRouteImport.update({
+    id: '/relatorios-consolidado',
+    path: '/relatorios-consolidado',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemImportarRoute =
-  AuthenticatedPisoEnfermagemImportarRouteImport.update({
-    id: '/piso-enfermagem/importar',
-    path: '/piso-enfermagem/importar',
+const AuthenticatedRelatoriosCadastroRoute =
+  AuthenticatedRelatoriosCadastroRouteImport.update({
+    id: '/relatorios-cadastro',
+    path: '/relatorios-cadastro',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemImportarContratadosRoute =
-  AuthenticatedPisoEnfermagemImportarContratadosRouteImport.update({
-    id: '/piso-enfermagem/importar-contratados',
-    path: '/piso-enfermagem/importar-contratados',
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRelatorioNotificacoesRoute =
+  AuthenticatedRelatorioNotificacoesRouteImport.update({
+    id: '/relatorio-notificacoes',
+    path: '/relatorio-notificacoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPisoEnfermagemImportarEfetivosRoute =
-  AuthenticatedPisoEnfermagemImportarEfetivosRouteImport.update({
-    id: '/piso-enfermagem/importar-efetivos',
-    path: '/piso-enfermagem/importar-efetivos',
+const AuthenticatedRelatorioInteligenteRoute =
+  AuthenticatedRelatorioInteligenteRouteImport.update({
+    id: '/relatorio-inteligente',
+    path: '/relatorio-inteligente',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedProfissionaisIdRoute =
-  AuthenticatedProfissionaisIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedProfissionaisRoute,
+const AuthenticatedProfissionaisRoute =
+  AuthenticatedProfissionaisRouteImport.update({
+    id: '/profissionais',
+    path: '/profissionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPendenciasRoute = AuthenticatedPendenciasRouteImport.update({
+  id: '/pendencias',
+  path: '/pendencias',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotificacoesRoute =
+  AuthenticatedNotificacoesRouteImport.update({
+    id: '/notificacoes',
+    path: '/notificacoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedLayoutsImportacaoRoute =
+  AuthenticatedLayoutsImportacaoRouteImport.update({
+    id: '/layouts-importacao',
+    path: '/layouts-importacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoRhRoute = AuthenticatedGestaoRhRouteImport.update({
+  id: '/gestao-rh',
+  path: '/gestao-rh',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedGestaoProfissionaisRoute =
+  AuthenticatedGestaoProfissionaisRouteImport.update({
+    id: '/gestao-profissionais',
+    path: '/gestao-profissionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFrequenciasRoute =
+  AuthenticatedFrequenciasRouteImport.update({
+    id: '/frequencias',
+    path: '/frequencias',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFeriadosRoute = AuthenticatedFeriadosRouteImport.update({
+  id: '/feriados',
+  path: '/feriados',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDocumentosEmitidosRoute =
+  AuthenticatedDocumentosEmitidosRouteImport.update({
+    id: '/documentos-emitidos',
+    path: '/documentos-emitidos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedControleForcaTrabalhoRoute =
+  AuthenticatedControleForcaTrabalhoRouteImport.update({
+    id: '/controle-forca-trabalho',
+    path: '/controle-forca-trabalho',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompetenciasRoute =
+  AuthenticatedCompetenciasRouteImport.update({
+    id: '/competencias',
+    path: '/competencias',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCargosFuncoesRoute =
+  AuthenticatedCargosFuncoesRouteImport.update({
+    id: '/cargos-funcoes',
+    path: '/cargos-funcoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAssinaturasRoute =
+  AuthenticatedAssinaturasRouteImport.update({
+    id: '/assinaturas',
+    path: '/assinaturas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAssinarPdfRoute = AuthenticatedAssinarPdfRouteImport.update({
+  id: '/assinar-pdf',
+  path: '/assinar-pdf',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAnaliticoRoute = AuthenticatedAnaliticoRouteImport.update({
+  id: '/analitico',
+  path: '/analitico',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUnidadesIndexRoute =
+  AuthenticatedUnidadesIndexRouteImport.update({
+    id: '/unidades/',
+    path: '/unidades/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedRelatoriosGerenciaisIndexRoute =
   AuthenticatedRelatoriosGerenciaisIndexRouteImport.update({
@@ -445,52 +327,54 @@ const AuthenticatedRelatoriosGerenciaisIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisAuditoriaRoute =
-  AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport.update({
-    id: '/auditoria',
-    path: '/auditoria',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+const AuthenticatedPisoEnfermagemIndexRoute =
+  AuthenticatedPisoEnfermagemIndexRouteImport.update({
+    id: '/piso-enfermagem/',
+    path: '/piso-enfermagem/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisCargosRoute =
-  AuthenticatedRelatoriosGerenciaisCargosRouteImport.update({
-    id: '/cargos',
-    path: '/cargos',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+const AuthenticatedGestaoPessoasIndexRoute =
+  AuthenticatedGestaoPessoasIndexRouteImport.update({
+    id: '/gestao-pessoas/',
+    path: '/gestao-pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisEstruturaRoute =
-  AuthenticatedRelatoriosGerenciaisEstruturaRouteImport.update({
-    id: '/estrutura',
-    path: '/estrutura',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+const AuthenticatedConfiguracaoIndexRoute =
+  AuthenticatedConfiguracaoIndexRouteImport.update({
+    id: '/configuracao/',
+    path: '/configuracao/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisFuncoesRoute =
-  AuthenticatedRelatoriosGerenciaisFuncoesRouteImport.update({
-    id: '/funcoes',
-    path: '/funcoes',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+const ApiPublicValidarDocumentoRoute =
+  ApiPublicValidarDocumentoRouteImport.update({
+    id: '/api/public/validar-documento',
+    path: '/api/public/validar-documento',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedRelatoriosGerenciaisGeralCargosRoute =
-  AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport.update({
-    id: '/geral-cargos',
-    path: '/geral-cargos',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
-  } as any)
-const AuthenticatedRelatoriosGerenciaisPisoRoute =
-  AuthenticatedRelatoriosGerenciaisPisoRouteImport.update({
-    id: '/piso',
-    path: '/piso',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
-  } as any)
-const AuthenticatedRelatoriosGerenciaisProfissionaisRoute =
-  AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport.update({
-    id: '/profissionais',
-    path: '/profissionais',
-    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
-  } as any)
-const AuthenticatedRelatoriosGerenciaisSalariosRoute =
-  AuthenticatedRelatoriosGerenciaisSalariosRouteImport.update({
-    id: '/salarios',
-    path: '/salarios',
+const ApiPublicHsmStreamRoute = ApiPublicHsmStreamRouteImport.update({
+  id: '/api/public/hsm-stream',
+  path: '/api/public/hsm-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedUsuariosRoute,
+} as any)
+const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
+  id: '/unidades/$id',
+  path: '/unidades/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedSetoresRoute,
+} as any)
+const AuthenticatedRelatoriosGerenciaisUnidadesRoute =
+  AuthenticatedRelatoriosGerenciaisUnidadesRouteImport.update({
+    id: '/unidades',
+    path: '/unidades',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
 const AuthenticatedRelatoriosGerenciaisSetoresRoute =
@@ -499,71 +383,164 @@ const AuthenticatedRelatoriosGerenciaisSetoresRoute =
     path: '/setores',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedRelatoriosGerenciaisUnidadesRoute =
-  AuthenticatedRelatoriosGerenciaisUnidadesRouteImport.update({
-    id: '/unidades',
-    path: '/unidades',
+const AuthenticatedRelatoriosGerenciaisSalariosRoute =
+  AuthenticatedRelatoriosGerenciaisSalariosRouteImport.update({
+    id: '/salarios',
+    path: '/salarios',
     getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedSetoresIdRoute = AuthenticatedSetoresIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedSetoresRoute,
-} as any)
-const AuthenticatedUnidadesIndexRoute =
-  AuthenticatedUnidadesIndexRouteImport.update({
-    id: '/unidades/',
-    path: '/unidades/',
-    getParentRoute: () => AuthenticatedRoute,
+const AuthenticatedRelatoriosGerenciaisProfissionaisRoute =
+  AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport.update({
+    id: '/profissionais',
+    path: '/profissionais',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedUnidadesIdRoute = AuthenticatedUnidadesIdRouteImport.update({
-  id: '/unidades/$id',
-  path: '/unidades/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedUsuariosIdRoute = AuthenticatedUsuariosIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedUsuariosRoute,
-} as any)
-const ApiPublicHsmStreamRoute = ApiPublicHsmStreamRouteImport.update({
-  id: '/api/public/hsm-stream',
-  path: '/api/public/hsm-stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicValidarDocumentoRoute =
-  ApiPublicValidarDocumentoRouteImport.update({
-    id: '/api/public/validar-documento',
-    path: '/api/public/validar-documento',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedRelatoriosGerenciaisPisoRoute =
+  AuthenticatedRelatoriosGerenciaisPisoRouteImport.update({
+    id: '/piso',
+    path: '/piso',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
   } as any)
-const AuthenticatedConfiguracaoPerfisIdRoute =
-  AuthenticatedConfiguracaoPerfisIdRouteImport.update({
+const AuthenticatedRelatoriosGerenciaisGeralCargosRoute =
+  AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport.update({
+    id: '/geral-cargos',
+    path: '/geral-cargos',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisFuncoesRoute =
+  AuthenticatedRelatoriosGerenciaisFuncoesRouteImport.update({
+    id: '/funcoes',
+    path: '/funcoes',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisEstruturaRoute =
+  AuthenticatedRelatoriosGerenciaisEstruturaRouteImport.update({
+    id: '/estrutura',
+    path: '/estrutura',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisCargosRoute =
+  AuthenticatedRelatoriosGerenciaisCargosRouteImport.update({
+    id: '/cargos',
+    path: '/cargos',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedRelatoriosGerenciaisAuditoriaRoute =
+  AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
+    getParentRoute: () => AuthenticatedRelatoriosGerenciaisRoute,
+  } as any)
+const AuthenticatedProfissionaisIdRoute =
+  AuthenticatedProfissionaisIdRouteImport.update({
     id: '/$id',
     path: '/$id',
-    getParentRoute: () => AuthenticatedConfiguracaoPerfisRoute,
+    getParentRoute: () => AuthenticatedProfissionaisRoute,
   } as any)
-const ApiPublicDocumentoPdfIdRoute = ApiPublicDocumentoPdfIdRouteImport.update({
-  id: '/api/public/documento-pdf/$id',
-  path: '/api/public/documento-pdf/$id',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedPisoEnfermagemImportarEfetivosRoute =
+  AuthenticatedPisoEnfermagemImportarEfetivosRouteImport.update({
+    id: '/piso-enfermagem/importar-efetivos',
+    path: '/piso-enfermagem/importar-efetivos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemImportarContratadosRoute =
+  AuthenticatedPisoEnfermagemImportarContratadosRouteImport.update({
+    id: '/piso-enfermagem/importar-contratados',
+    path: '/piso-enfermagem/importar-contratados',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemImportarRoute =
+  AuthenticatedPisoEnfermagemImportarRouteImport.update({
+    id: '/piso-enfermagem/importar',
+    path: '/piso-enfermagem/importar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPisoEnfermagemExtracaoRoute =
+  AuthenticatedPisoEnfermagemExtracaoRouteImport.update({
+    id: '/piso-enfermagem/extracao',
+    path: '/piso-enfermagem/extracao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMeuPerfilAssinaturaRoute =
+  AuthenticatedMeuPerfilAssinaturaRouteImport.update({
+    id: '/meu-perfil/assinatura',
+    path: '/meu-perfil/assinatura',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoPessoasSituacaoFuncionalRoute =
+  AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport.update({
+    id: '/gestao-pessoas/situacao-funcional',
+    path: '/gestao-pessoas/situacao-funcional',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoPessoasLotacaoRoute =
+  AuthenticatedGestaoPessoasLotacaoRouteImport.update({
+    id: '/gestao-pessoas/lotacao',
+    path: '/gestao-pessoas/lotacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGestaoPessoasDistribuicaoSetorRoute =
+  AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport.update({
+    id: '/gestao-pessoas/distribuicao-setor',
+    path: '/gestao-pessoas/distribuicao-setor',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFuncoesIdRoute = AuthenticatedFuncoesIdRouteImport.update({
+  id: '/funcoes/$id',
+  path: '/funcoes/$id',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ApiPublicHooksAuditarAnexosRoute =
-  ApiPublicHooksAuditarAnexosRouteImport.update({
-    id: '/api/public/hooks/auditar-anexos',
-    path: '/api/public/hooks/auditar-anexos',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedFrequenciasIdRoute =
+  AuthenticatedFrequenciasIdRouteImport.update({
+    id: '/frequencias_/$id',
+    path: '/frequencias/$id',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicHooksDeadlineCheckRoute =
-  ApiPublicHooksDeadlineCheckRouteImport.update({
-    id: '/api/public/hooks/deadline-check',
-    path: '/api/public/hooks/deadline-check',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedFrequenciaEfetivosRoute =
+  AuthenticatedFrequenciaEfetivosRouteImport.update({
+    id: '/frequencia/efetivos',
+    path: '/frequencia/efetivos',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicHooksEventosWorkerRoute =
-  ApiPublicHooksEventosWorkerRouteImport.update({
-    id: '/api/public/hooks/eventos-worker',
-    path: '/api/public/hooks/eventos-worker',
+const AuthenticatedFrequenciaContratadosRoute =
+  AuthenticatedFrequenciaContratadosRouteImport.update({
+    id: '/frequencia/contratados',
+    path: '/frequencia/contratados',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedConfiguracaoPerfisRoute =
+  AuthenticatedConfiguracaoPerfisRouteImport.update({
+    id: '/configuracao/perfis',
+    path: '/configuracao/perfis',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompetenciasIdRoute =
+  AuthenticatedCompetenciasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCompetenciasRoute,
+  } as any)
+const AuthenticatedCargosIdRoute = AuthenticatedCargosIdRouteImport.update({
+  id: '/cargos/$id',
+  path: '/cargos/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdministracaoSistemasExternosRoute =
+  AuthenticatedAdministracaoSistemasExternosRouteImport.update({
+    id: '/administracao/sistemas-externos',
+    path: '/administracao/sistemas-externos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdministracaoMuralRoute =
+  AuthenticatedAdministracaoMuralRouteImport.update({
+    id: '/administracao/mural',
+    path: '/administracao/mural',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiPublicHooksPurgarDocumentosRoute =
+  ApiPublicHooksPurgarDocumentosRouteImport.update({
+    id: '/api/public/hooks/purgar-documentos',
+    path: '/api/public/hooks/purgar-documentos',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksMuralLembretesRoute =
@@ -572,11 +549,34 @@ const ApiPublicHooksMuralLembretesRoute =
     path: '/api/public/hooks/mural-lembretes',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksPurgarDocumentosRoute =
-  ApiPublicHooksPurgarDocumentosRouteImport.update({
-    id: '/api/public/hooks/purgar-documentos',
-    path: '/api/public/hooks/purgar-documentos',
+const ApiPublicHooksEventosWorkerRoute =
+  ApiPublicHooksEventosWorkerRouteImport.update({
+    id: '/api/public/hooks/eventos-worker',
+    path: '/api/public/hooks/eventos-worker',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksDeadlineCheckRoute =
+  ApiPublicHooksDeadlineCheckRouteImport.update({
+    id: '/api/public/hooks/deadline-check',
+    path: '/api/public/hooks/deadline-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAuditarAnexosRoute =
+  ApiPublicHooksAuditarAnexosRouteImport.update({
+    id: '/api/public/hooks/auditar-anexos',
+    path: '/api/public/hooks/auditar-anexos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicDocumentoPdfIdRoute = ApiPublicDocumentoPdfIdRouteImport.update({
+  id: '/api/public/documento-pdf/$id',
+  path: '/api/public/documento-pdf/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedConfiguracaoPerfisIdRoute =
+  AuthenticatedConfiguracaoPerfisIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedConfiguracaoPerfisRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1118,25 +1118,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/smtp-test': {
+      id: '/smtp-test'
+      path: '/smtp-test'
+      fullPath: '/smtp-test'
+      preLoaderRoute: typeof SmtpTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1146,11 +1132,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/smtp-test': {
-      id: '/smtp-test'
-      path: '/smtp-test'
-      fullPath: '/smtp-test'
-      preLoaderRoute: typeof SmtpTestRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -1160,221 +1160,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/analitico': {
-      id: '/_authenticated/analitico'
-      path: '/analitico'
-      fullPath: '/analitico'
-      preLoaderRoute: typeof AuthenticatedAnaliticoRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/validar/$id': {
+      id: '/validar/$id'
+      path: '/validar/$id'
+      fullPath: '/validar/$id'
+      preLoaderRoute: typeof ValidarIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/aprovacoes': {
-      id: '/_authenticated/aprovacoes'
-      path: '/aprovacoes'
-      fullPath: '/aprovacoes'
-      preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/assinar-pdf': {
-      id: '/_authenticated/assinar-pdf'
-      path: '/assinar-pdf'
-      fullPath: '/assinar-pdf'
-      preLoaderRoute: typeof AuthenticatedAssinarPdfRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/assinaturas': {
-      id: '/_authenticated/assinaturas'
-      path: '/assinaturas'
-      fullPath: '/assinaturas'
-      preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/auditoria': {
-      id: '/_authenticated/auditoria'
-      path: '/auditoria'
-      fullPath: '/auditoria'
-      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/cargos-funcoes': {
-      id: '/_authenticated/cargos-funcoes'
-      path: '/cargos-funcoes'
-      fullPath: '/cargos-funcoes'
-      preLoaderRoute: typeof AuthenticatedCargosFuncoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/competencias': {
-      id: '/_authenticated/competencias'
-      path: '/competencias'
-      fullPath: '/competencias'
-      preLoaderRoute: typeof AuthenticatedCompetenciasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/controle-forca-trabalho': {
-      id: '/_authenticated/controle-forca-trabalho'
-      path: '/controle-forca-trabalho'
-      fullPath: '/controle-forca-trabalho'
-      preLoaderRoute: typeof AuthenticatedControleForcaTrabalhoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/documentos-emitidos': {
-      id: '/_authenticated/documentos-emitidos'
-      path: '/documentos-emitidos'
-      fullPath: '/documentos-emitidos'
-      preLoaderRoute: typeof AuthenticatedDocumentosEmitidosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/feriados': {
-      id: '/_authenticated/feriados'
-      path: '/feriados'
-      fullPath: '/feriados'
-      preLoaderRoute: typeof AuthenticatedFeriadosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/frequencias': {
-      id: '/_authenticated/frequencias'
-      path: '/frequencias'
-      fullPath: '/frequencias'
-      preLoaderRoute: typeof AuthenticatedFrequenciasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/gestao-profissionais': {
-      id: '/_authenticated/gestao-profissionais'
-      path: '/gestao-profissionais'
-      fullPath: '/gestao-profissionais'
-      preLoaderRoute: typeof AuthenticatedGestaoProfissionaisRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/gestao-rh': {
-      id: '/_authenticated/gestao-rh'
-      path: '/gestao-rh'
-      fullPath: '/gestao-rh'
-      preLoaderRoute: typeof AuthenticatedGestaoRhRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/layouts-importacao': {
-      id: '/_authenticated/layouts-importacao'
-      path: '/layouts-importacao'
-      fullPath: '/layouts-importacao'
-      preLoaderRoute: typeof AuthenticatedLayoutsImportacaoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/notificacoes': {
-      id: '/_authenticated/notificacoes'
-      path: '/notificacoes'
-      fullPath: '/notificacoes'
-      preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/pendencias': {
-      id: '/_authenticated/pendencias'
-      path: '/pendencias'
-      fullPath: '/pendencias'
-      preLoaderRoute: typeof AuthenticatedPendenciasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/profissionais': {
-      id: '/_authenticated/profissionais'
-      path: '/profissionais'
-      fullPath: '/profissionais'
-      preLoaderRoute: typeof AuthenticatedProfissionaisRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorio-inteligente': {
-      id: '/_authenticated/relatorio-inteligente'
-      path: '/relatorio-inteligente'
-      fullPath: '/relatorio-inteligente'
-      preLoaderRoute: typeof AuthenticatedRelatorioInteligenteRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorio-notificacoes': {
-      id: '/_authenticated/relatorio-notificacoes'
-      path: '/relatorio-notificacoes'
-      fullPath: '/relatorio-notificacoes'
-      preLoaderRoute: typeof AuthenticatedRelatorioNotificacoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios': {
-      id: '/_authenticated/relatorios'
-      path: '/relatorios'
-      fullPath: '/relatorios'
-      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-cadastro': {
-      id: '/_authenticated/relatorios-cadastro'
-      path: '/relatorios-cadastro'
-      fullPath: '/relatorios-cadastro'
-      preLoaderRoute: typeof AuthenticatedRelatoriosCadastroRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-consolidado': {
-      id: '/_authenticated/relatorios-consolidado'
-      path: '/relatorios-consolidado'
-      fullPath: '/relatorios-consolidado'
-      preLoaderRoute: typeof AuthenticatedRelatoriosConsolidadoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-executivo': {
-      id: '/_authenticated/relatorios-executivo'
-      path: '/relatorios-executivo'
-      fullPath: '/relatorios-executivo'
-      preLoaderRoute: typeof AuthenticatedRelatoriosExecutivoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-gerenciais': {
-      id: '/_authenticated/relatorios-gerenciais'
-      path: '/relatorios-gerenciais'
-      fullPath: '/relatorios-gerenciais'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-piso': {
-      id: '/_authenticated/relatorios-piso'
-      path: '/relatorios-piso'
-      fullPath: '/relatorios-piso'
-      preLoaderRoute: typeof AuthenticatedRelatoriosPisoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-profissional': {
-      id: '/_authenticated/relatorios-profissional'
-      path: '/relatorios-profissional'
-      fullPath: '/relatorios-profissional'
-      preLoaderRoute: typeof AuthenticatedRelatoriosProfissionalRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/relatorios-status': {
-      id: '/_authenticated/relatorios-status'
-      path: '/relatorios-status'
-      fullPath: '/relatorios-status'
-      preLoaderRoute: typeof AuthenticatedRelatoriosStatusRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/sala-situacao': {
-      id: '/_authenticated/sala-situacao'
-      path: '/sala-situacao'
-      fullPath: '/sala-situacao'
-      preLoaderRoute: typeof AuthenticatedSalaSituacaoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/saude': {
-      id: '/_authenticated/saude'
-      path: '/saude'
-      fullPath: '/saude'
-      preLoaderRoute: typeof AuthenticatedSaudeRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/seguranca': {
-      id: '/_authenticated/seguranca'
-      path: '/seguranca'
-      fullPath: '/seguranca'
-      preLoaderRoute: typeof AuthenticatedSegurancaRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/setores': {
-      id: '/_authenticated/setores'
-      path: '/setores'
-      fullPath: '/setores'
-      preLoaderRoute: typeof AuthenticatedSetoresRouteImport
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/tipos-unidade': {
@@ -1384,88 +1181,242 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTiposUnidadeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/usuarios': {
-      id: '/_authenticated/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+    '/_authenticated/setores': {
+      id: '/_authenticated/setores'
+      path: '/setores'
+      fullPath: '/setores'
+      preLoaderRoute: typeof AuthenticatedSetoresRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/validar/$id': {
-      id: '/validar/$id'
-      path: '/validar/$id'
-      fullPath: '/validar/$id'
-      preLoaderRoute: typeof ValidarIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/administracao/mural': {
-      id: '/_authenticated/administracao/mural'
-      path: '/administracao/mural'
-      fullPath: '/administracao/mural'
-      preLoaderRoute: typeof AuthenticatedAdministracaoMuralRouteImport
+    '/_authenticated/seguranca': {
+      id: '/_authenticated/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof AuthenticatedSegurancaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/administracao/sistemas-externos': {
-      id: '/_authenticated/administracao/sistemas-externos'
-      path: '/administracao/sistemas-externos'
-      fullPath: '/administracao/sistemas-externos'
-      preLoaderRoute: typeof AuthenticatedAdministracaoSistemasExternosRouteImport
+    '/_authenticated/saude': {
+      id: '/_authenticated/saude'
+      path: '/saude'
+      fullPath: '/saude'
+      preLoaderRoute: typeof AuthenticatedSaudeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/cargos/$id': {
-      id: '/_authenticated/cargos/$id'
-      path: '/cargos/$id'
-      fullPath: '/cargos/$id'
-      preLoaderRoute: typeof AuthenticatedCargosIdRouteImport
+    '/_authenticated/sala-situacao': {
+      id: '/_authenticated/sala-situacao'
+      path: '/sala-situacao'
+      fullPath: '/sala-situacao'
+      preLoaderRoute: typeof AuthenticatedSalaSituacaoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/competencias/$id': {
-      id: '/_authenticated/competencias/$id'
-      path: '/$id'
-      fullPath: '/competencias/$id'
-      preLoaderRoute: typeof AuthenticatedCompetenciasIdRouteImport
-      parentRoute: typeof AuthenticatedCompetenciasRoute
-    }
-    '/_authenticated/configuracao/': {
-      id: '/_authenticated/configuracao/'
-      path: '/configuracao'
-      fullPath: '/configuracao/'
-      preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
+    '/_authenticated/relatorios-status': {
+      id: '/_authenticated/relatorios-status'
+      path: '/relatorios-status'
+      fullPath: '/relatorios-status'
+      preLoaderRoute: typeof AuthenticatedRelatoriosStatusRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/configuracao/perfis': {
-      id: '/_authenticated/configuracao/perfis'
-      path: '/configuracao/perfis'
-      fullPath: '/configuracao/perfis'
-      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisRouteImport
+    '/_authenticated/relatorios-profissional': {
+      id: '/_authenticated/relatorios-profissional'
+      path: '/relatorios-profissional'
+      fullPath: '/relatorios-profissional'
+      preLoaderRoute: typeof AuthenticatedRelatoriosProfissionalRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/frequencia/contratados': {
-      id: '/_authenticated/frequencia/contratados'
-      path: '/frequencia/contratados'
-      fullPath: '/frequencia/contratados'
-      preLoaderRoute: typeof AuthenticatedFrequenciaContratadosRouteImport
+    '/_authenticated/relatorios-piso': {
+      id: '/_authenticated/relatorios-piso'
+      path: '/relatorios-piso'
+      fullPath: '/relatorios-piso'
+      preLoaderRoute: typeof AuthenticatedRelatoriosPisoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/frequencia/efetivos': {
-      id: '/_authenticated/frequencia/efetivos'
-      path: '/frequencia/efetivos'
-      fullPath: '/frequencia/efetivos'
-      preLoaderRoute: typeof AuthenticatedFrequenciaEfetivosRouteImport
+    '/_authenticated/relatorios-gerenciais': {
+      id: '/_authenticated/relatorios-gerenciais'
+      path: '/relatorios-gerenciais'
+      fullPath: '/relatorios-gerenciais'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/frequencias_/$id': {
-      id: '/_authenticated/frequencias_/$id'
-      path: '/frequencias/$id'
-      fullPath: '/frequencias/$id'
-      preLoaderRoute: typeof AuthenticatedFrequenciasIdRouteImport
+    '/_authenticated/relatorios-executivo': {
+      id: '/_authenticated/relatorios-executivo'
+      path: '/relatorios-executivo'
+      fullPath: '/relatorios-executivo'
+      preLoaderRoute: typeof AuthenticatedRelatoriosExecutivoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/funcoes/$id': {
-      id: '/_authenticated/funcoes/$id'
-      path: '/funcoes/$id'
-      fullPath: '/funcoes/$id'
-      preLoaderRoute: typeof AuthenticatedFuncoesIdRouteImport
+    '/_authenticated/relatorios-consolidado': {
+      id: '/_authenticated/relatorios-consolidado'
+      path: '/relatorios-consolidado'
+      fullPath: '/relatorios-consolidado'
+      preLoaderRoute: typeof AuthenticatedRelatoriosConsolidadoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-cadastro': {
+      id: '/_authenticated/relatorios-cadastro'
+      path: '/relatorios-cadastro'
+      fullPath: '/relatorios-cadastro'
+      preLoaderRoute: typeof AuthenticatedRelatoriosCadastroRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios': {
+      id: '/_authenticated/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorio-notificacoes': {
+      id: '/_authenticated/relatorio-notificacoes'
+      path: '/relatorio-notificacoes'
+      fullPath: '/relatorio-notificacoes'
+      preLoaderRoute: typeof AuthenticatedRelatorioNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorio-inteligente': {
+      id: '/_authenticated/relatorio-inteligente'
+      path: '/relatorio-inteligente'
+      fullPath: '/relatorio-inteligente'
+      preLoaderRoute: typeof AuthenticatedRelatorioInteligenteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/profissionais': {
+      id: '/_authenticated/profissionais'
+      path: '/profissionais'
+      fullPath: '/profissionais'
+      preLoaderRoute: typeof AuthenticatedProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pendencias': {
+      id: '/_authenticated/pendencias'
+      path: '/pendencias'
+      fullPath: '/pendencias'
+      preLoaderRoute: typeof AuthenticatedPendenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notificacoes': {
+      id: '/_authenticated/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/layouts-importacao': {
+      id: '/_authenticated/layouts-importacao'
+      path: '/layouts-importacao'
+      fullPath: '/layouts-importacao'
+      preLoaderRoute: typeof AuthenticatedLayoutsImportacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-rh': {
+      id: '/_authenticated/gestao-rh'
+      path: '/gestao-rh'
+      fullPath: '/gestao-rh'
+      preLoaderRoute: typeof AuthenticatedGestaoRhRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-profissionais': {
+      id: '/_authenticated/gestao-profissionais'
+      path: '/gestao-profissionais'
+      fullPath: '/gestao-profissionais'
+      preLoaderRoute: typeof AuthenticatedGestaoProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencias': {
+      id: '/_authenticated/frequencias'
+      path: '/frequencias'
+      fullPath: '/frequencias'
+      preLoaderRoute: typeof AuthenticatedFrequenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/feriados': {
+      id: '/_authenticated/feriados'
+      path: '/feriados'
+      fullPath: '/feriados'
+      preLoaderRoute: typeof AuthenticatedFeriadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/documentos-emitidos': {
+      id: '/_authenticated/documentos-emitidos'
+      path: '/documentos-emitidos'
+      fullPath: '/documentos-emitidos'
+      preLoaderRoute: typeof AuthenticatedDocumentosEmitidosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/controle-forca-trabalho': {
+      id: '/_authenticated/controle-forca-trabalho'
+      path: '/controle-forca-trabalho'
+      fullPath: '/controle-forca-trabalho'
+      preLoaderRoute: typeof AuthenticatedControleForcaTrabalhoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/competencias': {
+      id: '/_authenticated/competencias'
+      path: '/competencias'
+      fullPath: '/competencias'
+      preLoaderRoute: typeof AuthenticatedCompetenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cargos-funcoes': {
+      id: '/_authenticated/cargos-funcoes'
+      path: '/cargos-funcoes'
+      fullPath: '/cargos-funcoes'
+      preLoaderRoute: typeof AuthenticatedCargosFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assinaturas': {
+      id: '/_authenticated/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/assinaturas'
+      preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assinar-pdf': {
+      id: '/_authenticated/assinar-pdf'
+      path: '/assinar-pdf'
+      fullPath: '/assinar-pdf'
+      preLoaderRoute: typeof AuthenticatedAssinarPdfRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/aprovacoes': {
+      id: '/_authenticated/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analitico': {
+      id: '/_authenticated/analitico'
+      path: '/analitico'
+      fullPath: '/analitico'
+      preLoaderRoute: typeof AuthenticatedAnaliticoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/unidades/': {
+      id: '/_authenticated/unidades/'
+      path: '/unidades'
+      fullPath: '/unidades/'
+      preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/relatorios-gerenciais/': {
+      id: '/_authenticated/relatorios-gerenciais/'
+      path: '/'
+      fullPath: '/relatorios-gerenciais/'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisIndexRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/piso-enfermagem/': {
+      id: '/_authenticated/piso-enfermagem/'
+      path: '/piso-enfermagem'
+      fullPath: '/piso-enfermagem/'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/gestao-pessoas/': {
@@ -1475,137 +1426,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoPessoasIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/gestao-pessoas/distribuicao-setor': {
-      id: '/_authenticated/gestao-pessoas/distribuicao-setor'
-      path: '/gestao-pessoas/distribuicao-setor'
-      fullPath: '/gestao-pessoas/distribuicao-setor'
-      preLoaderRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport
+    '/_authenticated/configuracao/': {
+      id: '/_authenticated/configuracao/'
+      path: '/configuracao'
+      fullPath: '/configuracao/'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/gestao-pessoas/lotacao': {
-      id: '/_authenticated/gestao-pessoas/lotacao'
-      path: '/gestao-pessoas/lotacao'
-      fullPath: '/gestao-pessoas/lotacao'
-      preLoaderRoute: typeof AuthenticatedGestaoPessoasLotacaoRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/api/public/validar-documento': {
+      id: '/api/public/validar-documento'
+      path: '/api/public/validar-documento'
+      fullPath: '/api/public/validar-documento'
+      preLoaderRoute: typeof ApiPublicValidarDocumentoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/gestao-pessoas/situacao-funcional': {
-      id: '/_authenticated/gestao-pessoas/situacao-funcional'
-      path: '/gestao-pessoas/situacao-funcional'
-      fullPath: '/gestao-pessoas/situacao-funcional'
-      preLoaderRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/api/public/hsm-stream': {
+      id: '/api/public/hsm-stream'
+      path: '/api/public/hsm-stream'
+      fullPath: '/api/public/hsm-stream'
+      preLoaderRoute: typeof ApiPublicHsmStreamRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/meu-perfil/assinatura': {
-      id: '/_authenticated/meu-perfil/assinatura'
-      path: '/meu-perfil/assinatura'
-      fullPath: '/meu-perfil/assinatura'
-      preLoaderRoute: typeof AuthenticatedMeuPerfilAssinaturaRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/piso-enfermagem/': {
-      id: '/_authenticated/piso-enfermagem/'
-      path: '/piso-enfermagem'
-      fullPath: '/piso-enfermagem/'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/piso-enfermagem/extracao': {
-      id: '/_authenticated/piso-enfermagem/extracao'
-      path: '/piso-enfermagem/extracao'
-      fullPath: '/piso-enfermagem/extracao'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemExtracaoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/piso-enfermagem/importar': {
-      id: '/_authenticated/piso-enfermagem/importar'
-      path: '/piso-enfermagem/importar'
-      fullPath: '/piso-enfermagem/importar'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/piso-enfermagem/importar-contratados': {
-      id: '/_authenticated/piso-enfermagem/importar-contratados'
-      path: '/piso-enfermagem/importar-contratados'
-      fullPath: '/piso-enfermagem/importar-contratados'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/piso-enfermagem/importar-efetivos': {
-      id: '/_authenticated/piso-enfermagem/importar-efetivos'
-      path: '/piso-enfermagem/importar-efetivos'
-      fullPath: '/piso-enfermagem/importar-efetivos'
-      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/profissionais/$id': {
-      id: '/_authenticated/profissionais/$id'
+    '/_authenticated/usuarios/$id': {
+      id: '/_authenticated/usuarios/$id'
       path: '/$id'
-      fullPath: '/profissionais/$id'
-      preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
-      parentRoute: typeof AuthenticatedProfissionaisRoute
+      fullPath: '/usuarios/$id'
+      preLoaderRoute: typeof AuthenticatedUsuariosIdRouteImport
+      parentRoute: typeof AuthenticatedUsuariosRoute
     }
-    '/_authenticated/relatorios-gerenciais/': {
-      id: '/_authenticated/relatorios-gerenciais/'
-      path: '/'
-      fullPath: '/relatorios-gerenciais/'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisIndexRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    '/_authenticated/unidades/$id': {
+      id: '/_authenticated/unidades/$id'
+      path: '/unidades/$id'
+      fullPath: '/unidades/$id'
+      preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/relatorios-gerenciais/auditoria': {
-      id: '/_authenticated/relatorios-gerenciais/auditoria'
-      path: '/auditoria'
-      fullPath: '/relatorios-gerenciais/auditoria'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    '/_authenticated/setores/$id': {
+      id: '/_authenticated/setores/$id'
+      path: '/$id'
+      fullPath: '/setores/$id'
+      preLoaderRoute: typeof AuthenticatedSetoresIdRouteImport
+      parentRoute: typeof AuthenticatedSetoresRoute
     }
-    '/_authenticated/relatorios-gerenciais/cargos': {
-      id: '/_authenticated/relatorios-gerenciais/cargos'
-      path: '/cargos'
-      fullPath: '/relatorios-gerenciais/cargos'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/estrutura': {
-      id: '/_authenticated/relatorios-gerenciais/estrutura'
-      path: '/estrutura'
-      fullPath: '/relatorios-gerenciais/estrutura'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/funcoes': {
-      id: '/_authenticated/relatorios-gerenciais/funcoes'
-      path: '/funcoes'
-      fullPath: '/relatorios-gerenciais/funcoes'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/geral-cargos': {
-      id: '/_authenticated/relatorios-gerenciais/geral-cargos'
-      path: '/geral-cargos'
-      fullPath: '/relatorios-gerenciais/geral-cargos'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/piso': {
-      id: '/_authenticated/relatorios-gerenciais/piso'
-      path: '/piso'
-      fullPath: '/relatorios-gerenciais/piso'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/profissionais': {
-      id: '/_authenticated/relatorios-gerenciais/profissionais'
-      path: '/profissionais'
-      fullPath: '/relatorios-gerenciais/profissionais'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport
-      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
-    }
-    '/_authenticated/relatorios-gerenciais/salarios': {
-      id: '/_authenticated/relatorios-gerenciais/salarios'
-      path: '/salarios'
-      fullPath: '/relatorios-gerenciais/salarios'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisSalariosRouteImport
+    '/_authenticated/relatorios-gerenciais/unidades': {
+      id: '/_authenticated/relatorios-gerenciais/unidades'
+      path: '/unidades'
+      fullPath: '/relatorios-gerenciais/unidades'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisUnidadesRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
     '/_authenticated/relatorios-gerenciais/setores': {
@@ -1615,88 +1482,193 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisSetoresRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
-    '/_authenticated/relatorios-gerenciais/unidades': {
-      id: '/_authenticated/relatorios-gerenciais/unidades'
-      path: '/unidades'
-      fullPath: '/relatorios-gerenciais/unidades'
-      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisUnidadesRouteImport
+    '/_authenticated/relatorios-gerenciais/salarios': {
+      id: '/_authenticated/relatorios-gerenciais/salarios'
+      path: '/salarios'
+      fullPath: '/relatorios-gerenciais/salarios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisSalariosRouteImport
       parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
-    '/_authenticated/setores/$id': {
-      id: '/_authenticated/setores/$id'
-      path: '/$id'
-      fullPath: '/setores/$id'
-      preLoaderRoute: typeof AuthenticatedSetoresIdRouteImport
-      parentRoute: typeof AuthenticatedSetoresRoute
+    '/_authenticated/relatorios-gerenciais/profissionais': {
+      id: '/_authenticated/relatorios-gerenciais/profissionais'
+      path: '/profissionais'
+      fullPath: '/relatorios-gerenciais/profissionais'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
     }
-    '/_authenticated/unidades/': {
-      id: '/_authenticated/unidades/'
-      path: '/unidades'
-      fullPath: '/unidades/'
-      preLoaderRoute: typeof AuthenticatedUnidadesIndexRouteImport
+    '/_authenticated/relatorios-gerenciais/piso': {
+      id: '/_authenticated/relatorios-gerenciais/piso'
+      path: '/piso'
+      fullPath: '/relatorios-gerenciais/piso'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisPisoRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/geral-cargos': {
+      id: '/_authenticated/relatorios-gerenciais/geral-cargos'
+      path: '/geral-cargos'
+      fullPath: '/relatorios-gerenciais/geral-cargos'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisGeralCargosRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/funcoes': {
+      id: '/_authenticated/relatorios-gerenciais/funcoes'
+      path: '/funcoes'
+      fullPath: '/relatorios-gerenciais/funcoes'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/estrutura': {
+      id: '/_authenticated/relatorios-gerenciais/estrutura'
+      path: '/estrutura'
+      fullPath: '/relatorios-gerenciais/estrutura'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisEstruturaRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/cargos': {
+      id: '/_authenticated/relatorios-gerenciais/cargos'
+      path: '/cargos'
+      fullPath: '/relatorios-gerenciais/cargos'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisCargosRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/relatorios-gerenciais/auditoria': {
+      id: '/_authenticated/relatorios-gerenciais/auditoria'
+      path: '/auditoria'
+      fullPath: '/relatorios-gerenciais/auditoria'
+      preLoaderRoute: typeof AuthenticatedRelatoriosGerenciaisAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRelatoriosGerenciaisRoute
+    }
+    '/_authenticated/profissionais/$id': {
+      id: '/_authenticated/profissionais/$id'
+      path: '/$id'
+      fullPath: '/profissionais/$id'
+      preLoaderRoute: typeof AuthenticatedProfissionaisIdRouteImport
+      parentRoute: typeof AuthenticatedProfissionaisRoute
+    }
+    '/_authenticated/piso-enfermagem/importar-efetivos': {
+      id: '/_authenticated/piso-enfermagem/importar-efetivos'
+      path: '/piso-enfermagem/importar-efetivos'
+      fullPath: '/piso-enfermagem/importar-efetivos'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/unidades/$id': {
-      id: '/_authenticated/unidades/$id'
-      path: '/unidades/$id'
-      fullPath: '/unidades/$id'
-      preLoaderRoute: typeof AuthenticatedUnidadesIdRouteImport
+    '/_authenticated/piso-enfermagem/importar-contratados': {
+      id: '/_authenticated/piso-enfermagem/importar-contratados'
+      path: '/piso-enfermagem/importar-contratados'
+      fullPath: '/piso-enfermagem/importar-contratados'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/usuarios/$id': {
-      id: '/_authenticated/usuarios/$id'
+    '/_authenticated/piso-enfermagem/importar': {
+      id: '/_authenticated/piso-enfermagem/importar'
+      path: '/piso-enfermagem/importar'
+      fullPath: '/piso-enfermagem/importar'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemImportarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/piso-enfermagem/extracao': {
+      id: '/_authenticated/piso-enfermagem/extracao'
+      path: '/piso-enfermagem/extracao'
+      fullPath: '/piso-enfermagem/extracao'
+      preLoaderRoute: typeof AuthenticatedPisoEnfermagemExtracaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/meu-perfil/assinatura': {
+      id: '/_authenticated/meu-perfil/assinatura'
+      path: '/meu-perfil/assinatura'
+      fullPath: '/meu-perfil/assinatura'
+      preLoaderRoute: typeof AuthenticatedMeuPerfilAssinaturaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-pessoas/situacao-funcional': {
+      id: '/_authenticated/gestao-pessoas/situacao-funcional'
+      path: '/gestao-pessoas/situacao-funcional'
+      fullPath: '/gestao-pessoas/situacao-funcional'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasSituacaoFuncionalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-pessoas/lotacao': {
+      id: '/_authenticated/gestao-pessoas/lotacao'
+      path: '/gestao-pessoas/lotacao'
+      fullPath: '/gestao-pessoas/lotacao'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasLotacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gestao-pessoas/distribuicao-setor': {
+      id: '/_authenticated/gestao-pessoas/distribuicao-setor'
+      path: '/gestao-pessoas/distribuicao-setor'
+      fullPath: '/gestao-pessoas/distribuicao-setor'
+      preLoaderRoute: typeof AuthenticatedGestaoPessoasDistribuicaoSetorRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/funcoes/$id': {
+      id: '/_authenticated/funcoes/$id'
+      path: '/funcoes/$id'
+      fullPath: '/funcoes/$id'
+      preLoaderRoute: typeof AuthenticatedFuncoesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencias_/$id': {
+      id: '/_authenticated/frequencias_/$id'
+      path: '/frequencias/$id'
+      fullPath: '/frequencias/$id'
+      preLoaderRoute: typeof AuthenticatedFrequenciasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencia/efetivos': {
+      id: '/_authenticated/frequencia/efetivos'
+      path: '/frequencia/efetivos'
+      fullPath: '/frequencia/efetivos'
+      preLoaderRoute: typeof AuthenticatedFrequenciaEfetivosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/frequencia/contratados': {
+      id: '/_authenticated/frequencia/contratados'
+      path: '/frequencia/contratados'
+      fullPath: '/frequencia/contratados'
+      preLoaderRoute: typeof AuthenticatedFrequenciaContratadosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/configuracao/perfis': {
+      id: '/_authenticated/configuracao/perfis'
+      path: '/configuracao/perfis'
+      fullPath: '/configuracao/perfis'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/competencias/$id': {
+      id: '/_authenticated/competencias/$id'
       path: '/$id'
-      fullPath: '/usuarios/$id'
-      preLoaderRoute: typeof AuthenticatedUsuariosIdRouteImport
-      parentRoute: typeof AuthenticatedUsuariosRoute
+      fullPath: '/competencias/$id'
+      preLoaderRoute: typeof AuthenticatedCompetenciasIdRouteImport
+      parentRoute: typeof AuthenticatedCompetenciasRoute
     }
-    '/api/public/hsm-stream': {
-      id: '/api/public/hsm-stream'
-      path: '/api/public/hsm-stream'
-      fullPath: '/api/public/hsm-stream'
-      preLoaderRoute: typeof ApiPublicHsmStreamRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/cargos/$id': {
+      id: '/_authenticated/cargos/$id'
+      path: '/cargos/$id'
+      fullPath: '/cargos/$id'
+      preLoaderRoute: typeof AuthenticatedCargosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/validar-documento': {
-      id: '/api/public/validar-documento'
-      path: '/api/public/validar-documento'
-      fullPath: '/api/public/validar-documento'
-      preLoaderRoute: typeof ApiPublicValidarDocumentoRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/administracao/sistemas-externos': {
+      id: '/_authenticated/administracao/sistemas-externos'
+      path: '/administracao/sistemas-externos'
+      fullPath: '/administracao/sistemas-externos'
+      preLoaderRoute: typeof AuthenticatedAdministracaoSistemasExternosRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/configuracao/perfis/$id': {
-      id: '/_authenticated/configuracao/perfis/$id'
-      path: '/$id'
-      fullPath: '/configuracao/perfis/$id'
-      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisIdRouteImport
-      parentRoute: typeof AuthenticatedConfiguracaoPerfisRoute
+    '/_authenticated/administracao/mural': {
+      id: '/_authenticated/administracao/mural'
+      path: '/administracao/mural'
+      fullPath: '/administracao/mural'
+      preLoaderRoute: typeof AuthenticatedAdministracaoMuralRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/documento-pdf/$id': {
-      id: '/api/public/documento-pdf/$id'
-      path: '/api/public/documento-pdf/$id'
-      fullPath: '/api/public/documento-pdf/$id'
-      preLoaderRoute: typeof ApiPublicDocumentoPdfIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/auditar-anexos': {
-      id: '/api/public/hooks/auditar-anexos'
-      path: '/api/public/hooks/auditar-anexos'
-      fullPath: '/api/public/hooks/auditar-anexos'
-      preLoaderRoute: typeof ApiPublicHooksAuditarAnexosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/deadline-check': {
-      id: '/api/public/hooks/deadline-check'
-      path: '/api/public/hooks/deadline-check'
-      fullPath: '/api/public/hooks/deadline-check'
-      preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/eventos-worker': {
-      id: '/api/public/hooks/eventos-worker'
-      path: '/api/public/hooks/eventos-worker'
-      fullPath: '/api/public/hooks/eventos-worker'
-      preLoaderRoute: typeof ApiPublicHooksEventosWorkerRouteImport
+    '/api/public/hooks/purgar-documentos': {
+      id: '/api/public/hooks/purgar-documentos'
+      path: '/api/public/hooks/purgar-documentos'
+      fullPath: '/api/public/hooks/purgar-documentos'
+      preLoaderRoute: typeof ApiPublicHooksPurgarDocumentosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/mural-lembretes': {
@@ -1706,12 +1678,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMuralLembretesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/purgar-documentos': {
-      id: '/api/public/hooks/purgar-documentos'
-      path: '/api/public/hooks/purgar-documentos'
-      fullPath: '/api/public/hooks/purgar-documentos'
-      preLoaderRoute: typeof ApiPublicHooksPurgarDocumentosRouteImport
+    '/api/public/hooks/eventos-worker': {
+      id: '/api/public/hooks/eventos-worker'
+      path: '/api/public/hooks/eventos-worker'
+      fullPath: '/api/public/hooks/eventos-worker'
+      preLoaderRoute: typeof ApiPublicHooksEventosWorkerRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/deadline-check': {
+      id: '/api/public/hooks/deadline-check'
+      path: '/api/public/hooks/deadline-check'
+      fullPath: '/api/public/hooks/deadline-check'
+      preLoaderRoute: typeof ApiPublicHooksDeadlineCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/auditar-anexos': {
+      id: '/api/public/hooks/auditar-anexos'
+      path: '/api/public/hooks/auditar-anexos'
+      fullPath: '/api/public/hooks/auditar-anexos'
+      preLoaderRoute: typeof ApiPublicHooksAuditarAnexosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/documento-pdf/$id': {
+      id: '/api/public/documento-pdf/$id'
+      path: '/api/public/documento-pdf/$id'
+      fullPath: '/api/public/documento-pdf/$id'
+      preLoaderRoute: typeof ApiPublicDocumentoPdfIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/configuracao/perfis/$id': {
+      id: '/_authenticated/configuracao/perfis/$id'
+      path: '/$id'
+      fullPath: '/configuracao/perfis/$id'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoPerfisIdRouteImport
+      parentRoute: typeof AuthenticatedConfiguracaoPerfisRoute
     }
   }
 }
