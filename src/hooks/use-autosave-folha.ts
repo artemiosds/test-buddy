@@ -107,8 +107,12 @@ export function useAutosaveFolha({ enabled, run, delay = 900, onError }: Options
    */
   const flush = useCallback(async (): Promise<boolean> => {
     if (!enabledRef.current) return true;
-    pendingRef.current = true;
     clearTimer();
+
+    // Se já existe uma gravação em voo, apenas aguarda a mesma promise.
+    // Uma nova rodada só é criada por schedule()/updateCampo quando houver
+    // uma edição REAL durante o envio.
+    if (processingRef.current) return processingRef.current;
     return drain();
   }, [clearTimer, drain]);
 
