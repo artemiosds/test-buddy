@@ -110,9 +110,14 @@ export function useAutosaveFolha({ enabled, run, delay = 900, onError }: Options
     clearTimer();
 
     // Se já existe uma gravação em voo, apenas aguarda a mesma promise.
-    // Uma nova rodada só é criada por schedule()/updateCampo quando houver
-    // uma edição REAL durante o envio.
+    // Uma nova edição ocorrida durante o envio é marcada por schedule()/flush()
+    // através do pendingRef e será processada na próxima volta da fila.
     if (processingRef.current) return processingRef.current;
+
+    // flush() também é o gatilho imediato usado pelos campos numéricos.
+    // Sem esta marcação, a linha podia ficar _dirty sem iniciar o autosave,
+    // mantendo o badge em "idle".
+    pendingRef.current = true;
     return drain();
   }, [clearTimer, drain]);
 
