@@ -942,6 +942,18 @@ function LinhasAnaliseDialog({
         })) as any[];
       }
 
+      let freqIds = [freqId!];
+      if (!freqBase?.setor_id) {
+        const { data: irmas, error: irmasErr } = await supabase
+          .from("frequencias")
+          .select("id")
+          .eq("competencia_unidade_id", freqBase.competencia_unidade_id)
+          .eq("tipo", "efetivos")
+          .is("deleted_at", null);
+        if (irmasErr) throw irmasErr;
+        freqIds = (irmas ?? []).map((x) => x.id);
+      }
+
       const { data, error } = await supabase
         .from("frequencia_profissional")
         .select(`
@@ -949,23 +961,27 @@ function LinhasAnaliseDialog({
           dias_trabalhados, faltas_injustificadas, atestado, ferias, licencas, 
           ferias_terco, ferias_integral, adicional_noturno, he_50, he_100, 
           plantoes_extras, sobreaviso, incentivo, sal_sub_h, aulas_suplementares, 
+          updated_at,
           profissionais:profissional_id(nome_completo, matricula, setor_id, status), 
           analisado_por_usuario:analisado_por(nome_completo)
         `)
-        .eq("frequencia_id", freqId!)
+        .in("frequencia_id", freqIds)
         .is("deleted_at", null)
-        .order("created_at", { ascending: true });
+        .order("updated_at", { ascending: true });
       
       if (error) throw error;
       
-      const rows = (data ?? []) as unknown as (LinhaAnalise & { profissional_id: string; profissionais: { setor_id: string | null } })[];
-      
-      // Filtra por setor se a frequência for vinculada a um setor específico
-      if (freqBase?.setor_id) {
-        return rows.filter(r => r.profissionais?.setor_id === freqBase.setor_id);
-      }
+      const rows = (data ?? []) as unknown as (LinhaAnalise & {
+        profissional_id: string;
+        updated_at?: string | null;
+        profissionais: { setor_id: string | null };
+      })[];
 
-      return rows;
+      // Em visão consolidada pode existir histórico em mais de uma folha física.
+      // Mantém somente o lançamento válido mais recente por profissional.
+      const porProfissional = new Map<string, typeof rows[number]>();
+      for (const row of rows) porProfissional.set(row.profissional_id, row);
+      return [...porProfissional.values()];
     },
   });
 
