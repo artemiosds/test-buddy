@@ -580,12 +580,30 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
     await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
-    const { frequencia_id, frequencia_status } = await ensureFolhaEfetivos(
+    const { frequencia_id, frequencia_status, competencia_unidade_id } = await ensureFolhaEfetivos(
       { supabase, userId },
       data.competencia_id,
       data.unidade_id,
       data.setor_id as string | undefined
     );
+
+    // Envio integral (sem setor): a folha geral e todas as folhas setoriais irmãs
+    // formam uma única submissão lógica. Envio com setor continua isolado.
+    let folhasAlvo: { id: string; status: string; setor_id: string | null }[] = [
+      { id: frequencia_id, status: frequencia_status, setor_id: normalizarSetorId(data.setor_id) },
+    ];
+    if (!normalizarSetorId(data.setor_id)) {
+      const { data: irmas, error: irmasErr } = await supabase
+        .from("frequencias")
+        .select("id, status, setor_id")
+        .eq("competencia_unidade_id", competencia_unidade_id)
+        .eq("tipo", "efetivos")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true });
+      if (irmasErr) throw new Error(irmasErr.message);
+      folhasAlvo = (irmas ?? []) as typeof folhasAlvo;
+    }
+    const folhaIdsAlvo = folhasAlvo.map((f) => f.id);
 
     // Validação de segurança: total de dias no mês
     const { data: comp } = await supabase
@@ -598,7 +616,7 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       const { data: linhas } = await supabase
         .from("frequencia_profissional")
         .select("dias_trabalhados, faltas_injustificadas, atestado, ferias, licenca_premio, profissionais!inner(setor_id)")
-        .eq("frequencia_id", frequencia_id)
+        .in("frequencia_id", folhaIdsAlvo)
         .is("deleted_at", null);
       
       const diasNoMes = new Date(Number(comp.ano), Number(comp.mes), 0).getDate();
@@ -626,6 +644,19 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
       .maybeSingle();
 
+    // Antes de alterar status, calcula a contagem distinta do conjunto inteiro.
+    const { data: linhasAlvo, error: linhasAlvoErr } = await supabase
+      .from("frequencia_profissional")
+      .select("frequencia_id, profissional_id")
+      .in("frequencia_id", folhaIdsAlvo)
+      .is("deleted_at", null);
+    if (linhasAlvoErr) throw new Error(linhasAlvoErr.message);
+
+    const profissionaisDistintos = new Set((linhasAlvo ?? []).map((l) => l.profissional_id));
+    const setoresDistintos = new Set(
+      folhasAlvo.map((f) => f.setor_id).filter((v): v is string => !!v),
+    );
+
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("frequencias")
@@ -635,25 +666,28 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
         enviada_por: userId,
         updated_by: userId,
       } as never)
-      .eq("id", frequencia_id)
+      .in("id", folhaIdsAlvo)
       .in("status", ["rascunho", "com_pendencias", "rejeitada", "devolvida", "enviada"]);
     if (error) throw new Error(error.message);
 
-    // Reenvio após correção: as linhas rejeitadas voltam para análise.
+    // A folha geral representa o total consolidado; as folhas setoriais continuam
+    // com seus registros originais, sem mover ou duplicar linhas.
+    if (!normalizarSetorId(data.setor_id)) {
+      const { error: totalErr } = await supabase
+        .from("frequencias")
+        .update({ total_profissionais: profissionaisDistintos.size, updated_by: userId } as never)
+        .eq("id", frequencia_id);
+      if (totalErr) throw new Error(totalErr.message);
+    }
+
+    // Reenvio após correção: as linhas rejeitadas voltam para análise em todo o grupo.
     const { error: reErr } = await supabase
       .from("frequencia_profissional")
       .update({ status_linha: "pendente", updated_by: userId } as never)
-      .eq("frequencia_id", frequencia_id)
+      .in("frequencia_id", folhaIdsAlvo)
       .eq("status_linha", "rejeitada")
       .is("deleted_at", null);
     if (reErr) throw new Error(reErr.message);
-
-
-    const { count } = await supabase
-      .from("frequencia_profissional")
-      .select("id", { count: "exact", head: true })
-      .eq("frequencia_id", frequencia_id)
-      .is("deleted_at", null);
 
     // Sincronização centralizada após envio
     await orquestrarSincronizacao({
@@ -666,17 +700,32 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
       }
     });
 
-    // Registra histórico (Seção 2)
-    await supabase.from("frequencia_historico").insert({
-      frequencia_id,
-      status_anterior: frequencia_status,
+    // Registra histórico em cada folha física, preservando a trilha original.
+    const historicos = folhasAlvo.map((folha) => ({
+      frequencia_id: folha.id,
+      status_anterior: folha.status,
       status_novo: "enviada",
       acao: "Envio para análise",
       executado_por: userId,
       executado_nome: perfil?.nome || "Usuário HSM",
       executado_perfil: perfil?.codigo || "Indefinido",
-      detalhes: { total_linhas: count }
-    } as never);
+      detalhes: {
+        total_linhas: (linhasAlvo ?? []).filter((l) => l.frequencia_id === folha.id).length,
+        envio_consolidado_unidade: !normalizarSetorId(data.setor_id),
+      },
+    }));
+    if (historicos.length) {
+      const { error: histErr } = await supabase
+        .from("frequencia_historico")
+        .insert(historicos as never);
+      if (histErr) throw new Error(histErr.message);
+    }
 
-    return { ok: true, enviadas: count ?? 0 };
+    return {
+      ok: true,
+      enviadas: profissionaisDistintos.size,
+      setores: setoresDistintos.size,
+      frequencias: folhaIdsAlvo.length,
+      consolidado: !normalizarSetorId(data.setor_id),
+    };
   });
