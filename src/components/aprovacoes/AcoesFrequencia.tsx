@@ -60,7 +60,7 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
         <OfflineButton
           size="sm"
           variant="outline"
-          onClick={() => h.onAcao(r.id, "em_analise")}
+          onClick={() => h.onAcao(r.id, "em_analise", r.grupo_ids)}
           requireOnline
         >
           <ScanSearch className="mr-1 h-4 w-4" />
@@ -68,7 +68,7 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
         </OfflineButton>
       )}
       {pendente && h.canAprovar && (
-        <OfflineButton size="sm" onClick={() => h.onAcao(r.id, "aprovar")} requireOnline>
+        <OfflineButton size="sm" onClick={() => h.onAcao(r.id, "aprovar", r.grupo_ids)} requireOnline>
           <CheckCircle2 className="mr-1 h-4 w-4" />
           Aprovar
         </OfflineButton>
@@ -78,7 +78,7 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
           <OfflineButton
             size="sm"
             variant="outline"
-            onClick={() => h.onAcao(r.id, "retornar")}
+            onClick={() => h.onAcao(r.id, "retornar", r.grupo_ids)}
             requireOnline
           >
             <ClipboardList className="mr-1 h-4 w-4" />
@@ -87,7 +87,7 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
           <OfflineButton
             size="sm"
             variant="destructive"
-            onClick={() => h.onAcao(r.id, "rejeitar")}
+            onClick={() => h.onAcao(r.id, "rejeitar", r.grupo_ids)}
             requireOnline
           >
             <XCircle className="mr-1 h-4 w-4" />
