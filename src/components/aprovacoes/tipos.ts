@@ -18,6 +18,10 @@ export type FreqRow = {
     competencias: { ano: number; mes: number } | null;
   } | null;
   setores?: { id: string; nome: string } | null;
+  /** Metadados somente de apresentação para submissão integral da unidade. */
+  consolidado?: boolean;
+  grupo_ids?: string[];
+  total_setores?: number;
 };
 
 export type AcaoTipo = "em_analise" | "aprovar" | "rejeitar" | "retornar";
@@ -29,7 +33,7 @@ export type AcoesHandlers = {
   onAnexos: (r: FreqRow) => void;
   onTrilha: (r: FreqRow) => void;
   onLinhas: (r: FreqRow) => void;
-  onAcao: (freqId: string, tipo: AcaoTipo) => void;
+  onAcao: (freqId: string, tipo: AcaoTipo, grupoIds?: string[]) => void;
 };
 
 const MESES = [
