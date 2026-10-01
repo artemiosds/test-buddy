@@ -593,62 +593,25 @@ export function FrequenciasContratadosPage() {
       const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
-      // Evita concorrência entre o botão manual e uma gravação automática.
-      // Se houver fila pendente, aguarda exatamente a mesma sequência serial.
-      if (temAlteracoesPendentes()) {
-        const ok = await autosaveRef.current.flush();
-        if (!ok) {
-          throw new Error("O autosalvamento pendente não pôde ser confirmado. Tente novamente.");
-        }
+      const temDirty = Object.values(linhasRef.current).some((l) => l._dirty);
+      if (!temDirty && !autosaveRef.current.hasPending()) {
+        return { ok: true, sem_alteracoes: true };
       }
 
-      const dirtyList = Object.values(linhas).filter((l) => l._dirty);
-      const list = dirtyList.map((l) => ({
-        profissional_id: l.profissional_id,
-        status: l.status,
-        dias_trabalhados: l.dias_trabalhados,
-        dias_falta: l.dias_falta,
-        atestado: l.atestado,
-        he_50: l.he_50,
-        he_100: l.he_100,
-        adn: l.adn,
-        plantoes: l.plantoes,
-        sobreaviso: l.sobreaviso,
-        incentivo: l.incentivo,
-        observacoes: l.observacoes || null,
-      }));
-
-      console.log("DEBUG_SALVAMENTO: Payload enviado (Contratados)", list);
-
-      if (!list.length) return { ok: true, sem_alteracoes: true };
-      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
-      
-      try {
-        const res = await salvarFn({
-          data: {
-            competencia_id: competenciaId,
-            unidade_id: unidadeId,
-            setor_id: sId,
-            linhas: list,
-          },
-        });
-        console.log("DEBUG_SALVAMENTO: Resposta servidor", res);
-        return res;
-      } catch (error) {
-        console.log("DEBUG_SUPABASE: Erro recebido ao salvar", error);
-        throw error;
+      // O botão manual usa a MESMA fila serial e a mesma proteção por snapshot
+      // do autosave. Assim não há duas escritas concorrentes e uma resposta
+      // antiga nunca limpa uma edição feita enquanto o servidor respondia.
+      const ok = await autosaveRef.current.flush();
+      if (!ok) {
+        throw new Error("Não foi possível confirmar o salvamento no servidor.");
       }
+      return { ok: true, sem_alteracoes: false };
     },
     onSuccess: (r: any) => {
       if (r?.sem_alteracoes) toast.info("Nenhuma alteração para salvar.");
       else toast.success("Alterações salvas com sucesso!");
-      setLinhas((prev) => {
-        const next: Record<string, LinhaState> = {};
-        for (const [k, v] of Object.entries(prev)) next[k] = { ...v, _dirty: false };
-        return next;
-      });
-      qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
-      qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
+      // O autosaveRun já limpa somente o snapshot realmente confirmado e
+      // também sincroniza a query da folha. Não limpamos _dirty em massa aqui.
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar."),
   });
