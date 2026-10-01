@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
 import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
-import { useSearch } from "@tanstack/react-router";
+import { useBlocker, useSearch } from "@tanstack/react-router";
 import {
   listarFolhaContratados,
   listarConsolidadoContratados,
@@ -501,24 +501,79 @@ export function FrequenciasContratadosPage() {
       return next;
     });
 
-    qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
+    // Só confirma "salvo" depois que a consulta da grade também estiver
+    // sincronizada com o valor persistido no backend.
+    await Promise.all([
+      qc.invalidateQueries({
+        queryKey: ["folha-contratados", competenciaId, unidadeId],
+        refetchType: "active",
+      }),
+      qc.invalidateQueries({
+        queryKey: ["frequencia-resumo", competenciaId, unidadeId],
+        refetchType: "active",
+      }),
+    ]);
     return true;
   }, [competenciaId, unidadeId, setorUnico, salvarFn, qc]);
 
-  const autosave = useAutosaveFolha({ enabled: canEdit, run: autosaveRun, delay: 900 });
+  const autosave = useAutosaveFolha({
+    enabled: canEdit,
+    run: autosaveRun,
+    delay: 900,
+    onError: (error) =>
+      toast.error(
+        error instanceof Error
+          ? `Falha no autosalvamento: ${error.message}`
+          : "Falha no autosalvamento. As alterações continuam pendentes.",
+      ),
+  });
   const autosaveRef = useRef(autosave);
   autosaveRef.current = autosave;
 
-  useEffect(() => {
-    const handler = () => {
-      if (Object.values(linhasRef.current).some((l) => l._dirty)) autosaveRef.current.flush();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => {
-      window.removeEventListener("beforeunload", handler);
-      handler();
-    };
-  }, []);
+  const temAlteracoesPendentes = useCallback(
+    () =>
+      Object.values(linhasRef.current).some((l) => l._dirty) ||
+      autosaveRef.current.hasPending(),
+    [],
+  );
+
+  useBlocker({
+    shouldBlockFn: async () => {
+      if (!temAlteracoesPendentes()) return false;
+      const ok = await autosaveRef.current.flush();
+      if (ok) return false;
+      return !window.confirm(
+        "Não foi possível confirmar o salvamento das alterações. Deseja sair mesmo assim?",
+      );
+    },
+    enableBeforeUnload: () => temAlteracoesPendentes(),
+  });
+
+  useEffect(() => () => {
+    if (temAlteracoesPendentes()) void autosaveRef.current.flush();
+  }, [temAlteracoesPendentes]);
+
+  const trocarContextoComFlush = useCallback(
+    async (aplicar: () => void) => {
+      if (!temAlteracoesPendentes()) {
+        aplicar();
+        return;
+      }
+      const ok = await autosaveRef.current.flush();
+      if (ok) {
+        aplicar();
+        return;
+      }
+      const sairMesmoAssim = window.confirm(
+        "Não foi possível salvar todas as alterações. Deseja trocar mesmo assim? Os valores não confirmados podem ser perdidos.",
+      );
+      if (sairMesmoAssim) {
+        autosaveRef.current.discardPending();
+        aplicar();
+      }
+    },
+    [temAlteracoesPendentes],
+  );
 
   const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
     const cur = linhasRef.current[pid];
@@ -1089,7 +1144,10 @@ export function FrequenciasContratadosPage() {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 items-end">
         <div>
           <label className="text-xs text-muted-foreground">Competência</label>
-          <Select value={competenciaId} onValueChange={setCompetenciaId}>
+          <Select
+            value={competenciaId}
+            onValueChange={(v) => void trocarContextoComFlush(() => setCompetenciaId(v))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecionar" />
             </SelectTrigger>
@@ -1106,7 +1164,7 @@ export function FrequenciasContratadosPage() {
           <label className="text-xs text-muted-foreground">Unidade</label>
           <UnidadeFilter
             value={unidadeId}
-            onChange={(v) => setUnidadeId(v)}
+            onChange={(v) => void trocarContextoComFlush(() => setUnidadeId(v))}
             placeholder="Selecionar unidade"
             className="w-[200px]"
           />
@@ -1160,7 +1218,7 @@ export function FrequenciasContratadosPage() {
           <label className="text-xs text-muted-foreground block mb-1">Setor</label>
           <MultiSelect
             options={(setoresOpts ?? []).map((s: any) => ({ label: s.nome, value: s.id }))}
-            onValueChange={setSetorFilter}
+            onValueChange={(v) => void trocarContextoComFlush(() => setSetorFilter(v))}
             defaultValue={setorFilter}
             placeholder={
               isGlobalView
