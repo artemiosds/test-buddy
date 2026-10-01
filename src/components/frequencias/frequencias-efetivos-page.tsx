@@ -438,10 +438,50 @@ export function FrequenciasEfetivosPage() {
     const list = pendentes.map(mapLinhaPayloadEfetivos);
     const snapshot = new Map(list.map((p) => [p.profissional_id, JSON.stringify(p)]));
 
-    const result = await salvarFn({
-      data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
-    });
-    if (!result?.ok || result.processadas !== list.length) return false;
+    // Quando há múltiplos setores selecionados, cada profissional deve ser
+    // persistido na folha do seu próprio setor. Com zero/um setor, preserva-se
+    // exatamente o comportamento anterior.
+    let processadas = 0;
+    if (setorParam && setorParam.length > 1) {
+      const setorPorProfissional = new Map(
+        ((folha?.itens ?? []) as any[]).map((it) => [
+          it.profissional.id as string,
+          (it.profissional.setor_id ?? null) as string | null,
+        ]),
+      );
+      const lotes = new Map<string | undefined, any[]>();
+      for (const linha of list) {
+        const setor = setorPorProfissional.get(linha.profissional_id) ?? undefined;
+        const lote = lotes.get(setor) ?? [];
+        lote.push(linha);
+        lotes.set(setor, lote);
+      }
+
+      for (const [setorId, linhasLote] of lotes) {
+        const result = await salvarFn({
+          data: {
+            competencia_id: competenciaId,
+            unidade_id: unidadeId,
+            setor_id: setorId,
+            linhas: linhasLote,
+          },
+        });
+        if (!result?.ok || result.processadas !== linhasLote.length) return false;
+        processadas += result.processadas;
+      }
+    } else {
+      const result = await salvarFn({
+        data: {
+          competencia_id: competenciaId,
+          unidade_id: unidadeId,
+          setor_id: setorUnico,
+          linhas: list,
+        },
+      });
+      if (!result?.ok || result.processadas !== list.length) return false;
+      processadas = result.processadas;
+    }
+    if (processadas !== list.length) return false;
 
     // Limpa o "sujo" apenas das linhas cujo conteúdo não mudou durante o envio.
     setLinhas((prev) => {
@@ -469,7 +509,7 @@ export function FrequenciasEfetivosPage() {
       }),
     ]);
     return true;
-  }, [competenciaId, unidadeId, setorUnico, salvarFn, qc]);
+  }, [competenciaId, unidadeId, setorUnico, setorParam, folha?.itens, salvarFn, qc]);
 
   const autosave = useAutosaveFolha({
     enabled: canEdit,
