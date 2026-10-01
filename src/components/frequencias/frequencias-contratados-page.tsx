@@ -622,7 +622,7 @@ export function FrequenciasContratadosPage() {
     // Autosalve: campos numéricos chegam aqui no onBlur (grava na hora);
     // texto livre usa debounce enquanto o usuário digita.
     if (campo === "observacoes") autosaveRef.current.schedule();
-    else autosaveRef.current.flush();
+    else void autosaveRef.current.saveNow();
   }, []);
 
   const mSalvar = useMutation({
@@ -658,32 +658,16 @@ export function FrequenciasContratadosPage() {
       const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
-      // salva antes se houver alterações
-      const dirtyList = Object.values(linhas).filter((l) => l._dirty);
-      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter[0] : undefined;
-      if (dirtyList.length) {
-        await salvarFn({
-          data: {
-            competencia_id: competenciaId,
-            unidade_id: unidadeId,
-            setor_id: sId,
-            linhas: dirtyList.map((l) => ({
-              profissional_id: l.profissional_id,
-              status: l.status,
-              dias_trabalhados: l.dias_trabalhados,
-              dias_falta: l.dias_falta,
-              atestado: l.atestado,
-              he_50: l.he_50,
-              he_100: l.he_100,
-              adn: l.adn,
-              plantoes: l.plantoes,
-              sobreaviso: l.sobreaviso,
-              incentivo: l.incentivo,
-              observacoes: l.observacoes || null,
-            })),
-          },
-        });
+      if (temAlteracoesPendentes()) {
+        const ok = await autosaveRef.current.flush();
+        if (!ok) {
+          throw new Error("Existem alterações que ainda não foram confirmadas. A folha não foi enviada.");
+        }
       }
+
+      const sId = (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0))
+        ? setorFilter[0]
+        : undefined;
       return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: sId } });
     },
     onSuccess: (r: any) => {
@@ -1001,7 +985,7 @@ export function FrequenciasContratadosPage() {
         if (touched) toast.success(`${touched} valor(es) colado(s).`);
         if (touched) {
           linhasRef.current = next;
-          autosaveRef.current.flush();
+          void autosaveRef.current.saveNow();
         }
         return next;
       });
