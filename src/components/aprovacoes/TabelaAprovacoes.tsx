@@ -22,6 +22,11 @@ function LinhaUnidade({ r, anexos }: { r: FreqRow; anexos: Record<string, number
         <span className="font-medium text-foreground">
           {r.competencia_unidades?.unidades?.nome ?? "—"}
         </span>
+        {r.consolidado && (
+          <Badge variant="secondary" className="text-[10px]">
+            Envio consolidado da unidade
+          </Badge>
+        )}
         {qtd > 0 && (
           <span
             className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
@@ -125,6 +130,7 @@ export function TabelaAprovacoes({
                 )}
               </span>
               <span>· {r.total_profissionais ?? 0} profissionais</span>
+              {r.consolidado && <span>· {r.total_setores ?? 0} setores</span>}
               {r.data_envio && <span>· {new Date(r.data_envio).toLocaleDateString("pt-BR")}</span>}
             </div>
             <div className="mt-3">
