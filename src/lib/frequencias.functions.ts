@@ -1064,3 +1064,122 @@ export const descartarAnexosPendentes = createServerFn({ method: "POST" })
     });
     return { ok: true, descartados: removidos.length };
   });
+
+
+const AlterarStatusConjuntoSchema = z.object({
+  frequencia_ids: z.array(z.string().uuid()).min(1).max(100),
+  status: StatusEnum,
+  observacoes: z.string().nullable().optional(),
+});
+
+/**
+ * Altera o status de uma submissão consolidada da unidade.
+ * Valida o grupo inteiro antes de qualquer UPDATE e preserva uma trilha
+ * individual por frequência física.
+ */
+export const alterarStatusFrequenciasConjunto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof AlterarStatusConjuntoSchema>) => AlterarStatusConjuntoSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const ids = [...new Set(data.frequencia_ids)];
+    const perm = PERM_STATUS[data.status];
+    if (perm) await ensurePermission(supabase, userId, perm);
+
+    const { data: freqs, error: fErr } = await supabase
+      .from("frequencias")
+      .select("id, tipo, status, setor_id, competencia_unidade_id")
+      .in("id", ids)
+      .is("deleted_at", null);
+    if (fErr) throw new Error(fErr.message);
+    if ((freqs ?? []).length !== ids.length) {
+      throw new Error("Uma ou mais folhas do conjunto não foram encontradas.");
+    }
+
+    const base = freqs![0] as any;
+    if ((freqs ?? []).some((f: any) =>
+      f.tipo !== base.tipo || f.competencia_unidade_id !== base.competencia_unidade_id
+    )) {
+      throw new Error("O conjunto contém folhas de unidades, competências ou tipos diferentes.");
+    }
+
+    // A submissão consolidada precisa conter a folha geral (setor_id nulo).
+    if (!(freqs ?? []).some((f: any) => !f.setor_id)) {
+      throw new Error("Conjunto inválido: folha geral da unidade não localizada.");
+    }
+
+    if (data.status === "aprovada") {
+      const [{ count: pend }, { count: pendLinhas }] = await Promise.all([
+        supabase
+          .from("frequencia_pendencias")
+          .select("id", { count: "exact", head: true })
+          .in("frequencia_id", ids)
+          .in("status", ["aberta", "respondida"])
+          .is("deleted_at", null),
+        supabase
+          .from("frequencia_pendencias_linhas")
+          .select("id", { count: "exact", head: true })
+          .in("frequencia_id", ids)
+          .eq("status", "aberta"),
+      ]);
+      if ((pend ?? 0) + (pendLinhas ?? 0) > 0) {
+        throw new Error(`Existem ${(pend ?? 0) + (pendLinhas ?? 0)} pendência(s) não resolvida(s) no conjunto.`);
+      }
+    }
+
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("nome, codigo")
+      .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
+      .maybeSingle();
+
+    const patch: Record<string, unknown> = { status: data.status, updated_by: userId };
+    const agora = new Date().toISOString();
+    if (data.status === "enviada") {
+      patch.enviada_por = userId;
+      patch.data_envio = agora;
+    }
+    if (data.status === "aprovada") {
+      patch.aprovada_por = userId;
+      patch.data_aprovacao = agora;
+    }
+
+    const { data: atualizadas, error: upErr } = await supabase
+      .from("frequencias")
+      .update(patch as never)
+      .in("id", ids)
+      .select("id");
+    if (upErr) throw new Error(upErr.message);
+    if ((atualizadas ?? []).length !== ids.length) {
+      throw new Error("Nem todas as folhas do conjunto puderam ser atualizadas.");
+    }
+
+    const label = ACAO_LABEL[data.status] ?? "Alteração de status";
+    const historicos = (freqs ?? []).map((f: any) => ({
+      frequencia_id: f.id,
+      status_anterior: f.status,
+      status_novo: data.status,
+      acao: `${label} — envio consolidado da unidade`,
+      justificativa: data.observacoes ?? null,
+      executado_por: userId,
+      executado_nome: perfil?.nome || "Usuário HSM",
+      executado_perfil: perfil?.codigo || "Indefinido",
+      detalhes: { envio_consolidado_unidade: true, frequencias_grupo: ids.length },
+    }));
+    const { error: hErr } = await supabase
+      .from("frequencia_historico")
+      .insert(historicos as never);
+    if (hErr) throw new Error(hErr.message);
+
+    const tipoEvento = EVENTO_STATUS[data.status];
+    if (tipoEvento) {
+      for (const id of ids) {
+        await emitEvento(supabase, tipoEvento, "frequencia", id, {
+          status_novo: data.status,
+          envio_consolidado_unidade: true,
+        });
+      }
+    }
+
+    return { ok: true, atualizadas: ids.length };
+  });
