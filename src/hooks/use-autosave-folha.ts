@@ -101,27 +101,33 @@ export function useAutosaveFolha({ enabled, run, delay = 900, onError }: Options
   }, [clearTimer, delay, drain]);
 
   /**
-   * Grava imediatamente e AGUARDA o backend.
-   * É seguro chamar enquanto outra gravação está em andamento: a mesma fila
-   * serial será drenada antes de resolver.
+   * Marca uma NOVA edição para gravação imediata e aguarda o backend.
+   * Se já houver uma rodada em voo, a nova alteração fica pendente e será
+   * processada logo depois, sem concorrência.
+   */
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    if (!enabledRef.current) return true;
+    clearTimer();
+    pendingRef.current = true;
+    if (processingRef.current) return processingRef.current;
+    return drain();
+  }, [clearTimer, drain]);
+
+  /**
+   * Apenas drena/aguarda o que já está pendente.
+   * Usado antes de navegar, trocar contexto, salvar manualmente ou enviar.
+   * Não cria rodada extra quando uma gravação já está em andamento.
    */
   const flush = useCallback(async (): Promise<boolean> => {
     if (!enabledRef.current) return true;
     clearTimer();
-
-    // Se já existe uma gravação em voo, apenas aguarda a mesma promise.
-    // Uma nova edição ocorrida durante o envio é marcada por schedule()/flush()
-    // através do pendingRef e será processada na próxima volta da fila.
     if (processingRef.current) return processingRef.current;
-
-    // flush() também é o gatilho imediato usado pelos campos numéricos.
-    // Sem esta marcação, a linha podia ficar _dirty sem iniciar o autosave,
-    // mantendo o badge em "idle".
-    pendingRef.current = true;
+    if (!pendingRef.current) return true;
     return drain();
   }, [clearTimer, drain]);
 
   const retry = useCallback(async (): Promise<boolean> => {
+    // Após erro pendingRef permanece true.
     return flush();
   }, [flush]);
 
@@ -143,5 +149,5 @@ export function useAutosaveFolha({ enabled, run, delay = 900, onError }: Options
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
-  return { status, schedule, flush, retry, discardPending, hasPending };
+  return { status, schedule, saveNow, flush, retry, discardPending, hasPending };
 }
