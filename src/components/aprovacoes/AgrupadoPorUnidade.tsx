@@ -68,6 +68,11 @@ export function AgrupadoPorUnidade({
                       <Badge variant="outline" className="capitalize">
                         {r.tipo}
                       </Badge>
+                      {r.consolidado && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Envio consolidado da unidade
+                        </Badge>
+                      )}
                       {r.setores?.nome && (
                         <span className="text-xs text-muted-foreground">
                           Setor: {r.setores.nome}
@@ -75,6 +80,7 @@ export function AgrupadoPorUnidade({
                       )}
                       <span className="text-xs text-muted-foreground">
                         {r.total_profissionais ?? 0} profissionais
+                        {r.consolidado ? ` · ${r.total_setores ?? 0} setores` : ""}
                       </span>
                       <StatusBadge domain="frequencia" value={r.status} />
                     </div>
