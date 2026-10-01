@@ -585,7 +585,7 @@ export function FrequenciasEfetivosPage() {
     // Autosalve: campos numéricos já chegam aqui no onBlur (grava na hora);
     // texto livre usa debounce enquanto o usuário digita.
     if (campo === "observacoes") autosaveRef.current.schedule();
-    else autosaveRef.current.flush();
+    else void autosaveRef.current.saveNow();
   }, []);
 
   function payloadDirty(): any[] {
@@ -669,13 +669,15 @@ export function FrequenciasEfetivosPage() {
       const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
-      const list = payloadDirty();
-      if (list.length) {
-        await salvarFn({
-          data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
-        });
+      // Antes de tramitar, garante que toda edição automática pendente foi
+      // confirmada pelo backend e que a grade/cache estão sincronizados.
+      if (temAlteracoesPendentes()) {
+        const ok = await autosaveRef.current.flush();
+        if (!ok) {
+          throw new Error("Existem alterações que ainda não foram confirmadas. A folha não foi enviada.");
+        }
       }
-      
+
       return enviarFn({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico } });
     },
     onSuccess: (r: any) => {
@@ -830,7 +832,7 @@ export function FrequenciasEfetivosPage() {
         if (touched) toast.success(`${touched} valor(es) colado(s).`);
         if (touched) {
           linhasRef.current = next;
-          autosaveRef.current.flush();
+          void autosaveRef.current.saveNow();
         }
         return next;
       });
