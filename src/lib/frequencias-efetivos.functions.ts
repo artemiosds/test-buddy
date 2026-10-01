@@ -701,18 +701,19 @@ export const enviarFolhaEfetivos = createServerFn({ method: "POST" })
     });
 
     // Registra histórico em cada folha física, preservando a trilha original.
+    // A tabela frequencia_historico não possui coluna "detalhes"; as informações
+    // complementares ficam no campo existente "justificativa".
     const historicos = folhasAlvo.map((folha) => ({
       frequencia_id: folha.id,
       status_anterior: folha.status,
       status_novo: "enviada",
       acao: "Envio para análise",
+      justificativa: !normalizarSetorId(data.setor_id)
+        ? `Envio consolidado da unidade: ${profissionaisDistintos.size} profissionais em ${setoresDistintos.size} setores.`
+        : null,
       executado_por: userId,
       executado_nome: perfil?.nome || "Usuário HSM",
       executado_perfil: perfil?.codigo || "Indefinido",
-      detalhes: {
-        total_linhas: (linhasAlvo ?? []).filter((l) => l.frequencia_id === folha.id).length,
-        envio_consolidado_unidade: !normalizarSetorId(data.setor_id),
-      },
     }));
     if (historicos.length) {
       const { error: histErr } = await supabase
