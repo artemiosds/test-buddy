@@ -483,10 +483,47 @@ export function FrequenciasContratadosPage() {
       list.map((p: any) => [p.profissional_id as string, JSON.stringify(p)]),
     );
 
-    const result = await salvarFn({
-      data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: setorUnico, linhas: list },
-    });
-    if (!result?.ok || result.processadas !== list.length) return false;
+    let processadas = 0;
+    if (setorFilter.length > 1 && setorFilter.length !== (setoresOpts?.length ?? 0)) {
+      const setorPorProfissional = new Map(
+        ((folha ?? []) as any[]).map((it) => [
+          it.profissional.id as string,
+          (it.profissional.setor_id ?? null) as string | null,
+        ]),
+      );
+      const lotes = new Map<string | undefined, any[]>();
+      for (const linha of list) {
+        const setor = setorPorProfissional.get(linha.profissional_id) ?? undefined;
+        const lote = lotes.get(setor) ?? [];
+        lote.push(linha);
+        lotes.set(setor, lote);
+      }
+
+      for (const [setorId, linhasLote] of lotes) {
+        const result = await salvarFn({
+          data: {
+            competencia_id: competenciaId,
+            unidade_id: unidadeId,
+            setor_id: setorId,
+            linhas: linhasLote,
+          },
+        });
+        if (!result?.ok || result.processadas !== linhasLote.length) return false;
+        processadas += result.processadas;
+      }
+    } else {
+      const result = await salvarFn({
+        data: {
+          competencia_id: competenciaId,
+          unidade_id: unidadeId,
+          setor_id: setorUnico,
+          linhas: list,
+        },
+      });
+      if (!result?.ok || result.processadas !== list.length) return false;
+      processadas = result.processadas;
+    }
+    if (processadas !== list.length) return false;
 
     // Limpa o "sujo" apenas das linhas cujo conteúdo não mudou durante o envio.
     setLinhas((prev) => {
@@ -514,7 +551,7 @@ export function FrequenciasContratadosPage() {
       }),
     ]);
     return true;
-  }, [competenciaId, unidadeId, setorUnico, salvarFn, qc]);
+  }, [competenciaId, unidadeId, setorUnico, setorFilter, setoresOpts?.length, folha, salvarFn, qc]);
 
   const autosave = useAutosaveFolha({
     enabled: canEdit,
