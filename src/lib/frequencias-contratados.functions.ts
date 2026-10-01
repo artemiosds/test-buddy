@@ -443,6 +443,25 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       .in("status", ["rascunho", "rejeitada", "devolvida"])
       .is("deleted_at", null)
       .select("id");
+
+    // O total do envio deve refletir todos os profissionais já persistidos
+    // no escopo, e não apenas as linhas que mudaram de status neste clique.
+    let persistidasQuery = supabase
+      .from("frequencias_contratados")
+      .select("profissional_id")
+      .eq("competencia_id", data.competencia_id)
+      .eq("unidade_id", data.unidade_id)
+      .is("deleted_at", null);
+    if (data.setor_id) {
+      persistidasQuery = persistidasQuery.in("profissional_id", profIds);
+    }
+    const { data: linhasPersistidas, error: persistidasErr } = await persistidasQuery;
+    if (persistidasErr) throw new Error(persistidasErr.message);
+
+    const profissionaisEnviados = new Set(
+      (linhasPersistidas ?? []).map((linha) => linha.profissional_id),
+    );
+    const totalProfissionais = profissionaisEnviados.size;
     if (error) throw new Error(error.message);
 
     // Orquestração central
@@ -495,7 +514,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       if (!data.setor_id && geral) {
         const { error: totalErr } = await supabase
           .from("frequencias")
-          .update({ total_profissionais: (updated ?? []).length, updated_by: userId } as never)
+          .update({ total_profissionais: totalProfissionais, updated_by: userId } as never)
           .eq("id", geral.id);
         if (totalErr) throw new Error(totalErr.message);
       }
@@ -505,13 +524,12 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
         status_anterior: freq.status || "rascunho",
         status_novo: "enviada",
         acao: "Envio para análise",
+        justificativa: !data.setor_id
+          ? `Envio consolidado da unidade: ${totalProfissionais} profissionais em ${setoresDistintos.size} setores.`
+          : null,
         executado_por: userId,
         executado_nome: perfil?.nome || "Usuário HSM",
         executado_perfil: perfil?.codigo || "Indefinido",
-        detalhes: {
-          total_linhas: (updated ?? []).length,
-          envio_consolidado_unidade: !data.setor_id,
-        },
       }));
       const { error: histErr } = await supabase
         .from("frequencia_historico")
@@ -520,7 +538,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
 
       return {
         ok: true,
-        enviadas: (updated ?? []).length,
+        enviadas: totalProfissionais,
         setores: setoresDistintos.size,
         frequencias: freqIds.length,
         consolidado: !data.setor_id,
