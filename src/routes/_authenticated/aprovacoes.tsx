@@ -8,7 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { alterarStatusFrequencia } from "@/lib/frequencias.functions";
+import { alterarStatusFrequencia, alterarStatusFrequenciasConjunto } from "@/lib/frequencias.functions";
 import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,7 +122,7 @@ function AprovacoesPage() {
   const navigate = useNavigate({ from: "/aprovacoes" });
   const search = Route.useSearch();
 
-  const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo } | null>(null);
+  const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo; grupoIds?: string[] } | null>(null);
   const [obs, setObs] = useState("");
   const [trilhaFreqId, setTrilhaFreqId] = useState<string | null>(null);
   const [trilhaAberta, setTrilhaAbertura] = useState(false);
@@ -217,7 +217,62 @@ function AprovacoesPage() {
     },
   });
 
-  const rows = rowsBrutas ?? [];
+  const rows = useMemo(() => {
+    const brutas = rowsBrutas ?? [];
+    const saida: FreqRow[] = [];
+    const usados = new Set<string>();
+
+    for (const r of brutas) {
+      if (usados.has(r.id)) continue;
+      const cuId = r.competencia_unidade_id;
+      if (!cuId) {
+        saida.push(r);
+        usados.add(r.id);
+        continue;
+      }
+
+      const irmas = brutas.filter(
+        (x) => x.competencia_unidade_id === cuId && x.tipo === r.tipo,
+      );
+      const geral = irmas.find((x) => !x.setor_id);
+
+      // Só consolida quando existe folha geral efetivamente enviada/processada
+      // e as folhas irmãs compartilham o mesmo status atual. Isso preserva
+      // envios isolados por setor.
+      const consolidavel =
+        !!geral &&
+        !!geral.data_envio &&
+        geral.status !== "rascunho" &&
+        irmas.length > 1 &&
+        irmas.every((x) => x.status === geral.status);
+
+      if (!consolidavel) {
+        saida.push(r);
+        usados.add(r.id);
+        continue;
+      }
+
+      const ids = irmas.map((x) => x.id);
+      ids.forEach((id) => usados.add(id));
+      const totalProf = Math.max(
+        Number(geral.total_profissionais ?? 0),
+        ...irmas.map((x) => Number(x.total_profissionais ?? 0)),
+      );
+      const setores = new Set(
+        irmas.map((x) => x.setor_id).filter((v): v is string => !!v),
+      );
+
+      saida.push({
+        ...geral,
+        consolidado: true,
+        grupo_ids: ids,
+        total_setores: setores.size,
+        total_profissionais: totalProf,
+        setores: null,
+      });
+    }
+    return saida;
+  }, [rowsBrutas]);
 
   const filtros: FiltrosState = {
     q: search.q,
@@ -250,6 +305,7 @@ function AprovacoesPage() {
   }, [rows, filtros.q, filtros.unidade, filtros.tipo, filtros.status, filtros.de, filtros.ate]);
 
   const alterarStatusFn = useServerFn(alterarStatusFrequencia);
+  const alterarStatusConjuntoFn = useServerFn(alterarStatusFrequenciasConjunto);
 
   // Idempotente: alterar_status apenas move a frequência para um estado alvo.
   const registraMutation = useRetryMutation({
@@ -265,13 +321,24 @@ function AprovacoesPage() {
       statusAnterior: StatusFreq;
     }) => {
       const statusNovo = ACAO_STATUS[tipo];
-      await alterarStatusFn({
-        data: {
-          frequencia_id: freqId,
-          status: statusNovo,
-          observacoes: observacoes || null,
-        },
-      });
+      const grupoIds = acao?.grupoIds;
+      if (grupoIds && grupoIds.length > 1) {
+        await alterarStatusConjuntoFn({
+          data: {
+            frequencia_ids: grupoIds,
+            status: statusNovo,
+            observacoes: observacoes || null,
+          },
+        });
+      } else {
+        await alterarStatusFn({
+          data: {
+            frequencia_id: freqId,
+            status: statusNovo,
+            observacoes: observacoes || null,
+          },
+        });
+      }
     },
     onSuccess: () => {
       toast.success("Ação registrada");
@@ -283,8 +350,8 @@ function AprovacoesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function abrirAcao(freqId: string, tipo: AcaoTipo) {
-    setAcao({ freqId, tipo });
+  function abrirAcao(freqId: string, tipo: AcaoTipo, grupoIds?: string[]) {
+    setAcao({ freqId, tipo, grupoIds });
     setObs("");
   }
 
