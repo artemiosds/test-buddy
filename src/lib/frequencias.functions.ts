@@ -1160,11 +1160,12 @@ export const alterarStatusFrequenciasConjunto = createServerFn({ method: "POST" 
       status_anterior: f.status,
       status_novo: data.status,
       acao: `${label} — envio consolidado da unidade`,
-      justificativa: data.observacoes ?? null,
+      justificativa:
+        data.observacoes ??
+        `Ação aplicada ao envio consolidado da unidade (${ids.length} folhas).`,
       executado_por: userId,
       executado_nome: perfil?.nome || "Usuário HSM",
       executado_perfil: perfil?.codigo || "Indefinido",
-      detalhes: { envio_consolidado_unidade: true, frequencias_grupo: ids.length },
     }));
     const { error: hErr } = await supabase
       .from("frequencia_historico")
