@@ -593,6 +593,15 @@ export function FrequenciasContratadosPage() {
       const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
+      // Evita concorrência entre o botão manual e uma gravação automática.
+      // Se houver fila pendente, aguarda exatamente a mesma sequência serial.
+      if (temAlteracoesPendentes()) {
+        const ok = await autosaveRef.current.flush();
+        if (!ok) {
+          throw new Error("O autosalvamento pendente não pôde ser confirmado. Tente novamente.");
+        }
+      }
+
       const dirtyList = Object.values(linhas).filter((l) => l._dirty);
       const list = dirtyList.map((l) => ({
         profissional_id: l.profissional_id,
