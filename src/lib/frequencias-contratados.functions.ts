@@ -456,19 +456,51 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
       }
     });
 
-    // Registra histórico via tabela consolidada (Seção 2)
-    const { data: freq } = await supabase
+    // Sincroniza os registros de submissão usados pela tela de Aprovações.
+    // Sem setor: todas as folhas de contratados da unidade formam um conjunto.
+    // Com setor: mantém o comportamento isolado.
+    const cuId = await garantirCompetenciaUnidade({
+      competencia_id: data.competencia_id,
+      unidade_id: data.unidade_id,
+      userId,
+    });
+    let qFreqs = supabase
       .from("frequencias")
-      .select("id, status")
+      .select("id, status, setor_id")
       .eq("tipo", "contratados")
-      .eq("competencia_unidade_id", (await garantirCompetenciaUnidade({ competencia_id: data.competencia_id, unidade_id: data.unidade_id, userId }))!)
-      .filter("setor_id", data.setor_id ? "eq" : "is", data.setor_id ?? null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .eq("competencia_unidade_id", cuId)
+      .is("deleted_at", null);
+    if (data.setor_id) qFreqs = qFreqs.eq("setor_id", data.setor_id);
+    const { data: freqs, error: freqsErr } = await qFreqs.order("created_at", { ascending: true });
+    if (freqsErr) throw new Error(freqsErr.message);
 
-    if (freq?.id) {
-      await supabase.from("frequencia_historico").insert({
+    if ((freqs ?? []).length) {
+      const freqIds = (freqs ?? []).map((f) => f.id);
+      const { error: statusErr } = await supabase
+        .from("frequencias")
+        .update({
+          status: "enviada",
+          data_envio: now,
+          enviada_por: userId,
+          updated_by: userId,
+        } as never)
+        .in("id", freqIds)
+        .in("status", ["rascunho", "com_pendencias", "rejeitada", "devolvida", "enviada"]);
+      if (statusErr) throw new Error(statusErr.message);
+
+      const setoresDistintos = new Set(
+        (freqs ?? []).map((f) => f.setor_id).filter((v): v is string => !!v),
+      );
+      const geral = (freqs ?? []).find((f) => !f.setor_id);
+      if (!data.setor_id && geral) {
+        const { error: totalErr } = await supabase
+          .from("frequencias")
+          .update({ total_profissionais: (updated ?? []).length, updated_by: userId } as never)
+          .eq("id", geral.id);
+        if (totalErr) throw new Error(totalErr.message);
+      }
+
+      const historicos = (freqs ?? []).map((freq) => ({
         frequencia_id: freq.id,
         status_anterior: freq.status || "rascunho",
         status_novo: "enviada",
@@ -476,9 +508,24 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
         executado_por: userId,
         executado_nome: perfil?.nome || "Usuário HSM",
         executado_perfil: perfil?.codigo || "Indefinido",
-        detalhes: { total_linhas: (updated ?? []).length }
-      } as never);
+        detalhes: {
+          total_linhas: (updated ?? []).length,
+          envio_consolidado_unidade: !data.setor_id,
+        },
+      }));
+      const { error: histErr } = await supabase
+        .from("frequencia_historico")
+        .insert(historicos as never);
+      if (histErr) throw new Error(histErr.message);
+
+      return {
+        ok: true,
+        enviadas: (updated ?? []).length,
+        setores: setoresDistintos.size,
+        frequencias: freqIds.length,
+        consolidado: !data.setor_id,
+      };
     }
 
-    return { ok: true, enviadas: (updated ?? []).length };
+    return { ok: true, enviadas: (updated ?? []).length, setores: 0, frequencias: 0, consolidado: !data.setor_id };
   });
