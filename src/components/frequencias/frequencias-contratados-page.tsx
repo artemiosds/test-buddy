@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineGuard } from "@/lib/offline-guard";
+import { notificarModuloDesatualizado } from "@/lib/pwa";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -796,6 +797,16 @@ export function FrequenciasContratadosPage() {
         itens: mapExportItens(),
       });
     } catch (e: any) {
+      if (
+        notificarModuloDesatualizado(e, {
+          beforeReload: async () => {
+            if (!temAlteracoesPendentes()) return true;
+            return await autosaveRef.current.flush();
+          },
+        })
+      ) {
+        return;
+      }
       toast.error(e?.message ?? "Falha ao gerar Excel.");
     }
   }
@@ -813,6 +824,16 @@ export function FrequenciasContratadosPage() {
         secretariaId: me?.secretaria_id ?? null,
       });
     } catch (e: any) {
+      if (
+        notificarModuloDesatualizado(e, {
+          beforeReload: async () => {
+            if (!temAlteracoesPendentes()) return true;
+            return await autosaveRef.current.flush();
+          },
+        })
+      ) {
+        return;
+      }
       toast.error(e?.message ?? "Falha ao gerar PDF.");
     }
   }
@@ -831,6 +852,16 @@ export function FrequenciasContratadosPage() {
         secretariaId: me?.secretaria_id ?? null,
       });
     } catch (e: any) {
+      if (
+        notificarModuloDesatualizado(e, {
+          beforeReload: async () => {
+            if (!temAlteracoesPendentes()) return true;
+            return await autosaveRef.current.flush();
+          },
+        })
+      ) {
+        return;
+      }
       toast.error(e?.message ?? "Falha ao gerar PDF (Modelo Gestão-SMS).");
     }
   }
@@ -846,6 +877,16 @@ export function FrequenciasContratadosPage() {
         itens: mapExportItens(),
       });
     } catch (e: any) {
+      if (
+        notificarModuloDesatualizado(e, {
+          beforeReload: async () => {
+            if (!temAlteracoesPendentes()) return true;
+            return await autosaveRef.current.flush();
+          },
+        })
+      ) {
+        return;
+      }
       toast.error(e?.message ?? "Falha ao gerar Excel (Modelo Gestão-SMS).");
     }
   }
