@@ -34,6 +34,7 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
             search={{
               competenciaId: cu?.competencia_id ?? undefined,
               unidadeId: cu?.unidade_id ?? undefined,
+              setorId: r.setor_id ?? undefined,
             }}
           >
             <Eye className="mr-1 h-4 w-4" />
