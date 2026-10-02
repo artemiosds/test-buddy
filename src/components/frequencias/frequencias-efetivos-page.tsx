@@ -944,7 +944,10 @@ export function FrequenciasEfetivosPage() {
                 > = {};
                 let seq = 1;
                 for (const it of itensExportacao as any[]) {
-                  const setor = it.profissional.setor ?? "SEM SETOR";
+                  const setor =
+                    (it.profissional.setor?.trim?.() || "") ||
+                    unidadeNome ||
+                    "UNIDADE";
                   if (!grupos[setor]) {
                     grupos[setor] = { codigo_setor: String(seq++), nome_setor: setor, itens: [] };
                   }
