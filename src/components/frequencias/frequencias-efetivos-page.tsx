@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { offlineGuard } from "@/lib/offline-guard";
 import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker, useSearch } from "@tanstack/react-router";
@@ -667,7 +668,6 @@ export function FrequenciasEfetivosPage() {
 
   const mSalvar = useMutation({
     mutationFn: async () => {
-      const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
       const temDirty = Object.values(linhasRef.current).some((l) => l._dirty);
@@ -695,7 +695,6 @@ export function FrequenciasEfetivosPage() {
 
   const mEnviar = useMutation({
     mutationFn: async () => {
-      const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
       // Antes de tramitar, garante que toda edição automática pendente foi
