@@ -146,7 +146,7 @@ export async function gerarFolhaContratadosModeloCer(
       p.nome ?? "",
       fmtCPF(p.cpf),
       p.cargo ?? "",
-      p.setor || "CAPS II",
+      p.setor?.trim() || input.unidadeNome || "-",
       fmtLocal(l.dias_trabalhados as number),
       fmtLocal(l.dias_falta as number),
       fmtLocal(l.atestado as number),
