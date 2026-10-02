@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { offlineGuard } from "@/lib/offline-guard";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -678,7 +679,6 @@ export function FrequenciasContratadosPage() {
 
   const mSalvar = useMutation({
     mutationFn: async () => {
-      const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
       const temDirty = Object.values(linhasRef.current).some((l) => l._dirty);
@@ -706,7 +706,6 @@ export function FrequenciasContratadosPage() {
 
   const mEnviar = useMutation({
     mutationFn: async () => {
-      const { offlineGuard } = await import("@/lib/offline-guard");
       if (offlineGuard()) throw new Error("Offline");
 
       if (temAlteracoesPendentes()) {
