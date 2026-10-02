@@ -415,7 +415,14 @@ export function FrequenciasContratadosPage() {
 
   // Carrega última justificativa se devolvida
   const { data: ultimaAcao } = useQuery({
-    queryKey: ["frequencia-ultima-acao", competenciaId, unidadeId, "contratados"],
+    queryKey: [
+      "frequencia-ultima-acao",
+      competenciaId,
+      unidadeId,
+      "contratados",
+      escopoResumo.modo,
+      escopoResumo.setorId ?? "sem-setor",
+    ],
     enabled:
       !!competenciaId && !!unidadeId && !isGlobalView && folhaStatusUnificado === "devolvida",
     queryFn: async () => {
