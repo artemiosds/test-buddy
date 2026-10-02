@@ -1,6 +1,6 @@
 /* Service Worker — cache de assets estáticos (leitura offline).
    Mutações nunca são cacheadas; requisições de API sempre vão à rede. */
-const CACHE_NAME = "sms-oriximina-static-v1";
+const CACHE_NAME = "sms-oriximina-static-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -73,17 +73,36 @@ self.addEventListener("fetch", (event) => {
   // Nunca cachear chamadas de dados/servidor (LGPD: sem PII em cache).
   if (url.pathname.startsWith("/_serverFn") || url.pathname.startsWith("/api")) return;
 
-  const isAsset = /\.(?:js|css|woff2?|png|svg|ico|webmanifest)$/.test(url.pathname);
-  if (!isAsset) return;
+  const isJs = /\.js$/.test(url.pathname);
+  const isStaticAsset = /\.(?:css|woff2?|png|svg|ico|webmanifest)$/.test(url.pathname);
+  if (!isJs && !isStaticAsset) return;
 
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
+
+      // JavaScript: rede primeiro. Isso evita priorizar bundles/chunks de uma
+      // publicação anterior quando há conexão.
+      if (isJs) {
+        try {
+          const res = await fetch(req, { cache: "no-store" });
+          // Nunca armazenar respostas de erro (404/5xx) como JavaScript válido.
+          if (res.ok) await cache.put(req, res.clone());
+          return res;
+        } catch (err) {
+          // Fallback apenas se ESTE MESMO chunk existir no cache e a rede falhar.
+          const cached = await cache.match(req);
+          if (cached) return cached;
+          throw err;
+        }
+      }
+
+      // CSS/fontes/imagens continuam cache-first.
       const cached = await cache.match(req);
       if (cached) return cached;
       try {
         const res = await fetch(req);
-        if (res.ok) cache.put(req, res.clone());
+        if (res.ok) await cache.put(req, res.clone());
         return res;
       } catch (err) {
         if (cached) return cached;
