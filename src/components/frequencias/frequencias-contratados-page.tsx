@@ -199,7 +199,9 @@ export function FrequenciasContratadosPage() {
   const [busca, setBusca] = useState("");
   const [cargoFilter, setCargoFilter] = useState<string>("todos");
   const [funcaoFilter, setFuncaoFilter] = useState<string>("todos");
-  const [setorFilter, setSetorFilter] = useState<string[]>([]);
+  const [setorFilter, setSetorFilter] = useState<string[]>(
+    search.setorId ? [search.setorId] : [],
+  );
   const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilterValue>("todas");
   const [pendFilter, setPendFilter] = useState<
     "todos" | "sem_conta" | "sem_cargo" | "sem_lotacao" | "sem_matricula" | "sem_cpf"
