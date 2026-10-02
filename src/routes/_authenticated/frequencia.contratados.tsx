@@ -6,6 +6,7 @@ import { z } from "zod";
 const SearchSchema = z.object({
   competenciaId: z.string().uuid().optional(),
   unidadeId: z.string().uuid().optional(),
+  setorId: z.string().uuid().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/frequencia/contratados")({ errorComponent: ErrorComponent,
