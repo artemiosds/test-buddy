@@ -331,25 +331,54 @@ export function FrequenciasContratadosPage() {
         : carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
   });
 
+  const escopoResumo = useMemo(() => {
+    const filtroParcial =
+      setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0);
+    if (!filtroParcial) return { modo: "geral" as const, setorId: null as string | null };
+    if (setorFilter.length === 1) {
+      return { modo: "setor" as const, setorId: setorFilter[0] };
+    }
+    // Com múltiplos setores parciais não existe uma única frequência física que
+    // represente todo o filtro; nesse caso o status vem das próprias linhas.
+    return { modo: "multiplo" as const, setorId: null as string | null };
+  }, [setorFilter, setoresOpts?.length]);
+
   // Exportação PDF / Excel — só liberadas quando toda a folha estiver aprovada.
   const { data: summary } = useQuery({
-    queryKey: ["frequencia-resumo", competenciaId, unidadeId, "contratados"],
-    enabled: !!competenciaId && !!unidadeId && !isGlobalView,
+    queryKey: [
+      "frequencia-resumo",
+      competenciaId,
+      unidadeId,
+      "contratados",
+      escopoResumo.modo,
+      escopoResumo.setorId ?? "sem-setor",
+    ],
+    enabled:
+      !!competenciaId &&
+      !!unidadeId &&
+      !isGlobalView &&
+      escopoResumo.modo !== "multiplo",
     queryFn: async () => {
       let q = supabase
         .from("frequencias")
-        .select("id, status")
+        .select("id, status, setor_id")
         .eq("tipo", "contratados")
         .eq("competencia_unidades.competencia_id", competenciaId);
-      
-      // Se for MASTER e unidadeId for "__all__" (ou null), não filtra por unidade
+
       if (unidadeId !== "__all__" && unidadeId) {
         q = q.eq("competencia_unidades.unidade_id", unidadeId);
       }
-      
-      const { data } = await q.maybeSingle();
+
+      if (escopoResumo.modo === "setor" && escopoResumo.setorId) {
+        q = q.eq("setor_id", escopoResumo.setorId);
+      } else {
+        q = q.is("setor_id", null);
+      }
+
+      const { data, error } = await q.maybeSingle();
+      if (error) throw error;
       return data;
-    }
+    },
   });
 
   const frequenciaId = summary?.id;
@@ -382,13 +411,20 @@ export function FrequenciasContratadosPage() {
     enabled:
       !!competenciaId && !!unidadeId && !isGlobalView && folhaStatusUnificado === "devolvida",
     queryFn: async () => {
-      const { data: res } = await supabase
+      let freqQuery = supabase
         .from("frequencias")
         .select("id")
         .eq("tipo", "contratados")
         .eq("competencia_unidades.competencia_id", competenciaId)
-        .eq("competencia_unidades.unidade_id", unidadeId)
-        .maybeSingle();
+        .eq("competencia_unidades.unidade_id", unidadeId);
+
+      if (escopoResumo.modo === "setor" && escopoResumo.setorId) {
+        freqQuery = freqQuery.eq("setor_id", escopoResumo.setorId);
+      } else {
+        freqQuery = freqQuery.is("setor_id", null);
+      }
+
+      const { data: res } = await freqQuery.maybeSingle();
 
       if (!res?.id) return null;
 
