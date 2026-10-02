@@ -314,11 +314,25 @@ export const alterarStatusFrequencia = createServerFn({ method: "POST" })
       patch.data_aprovacao = new Date().toISOString();
     }
 
-    const { error: upErr } = await supabase
-      .from("frequencias")
-      .update(patch as never)
-      .eq("id", data.frequencia_id);
-    if (upErr) throw new Error(upErr.message);
+    if (data.status === "devolvida" && (freq as any).tipo === "contratados") {
+      // Contratados possuem o status da folha em `frequencias` e o status
+      // individual em `frequencias_contratados`. A RPC mantém ambos
+      // sincronizados na mesma transação e respeita o setor da folha.
+      const { error: devolucaoErr } = await (supabase as any).rpc(
+        "devolver_frequencias_contratados_transacional",
+        {
+          _frequencia_ids: [data.frequencia_id],
+          _justificativa: data.observacoes ?? null,
+        },
+      );
+      if (devolucaoErr) throw new Error(devolucaoErr.message);
+    } else {
+      const { error: upErr } = await supabase
+        .from("frequencias")
+        .update(patch as never)
+        .eq("id", data.frequencia_id);
+      if (upErr) throw new Error(upErr.message);
+    }
 
     // Aviso à unidade (sino + e-mail) quando a folha é rejeitada/devolvida.
     if (
@@ -1144,14 +1158,33 @@ export const alterarStatusFrequenciasConjunto = createServerFn({ method: "POST" 
       patch.data_aprovacao = agora;
     }
 
-    const { data: atualizadas, error: upErr } = await supabase
-      .from("frequencias")
-      .update(patch as never)
-      .in("id", ids)
-      .select("id");
-    if (upErr) throw new Error(upErr.message);
-    if ((atualizadas ?? []).length !== ids.length) {
-      throw new Error("Nem todas as folhas do conjunto puderam ser atualizadas.");
+    let atualizadas: { id: string }[] = [];
+    if (data.status === "devolvida" && base.tipo === "contratados") {
+      // Devolução consolidada de Contratados também precisa sincronizar, de
+      // forma atômica, os registros individuais da unidade/setores do grupo.
+      const { data: rpcResult, error: devolucaoErr } = await (supabase as any).rpc(
+        "devolver_frequencias_contratados_transacional",
+        {
+          _frequencia_ids: ids,
+          _justificativa: data.observacoes ?? null,
+        },
+      );
+      if (devolucaoErr) throw new Error(devolucaoErr.message);
+      if (Number((rpcResult as any)?.frequencias_atualizadas ?? 0) !== ids.length) {
+        throw new Error("Nem todas as folhas do conjunto foram devolvidas.");
+      }
+      atualizadas = ids.map((id) => ({ id }));
+    } else {
+      const { data: rowsAtualizadas, error: upErr } = await supabase
+        .from("frequencias")
+        .update(patch as never)
+        .in("id", ids)
+        .select("id");
+      if (upErr) throw new Error(upErr.message);
+      atualizadas = (rowsAtualizadas ?? []) as { id: string }[];
+      if (atualizadas.length !== ids.length) {
+        throw new Error("Nem todas as folhas do conjunto puderam ser atualizadas.");
+      }
     }
 
     const label = ACAO_LABEL[data.status] ?? "Alteração de status";
