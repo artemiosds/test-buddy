@@ -575,17 +575,46 @@ export function FrequenciasEfetivosPage() {
     [temAlteracoesPendentes],
   );
 
-  const updateCampo = useCallback((pid: string, campo: keyof LinhaState, valor: number | string) => {
-    const cur = linhasRef.current[pid];
-    if (!cur) return;
-    const next = { ...linhasRef.current, [pid]: { ...cur, [campo]: valor, _dirty: true } };
-    linhasRef.current = next;
-    setLinhas(next);
+  const atualizarCampoLocal = useCallback(
+    (pid: string, campo: keyof LinhaState, valor: number | string) => {
+      const cur = linhasRef.current[pid];
+      if (!cur) return;
+      const next = {
+        ...linhasRef.current,
+        [pid]: { ...cur, [campo]: valor, _dirty: true },
+      };
+      // Atualiza a fonte principal imediatamente para que refetch/realtime
+      // preserve exatamente o que está sendo digitado.
+      linhasRef.current = next;
+      setLinhas(next);
+    },
+    [],
+  );
 
-    // Autosalve: campos numéricos já chegam aqui no onBlur (grava na hora);
-    // texto livre usa debounce enquanto o usuário digita.
-    if (campo === "observacoes") autosaveRef.current.schedule();
-    else void autosaveRef.current.saveNow();
+  const updateCampo = useCallback(
+    (pid: string, campo: keyof LinhaState, valor: number | string) => {
+      atualizarCampoLocal(pid, campo, valor);
+      // Campos fora da grade numérica (observação, modal/dossiê etc.) mantêm
+      // o autosave compatível já existente.
+      if (campo === "observacoes") autosaveRef.current.schedule();
+      else void autosaveRef.current.saveNow();
+    },
+    [atualizarCampoLocal],
+  );
+
+  const digitarCampoNumerico = useCallback(
+    (pid: string, campo: keyof LinhaState, valor: number | string) => {
+      atualizarCampoLocal(pid, campo, valor);
+      // Não grava a cada tecla: apenas reinicia o debounce.
+      autosaveRef.current.schedule();
+    },
+    [atualizarCampoLocal],
+  );
+
+  const confirmarCampoNumerico = useCallback(async () => {
+    // No blur, garante que a última edição digitada foi confirmada antes de
+    // considerar a célula concluída.
+    await autosaveRef.current.flush();
   }, []);
 
   function payloadDirty(): any[] {
@@ -1373,7 +1402,12 @@ export function FrequenciasEfetivosPage() {
                             validate={
                               isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
                             }
-                            onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
+                            onInput={(v) =>
+                              digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
+                            }
+                            onChange={async () => {
+                              await confirmarCampoNumerico();
+                            }}
                           />}
                         </td>
                       );
@@ -1387,7 +1421,12 @@ export function FrequenciasEfetivosPage() {
                           disabled={ro}
                           className="w-full text-right text-[11px]"
                           validate={validateGeneric}
-                          onChange={(v) => updateCampo(p.id, c.key as keyof LinhaState, v)}
+                          onInput={(v) =>
+                            digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
+                          }
+                          onChange={async () => {
+                            await confirmarCampoNumerico();
+                          }}
                         />}
                       </td>
                     ))}
