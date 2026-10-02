@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineGuard } from "@/lib/offline-guard";
+import { notificarModuloDesatualizado } from "@/lib/pwa";
 import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker, useSearch } from "@tanstack/react-router";
@@ -1020,7 +1021,17 @@ export function FrequenciasEfetivosPage() {
                   secretariaId: me?.secretaria_id ?? null,
                 });
               } catch (e: any) {
-                toast.error(e?.message ?? "Falha ao gerar PDF.");
+                if (
+                        notificarModuloDesatualizado(e, {
+                          beforeReload: async () => {
+                            if (!temAlteracoesPendentes()) return true;
+                            return await autosaveRef.current.flush();
+                          },
+                        })
+                      ) {
+                        return;
+                      }
+                      toast.error(e?.message ?? "Falha ao gerar PDF.");
               }
             }}
           >
@@ -1049,7 +1060,17 @@ export function FrequenciasEfetivosPage() {
                   })),
                 });
               } catch (e: any) {
-                toast.error(e?.message ?? "Falha ao gerar Excel.");
+                if (
+                        notificarModuloDesatualizado(e, {
+                          beforeReload: async () => {
+                            if (!temAlteracoesPendentes()) return true;
+                            return await autosaveRef.current.flush();
+                          },
+                        })
+                      ) {
+                        return;
+                      }
+                      toast.error(e?.message ?? "Falha ao gerar Excel.");
               }
             }}
           >
