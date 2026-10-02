@@ -224,7 +224,12 @@ export type NumberCellProps = {
   rowId: string;
   colKey: string;
   value: number | string;
-  onChange: (v: number | string) => void;
+  onChange: (v: number | string) => void | Promise<void>;
+  /**
+   * Atualização opcional do estado principal durante a digitação.
+   * Não dispara persistência por si só; o consumidor controla debounce/flush.
+   */
+  onInput?: (v: number | string) => void;
   disabled?: boolean;
   min?: number;
   max?: number;
@@ -241,6 +246,7 @@ export function NumberCell({
   colKey,
   value,
   onChange,
+  onInput,
   disabled,
   min = 0,
   max,
@@ -252,9 +258,17 @@ export function NumberCell({
 }: NumberCellProps) {
   const ctx = useErp();
   const ref = useRef<HTMLInputElement | null>(null);
-  const [local, setLocal] = useState<string>(value === null || value === undefined ? "" : String(value));
+  const focusedRef = useRef(false);
+  const editedSinceFocusRef = useRef(false);
+  const [local, setLocal] = useState<string>(
+    value === null || value === undefined ? "" : String(value),
+  );
 
   useEffect(() => {
+    // Durante a edição, o texto local é a fonte de verdade. Um refetch,
+    // realtime ou atualização do cache não pode substituir o que está sendo
+    // digitado antes do commit da célula.
+    if (focusedRef.current) return;
     setLocal(value === null || value === undefined ? "" : String(value));
   }, [value]);
 
@@ -276,20 +290,28 @@ export function NumberCell({
       title={invalid ?? title}
       data-invalid={invalid ? "true" : undefined}
       onFocus={(e) => {
+        focusedRef.current = true;
+        editedSinceFocusRef.current = false;
         e.currentTarget.select();
         ctx.setActiveRow(rowId);
       }}
-      onBlur={() => {
+      onBlur={async () => {
+        focusedRef.current = false;
         ctx.setActiveRow(null);
-        const externalStr = value === null || value === undefined ? "" : String(value);
-        if (local !== externalStr) {
-          onChange(local);
-          setLocal(local); // Garante que o estado local reflita exatamente o que foi enviado
+
+        if (editedSinceFocusRef.current) {
+          editedSinceFocusRef.current = false;
+          await onChange(local);
+        } else {
+          // Sem edição nesta passagem de foco, volta a acompanhar o valor externo.
+          setLocal(value === null || value === undefined ? "" : String(value));
         }
       }}
       onChange={(e) => {
-        setLocal(e.target.value);
-        // Emissão otimista removida para evitar que o sistema altere o que o usuário digita
+        const next = e.target.value;
+        editedSinceFocusRef.current = true;
+        setLocal(next);
+        onInput?.(next);
       }}
       onKeyDown={(e) => ctx.onCellKeyDown(rowId, colKey, e)}
       onPaste={(e) => ctx.onCellPaste(rowId, colKey, e)}
