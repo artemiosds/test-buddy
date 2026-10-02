@@ -249,8 +249,14 @@ export function FrequenciasContratadosPage() {
     },
   });
   useEffect(() => {
+    // Ao abrir a folha a partir de Aprovações, preserva o setor informado na
+    // própria rota. Se o usuário trocar para outra unidade, o filtro é limpo.
+    if (search.setorId && search.unidadeId === unidadeId) {
+      setSetorFilter([search.setorId]);
+      return;
+    }
     setSetorFilter([]);
-  }, [unidadeId]);
+  }, [unidadeId, search.setorId, search.unidadeId]);
 
   // Competências
   const { data: competencias } = useQuery({
