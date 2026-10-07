@@ -1,3 +1,6 @@
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+import { blocosPdfCompletos } from "@/lib/pdf-blocos-completos";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -253,6 +256,32 @@ function RelatoriosPage() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={isLoading || !summary?.oficial}
+            relatorio={async () => relatorioPainelAbnt({
+              arquivo: `relatorios-secretaria-${competenciaId}`,
+              titulo: "Relatórios (Secretaria) — Frequência oficial",
+              subtitulo: competenciaId === "all" ? "Todas as competências" : `Competência ${(() => { const c = competencias?.find((x) => x.id === competenciaId); return c ? `${String(c.mes).padStart(2, "0")}/${c.ano}` : "—"; })()}`,
+              orientacao: "landscape",
+              filtros: [
+                { label: "Visão", valor: visao === "consolidado" ? "Consolidado" : visao === "efetivos" ? "Efetivos" : "Contratados" },
+                { label: "Unidade", valor: unidadeId === "all" ? "Todas" : unidades?.find((u) => u.id === unidadeId)?.nome ?? "—" },
+                { label: "Fonte", valor: "Somente folhas aprovadas" },
+              ],
+              kpis: [
+                { label: "Folhas", valor: String(totais.folhas) },
+                { label: "Profissionais (aprovadas)", valor: String(totais.profissionais) },
+                { label: "Dias trabalhados", valor: String(totais.dias) },
+                { label: "Faltas", valor: String(totais.faltas) },
+                { label: "Horas extras", valor: String(totais.horas_extras) },
+                { label: "Aprovadas / Em análise", valor: `${totais.aprovadas} / ${totais.pendentes}` },
+              ],
+              blocos: await blocosPdfCompletos({ oficial: summary?.oficial, visao, competenciaId, unidadeId }),
+              notas: ["Frequência oficial: somente folhas aprovadas, cada profissional contado uma vez por unidade. HE total = HE 50% + HE 100% (em horas)."],
+            })}
+          />
           <Button
             variant="outline"
             className="w-full sm:w-auto"

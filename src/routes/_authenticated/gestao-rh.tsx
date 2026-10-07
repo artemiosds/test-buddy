@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+import { blocosPdfCompletos } from "@/lib/pdf-blocos-completos";
 
 import {
   Select,
@@ -40,8 +41,8 @@ import { downloadCsv } from "@/lib/csv-export";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
 import type { RankingRow } from "@/lib/analytics-aggregations";
-import { ConsolidacaoOficialPanel, blocosPdfOficial, exportarDetalheCsv, linhasDaVisao, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
-import { AlertasComparativoPanel, blocoPdfAlertas } from "@/components/relatorios/alertas-comparativo-panel";
+import { ConsolidacaoOficialPanel, exportarDetalheCsv, linhasDaVisao, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
+import { AlertasComparativoPanel } from "@/components/relatorios/alertas-comparativo-panel";
 import { AnalisesAvancadasPanel } from "@/components/relatorios/analises-avancadas-panel";
 
 export const Route = createFileRoute("/_authenticated/gestao-rh")({ 
@@ -250,7 +251,7 @@ function GestaoRhContent() {
               label="Imprimir PDF (ABNT)"
               variant="outline"
               disabled={a.loading}
-              relatorio={() =>
+              relatorio={async () =>
                 relatorioPainelAbnt({
                   arquivo: "dashboard-executivo-rh",
                   titulo: "Dashboard Executivo — RH",
@@ -270,8 +271,7 @@ function GestaoRhContent() {
                   kpis: kpis.map((k) => ({ label: k.label, valor: String(k.value) })),
                   registros: rankingRows.length,
                   blocos: [
-                    ...blocosPdfOficial(a.oficial, visao),
-                    ...blocoPdfAlertas(a.oficial, visao),
+                    ...(await blocosPdfCompletos({ oficial: a.oficial, visao, competenciaId: filters.competenciaId ?? a.competenciaId, unidadeId: filters.unidadeId })),
                     {
                       titulo: "Ranking de unidades (somente aprovadas)",
                       head: [

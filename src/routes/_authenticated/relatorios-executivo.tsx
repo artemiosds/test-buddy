@@ -1,3 +1,6 @@
+import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
+import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+import { blocosPdfCompletos } from "@/lib/pdf-blocos-completos";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -300,6 +303,28 @@ function RelatorioExecutivoPage() {
           >
             <FileSpreadsheet className="mr-2 h-4 w-4" /> XLSX
           </Button>
+          <BotaoRelatorioAbnt
+            label="Imprimir PDF (ABNT)"
+            variant="outline"
+            disabled={loadingOficial || !summary?.oficial}
+            relatorio={async () => relatorioPainelAbnt({
+              arquivo: `dashboard-executivo-secretaria-${compLabel.replace("/", "-")}`,
+              titulo: "Dashboard Executivo (Secretaria)",
+              subtitulo: `Competência ${compLabel}`,
+              orientacao: "landscape",
+              filtros: [
+                { label: "Visão", valor: visao === "consolidado" ? "Consolidado" : visao === "efetivos" ? "Efetivos" : "Contratados" },
+                { label: "Fonte", valor: "Somente folhas aprovadas" },
+              ],
+              kpis: [
+                { label: "Linhas", valor: String(kpis.totLinhas) },
+                { label: "Aprovadas", valor: String(kpis.totAprov) },
+                { label: "HE total (h)", valor: fmt(kpis.totHE) },
+              ],
+              blocos: await blocosPdfCompletos({ oficial: summary?.oficial, visao, competenciaId }),
+              notas: ["Frequência oficial: somente folhas aprovadas, cada profissional contado uma vez por unidade. HE total = HE 50% + HE 100% (em horas)."],
+            })}
+          />
           <Button
             variant="outline"
             size="sm"
