@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared";
 import { statusLabel } from "@/lib/status";
+import { ConsolidacaoOficialPanel, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
+import { AlertasComparativoPanel } from "@/components/relatorios/alertas-comparativo-panel";
+import { AnalisesAvancadasPanel } from "@/components/relatorios/analises-avancadas-panel";
 import {
   Select,
   SelectContent,
@@ -52,6 +55,7 @@ function RelatoriosPage() {
   const [competenciaId, setCompetenciaId] = useState<string>("all");
   const [unidadeId, setUnidadeId] = useState<string>("all");
   const [tipo, setTipo] = useState<TipoFolha | "all">("all");
+  const [visao, setVisao] = useState<VisaoOficial>("consolidado");
 
   // Efeito para sincronizar a unidadeId inicial com o escopo do usuário
   useMemo(() => {
@@ -331,12 +335,35 @@ function RelatoriosPage() {
 
       <div className="grid gap-3 md:grid-cols-6">
         <Card label="Folhas" value={totais.folhas} />
-        <Card label="Profissionais" value={totais.profissionais} />
-        <Card label="Dias trab." value={totais.dias} />
-        <Card label="Faltas" value={totais.faltas} />
-        <Card label="Horas extras" value={totais.horas_extras} />
-        <Card label="Aprovadas / Pendentes" value={`${totais.aprovadas} / ${totais.pendentes}`} />
+        <Card label="Profissionais (aprovadas)" value={totais.profissionais} />
+        <Card label="Dias trab. (aprovadas)" value={totais.dias} />
+        <Card label="Faltas (aprovadas)" value={totais.faltas} />
+        <Card label="Horas extras (aprovadas)" value={totais.horas_extras} />
+        <Card label="Aprovadas / Em análise" value={`${totais.aprovadas} / ${totais.pendentes}`} />
       </div>
+
+      <ConsolidacaoOficialPanel
+        oficial={summary?.oficial}
+        loading={isLoading}
+        visao={visao}
+        onVisaoChange={setVisao}
+        arquivoBase={`relatorio-secretaria-${competenciaId}`}
+      />
+      <AlertasComparativoPanel
+        oficial={summary?.oficial}
+        visao={visao}
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        arquivoBase={`relatorio-secretaria-${competenciaId}`}
+      />
+      <AnalisesAvancadasPanel
+        oficial={summary?.oficial}
+        visao={visao}
+        competenciaId={competenciaId}
+        unidadeId={unidadeId}
+        arquivoBase={`relatorio-secretaria-${competenciaId}`}
+      />
+
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <table className="w-full text-sm">

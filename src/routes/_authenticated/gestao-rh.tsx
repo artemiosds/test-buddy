@@ -1,6 +1,6 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Download,
   RefreshCw,
@@ -40,6 +40,9 @@ import { downloadCsv } from "@/lib/csv-export";
 import { useContext } from "react";
 import { AnalyticsFilterContext } from "@/context/analytics-filter-context";
 import type { RankingRow } from "@/lib/analytics-aggregations";
+import { ConsolidacaoOficialPanel, blocosPdfOficial, exportarDetalheCsv, linhasDaVisao, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
+import { AlertasComparativoPanel, blocoPdfAlertas } from "@/components/relatorios/alertas-comparativo-panel";
+import { AnalisesAvancadasPanel } from "@/components/relatorios/analises-avancadas-panel";
 
 export const Route = createFileRoute("/_authenticated/gestao-rh")({ 
   errorComponent: ErrorComponent,
@@ -66,7 +69,8 @@ function GestaoRhContent() {
     vinculoId: ctx.vinculoId ?? null,
   };
 
-  const a = useAnalytics(filters);
+  const [visao, setVisao] = useState<VisaoOficial>("consolidado");
+  const a = useAnalytics({ ...filters, tipo: "all" });
   const rankingData = a.ranking;
 
   const { data: competencias } = useCompetenciasLookup();
@@ -119,35 +123,53 @@ function GestaoRhContent() {
     },
     { label: "Competência", value: competenciaLabel, icon: <CalendarRange className="h-4 w-4" /> },
     {
-      label: "Frequências enviadas",
-      value: a.totals.totalFolhas - a.totals.folhasPendentes - a.totals.folhasAprovadas, // Aproximação de enviadas
+      label: "Folhas em análise / devolvidas",
+      value: a.totals.folhasPendentes,
       loading: a.loading,
-      hint: "Enviadas / em análise / com pendências",
+      hint: "Enviadas, em análise, com pendências ou devolvidas",
       icon: <ClipboardList className="h-4 w-4" />,
     },
     {
-      label: "Frequências pendentes",
-      value: a.totals.folhasPendentes,
+      label: "Folhas em rascunho",
+      value: a.totals.folhasRascunho,
       loading: a.loading,
-      hint: "Ainda em rascunho",
+      hint: "Ainda não enviadas",
       icon: <Clock className="h-4 w-4" />,
     },
     {
-      label: "Frequências aprovadas",
-      value: a.totals.folhasAprovadas,
+      label: "Folhas aprovadas",
+      value: `${a.totals.folhasAprovadas}/${a.totals.totalFolhas}`,
       loading: a.loading,
       icon: <CheckCircle2 className="h-4 w-4" />,
     },
     {
-      label: "Horas extras (total)",
-      value: a.totals.horasExtras.toLocaleString("pt-BR"),
+      label: "HE 50% (aprovadas)",
+      value: (a.oficial?.[visao].he50 ?? 0).toLocaleString("pt-BR"),
       loading: a.loading,
-      hint: "Somatório da competência",
       icon: <Clock className="h-4 w-4" />,
     },
     {
-      label: "Faltas (total)",
-      value: a.totals.faltas.toLocaleString("pt-BR"),
+      label: "HE 100% (aprovadas)",
+      value: (a.oficial?.[visao].he100 ?? 0).toLocaleString("pt-BR"),
+      loading: a.loading,
+      icon: <Clock className="h-4 w-4" />,
+    },
+    {
+      label: "Horas extras total (aprovadas)",
+      value: (a.oficial?.[visao].heTotal ?? 0).toLocaleString("pt-BR"),
+      loading: a.loading,
+      hint: "HE 50% + HE 100%, somente folhas aprovadas",
+      icon: <Clock className="h-4 w-4" />,
+    },
+    {
+      label: "Dias trabalhados (aprovadas)",
+      value: (a.oficial?.[visao].diasTrabalhados ?? 0).toLocaleString("pt-BR"),
+      loading: a.loading,
+      icon: <CalendarRange className="h-4 w-4" />,
+    },
+    {
+      label: "Faltas (aprovadas)",
+      value: (a.oficial?.[visao].faltas ?? 0).toLocaleString("pt-BR"),
       loading: a.loading,
       icon: <AlertCircle className="h-4 w-4" />,
     },
@@ -236,6 +258,8 @@ function GestaoRhContent() {
                   orientacao: "landscape",
                   filtros: [
                     { label: "Competência", valor: competenciaLabel },
+                    { label: "Visão", valor: visao === "consolidado" ? "Consolidado" : visao === "efetivos" ? "Efetivos" : "Contratados" },
+                    { label: "Fonte", valor: "Somente folhas aprovadas" },
                     {
                       label: "Unidade",
                       valor: filters.unidadeId
@@ -246,8 +270,10 @@ function GestaoRhContent() {
                   kpis: kpis.map((k) => ({ label: k.label, valor: String(k.value) })),
                   registros: rankingRows.length,
                   blocos: [
+                    ...blocosPdfOficial(a.oficial, visao),
+                    ...blocoPdfAlertas(a.oficial, visao),
                     {
-                      titulo: "Ranking de unidades",
+                      titulo: "Ranking de unidades (somente aprovadas)",
                       head: [
                         "#",
                         "Unidade",
@@ -280,6 +306,7 @@ function GestaoRhContent() {
                     },
                   ],
                   notas: [
+                    "Frequência oficial: somente lançamentos de folhas aprovadas, cada profissional contado uma vez por unidade. HE total = HE 50% + HE 100% (em horas).",
                     "Ativos = em exercício + férias + licença prêmio; Disponível para escala = apenas em exercício pleno.",
                   ],
                 })
@@ -291,10 +318,13 @@ function GestaoRhContent() {
             <Button
               variant="outline"
               size="sm"
-              onClick={exportRanking}
+              onClick={() => exportarDetalheCsv(`dashboard-rh-${visao}-${filters.competenciaId ?? a.competenciaId ?? "atual"}`, linhasDaVisao(a.oficial, visao))}
               disabled={rankingRows.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" /> Exportar CSV
+              <Download className="mr-2 h-4 w-4" /> Exportar CSV (detalhado)
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportRanking}>
+              <Download className="mr-2 h-4 w-4" /> CSV ranking
             </Button>
           </>
         }
@@ -355,8 +385,31 @@ function GestaoRhContent() {
         ))}
       </div>
 
+      <ConsolidacaoOficialPanel
+        oficial={a.oficial}
+        loading={a.loading}
+        visao={visao}
+        onVisaoChange={setVisao}
+        arquivoBase={`dashboard-rh-${filters.competenciaId ?? a.competenciaId ?? "atual"}`}
+      />
+      <AlertasComparativoPanel
+        oficial={a.oficial}
+        visao={visao}
+        competenciaId={filters.competenciaId ?? a.competenciaId ?? null}
+        unidadeId={filters.unidadeId}
+        arquivoBase={`dashboard-rh-${filters.competenciaId ?? a.competenciaId ?? "atual"}`}
+      />
+      <AnalisesAvancadasPanel
+        oficial={a.oficial}
+        visao={visao}
+        competenciaId={filters.competenciaId ?? a.competenciaId ?? null}
+        unidadeId={filters.unidadeId}
+        arquivoBase={`dashboard-rh-${filters.competenciaId ?? a.competenciaId ?? "atual"}`}
+      />
+
+
       <section className="mt-6">
-        <h2 className="mb-2 text-lg font-semibold">Ranking de unidades — competência atual</h2>
+        <h2 className="mb-2 text-lg font-semibold">Ranking de unidades — somente lançamentos aprovados</h2>
         <DataTable
           columns={rankingColumnsWithPos}
           rows={rankingRows}

@@ -947,7 +947,7 @@ function LinhasAnaliseDialog({
         const { data: irmas, error: irmasErr } = await supabase
           .from("frequencias")
           .select("id")
-          .eq("competencia_unidade_id", freqBase.competencia_unidade_id)
+          .eq("competencia_unidade_id", freqBase!.competencia_unidade_id)
           .eq("tipo", "efetivos")
           .is("deleted_at", null);
         if (irmasErr) throw irmasErr;

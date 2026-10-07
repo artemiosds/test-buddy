@@ -23,7 +23,7 @@ const FREQ_ROW_A = {
   total_dias_trabalhados: 100,
   total_faltas: 2,
   total_horas_extras: 40,
-  competencia_unidades: {
+  competencia_unidade: {
     competencia_id: "c1",
     unidade_id: "u1",
     unidades: { id: "u1", nome: "Unidade A", sigla: "UA" },
@@ -38,7 +38,7 @@ const FREQ_ROW_B = {
   total_dias_trabalhados: 50,
   total_faltas: 1,
   total_horas_extras: 12,
-  competencia_unidades: {
+  competencia_unidade: {
     competencia_id: "c1",
     unidade_id: "u2",
     unidades: { id: "u2", nome: "Unidade B", sigla: "UB" },
@@ -86,6 +86,12 @@ describe("useAnalytics", () => {
       }),
       ...analyticsQueriesOk(),
       http.get(`${BASE}/frequencias`, () => HttpResponse.json([FREQ_ROW_A, FREQ_ROW_B])),
+      http.get(`${BASE}/frequencias_contratados`, () =>
+        HttpResponse.json([
+          { id: "l1", unidade_id: "u1", competencia_id: "c1", profissional_id: "p1", updated_at: "2024-01-02", dias_trabalhados: "20", dias_falta: "2", he_50: "30", he_100: "10", plantoes: null, sobreaviso: null, atestado: null, profissional: { nome_completo: "Ana", matricula: "1", setor: null } },
+          { id: "l2", unidade_id: "u1", competencia_id: "c1", profissional_id: "p2", updated_at: "2024-01-02", dias_trabalhados: "22", dias_falta: "1", he_50: "12,5", he_100: null, plantoes: null, sobreaviso: null, atestado: null, profissional: { nome_completo: "Bia", matricula: "2", setor: null } },
+        ]),
+      ),
     );
 
     const { result } = renderHookWithQuery(() => useAnalytics({ competenciaId: "c1" }));
@@ -99,8 +105,12 @@ describe("useAnalytics", () => {
 
     expect(result.current.totals.folhasAprovadas).toBe(1);
     expect(result.current.totals.folhasPendentes).toBe(1);
-    expect(result.current.totals.horasExtras).toBe(52);
+    // Somente lançamentos aprovados (linhas), não resumos persistidos
+    expect(result.current.totals.horasExtras).toBe(52.5);
     expect(result.current.totals.faltas).toBe(3);
+    expect(result.current.oficial?.contratados.he50).toBe(42.5);
+    expect(result.current.oficial?.contratados.he100).toBe(10);
+    expect(result.current.oficial?.contratados.profissionais).toBe(2);
     expect(result.current.ranking).toHaveLength(2);
     expect(result.current.ranking[0].unidade_id).toBe("u1");
   });

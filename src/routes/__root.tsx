@@ -44,7 +44,8 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () => void }) {
+  const error = rawError as Error;
   const router = useRouter();
   useEffect(() => {
     logger.error("route.error_boundary", { error });

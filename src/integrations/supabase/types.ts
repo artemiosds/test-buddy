@@ -5693,6 +5693,10 @@ export type Database = {
         Args: { _id: string; _motivo?: string }
         Returns: undefined
       }
+      devolver_frequencias_contratados_transacional: {
+        Args: { _frequencia_ids: string[]; _justificativa?: string }
+        Returns: Json
+      }
       emit_evento: {
         Args: {
           _agregado: string

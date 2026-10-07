@@ -9,6 +9,7 @@ import {
   STATUS_PENDENTES,
   getAggregatedFrequencies,
   buildRanking,
+  buildRankingOficial,
   type FrequenciaRow,
 } from "@/lib/analytics-aggregations";
 import { valoresDoFiltroSituacao } from "@/lib/situacao-funcional";
@@ -251,10 +252,13 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     horasExtras: frequenciasAggregated.data?.totalHorasExtras ?? 0,
     folhasAprovadas: frequenciasAggregated.data?.totalAprovadas ?? 0,
     folhasPendentes: frequenciasAggregated.data?.totalPendentes ?? 0,
+    folhasRascunho: frequenciasAggregated.data?.totalRascunho ?? 0,
+    diasTrabalhados: frequenciasAggregated.data?.totalDiasTrabalhados ?? 0,
     totalFolhas: frequenciasAggregated.data?.totalFolhas ?? 0,
   };
 
-  const ranking = buildRanking(frequencias);
+  const oficial = frequenciasAggregated.data?.oficial;
+  const ranking = oficial ? buildRankingOficial(oficial) : buildRanking(frequencias);
 
   const integridade = useQuery({
     queryKey: ["analytics", "integridade", filters.unidadeId],
@@ -631,6 +635,7 @@ export function useAnalytics(filters: AnalyticsFilters, options?: { staleTime?: 
     summary,
     frequencias,
     ranking,
+    oficial,
     totals,
     integridade,
     alertas,

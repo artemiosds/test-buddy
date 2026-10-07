@@ -33,6 +33,10 @@ import {
   Legend,
 } from "recharts";
 import { finalizarPdf } from "@/lib/pdf-pipeline";
+import { getAggregatedFrequencies } from "@/lib/analytics-aggregations";
+import { ConsolidacaoOficialPanel, linhasDaVisao, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
+import { AlertasComparativoPanel } from "@/components/relatorios/alertas-comparativo-panel";
+import { AnalisesAvancadasPanel } from "@/components/relatorios/analises-avancadas-panel";
 
 export const Route = createFileRoute("/_authenticated/relatorios-executivo")({ errorComponent: ErrorComponent,
   component: RelatorioExecutivoPage,
@@ -99,62 +103,24 @@ function RelatorioExecutivoPage() {
     return c ? `${MES_LABEL[c.mes - 1]}/${c.ano}` : "—";
   }, [competencias, competenciaId]);
 
-  // Consolidado HE / produtividade por unidade
-  const { data: consolidado } = useQuery({
-    queryKey: ["exec-consolidado", competenciaId],
+  // Consolidado oficial (Efetivos + Contratados, somente aprovadas)
+  const [visao, setVisao] = useState<VisaoOficial>("consolidado");
+  const { data: summary, isLoading: loadingOficial } = useQuery({
+    queryKey: ["exec-oficial", competenciaId],
     enabled: !!competenciaId && canView,
-    queryFn: async () => {
-      let q = supabase
-        .from("frequencia_profissional")
-        .select(
-          "he_50, he_100, adicional_noturno, plantoes_extras, status_linha, frequencias!inner(competencia_unidades!inner(competencia_id, unidades(id, nome, sigla)))",
-        )
-        .eq("frequencias.competencia_unidades.competencia_id", competenciaId);
-
-      // Injeção forçada de filtro se não for master
-      if (!isMaster && me?.unidades && Array.isArray(me.unidades)) {
-        q = q.in("frequencias.competencia_unidades.unidade_id" as any, me.unidades);
-      }
-      
-      const { data, error } = await q;
-      if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows = (data ?? []) as any[];
-      const map = new Map<
-        string,
-        {
-          unidade: string;
-          he50: number;
-          he100: number;
-          adn: number;
-          plantoes: number;
-          total: number;
-          aprov: number;
-        }
-      >();
-      for (const r of rows) {
-        const u = r?.frequencias?.competencia_unidades?.unidades;
-        if (!u) continue;
-        const cur = map.get(u.id) ?? {
-          unidade: u.sigla ?? u.nome,
-          he50: 0,
-          he100: 0,
-          adn: 0,
-          plantoes: 0,
-          total: 0,
-          aprov: 0,
-        };
-        cur.he50 += Number(r.he_50 ?? 0);
-        cur.he100 += Number(r.he_100 ?? 0);
-        cur.adn += Number(r.adicional_noturno ?? 0);
-        cur.plantoes += Number(r.plantoes_extras ?? 0);
-        cur.total += 1;
-        if (r.status_linha === "aprovada") cur.aprov += 1;
-        map.set(u.id, cur);
-      }
-      return Array.from(map.values()).sort((a, b) => b.he50 + b.he100 - (a.he50 + a.he100));
-    },
+    queryFn: () => getAggregatedFrequencies({ competenciaId }),
   });
+  const consolidado = useMemo(() => {
+    if (!summary) return undefined;
+    const map = new Map<string, { unidade: string; he50: number; he100: number; adn: number; plantoes: number; total: number; aprov: number }>();
+    for (const l of linhasDaVisao(summary.oficial, visao)) {
+      const cur = map.get(l.unidade_id) ?? { unidade: l.unidade_sigla ?? l.unidade_nome, he50: 0, he100: 0, adn: 0, plantoes: 0, total: 0, aprov: 0 };
+      cur.he50 += l.he50; cur.he100 += l.he100; cur.adn += l.adn; cur.plantoes += l.plantoes;
+      cur.total += 1; cur.aprov += 1;
+      map.set(l.unidade_id, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.he50 + b.he100 - (a.he50 + a.he100));
+  }, [summary, visao]);
 
   // SLA de pendências
   const { data: pendSla } = useQuery({
@@ -346,6 +312,20 @@ function RelatorioExecutivoPage() {
       </div>
 
       <RelatoriosTabs />
+
+      {competenciaId && (
+        <>
+          <ConsolidacaoOficialPanel
+            oficial={summary?.oficial}
+            loading={loadingOficial}
+            visao={visao}
+            onVisaoChange={setVisao}
+            arquivoBase={`executivo-${competenciaId}`}
+          />
+          <AlertasComparativoPanel oficial={summary?.oficial} visao={visao} competenciaId={competenciaId} arquivoBase={`executivo-${competenciaId}`} />
+          <AnalisesAvancadasPanel oficial={summary?.oficial} visao={visao} competenciaId={competenciaId} arquivoBase={`executivo-${competenciaId}`} />
+        </>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Linhas" value={kpis.totLinhas} />
