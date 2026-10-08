@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Concluído
+- [x] Configuração Municipal organizada em abas horizontais temáticas, com campos preservados e botão Salvar no topo
 - [x] Tabela 6-B de setores sem coluna Coordenador (tela + PDF/Word)
 - [x] Relatório Geral Inteligente: números sem R$ indevido, assinatura só no fechamento, fechamento oficial + fé pública, cargos consolidados, atalhos nos dois painéis de IA
 - [x] PDF oficial de efetivos: faixa exclusiva para assinaturas/validação/rodapé, “-” em campos sem dados e fonte ampliada

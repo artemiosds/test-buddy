@@ -51,6 +51,7 @@ type StatusEnt = Database["public"]["Enums"]["status_entidade"];
 const unidadeSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(255),
   sigla: z.string().max(20).nullable().optional(),
+  codigo_hierarquico: z.string().max(30).nullable().optional(),
   cnes: z.string().regex(/^\d{7}$/, "CNES deve ter exatamente 7 dígitos numéricos").nullable().optional().or(z.literal("")),
   cnpj: z.string().regex(/^\d{14}$/, "CNPJ deve ter 14 dígitos").nullable().optional().or(z.literal("")),
   tipo_unidade: z.string().nullable().optional(),
@@ -73,6 +74,7 @@ type Unidade = {
   nome: string;
   sigla: string | null;
   cnes: string | null;
+  codigo_hierarquico?: string | null;
   cnpj: string | null;
   tipo_unidade: string | null;
   nivel_complexidade: string | null;
@@ -119,6 +121,7 @@ function UnidadesPage() {
       nome: "",
       sigla: "",
       cnes: "",
+      codigo_hierarquico: "",
       cnpj: "",
       tipo_unidade: "",
       nivel_complexidade: "",
@@ -213,7 +216,7 @@ function UnidadesPage() {
       let query = supabase
         .from("unidades")
         .select(
-          "id, nome, sigla, cnes, cnpj, tipo_unidade, nivel_complexidade, tipo_atendimento, municipio, distrito, telefone, email_institucional, responsavel_nome, observacoes, status, secretaria_id, secretaria:secretarias(nome, sigla)",
+          "id, nome, sigla, cnes, codigo_hierarquico, cnpj, tipo_unidade, nivel_complexidade, tipo_atendimento, municipio, distrito, telefone, email_institucional, responsavel_nome, observacoes, status, secretaria_id, secretaria:secretarias(nome, sigla)",
           { count: "exact" }
         )
         .is("deleted_at", null)
@@ -249,6 +252,7 @@ function UnidadesPage() {
         cnpj: values.cnpj?.replace(/\D/g, "") || null,
         telefone: values.telefone?.replace(/\D/g, "") || null,
         cnes: values.cnes?.replace(/\D/g, "") || null,
+        codigo_hierarquico: values.codigo_hierarquico?.trim() || null,
         email_institucional: values.email_institucional || null,
         sigla: values.sigla || null,
         nivel_complexidade: values.nivel_complexidade || null,
@@ -326,6 +330,7 @@ function UnidadesPage() {
       nome: "",
       sigla: "",
       cnes: "",
+      codigo_hierarquico: "",
       cnpj: "",
       tipo_unidade: "",
       nivel_complexidade: "",
@@ -348,6 +353,7 @@ function UnidadesPage() {
       nome: u.nome,
       sigla: u.sigla ?? "",
       cnes: u.cnes ?? "",
+      codigo_hierarquico: u.codigo_hierarquico ?? "",
       cnpj: u.cnpj ?? "",
       tipo_unidade: u.tipo_unidade ?? "",
       nivel_complexidade: u.nivel_complexidade ?? "",
@@ -459,6 +465,20 @@ function UnidadesPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="codigo_hierarquico"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Código hierárquico (PDF oficial)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="1.18.002" {...field} value={field.value || ""} />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}

@@ -553,6 +553,35 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
   });
 
 
+  // Códigos hierárquicos cadastrados (Unidades/Setores); mantém o padrão atual se vazio.
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    if (input.unidadeId) {
+      const { data: un } = await (supabase as any)
+        .from("unidades").select("codigo_hierarquico").eq("id", input.unidadeId).maybeSingle();
+      const { data: sets } = await (supabase as any)
+        .from("setores").select("nome, codigo_hierarquico")
+        .eq("unidade_id", input.unidadeId).is("deleted_at", null).order("nome");
+      const codUn: string = (un?.codigo_hierarquico ?? "").trim();
+      // Manual (override) tem prioridade; senão automático: <código unidade>.<seq 3 dígitos> por ordem alfabética.
+      const mapa = new Map<string, string>();
+      ((sets ?? []) as any[]).forEach((s, i) => {
+        const key = String(s.nome).trim().toUpperCase();
+        const manual = (s.codigo_hierarquico ?? "").trim();
+        if (manual) mapa.set(key, manual);
+        else if (codUn) mapa.set(key, `${codUn}.${String(i + 1).padStart(3, "0")}`);
+      });
+      for (const u of input.unidades) {
+        if (codUn) u.codigo_unidade = codUn;
+        for (const g of u.grupos) {
+          const c = mapa.get(g.nome_setor.trim().toUpperCase());
+          if (c) g.codigo_setor = c;
+          else if (codUn) g.codigo_setor = `${codUn}.000`;
+        }
+      }
+    }
+  } catch { /* mantém padrão */ }
+
   const pageHeight = doc.internal.pageSize.getHeight();
   // Faixa compacta: assinaturas em todas as páginas e validação só na última.
   const rodapeReserva = 65;

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Settings2, Upload } from "lucide-react";
+import { Save, Settings2, Upload, Building2, Users, CalendarClock, Image, BrainCircuit, Mail, Wrench } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 import { SmtpConfigSection } from "@/components/configuracoes/smtp-config-section";
@@ -17,6 +18,14 @@ import { R2DiagnosticoSection } from "@/components/configuracoes/r2-diagnostico-
 
 
 export const Route = createFileRoute("/_authenticated/configuracao/")({ errorComponent: ErrorComponent,
+  head: () => ({ meta: [
+    { title: "Configuração Municipal | HSM Gestão" },
+    { name: "description", content: "Configurações institucionais, gestão, prazos, documentos e serviços da Secretaria Municipal de Saúde." },
+    { property: "og:title", content: "Configuração Municipal | HSM Gestão" },
+    { property: "og:description", content: "Dados municipais e configurações dos serviços da gestão de saúde." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ConfiguracaoPage,
 });
 
@@ -251,7 +260,8 @@ function ConfiguracaoPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Settings2 className="h-5 w-5" />
         </div>
@@ -261,9 +271,29 @@ function ConfiguracaoPage() {
             Dados institucionais do município e da gestão de saúde.
           </p>
         </div>
+        </div>
+      <div className="shrink-0">
+        <OfflineButton requireOnline onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Save className="mr-2 h-4 w-4" />
+          {saveMutation.isPending ? "Salvando..." : "Salvar configuração"}
+        </OfflineButton>
+      </div>
       </div>
 
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+      <Tabs defaultValue="municipio" className="space-y-6">
+        <div className="overflow-x-auto border-b border-border">
+          <TabsList aria-label="Configurações municipais" className="h-auto w-max min-w-full justify-start gap-1 rounded-none bg-transparent p-0 pb-2">
+            <TabsTrigger value="municipio" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Building2 className="h-4 w-4 shrink-0" />Município</TabsTrigger>
+            <TabsTrigger value="gestao" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Users className="h-4 w-4 shrink-0" />Gestão</TabsTrigger>
+            <TabsTrigger value="regras" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><CalendarClock className="h-4 w-4 shrink-0" />Regras e prazos</TabsTrigger>
+            <TabsTrigger value="documentos" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Image className="h-4 w-4 shrink-0" />Identidade e PDF</TabsTrigger>
+            <TabsTrigger value="ia" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><BrainCircuit className="h-4 w-4 shrink-0" />IA HSM</TabsTrigger>
+            {userCtx?.is_master && (<TabsTrigger value="email" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Mail className="h-4 w-4 shrink-0" />E-mail</TabsTrigger>)}
+            {userCtx?.is_master && (<TabsTrigger value="sistema" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Wrench className="h-4 w-4 shrink-0" />Sistema</TabsTrigger>)}
+          </TabsList>
+        </div>
+        <TabsContent value="municipio" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Município
         </h2>
@@ -331,8 +361,7 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Endereço
         </h2>
@@ -381,8 +410,9 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+        </TabsContent>
+        <TabsContent value="gestao" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Gestão
         </h2>
@@ -431,8 +461,9 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+        </TabsContent>
+        <TabsContent value="regras" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Parâmetros de Fechamento e Alçada
         </h2>
@@ -486,8 +517,7 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Avisos e regras de envio
         </h2>
@@ -522,89 +552,9 @@ function ConfiguracaoPage() {
           </label>
         </div>
       </section>
-
-      <HsmConfigSection />
-
-      {userCtx?.is_master && <SmtpConfigSection />}
-
-      {userCtx?.is_master && <R2DiagnosticoSection />}
-
-
-
-
-      {userCtx?.is_master && (
-        <section className="space-y-4 rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Comunicações (SMTP)
-            </h2>
-            <Link to="/smtp-test">
-              <Button variant="outline" size="sm">
-                Diagnóstico SMTP
-              </Button>
-            </Link>
-          </div>
-          <div className="rounded-md bg-muted/50 p-4 text-xs text-muted-foreground border-l-4 border-primary">
-            <p className="font-semibold mb-2 text-foreground flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              Configuração do Gmail (Recomendado):
-            </p>
-            <div className="space-y-2">
-              <p>
-                Para enviar via Gmail, você deve usar uma <strong>Senha de App</strong> (App Password), 
-                pois o Google bloqueia o acesso por senha comum.
-              </p>
-              <ul className="list-disc list-inside space-y-1">
-                <li><strong>SMTP_HOST</strong>: smtp.gmail.com</li>
-                <li><strong>SMTP_PORT</strong>: 587</li>
-                <li><strong>SMTP_USER</strong>: seu-email@gmail.com</li>
-                <li><strong>SMTP_PASSWORD</strong>: sua-senha-de-app-de-16-digitos</li>
-                <li><strong>SMTP_FROM</strong>: seu-email@gmail.com</li>
-              </ul>
-              <p className="mt-2 text-[10px] italic">
-                * As variáveis devem ser adicionadas em <strong>Settings &gt; Environment Variables</strong> no editor.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-
-      {userCtx?.is_master && (
-        <section className="space-y-3 rounded-lg border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Cadastros institucionais (Master)
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <a
-              href="/tipos-unidade"
-              className="flex items-center justify-between rounded-md border p-4 hover:bg-accent transition"
-            >
-              <div>
-                <div className="text-sm font-medium">Tipos de Unidade</div>
-                <div className="text-xs text-muted-foreground">
-                  Gerenciar UBS, Hospital, CAPS, etc.
-                </div>
-              </div>
-              <span className="text-sm text-primary">Abrir →</span>
-            </a>
-            <a
-              href="/feriados"
-              className="flex items-center justify-between rounded-md border p-4 hover:bg-accent transition"
-            >
-              <div>
-                <div className="text-sm font-medium">Calendário de Feriados</div>
-                <div className="text-xs text-muted-foreground">
-                  Feriados municipais, estaduais e nacionais.
-                </div>
-              </div>
-              <span className="text-sm text-primary">Abrir →</span>
-            </a>
-          </div>
-        </section>
-      )}
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+        </TabsContent>
+        <TabsContent value="documentos" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Identidade Visual
         </h2>
@@ -665,8 +615,7 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-6">
+          <section className="space-y-4 border-b border-border pb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Configuração de Documentos (PDF)
         </h2>
@@ -715,13 +664,88 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
+        </TabsContent>
+        <TabsContent value="ia" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <HsmConfigSection />
+        </TabsContent>
+        <TabsContent value="email" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          {userCtx?.is_master && <SmtpConfigSection />}
+          {userCtx?.is_master && (
+        <section className="space-y-4 border-b border-border pb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Comunicações (SMTP)
+            </h2>
+            <Link to="/smtp-test">
+              <Button variant="outline" size="sm">
+                Diagnóstico SMTP
+              </Button>
+            </Link>
+          </div>
+          <div className="rounded-md bg-muted/50 p-4 text-xs text-muted-foreground border-l-4 border-primary">
+            <p className="font-semibold mb-2 text-foreground flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              Configuração do Gmail (Recomendado):
+            </p>
+            <div className="space-y-2">
+              <p>
+                Para enviar via Gmail, você deve usar uma <strong>Senha de App</strong> (App Password), 
+                pois o Google bloqueia o acesso por senha comum.
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>SMTP_HOST</strong>: smtp.gmail.com</li>
+                <li><strong>SMTP_PORT</strong>: 587</li>
+                <li><strong>SMTP_USER</strong>: seu-email@gmail.com</li>
+                <li><strong>SMTP_PASSWORD</strong>: sua-senha-de-app-de-16-digitos</li>
+                <li><strong>SMTP_FROM</strong>: seu-email@gmail.com</li>
+              </ul>
+              <p className="mt-2 text-[10px] italic">
+                * As variáveis devem ser adicionadas em <strong>Settings &gt; Environment Variables</strong> no editor.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+        </TabsContent>
+        <TabsContent value="sistema" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          {userCtx?.is_master && <R2DiagnosticoSection />}
+          {userCtx?.is_master && (
+        <section className="space-y-3 border-b border-border pb-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Cadastros institucionais (Master)
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <a
+              href="/tipos-unidade"
+              className="flex items-center justify-between rounded-md border p-4 hover:bg-accent transition"
+            >
+              <div>
+                <div className="text-sm font-medium">Tipos de Unidade</div>
+                <div className="text-xs text-muted-foreground">
+                  Gerenciar UBS, Hospital, CAPS, etc.
+                </div>
+              </div>
+              <span className="text-sm text-primary">Abrir →</span>
+            </a>
+            <a
+              href="/feriados"
+              className="flex items-center justify-between rounded-md border p-4 hover:bg-accent transition"
+            >
+              <div>
+                <div className="text-sm font-medium">Calendário de Feriados</div>
+                <div className="text-xs text-muted-foreground">
+                  Feriados municipais, estaduais e nacionais.
+                </div>
+              </div>
+              <span className="text-sm text-primary">Abrir →</span>
+            </a>
+          </div>
+        </section>
+      )}
+        </TabsContent>
+      </Tabs>
 
-      <div className="flex justify-end">
-        <OfflineButton requireOnline onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          <Save className="mr-2 h-4 w-4" />
-          {saveMutation.isPending ? "Salvando..." : "Salvar configuração"}
-        </OfflineButton>
-      </div>
+
     </div>
   );
 }

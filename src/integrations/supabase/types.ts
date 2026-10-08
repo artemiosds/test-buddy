@@ -4861,6 +4861,7 @@ export type Database = {
         Row: {
           cnes: string | null
           cnpj: string | null
+          codigo_hierarquico: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -4883,6 +4884,7 @@ export type Database = {
         Insert: {
           cnes?: string | null
           cnpj?: string | null
+          codigo_hierarquico?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -4905,6 +4907,7 @@ export type Database = {
         Update: {
           cnes?: string | null
           cnpj?: string | null
+          codigo_hierarquico?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -5101,6 +5104,7 @@ export type Database = {
           capacidade_atendimento: number | null
           cnes: string | null
           cnpj: string | null
+          codigo_hierarquico: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -5131,6 +5135,7 @@ export type Database = {
           capacidade_atendimento?: number | null
           cnes?: string | null
           cnpj?: string | null
+          codigo_hierarquico?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -5161,6 +5166,7 @@ export type Database = {
           capacidade_atendimento?: number | null
           cnes?: string | null
           cnpj?: string | null
+          codigo_hierarquico?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null

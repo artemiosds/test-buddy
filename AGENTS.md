@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Municipal settings use mounted thematic tab panels and shared page-level form state so switching tabs preserves unsaved edits and independent service forms.

@@ -56,6 +56,7 @@ type Setor = {
   tipo: string | null;
   cnpj: string | null;
   endereco: string | null;
+  codigo_hierarquico?: string | null;
   gestor: { id: string; nome_completo: string } | null;
 };
 
@@ -68,6 +69,7 @@ const emptyForm = {
   tipo: "",
   cnpj: "",
   endereco: "",
+  codigo_hierarquico: "",
 };
 
 const PAGE_SIZE = 15;
@@ -129,7 +131,7 @@ function SetoresPage() {
       const { data, error, count } = await supabase
         .from("setores")
         .select(
-          "id, unidade_id, nome, sigla, status, gestor_id, observacoes, cnes, tipo, cnpj, endereco, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
+          "id, unidade_id, nome, sigla, status, gestor_id, observacoes, cnes, tipo, cnpj, endereco, codigo_hierarquico, gestor:profissionais!setores_gestor_id_fkey(id, nome_completo)",
           { count: "exact" }
         )
         .eq("unidade_id", unidadeId)
@@ -190,6 +192,7 @@ function SetoresPage() {
         tipo: form.tipo.trim() || null,
         cnpj: form.cnpj.replace(/\D/g, "") || null,
         endereco: form.endereco.trim() || null,
+        codigo_hierarquico: form.codigo_hierarquico.trim() || null,
       };
       if (editing) {
         const { error } = await supabase.from("setores").update(payload).eq("id", editing.id);
@@ -278,6 +281,7 @@ function SetoresPage() {
       tipo: s.tipo ?? "",
       cnpj: s.cnpj ?? "",
       endereco: s.endereco ?? "",
+      codigo_hierarquico: s.codigo_hierarquico ?? "",
     });
     setOpen(true);
   };
@@ -353,6 +357,16 @@ function SetoresPage() {
                       <AlertCircle className="h-3 w-3" /> {errors.nome[0]}
                     </p>
                   )}
+                </div>
+                <div>
+                  <Label>Código hierárquico (opcional)</Label>
+                  <Input
+                    value={form.codigo_hierarquico}
+                    maxLength={30}
+                    placeholder="Automático: código da unidade + sequência (ex.: 1.18.002.001)"
+                    onChange={(e) => setForm({ ...form, codigo_hierarquico: e.target.value })}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">Deixe em branco para numerar automaticamente no PDF oficial.</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
