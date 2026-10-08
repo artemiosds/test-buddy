@@ -413,6 +413,8 @@ export function FrequenciasEfetivosPage() {
    * rejeitada ou devolvida para correção. Linha aprovada nunca é editável.
    */
   const linhaEditavel = (statusLinha: string | null | undefined) => {
+    // Master corrige qualquer linha, inclusive aprovada (backend já permite).
+    if (isMaster) return true;
     const s = statusLinha ?? "pendente";
     if (s === "aprovada") return false;
     if (folhaEditavel) return true;
@@ -1515,6 +1517,13 @@ export function FrequenciasEfetivosPage() {
         open={dossieOpen}
         onOpenChange={setDossieOpen}
         canEdit={canEdit}
+        canEditSituacao={canEdit}
+        onSituacaoSalva={(sit, ini, fim) => {
+          setDossieProf((p) => (p ? ({ ...p, situacao_funcional: sit, situacao_data_inicio: ini, situacao_data_fim: fim } as any) : p));
+          qc.invalidateQueries({ queryKey: ["conferencia-profissionais"] });
+          qc.invalidateQueries({ queryKey: ["profissionais"] });
+          qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
+        }}
         statusValue={dossieProf ? linhas[dossieProf.id]?.status_linha : undefined}
         onStatusChange={(v) => {
           if (dossieProf) {

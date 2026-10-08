@@ -35,6 +35,8 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusBadge } from "@/components/shared";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   ALERTA_LABEL,
   SITUACAO_LABEL,
@@ -44,6 +46,7 @@ import {
   derivarElegibilidadePiso,
   derivarSituacao,
   overrideSituacaoFolha,
+  situacaoExigePeriodo,
   type Elegibilidade,
   type ProfConferencia,
   type ResumoSituacao,
@@ -478,6 +481,103 @@ export type EdicaoCampo = {
   group?: "oficial" | "sms";
 };
 
+/** Altera a situação funcional no CADASTRO do profissional (mesma fonte da
+ * página Profissionais), refletindo na hora nas grades das folhas. */
+function SituacaoProfissionalEditor({
+  prof,
+  canEdit,
+  onSaved,
+}: {
+  prof: ProfConferencia;
+  canEdit: boolean;
+  onSaved: (situacao: string, inicio: string | null, fim: string | null) => void;
+}) {
+  const atual = derivarSituacao(prof);
+  const [sit, setSit] = useState<string>(atual);
+  const [ini, setIni] = useState<string>(prof.situacao_data_inicio ?? "");
+  const [fim, setFim] = useState<string>(prof.situacao_data_fim ?? "");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setSit(derivarSituacao(prof));
+    setIni(prof.situacao_data_inicio ?? "");
+    setFim(prof.situacao_data_fim ?? "");
+  }, [prof.id, prof.situacao_funcional, prof.situacao_data_inicio, prof.situacao_data_fim]);
+  const periodo = situacaoExigePeriodo(sit);
+  const mudou =
+    sit !== atual ||
+    (periodo && (ini !== (prof.situacao_data_inicio ?? "") || fim !== (prof.situacao_data_fim ?? "")));
+  const field: CSSProperties = {
+    color: "#0F172A", background: "#FFFFFF", border: "1px solid #94A3B8",
+    borderRadius: 6, padding: "6px 10px", fontSize: 13, width: "100%",
+  };
+  const lbl: CSSProperties = { color: "#475569", fontSize: 11, fontWeight: 700, textTransform: "uppercase" };
+
+  async function salvar() {
+    if (periodo && (!ini || !fim)) {
+      toast.error("Informe a data de início e a de fim/previsão de retorno.");
+      return;
+    }
+    if (periodo && fim < ini) {
+      toast.error("A data de fim não pode ser anterior à data de início.");
+      return;
+    }
+    setSaving(true);
+    const inicio = periodo ? ini : null;
+    const termino = periodo ? fim : null;
+    const { data, error } = await supabase
+      .from("profissionais")
+      .update({
+        situacao_funcional: sit as any,
+        situacao_data_inicio: inicio,
+        situacao_data_fim: termino,
+      })
+      .eq("id", prof.id)
+      .select("id");
+    setSaving(false);
+    if (error || !data?.length) {
+      toast.error(error?.message ?? "Sem permissão para alterar a situação deste profissional.");
+      return;
+    }
+    toast.success(`Situação atualizada para ${SITUACAO_LABEL[sit as SituacaoFuncional] ?? sit}.`);
+    onSaved(sit, inicio, termino);
+  }
+
+  return (
+    <section>
+      <div style={lbl} className="mb-2">Situação do profissional (cadastro)</div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4 items-end">
+        <div className="md:col-span-2">
+          <select value={sit} disabled={!canEdit || saving} onChange={(e) => setSit(e.target.value)} style={field}>
+            {SITUACAO_ORDER.map((s) => (
+              <option key={s} value={s}>{SITUACAO_LABEL[s]}</option>
+            ))}
+          </select>
+        </div>
+        {periodo && (
+          <>
+            <div>
+              <div style={lbl}>Início</div>
+              <input type="date" value={ini} disabled={!canEdit || saving} onChange={(e) => setIni(e.target.value)} style={field} />
+            </div>
+            <div>
+              <div style={lbl}>Fim / retorno</div>
+              <input type="date" value={fim} min={ini || undefined} disabled={!canEdit || saving} onChange={(e) => setFim(e.target.value)} style={field} />
+            </div>
+          </>
+        )}
+      </div>
+      {mudou && canEdit && (
+        <div className="mt-2 flex items-center gap-2">
+          <Button type="button" size="sm" onClick={salvar} disabled={saving}>
+            {saving ? "Aplicando…" : "Aplicar situação"}
+          </Button>
+          <span className="text-[11px] text-slate-500">Atualiza o cadastro e a folha na hora.</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ProfissionalEdicaoModal<L extends Record<string, any>>({
   prof,
   linha,
@@ -491,7 +591,11 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
   onSave,
   saving,
   anexosSlot,
+  canEditSituacao,
+  onSituacaoSalva,
 }: {
+  canEditSituacao?: boolean;
+  onSituacaoSalva?: (situacao: string, inicio: string | null, fim: string | null) => void;
   prof: ProfConferencia | null;
   linha: L | undefined;
   open: boolean;
@@ -565,6 +669,14 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
               <span className="text-[11px] text-slate-500">Situação: {SITUACAO_LABEL[situ]}</span>
             </div>
           </section>
+
+          {onSituacaoSalva && (
+            <SituacaoProfissionalEditor
+              prof={prof}
+              canEdit={!!canEditSituacao}
+              onSaved={onSituacaoSalva}
+            />
+          )}
 
           {/* Status da frequência */}
           {onStatusChange && (

@@ -504,6 +504,8 @@ export function FrequenciasContratadosPage() {
   function readonlyLinha(l: LinhaState | undefined) {
     if (!l) return true;
     if (!canEdit) return true;
+    // Master corrige qualquer linha, inclusive aprovada (backend já permite).
+    if (isMaster) return false;
     // Após enviada/aprovada/em análise, campos ficam somente leitura
     return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
   }
@@ -1612,6 +1614,13 @@ export function FrequenciasContratadosPage() {
         open={dossieOpen}
         onOpenChange={setDossieOpen}
         canEdit={canEdit}
+        canEditSituacao={canEdit}
+        onSituacaoSalva={(sit, ini, fim) => {
+          setDossieProf((p) => (p ? ({ ...p, situacao_funcional: sit, situacao_data_inicio: ini, situacao_data_fim: fim } as any) : p));
+          qc.invalidateQueries({ queryKey: ["conferencia-profissionais"] });
+          qc.invalidateQueries({ queryKey: ["profissionais"] });
+          qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
+        }}
         statusValue={dossieProf ? linhas[dossieProf.id]?.status : undefined}
         onStatusChange={(v) => {
           if (!dossieProf) return;

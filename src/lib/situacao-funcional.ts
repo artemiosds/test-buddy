@@ -44,6 +44,8 @@ export type ProfConferencia = {
   matricula?: string | null;
   status?: string | null;
   situacao_funcional?: string | null;
+  situacao_data_inicio?: string | null;
+  situacao_data_fim?: string | null;
   vinculo?: string | null;
   vinculo_natureza?: string | null;
 
@@ -408,3 +410,11 @@ export function aplicarOverrideSituacao<T extends Record<string, any>>(
   for (const c of campos) base[c] = override;
   return base as T;
 }
+
+/** Situações que exigem período (início e fim/previsão de retorno). */
+export const SITUACOES_COM_PERIODO = new Set<string>([
+  "ferias", "atestado", "licenca", "licenca_premio", "licenca_maternidade",
+  "licenca_saude", "licenca_luto", "licenca_sem_vencimento", "licenca_estudo",
+  "afastado", "afastamento_inss", "afastado_laudo", "cedido",
+]);
+export const situacaoExigePeriodo = (s?: string | null) => !!s && SITUACOES_COM_PERIODO.has(s);

@@ -20,7 +20,7 @@ export function useConferenciaProfissionais(ids: string[]) {
       const { data: profs } = await supabase
         .from("profissionais")
         .select(
-          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, cargo_id, funcao_id, setor_id, unidade_id, vinculo_id, cargos(nome), funcoes(nome), vinculos(nome, natureza), setores!profissionais_setor_id_fkey(nome, sigla)",
+          "id, cpf, banco, agencia, conta_corrente, matricula, status, situacao_funcional, situacao_data_inicio, situacao_data_fim, cargo_id, funcao_id, setor_id, unidade_id, vinculo_id, cargos(nome), funcoes(nome), vinculos(nome, natureza), setores!profissionais_setor_id_fkey(nome, sigla)",
         )
 
         .in("id", ids);
@@ -66,6 +66,8 @@ export function useConferenciaProfissionais(ids: string[]) {
           matricula: (row.matricula as string | null) ?? null,
           status: (row.status as string | null) ?? null,
           situacao_funcional: (row.situacao_funcional as string | null) ?? null,
+          situacao_data_inicio: (row as any).situacao_data_inicio ?? null,
+          situacao_data_fim: (row as any).situacao_data_fim ?? null,
           cargo_id: (row.cargo_id as string | null) ?? null,
           funcao_id: (row.funcao_id as string | null) ?? null,
           setor_id: (row.setor_id as string | null) ?? null,
