@@ -166,6 +166,31 @@ function ptToMm(pt: number): number {
   return pt * 0.352778;
 }
 
+/**
+ * Define o tamanho da fonte dos textos de situação funcional (afastamentos,
+ * licenças, férias etc.) com auto-ajuste: começa em 6pt e só reduz (passos de
+ * 0,4pt até o mínimo de 4,8pt) quando o texto precisar de mais linhas do que
+ * cabem na altura disponível. Textos curtos ficam maiores; longos encolhem pouco.
+ */
+function tamanhoFonteSituacao(
+  doc: jsPDF,
+  texto: string,
+  maxWidthMm: number,
+  alturaDisponivelMm: number,
+): number {
+  const minimo = 4.8;
+  let fontSize = 6;
+  for (;;) {
+    const lineHeight = ptToMm(fontSize) * 1.1;
+    doc.setFontSize(fontSize);
+    const linhas = quebrarTextoPorLargura(doc, texto, maxWidthMm, fontSize);
+    const alturaNecessaria = linhas.length * lineHeight;
+    if (alturaNecessaria <= alturaDisponivelMm || fontSize <= minimo) break;
+    fontSize = Math.max(minimo, fontSize - 0.4);
+  }
+  return fontSize;
+}
+
 function quebrarTextoPorLargura(
   doc: jsPDF,
   texto: string,
@@ -255,7 +280,15 @@ function calcularAlturaLinha(doc: jsPDF, item: ItemFolha): number {
     const val = valores[c.key] ?? "";
     if (!val) continue;
 
-    const fontSize = isStatus && val === situacao ? (c.w < 10 ? 4 : 4.2) : 8;
+    const isStatusText = isStatus && val === situacao;
+    const fontSize = isStatusText
+      ? tamanhoFonteSituacao(
+          doc,
+          val,
+          c.w - PADDING_CELULA * 2,
+          LINHA_ALTURA_MAX - PADDING_CELULA * 2,
+        )
+      : 8;
     const lineHeight = ptToMm(fontSize) * 1.1;
     const maxWidth = c.w - PADDING_CELULA * 2;
     doc.setFontSize(fontSize);
@@ -514,7 +547,9 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
       const val = values[c.key] ?? "";
       if (val) {
         const isLongText = isStatus && val === situacao;
-        const fontSize = isLongText ? (c.w < 10 ? 4 : 4.2) : 8;
+        const fontSize = isLongText
+          ? tamanhoFonteSituacao(doc, val, c.w - PADDING_CELULA * 2, h - PADDING_CELULA * 2)
+          : 8;
         const lineHeight = ptToMm(fontSize) * 1.1;
         const maxWidth = c.w - PADDING_CELULA * 2;
 
