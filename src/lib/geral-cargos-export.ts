@@ -72,9 +72,17 @@ function aba(
 
 export function exportarGeralCargosXlsx(
   dados: GeralCargosDados,
-  opts: { modo: ModoGeralCargos; competencia: string; agrupamento: string },
+  opts: {
+    modo: ModoGeralCargos;
+    competencia: string;
+    agrupamento: string;
+    /** Rótulo do agrupamento aplicado às funções (categoria consolidada / função exata). */
+    agrupamentoFuncoes?: string;
+    blocos?: Set<string>;
+  },
 ) {
   const wb = XLSX.utils.book_new();
+  const inclui = (k: string) => !opts.blocos || opts.blocos.has(k);
   const modoLabel = opts.modo === "ativos" ? "Ativos" : "Geral — todos";
 
   aba(
@@ -96,7 +104,7 @@ export function exportarGeralCargosXlsx(
     ],
   );
 
-  aba(
+  if (inclui("unidades")) aba(
     wb,
     "Unidades",
     "Servidores na Secretaria de Saúde",
@@ -127,7 +135,7 @@ export function exportarGeralCargosXlsx(
     lista.reduce((a, c) => a + c.total, 0),
   ];
 
-  aba(
+  if (inclui("cargos")) aba(
     wb,
     "Cargos",
     `Lista de cargos (${opts.agrupamento})`,
@@ -136,7 +144,16 @@ export function exportarGeralCargosXlsx(
     totalCargo(dados.cargos),
   );
 
-  aba(
+  if (inclui("funcoes")) aba(
+    wb,
+    "Funções",
+    `Lista de funções (${opts.agrupamentoFuncoes ?? "função exata"})`,
+    ["Nome da função", "Efetivos", "Prestadores", "Ativos", "Disponível", "Total"],
+    linhasCargo(dados.funcoes),
+    totalCargo(dados.funcoes),
+  );
+
+  if (inclui("medicos")) aba(
     wb,
     "Médicos",
     "Específicos médicos: clínicos e especialistas",
@@ -145,7 +162,7 @@ export function exportarGeralCargosXlsx(
     totalCargo(dados.medicos),
   );
 
-  aba(
+  if (inclui("afastamentos")) aba(
     wb,
     "Afastamentos",
     "Afastamentos e ausências",
@@ -154,7 +171,7 @@ export function exportarGeralCargosXlsx(
     ["TOTAL", dados.afastamentos.reduce((s, a) => s + a.qtd, 0), ""],
   );
 
-  aba(
+  if (inclui("afastamentos")) aba(
     wb,
     "Afast. Unidades",
     "Afastamentos e ausências por unidade",
@@ -163,7 +180,7 @@ export function exportarGeralCargosXlsx(
     ["TOTAL", dados.afastamentosPorUnidade.reduce((s, u) => s + u.qtd, 0), ""],
   );
 
-  aba(
+  if (inclui("afastamentos")) aba(
     wb,
     "Afast. Setores",
     "Afastamentos e ausências por setor (setor é opcional)",

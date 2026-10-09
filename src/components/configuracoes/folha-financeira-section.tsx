@@ -8,6 +8,9 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Search, RefreshCw } from "luci
 import { toast } from "sonner";
 import {
   DEFAULT_FINANCEIRO,
+  DEFAULT_TRIBUTOS,
+  type RegimeAlvo,
+  type DescontoExtra,
   NIVEIS_ESCOLARIDADE,
   type NivelEscolaridade,
   type NivelFinanceiro,
@@ -126,7 +129,8 @@ export function FolhaFinanceiraSection({ value, onChange }: Props) {
 
       <section className="space-y-2 border-b border-border pb-5">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tabelas de desconto</h2>
-        <Bloco titulo={`INSS – Contratados (${value.inss_faixas.length} faixas)`}>
+        <TributosRegime value={value} set={set} />
+        <Bloco titulo={`INSS (${value.inss_faixas.length} faixas)`}>
           <div className="space-y-2">
             {value.inss_faixas.map((f, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
@@ -159,6 +163,7 @@ export function FolhaFinanceiraSection({ value, onChange }: Props) {
             <p className="text-[11px] text-muted-foreground">Base = bruto − previdência. Deixe "Até" vazio na última faixa. Confira a tabela vigente da Receita Federal.</p>
           </div>
         </Bloco>
+        <DescontosExtras value={value} set={set} />
       </section>
 
       <section className="space-y-3">
@@ -322,5 +327,77 @@ function SincronizarCadastro({ cargos, lista, niveis }: { cargos: Record<string,
       </Button>
       <span className="text-muted-foreground">Salve a configuração antes, para usar os valores atuais.</span>
     </div>
+  );
+}
+
+const REGIME_OPC: { k: RegimeAlvo; h: string }[] = [
+  { k: "ambos", h: "Efetivos e Contratados" },
+  { k: "efetivos", h: "Só Efetivos" },
+  { k: "contratados", h: "Só Contratados" },
+  { k: "nenhum", h: "Não aplicar" },
+];
+const selCls = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
+
+function SelRegime({ v, on }: { v: RegimeAlvo; on: (r: RegimeAlvo) => void }) {
+  return (
+    <select className={selCls} value={v} onChange={(e) => on(e.target.value as RegimeAlvo)}>
+      {REGIME_OPC.map((o) => <option key={o.k} value={o.k}>{o.h}</option>)}
+    </select>
+  );
+}
+
+type SetFn = (patch: Partial<ParametrosFinanceiros>) => void;
+
+function TributosRegime({ value, set }: { value: ParametrosFinanceiros; set: SetFn }) {
+  const t = value.tributos ?? DEFAULT_TRIBUTOS;
+  const up = (k: keyof typeof t, patch: Record<string, unknown>) => set({ tributos: { ...t, [k]: { ...t[k], ...patch } } as typeof t });
+  return (
+    <Bloco titulo="Onde cada desconto incide (Efetivos / Contratados)" defaultOpen>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div><Label className="text-xs">INSS (tabela progressiva)</Label><SelRegime v={t.inss.regime} on={(r) => up("inss", { regime: r })} /></div>
+        <div><Label className="text-xs">RPPS ({value.rpps_pct}%)</Label><SelRegime v={t.rpps.regime} on={(r) => up("rpps", { regime: r })} /></div>
+        <div><Label className="text-xs">IRRF</Label><SelRegime v={t.irrf.regime} on={(r) => up("irrf", { regime: r })} /></div>
+        <div>
+          <Label className="text-xs">ISS ({value.iss_pct}%)</Label>
+          <SelRegime v={t.iss.regime} on={(r) => up("iss", { regime: r })} />
+          <label className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <input type="checkbox" checked={t.iss.somente_autonomo} onChange={(e) => up("iss", { somente_autonomo: e.target.checked })} />
+            Só vínculos RPA/autônomo
+          </label>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">Se RPPS e INSS valerem para o mesmo regime, usa RPPS. Vínculos RPA/autônomo não têm previdência. A alíquota do ISS fica em Regras de cálculo.</p>
+    </Bloco>
+  );
+}
+
+function DescontosExtras({ value, set }: { value: ParametrosFinanceiros; set: SetFn }) {
+  const lista = value.descontos_extras ?? [];
+  const up = (id: string, patch: Partial<DescontoExtra>) => set({ descontos_extras: lista.map((d) => (d.id === id ? { ...d, ...patch } : d)) });
+  const novo = () => set({ descontos_extras: [...lista, { id: `d${Date.now()}`, nome: "Novo desconto", forma: "pct_bruto", valor: 0, regime: "ambos", ativo: true }] });
+  return (
+    <Bloco titulo={`Outros descontos personalizados (${lista.length})`}>
+      <div className="space-y-2">
+        {lista.length === 0 && <p className="text-xs text-muted-foreground">Nenhum. Use para sindicato, convênios, previdência complementar etc.</p>}
+        {lista.map((d) => (
+          <div key={d.id} className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[1.5fr_1.2fr_0.8fr_1.2fr_auto_auto]">
+            <div><Label className="text-xs">Nome</Label><Input value={d.nome} onChange={(e) => up(d.id, { nome: e.target.value })} /></div>
+            <div>
+              <Label className="text-xs">Forma</Label>
+              <select className={selCls} value={d.forma} onChange={(e) => up(d.id, { forma: e.target.value as DescontoExtra["forma"] })}>
+                <option value="pct_bruto">% sobre o bruto</option>
+                <option value="pct_base">% sobre o salário base</option>
+                <option value="fixo">Valor fixo (R$)</option>
+              </select>
+            </div>
+            <div><Label className="text-xs">{d.forma === "fixo" ? "Valor (R$)" : "Percentual (%)"}</Label><Input type="number" step="0.01" value={d.valor} onChange={(e) => up(d.id, { valor: toNum(e.target.value) })} /></div>
+            <div><Label className="text-xs">Aplica em</Label><SelRegime v={d.regime} on={(r) => up(d.id, { regime: r })} /></div>
+            <label className="flex h-9 items-center gap-1 text-xs"><input type="checkbox" checked={d.ativo} onChange={(e) => up(d.id, { ativo: e.target.checked })} />Ativo</label>
+            <Button type="button" variant="ghost" size="icon" aria-label="Excluir desconto" onClick={() => set({ descontos_extras: lista.filter((x) => x.id !== d.id) })}><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={novo}><Plus className="mr-1 h-3 w-3" />Novo desconto</Button>
+      </div>
+    </Bloco>
   );
 }

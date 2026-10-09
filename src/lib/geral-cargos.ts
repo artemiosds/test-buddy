@@ -18,6 +18,11 @@ import {
   type SituacaoFuncional,
 } from "@/lib/situacao-funcional";
 import { categoriaDoCargo } from "@/lib/cargo-categorias";
+import {
+  categoriaDaFuncao,
+  criarIndiceFuncoes,
+  parseDeParaFuncoes,
+} from "@/lib/funcao-categorias";
 
 export type ModoGeralCargos = "ativos" | "geral";
 export type AgrupamentoCargos = "categoria" | "cargo";
@@ -29,6 +34,7 @@ type ProfLinha = {
   status: string | null;
   situacao_funcional: string | null;
   cargo_id: string | null;
+  funcao_id: string | null;
   vinculo_id: string | null;
   unidade_id: string | null;
   setor_id: string | null;
@@ -110,6 +116,8 @@ export type GeralCargosDados = {
   porStatus: Array<{ situacao: SituacaoFuncional; label: string; qtd: number }>;
   unidades: LinhaUnidade[];
   cargos: LinhaCargo[];
+  /** Quadro por função (função gratificada/designação), mesmas métricas dos cargos. */
+  funcoes: LinhaCargo[];
   medicos: LinhaCargo[];
   afastamentos: LinhaAfastamento[];
   /** Afastamentos e ausências agrupados por unidade de lotação. */
@@ -136,7 +144,7 @@ async function buscarProfissionais(): Promise<ProfLinha[]> {
   for (let inicio = 0; ; inicio += passo) {
     const { data, error } = await supabase
       .from("profissionais")
-      .select("id, status, situacao_funcional, cargo_id, vinculo_id, unidade_id, setor_id")
+      .select("id, status, situacao_funcional, cargo_id, funcao_id, vinculo_id, unidade_id, setor_id")
       .is("deleted_at", null)
       .order("id")
       .range(inicio, inicio + passo - 1);
@@ -152,13 +160,29 @@ export async function getGeralCargos(
   modo: ModoGeralCargos,
   agrupamento: AgrupamentoCargos = "categoria",
 ): Promise<GeralCargosDados> {
-  const [profs, cargosRes, vinculosRes, unidadesRes, setoresRes] = await Promise.all([
-    buscarProfissionais(),
-    supabase.from("cargos").select("id, nome"),
-    supabase.from("vinculos").select("id, nome, natureza"),
-    supabase.from("unidades").select("id, nome, sigla").is("deleted_at", null),
-    supabase.from("setores").select("id, nome, unidade_id").is("deleted_at", null),
-  ]);
+  const [profs, cargosRes, vinculosRes, unidadesRes, setoresRes, funcoesRes, mcpRes] =
+    await Promise.all([
+      buscarProfissionais(),
+      supabase.from("cargos").select("id, nome"),
+      supabase.from("vinculos").select("id, nome, natureza"),
+      supabase.from("unidades").select("id, nome, sigla").is("deleted_at", null),
+      supabase.from("setores").select("id, nome, unidade_id").is("deleted_at", null),
+      supabase.from("funcoes").select("id, nome"),
+      supabase
+        .from("municipio_config")
+        .select("parametros")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+  if (funcoesRes.error) throw funcoesRes.error;
+  const nomeFuncao = new Map((funcoesRes.data ?? []).map((f) => [f.id, f.nome]));
+  /**
+   * De-Para de funções mantido na Configuração Municipal. Sem nada cadastrado
+   * (ou se a leitura falhar), cada função continua sendo categoria própria.
+   */
+  const indiceFuncoes = criarIndiceFuncoes(parseDeParaFuncoes(mcpRes.data?.parametros));
   if (cargosRes.error) throw cargosRes.error;
   if (vinculosRes.error) throw vinculosRes.error;
   if (unidadesRes.error) throw unidadesRes.error;
@@ -319,6 +343,29 @@ export async function getGeralCargos(
     .map(({ grupo: _g, ...l }) => l)
     .sort(ordenar);
 
+  /* ------------------------------------------------------ bloco de funções */
+  const acumFuncoes = new Map<string, LinhaCargo>();
+  for (const p of base) {
+    const cadastrada = p.funcao_id
+      ? (nomeFuncao.get(p.funcao_id) ?? "Função não identificada")
+      : "Sem função";
+    const { chave, nome } =
+      agrupamento === "categoria"
+        ? categoriaDaFuncao(cadastrada, indiceFuncoes)
+        : { chave: p.funcao_id ?? "sem-funcao", nome: cadastrada };
+    let l = acumFuncoes.get(chave);
+    if (!l) {
+      l = { chave, nome, efetivos: 0, prestadores: 0, ativos: 0, disponivel: 0, total: 0 };
+      acumFuncoes.set(chave, l);
+    }
+    l.total += 1;
+    if (classeDe(p) === "efetivo") l.efetivos += 1;
+    else l.prestadores += 1;
+    if (ehAtivoAmpliado(p)) l.ativos += 1;
+    if (ehDisponivelEscala(p)) l.disponivel += 1;
+  }
+  const funcoes = Array.from(acumFuncoes.values()).sort(ordenar);
+
   /* ----------------------------------------------- bloco de afastamentos */
   const foraDosAtivosLinhas = profs.filter((p) => !ehAtivoAmpliado(p));
   const afastMap = new Map<SituacaoFuncional, { qtd: number; cargos: Map<string, number> }>();
@@ -446,6 +493,7 @@ export async function getGeralCargos(
     porStatus,
     unidades: listaUnidades,
     cargos,
+    funcoes,
     medicos,
     afastamentos,
     afastamentosPorUnidade,

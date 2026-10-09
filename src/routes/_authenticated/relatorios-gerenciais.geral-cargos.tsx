@@ -1,13 +1,14 @@
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { FileSpreadsheet, FileType, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { FileSpreadsheet, FileType, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -31,6 +32,24 @@ import { exportarGeralCargosXlsx } from "@/lib/geral-cargos-export";
 import { exportarGeralCargosDocx } from "@/lib/geral-cargos-docx";
 import { gerarParecerGeralCargos, parecerReserva } from "@/lib/geral-cargos-parecer.functions";
 import { listarDePara } from "@/lib/cargo-categorias";
+import {
+  listarDeParaFuncoes,
+  parseDeParaFuncoes,
+  type DeParaFuncoes,
+} from "@/lib/funcao-categorias";
+import { usePermissions } from "@/hooks/use-permissions";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ListChecks } from "lucide-react";
+
+const BLOCOS_OPC = [
+  { k: "unidades", l: "Servidores por unidade" },
+  { k: "cargos", l: "Servidores por cargo" },
+  { k: "funcoes", l: "Servidores por função" },
+  { k: "medicos", l: "Quadro médico" },
+  { k: "cruzamento", l: "Composição de cargos por unidade" },
+  { k: "setores", l: "Setores por unidade" },
+  { k: "afastamentos", l: "Afastamentos e ausências" },
+] as const;
 
 
 export const Route = createFileRoute("/_authenticated/relatorios-gerenciais/geral-cargos")({
@@ -139,7 +158,7 @@ function TabelaAfastLocal({
   );
 }
 
-function TabelaCargos({ linhas, titulo }: { linhas: LinhaCargo[]; titulo: string }) {
+function TabelaCargos({ linhas, titulo, coluna = "Nome do cargo" }: { linhas: LinhaCargo[]; titulo: string; coluna?: string }) {
   const tot = useMemo(
     () => ({
       efetivos: linhas.reduce((a, l) => a + l.efetivos, 0),
@@ -160,7 +179,7 @@ function TabelaCargos({ linhas, titulo }: { linhas: LinhaCargo[]; titulo: string
         <table className="w-full table-auto text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="p-2">Nome do cargo</th>
+              <th className="p-2">{coluna}</th>
               <th className="p-2 text-right">Efetivos</th>
               <th className="p-2 text-right">Prestadores</th>
               <th className="p-2 text-right">Ativos</th>
@@ -206,12 +225,234 @@ function TabelaCargos({ linhas, titulo }: { linhas: LinhaCargo[]; titulo: string
   );
 }
 
+/**
+ * Manutenção do De-Para de funções — as equivalências usadas quando
+ * "categoria consolidada" está ativa. Grava em
+ * `municipio_config.parametros.funcoes_depara`, junto dos demais parâmetros
+ * (não sobrescreve folha financeira, prazos nem assinatura de PDF).
+ */
+function DeParaFuncoesEditor() {
+  const qc = useQueryClient();
+  const { has } = usePermissions();
+  const podeEditar = has("configuracao.editar");
+  const [rascunho, setRascunho] = useState<DeParaFuncoes>({});
+  const [salvando, setSalvando] = useState(false);
+
+  const { data: config } = useQuery({
+    queryKey: ["municipio-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("municipio_config")
+        .select("id, parametros")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: cadastro = [] } = useQuery({
+    queryKey: ["funcoes-cadastro-depara"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcoes")
+        .select("id, nome")
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const salvo = useMemo(() => parseDeParaFuncoes(config?.parametros), [config]);
+  useEffect(() => setRascunho(salvo), [salvo]);
+
+  /** Funções cadastradas + qualquer equivalência salva (nada se perde). */
+  const nomes = useMemo(() => {
+    const conjunto = new Set(cadastro.map((f) => f.nome));
+    for (const k of Object.keys(salvo)) conjunto.add(k);
+    return Array.from(conjunto).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [cadastro, salvo]);
+
+  const categorias = useMemo(
+    () =>
+      Array.from(new Set(Object.values(rascunho).map((v) => v.trim()).filter(Boolean))).sort(
+        (a, b) => a.localeCompare(b, "pt-BR"),
+      ),
+    [rascunho],
+  );
+  const agrupadas = useMemo(() => listarDeParaFuncoes(rascunho), [rascunho]);
+  const equivalencias = Object.keys(salvo).length;
+
+  async function salvar() {
+    if (!config?.id) {
+      toast.error("Abra a Configuração Municipal antes de salvar as equivalências.");
+      return;
+    }
+    const limpo: DeParaFuncoes = {};
+    for (const [nome, categoria] of Object.entries(rascunho)) {
+      const c = (categoria ?? "").trim();
+      if (c) limpo[nome] = c;
+    }
+    setSalvando(true);
+    try {
+      const parametros = {
+        ...(((config.parametros ?? {}) as Record<string, unknown>) || {}),
+        funcoes_depara: limpo,
+      };
+      const { error } = await supabase
+        .from("municipio_config")
+        .update({ parametros: parametros as unknown as never })
+        .eq("id", config.id);
+      if (error) throw error;
+      toast.success("De-Para de funções salvo.");
+      qc.invalidateQueries({ queryKey: ["municipio-config"] });
+      qc.invalidateQueries({ queryKey: ["geral-cargos"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar o De-Para de funções.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <details className="rounded-md border bg-card p-3">
+      <summary className="cursor-pointer text-sm font-semibold text-foreground">
+        De-Para de funções ({agrupadas.length} categorias consolidadas · {equivalencias}{" "}
+        equivalências salvas)
+      </summary>
+
+      {podeEditar ? (
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Escreva o nome da categoria em cada função. Nomes iguais se somam na mesma linha da
+            lista; deixe em branco para a função continuar com o próprio nome.
+          </p>
+          <div className="max-h-[420px] overflow-auto rounded-md border">
+            <table className="w-full table-auto text-sm">
+              <thead className="sticky top-0 bg-muted/40 text-left">
+                <tr>
+                  <th className="p-2">Função cadastrada</th>
+                  <th className="p-2 w-[320px]">Categoria consolidada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nomes.length === 0 && (
+                  <tr>
+                    <td colSpan={2} className="p-3 text-center text-muted-foreground">
+                      Nenhuma função cadastrada.
+                    </td>
+                  </tr>
+                )}
+                {nomes.map((nome) => (
+                  <tr key={nome} className="border-t">
+                    <td className="p-2 font-medium">{nome}</td>
+                    <td className="p-2">
+                      <Input
+                        list="depara-funcoes-categorias"
+                        value={rascunho[nome] ?? ""}
+                        placeholder="manter nome próprio"
+                        className="h-8 text-sm"
+                        onChange={(e) =>
+                          setRascunho((prev) => ({ ...prev, [nome]: e.target.value }))
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <datalist id="depara-funcoes-categorias">
+            {categorias.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => void salvar()} disabled={salvando}>
+              {salvando ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-1 h-4 w-4" />
+              )}
+              Salvar equivalências
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Nada é alterado no cadastro dos profissionais.
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 overflow-auto">
+          <table className="w-full table-auto text-sm">
+            <thead className="bg-muted/40 text-left">
+              <tr>
+                <th className="p-2">Categoria consolidada</th>
+                <th className="p-2">Funções cadastradas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {agrupadas.length === 0 && (
+                <tr>
+                  <td colSpan={2} className="p-3 text-center text-muted-foreground">
+                    Nenhuma equivalência cadastrada — cada função aparece pelo próprio nome.
+                  </td>
+                </tr>
+              )}
+              {agrupadas.map((g) => (
+                <tr key={g.categoria} className="border-t">
+                  <td className="p-2 font-medium">{g.categoria}</td>
+                  <td className="p-2 text-xs">{g.funcoes.join(" · ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-muted-foreground">
+        A consolidação é apenas de leitura: a função cadastrada de cada profissional permanece
+        exatamente como está no cadastro.
+      </p>
+    </details>
+  );
+}
+
 function GeralCargosPage() {
   const [modo, setModo] = useState<ModoGeralCargos>("ativos");
   const [agrupamento, setAgrupamento] = useState<AgrupamentoCargos>("categoria");
   const [sempreRecente, setSempreRecente] = useState(true);
   const [competenciaId, setCompetenciaId] = useState<string | null>(null);
   const [gerandoWord, setGerandoWord] = useState(false);
+  const [blocosSel, setBlocosSel] = useState<Set<string>>(
+    () => new Set(BLOCOS_OPC.map((b) => b.k)),
+  );
+  const inclui = (k: string) => blocosSel.has(k);
+  const alternarBloco = (k: string) =>
+    setBlocosSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
+  /** Dados filtrados pelos blocos escolhidos (para o Word). */
+  const dadosSel = () => {
+    const d = data!;
+    return {
+      ...d,
+      unidades: inclui("unidades") ? d.unidades : [],
+      cargos: inclui("cargos") ? d.cargos : [],
+      funcoes: inclui("funcoes") ? d.funcoes : [],
+      medicos: inclui("medicos") ? d.medicos : [],
+      cruzamento: inclui("cruzamento") ? d.cruzamento : [],
+      setoresPorUnidade: inclui("setores") ? d.setoresPorUnidade : [],
+      afastamentos: inclui("afastamentos") ? d.afastamentos : [],
+      afastamentosPorUnidade: inclui("afastamentos") ? d.afastamentosPorUnidade : [],
+      afastamentosPorSetor: inclui("afastamentos") ? d.afastamentosPorSetor : [],
+    };
+  };
 
 
   const { data: competencias = [] } = useCompetencias();
@@ -229,6 +470,7 @@ function GeralCargosPage() {
 
   const dePara = useMemo(() => listarDePara(), []);
   const agrupLabel = agrupamento === "categoria" ? "categoria consolidada" : "cargo exato";
+  const funcaoLabel = agrupamento === "categoria" ? "categoria consolidada" : "função exata";
 
   const escopoLabel =
     modo === "ativos"
@@ -343,7 +585,7 @@ function GeralCargosPage() {
   }
 
   function blocosRelatorio() {
-    const d = data!;
+    const d = dadosSel();
     const soma = <T,>(lista: T[], f: (x: T) => number) => lista.reduce((a, x) => a + f(x), 0);
 
     const cabecalho5 = (primeira: string) => [
@@ -411,6 +653,23 @@ function GeralCargosPage() {
           soma(d.cargos, (c) => c.ativos),
           soma(d.cargos, (c) => c.disponivel),
           soma(d.cargos, (c) => c.total),
+        ],
+      });
+
+    /* ------------------------------------------- 4-A Servidores por função */
+    if (d.funcoes.length)
+      blocos.push({
+        titulo: `4-A Servidores por função (${funcaoLabel})`,
+        nota: "Função (designação/função gratificada) informada no cadastro de cada profissional.",
+        head: cabecalho5("Função"),
+        body: d.funcoes.map((c) => [c.nome, c.efetivos, c.prestadores, c.ativos, c.disponivel, c.total]),
+        foot: [
+          `TOTAL GERAL (${d.funcoes.length})`,
+          soma(d.funcoes, (c) => c.efetivos),
+          soma(d.funcoes, (c) => c.prestadores),
+          soma(d.funcoes, (c) => c.ativos),
+          soma(d.funcoes, (c) => c.disponivel),
+          soma(d.funcoes, (c) => c.total),
         ],
       });
 
@@ -609,7 +868,7 @@ function GeralCargosPage() {
     setGerandoWord(true);
     try {
       const parecer = await obterParecer();
-      await exportarGeralCargosDocx(data, {
+      await exportarGeralCargosDocx(dadosSel(), {
         modo,
         competencia,
         agrupamento: agrupLabel,
@@ -678,18 +937,53 @@ function GeralCargosPage() {
               categoria consolidada
             </TabsTrigger>
             <TabsTrigger value="cargo" className="text-xs">
-              cargo exato
+              cargo/função exato
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="ml-auto flex gap-2 pb-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" disabled={!data}>
+                <ListChecks className="mr-1 h-4 w-4" />
+                Conteúdo ({blocosSel.size}/{BLOCOS_OPC.length})
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 space-y-2">
+              <p className="text-sm font-medium">O que sai no Excel, PDF e Word</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" className="h-7 text-xs"
+                  onClick={() => setBlocosSel(new Set(BLOCOS_OPC.map((b) => b.k)))}>
+                  Completo
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs"
+                  onClick={() => setBlocosSel(new Set())}>
+                  Limpar
+                </Button>
+              </div>
+              {BLOCOS_OPC.map((b) => (
+                <label key={b.k} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={inclui(b.k)} onCheckedChange={() => alternarBloco(b.k)} />
+                  {b.l}
+                </label>
+              ))}
+              <p className="text-xs text-muted-foreground">Indicadores e resumo sempre saem.</p>
+            </PopoverContent>
+          </Popover>
           <Button
             size="sm"
             variant="outline"
             disabled={!data}
             onClick={() =>
-              data && exportarGeralCargosXlsx(data, { modo, competencia, agrupamento: agrupLabel })
+              data &&
+                exportarGeralCargosXlsx(data, {
+                  modo,
+                  competencia,
+                  agrupamento: agrupLabel,
+                  agrupamentoFuncoes: funcaoLabel,
+                  blocos: blocosSel,
+                })
             }
           >
             <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
@@ -814,6 +1108,11 @@ function GeralCargosPage() {
             titulo={`Lista de cargos (${agrupLabel})`}
           />
           <TabelaCargos
+            linhas={data.funcoes}
+            titulo={`Lista de funções (${funcaoLabel})`}
+            coluna="Nome da função"
+          />
+          <TabelaCargos
             linhas={data.medicos}
             titulo="Específicos médicos: clínicos e especialistas"
           />
@@ -911,6 +1210,8 @@ function GeralCargosPage() {
               exatamente como está no cadastro.
             </p>
           </details>
+
+          <DeParaFuncoesEditor />
         </>
       )}
     </div>

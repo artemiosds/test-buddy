@@ -11,3 +11,4 @@
 
 - Municipal settings use mounted thematic tab panels and shared page-level form state so switching tabs preserves unsaved edits and independent service forms.
 - Financial payroll projection rules (rates, tax tables, per-cargo salary) live in municipio_config.parametros.financeiro and are computed by the pure module src/lib/folha-financeira.ts over approved frequency rows only — why: no schema change, never mutates attendance sheets.
+- Reporting consolidations are read-only overlays: cargo De-Para stays in the pure module src/lib/cargo-categorias.ts, while the função De-Para is user-maintained in municipio_config.parametros.funcoes_depara and resolved by the pure module src/lib/funcao-categorias.ts, applied only when the report groups by consolidated category — why: no schema change, registered cargo/função names are never rewritten.

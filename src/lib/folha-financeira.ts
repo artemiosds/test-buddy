@@ -38,7 +38,29 @@ export type NivelFinanceiro = {
   insalubridade_pct?: number | null;
 };
 
+export type RegimeAlvo = "efetivos" | "contratados" | "ambos" | "nenhum";
+export type TributoCfg = { regime: RegimeAlvo };
+export type Tributos = { inss: TributoCfg; rpps: TributoCfg; irrf: TributoCfg; iss: TributoCfg & { somente_autonomo: boolean } };
+export type DescontoExtra = {
+  id: string;
+  nome: string;
+  forma: "pct_base" | "pct_bruto" | "fixo";
+  valor: number;
+  regime: RegimeAlvo;
+  ativo: boolean;
+};
+export const DEFAULT_TRIBUTOS: Tributos = {
+  inss: { regime: "contratados" },
+  rpps: { regime: "efetivos" },
+  irrf: { regime: "ambos" },
+  iss: { regime: "ambos", somente_autonomo: true },
+};
+const REGIMES: RegimeAlvo[] = ["efetivos", "contratados", "ambos", "nenhum"];
+const aplica = (r: RegimeAlvo, t: "efetivos" | "contratados") => r === "ambos" || r === t;
+
 export type ParametrosFinanceiros = {
+  tributos?: Tributos;
+  descontos_extras?: DescontoExtra[];
   niveis: Partial<Record<NivelEscolaridade, NivelFinanceiro>>;
   /** Preenchido em tempo de leitura (cadastro de cargos); não é salvo. */
   nivelPorCargo?: Record<string, string | null>;
@@ -85,6 +107,8 @@ export const DEFAULT_FINANCEIRO: ParametrosFinanceiros = {
   ],
   cargos: {},
   niveis: {},
+  tributos: DEFAULT_TRIBUTOS,
+  descontos_extras: [],
 };
 
 const num = (v: unknown, d = 0) => {
@@ -138,7 +162,27 @@ export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
       insalubridade_pct: numOrNull(n.insalubridade_pct),
     };
   }
+  const tr = (p.tributos && typeof p.tributos === "object" ? p.tributos : {}) as Record<string, Record<string, unknown>>;
+  const rg = (v: unknown, d: RegimeAlvo): RegimeAlvo => (REGIMES.includes(v as RegimeAlvo) ? (v as RegimeAlvo) : d);
+  const tributos: Tributos = {
+    inss: { regime: rg(tr.inss?.regime, "contratados") },
+    rpps: { regime: rg(tr.rpps?.regime, "efetivos") },
+    irrf: { regime: rg(tr.irrf?.regime, "ambos") },
+    iss: { regime: rg(tr.iss?.regime, "ambos"), somente_autonomo: tr.iss?.somente_autonomo !== false },
+  };
+  const descontos_extras: DescontoExtra[] = Array.isArray(p.descontos_extras)
+    ? (p.descontos_extras as Record<string, unknown>[]).map((x, i) => ({
+        id: typeof x.id === "string" ? x.id : `d${i}`,
+        nome: typeof x.nome === "string" ? x.nome : "Desconto",
+        forma: x.forma === "pct_base" || x.forma === "fixo" ? x.forma : "pct_bruto",
+        valor: num(x.valor),
+        regime: rg(x.regime, "ambos"),
+        ativo: x.ativo !== false,
+      }))
+    : [];
   return {
+    tributos,
+    descontos_extras,
     niveis,
     salario_minimo: num(p.salario_minimo, d.salario_minimo),
     rpps_pct: num(p.rpps_pct, d.rpps_pct),
@@ -221,6 +265,9 @@ export type ResultadoCalculo = {
   previdenciaTipo: "RPPS" | "INSS";
   irrf: number;
   iss: number;
+  /** Descontos personalizados (sindicato, convênios etc.). */
+  extras: { nome: string; valor: number }[];
+  vOutros: number;
   descontos: number;
   liquido: number;
 };
@@ -255,15 +302,27 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
   const vInsalubridade = insalPct ? (p.insalubridade_base === "salario_base" ? salarioBase : p.salario_minimo) * (insalPct / 100) : 0;
   const bruto = baseProporcional + vGratificacao + vHe50 + vHe100 + vAdn + vPlantoes + vSobreaviso + vIncentivo + vInsalubridade;
   const autonomo = !!e.vinculo_nome && RE_AUTONOMO.test(e.vinculo_nome);
-  const previdenciaTipo = e.tipo === "efetivos" ? "RPPS" : "INSS";
+  const tb = p.tributos ?? DEFAULT_TRIBUTOS;
+  const usaRpps = aplica(tb.rpps.regime, e.tipo);
+  const usaInss = aplica(tb.inss.regime, e.tipo);
+  const previdenciaTipo: "RPPS" | "INSS" = usaRpps ? "RPPS" : usaInss ? "INSS" : e.tipo === "efetivos" ? "RPPS" : "INSS";
   const previdencia = autonomo
     ? 0
-    : previdenciaTipo === "RPPS"
+    : usaRpps
       ? r2(bruto * (p.rpps_pct / 100))
-      : calcularInss(bruto, p.inss_faixas);
-  const irrf = calcularIrrf(bruto - previdencia, p.irrf_faixas);
-  const iss = autonomo ? r2(bruto * (p.iss_pct / 100)) : 0;
-  const descontos = previdencia + irrf + iss;
+      : usaInss
+        ? calcularInss(bruto, p.inss_faixas)
+        : 0;
+  const irrf = aplica(tb.irrf.regime, e.tipo) ? calcularIrrf(bruto - previdencia, p.irrf_faixas) : 0;
+  const iss = aplica(tb.iss.regime, e.tipo) && (!tb.iss.somente_autonomo || autonomo) ? r2(bruto * (p.iss_pct / 100)) : 0;
+  const extras = (p.descontos_extras ?? [])
+    .filter((d) => d.ativo && d.valor > 0 && aplica(d.regime, e.tipo))
+    .map((d) => ({
+      nome: d.nome,
+      valor: r2(d.forma === "fixo" ? d.valor : (d.forma === "pct_base" ? baseProporcional : bruto) * (d.valor / 100)),
+    }));
+  const vOutros = r2(extras.reduce((s, x) => s + x.valor, 0));
+  const descontos = previdencia + irrf + iss + vOutros;
   return {
     origemBase,
     salarioBase: r2(salarioBase),
@@ -284,6 +343,8 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
     previdenciaTipo,
     irrf,
     iss,
+    extras,
+    vOutros,
     descontos: r2(descontos),
     liquido: r2(bruto - descontos),
   };

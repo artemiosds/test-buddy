@@ -11,7 +11,12 @@ const VAL = z.union([z.number(), z.string()]).default(0);
 
 const LinhaSchema = z.object({
   profissional_id: z.string().uuid(),
-  status_linha: z.enum(["pendente", "aprovada", "rejeitada"]).optional(),
+  // A tela pode exibir "devolvida"/"em_analise"; o banco só aceita estes três.
+  // Valores fora do conjunto são ignorados (mantém o status já gravado).
+  status_linha: z.preprocess(
+    (v) => (v === "pendente" || v === "aprovada" || v === "rejeitada" ? v : undefined),
+    z.enum(["pendente", "aprovada", "rejeitada"]).optional(),
+  ),
   dias_trabalhados: VAL,
   faltas_injustificadas: VAL,
   atestado: VAL,
@@ -228,9 +233,8 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
     if (profIds.length) {
       // Sem filtro de setor a visão é consolidada: lê as linhas de todas as
       // folhas irmãs (geral + por setor) para não "perder" lançamentos.
-      const folhaIds = normalizarSetorId(data.setor_id)
-        ? [frequencia_id]
-        : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
+      // Fonte única: Geral e Setor leem as mesmas linhas (folhas irmãs).
+      const folhaIds = await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
       const { data: fs, error } = await supabase
         .from("frequencia_profissional")
         .select("*")
@@ -439,9 +443,9 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
     // Sem filtro de setor, a linha do profissional pode estar gravada na folha
     // do setor dele. Procuramos em todas as folhas irmãs para ATUALIZAR a linha
     // existente em vez de criar uma duplicada na folha geral.
-    const folhaIdsAlvo = normalizarSetorId(data.setor_id)
-      ? [frequencia_id]
-      : await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
+    // Fonte única: atualiza a linha existente do profissional em qualquer
+    // folha irmã (Geral ou Setor), sem criar duplicatas.
+    const folhaIdsAlvo = await idsFolhasIrmasEfetivos(supabase, competencia_unidade_id);
     const { data: existentes, error: exErr } = await supabase
       .from("frequencia_profissional")
       .select("id, frequencia_id, profissional_id, status_linha, updated_at, created_by, aprovada_em, aprovada_por")

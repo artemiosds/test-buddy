@@ -38,6 +38,7 @@ const COLS: { k: keyof ResultadoCalculo; h: string }[] = [
   { k: "previdencia", h: "Previdência" },
   { k: "irrf", h: "IRRF" },
   { k: "iss", h: "ISS" },
+  { k: "vOutros", h: "Outros desc." },
   { k: "liquido", h: "Líquido" },
 ];
 
@@ -157,7 +158,7 @@ export function ProjecaoFinanceiraPanel() {
 
   async function exportarPdf() {
     const regLabel = regime === "all" ? "Consolidado" : regime === "efetivos" ? "Efetivos" : "Contratados";
-    const desc = (total.previdencia ?? 0) + (total.irrf ?? 0) + (total.iss ?? 0);
+    const desc = (total.previdencia ?? 0) + (total.irrf ?? 0) + (total.iss ?? 0) + (total.vOutros ?? 0);
     const porRegime = ["Efetivo", "Contratado"].map((rg) => {
       const ls = filtradas.filter((l) => l.regime === rg);
       return { rg, qtd: ls.length, t: somar(ls) };
@@ -178,8 +179,8 @@ export function ProjecaoFinanceiraPanel() {
       blocos: [
         {
           titulo: "Consolidado por regime",
-          head: ["Regime", "Qtd", "Bruto", "Previdência", "IRRF", "ISS", "Líquido"],
-          body: porRegime.map((x) => [x.rg, x.qtd, m(x.t.bruto), m(x.t.previdencia), m(x.t.irrf), m(x.t.iss), m(x.t.liquido)]),
+          head: ["Regime", "Qtd", "Bruto", "Previdência", "IRRF", "ISS", "Outros", "Líquido"],
+          body: porRegime.map((x) => [x.rg, x.qtd, m(x.t.bruto), m(x.t.previdencia), m(x.t.irrf), m(x.t.iss), m(x.t.vOutros), m(x.t.liquido)]),
           keepTogether: true,
         },
         {
@@ -191,7 +192,7 @@ export function ProjecaoFinanceiraPanel() {
         {
           titulo: "Memória nominal",
           head: ["Unidade", "Profissional", "Matrícula", "Regime", "Cargo", "Sal. base", "Dias", "F. inj.", "Bruto", "Descontos", "Líquido"],
-          body: nominal.map((l) => [l.unidade, l.nome, l.matricula, l.regime, l.cargo, m(l.r.salarioBase), l.dias, l.faltasInj, m(l.r.bruto), m(l.r.previdencia + l.r.irrf + l.r.iss), m(l.r.liquido)]),
+          body: nominal.map((l) => [l.unidade, l.nome, l.matricula, l.regime, l.cargo, m(l.r.salarioBase), l.dias, l.faltasInj, m(l.r.bruto), m(l.r.descontos), m(l.r.liquido)]),
           align: ["left", "left", "left", "left", "left", "right", "right", "right", "right", "right", "right"],
         },
       ],
@@ -244,7 +245,7 @@ export function ProjecaoFinanceiraPanel() {
           )}
 
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            {[["Profissionais", String(filtradas.length)], ["Bruto", brl(total.bruto ?? 0)], ["Descontos", brl((total.previdencia ?? 0) + (total.irrf ?? 0) + (total.iss ?? 0))], ["Líquido", brl(total.liquido ?? 0)]].map(([k, v]) => (
+            {[["Profissionais", String(filtradas.length)], ["Bruto", brl(total.bruto ?? 0)], ["Descontos", brl((total.previdencia ?? 0) + (total.irrf ?? 0) + (total.iss ?? 0) + (total.vOutros ?? 0))], ["Líquido", brl(total.liquido ?? 0)]].map(([k, v]) => (
               <div key={k} className="rounded-md border p-2">
                 <div className="text-[11px] uppercase text-muted-foreground">{k}</div>
                 <div className="text-sm font-semibold">{v}</div>

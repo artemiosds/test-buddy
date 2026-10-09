@@ -371,7 +371,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       let q = supabase
         .from("frequencias")
-        .select("id, status, setor_id")
+        .select("id, status, setor_id, competencia_unidades!inner(competencia_id, unidade_id)")
         .eq("tipo", "contratados")
         .eq("competencia_unidades.competencia_id", competenciaId);
 
@@ -430,7 +430,7 @@ export function FrequenciasContratadosPage() {
     queryFn: async () => {
       let freqQuery = supabase
         .from("frequencias")
-        .select("id")
+        .select("id, competencia_unidades!inner(competencia_id, unidade_id)")
         .eq("tipo", "contratados")
         .eq("competencia_unidades.competencia_id", competenciaId)
         .eq("competencia_unidades.unidade_id", unidadeId);

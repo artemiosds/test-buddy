@@ -65,7 +65,7 @@ function n(v: number | string | null | undefined): string {
   const x = Number(texto.replace(",", "."));
   if (isNaN(x)) return String(v);
   if (x === 0) return "-";
-  return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
+  return Number.isInteger(x) ? String(x) : (/^-?\d+[.,]\d+$/.test(texto) ? texto.replace(".", ",") : x.toLocaleString("pt-BR", { maximumFractionDigits: 2 }));
 }
 
 function drawInstitutionalBox(
@@ -359,7 +359,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       const x = Number(texto.replace(",", "."));
       if (isNaN(x)) return String(v);
       if (x === 0) return "-";
-      return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(".", ",");
+      return Number.isInteger(x) ? String(x) : (/^-?\d+[.,]\d+$/.test(texto) ? texto.replace(".", ",") : x.toLocaleString("pt-BR", { maximumFractionDigits: 2 }));
     };
     return [
       String(i + 1),

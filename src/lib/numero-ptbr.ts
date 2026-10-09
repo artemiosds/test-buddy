@@ -33,7 +33,7 @@ export function formatarNumeroPtBr(n: number): string {
   if (!Number.isFinite(n)) return "";
   return Number.isInteger(n)
     ? n.toLocaleString("pt-BR")
-    : n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    : n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 /**
