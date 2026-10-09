@@ -255,7 +255,7 @@ function calcularAlturaLinha(doc: jsPDF, item: ItemFolha): number {
     const val = valores[c.key] ?? "";
     if (!val) continue;
 
-    const fontSize = isStatus && val === situacao ? 5.8 : 8;
+    const fontSize = isStatus && val === situacao ? (c.w < 10 ? 4 : 4.2) : 8;
     const lineHeight = ptToMm(fontSize) * 1.1;
     const maxWidth = c.w - PADDING_CELULA * 2;
     doc.setFontSize(fontSize);
@@ -514,7 +514,7 @@ function drawProfissionalRow(doc: jsPDF, y: number, item: ItemFolha): number {
       const val = values[c.key] ?? "";
       if (val) {
         const isLongText = isStatus && val === situacao;
-        const fontSize = isLongText ? 5.8 : 8;
+        const fontSize = isLongText ? (c.w < 10 ? 4 : 4.2) : 8;
         const lineHeight = ptToMm(fontSize) * 1.1;
         const maxWidth = c.w - PADDING_CELULA * 2;
 
@@ -584,7 +584,7 @@ export async function gerarFolhaEfetivosOficial(input: FolhaOficialInput): Promi
 
   const pageHeight = doc.internal.pageSize.getHeight();
   // Faixa compacta: assinaturas em todas as páginas e validação só na última.
-  const rodapeReserva = 65;
+  const rodapeReserva = 74;
   const limiteBaixo = pageHeight - rodapeReserva;
 
   const emissaoStr = new Date().toLocaleString("pt-BR");
