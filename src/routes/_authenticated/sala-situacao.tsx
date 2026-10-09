@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useEffect } from "react";
@@ -411,6 +412,7 @@ function SalaSituacaoPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title={isMasterUser ? "Sala de Situação (Secretaria)" : "Sala de Situação (Unidade)"}
         description={

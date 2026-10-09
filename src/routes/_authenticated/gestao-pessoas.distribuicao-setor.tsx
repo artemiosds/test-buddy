@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Network, Users, AlertTriangle, CheckCircle2, Building2, Layers, ArrowRight, UserCog, Info } from "lucide-react";
@@ -207,6 +208,7 @@ function DistribuicaoSetor() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title="Distribuição por Setor"
         description="Análise da setorização da força de trabalho por unidades de saúde."

@@ -205,74 +205,36 @@ const GROUPS: NavGroup[] = [
     label: "Gestão da Saúde",
     icon: Users,
     items: [
-      // 📊 Visão Executiva
-      {
-        to: "/gestao-pessoas",
-        label: "Dashboard Executivo",
-        icon: LayoutDashboard,
-        section: "📊 Visão Executiva",
-      },
-      {
-        to: "/sala-situacao",
-        label: "Sala de Situação",
-        icon: Activity,
-        section: "📊 Visão Executiva",
-      },
-      { to: "/gestao-rh", label: "Dashboard RH", icon: BarChart3, section: "📊 Visão Executiva" },
-      // 👥 Profissionais
+      // Menu enxuto: visões analíticas (Dashboard Executivo, Sala de Situação,
+      // Situação Funcional, Força de Trabalho, Lotação, Distribuição) ficam
+      // como atalhos no topo do Dashboard RH. Rotas continuam ativas.
+      { to: "/gestao-rh", label: "Dashboard RH", icon: BarChart3 },
       {
         to: "/profissionais",
         label: "Cadastro de Profissionais",
         icon: Users,
         perm: "profissional.visualizar",
-        section: "👥 Profissionais",
       },
-      {
-        to: "/gestao-pessoas/situacao-funcional",
-        label: "Situação Funcional",
-        icon: Activity,
-        section: "👥 Profissionais",
-      },
-      // 🏥 Estrutura Organizacional
       {
         to: "/unidades",
         label: "Unidades",
         icon: Building2,
         perm: "unidade.visualizar",
-        section: "🏥 Estrutura Organizacional",
+        section: "🏥 Estrutura",
       },
       {
         to: "/setores",
         label: "Setores",
         icon: Network,
         perm: "unidade.editar",
-        section: "🏥 Estrutura Organizacional",
+        section: "🏥 Estrutura",
       },
       {
         to: "/cargos-funcoes",
         label: "Cargos e Funções",
         icon: Briefcase,
         perm: "configuracao.editar",
-        section: "🏥 Estrutura Organizacional",
-      },
-      // 📍 Gestão Operacional
-      {
-        to: "/controle-forca-trabalho",
-        label: "Controle da Força de Trabalho",
-        icon: Activity,
-        section: "📍 Gestão Operacional",
-      },
-      {
-        to: "/gestao-pessoas/lotacao",
-        label: "Lotação das Unidades",
-        icon: Building2,
-        section: "📍 Gestão Operacional",
-      },
-      {
-        to: "/gestao-pessoas/distribuicao-setor",
-        label: "Distribuição por Setor",
-        icon: Network,
-        section: "📍 Gestão Operacional",
+        section: "🏥 Estrutura",
       },
     ],
   },
@@ -296,20 +258,14 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "cadastros",
-    label: "Cadastros",
-    icon: Tag,
-    items: [
-      // Profissionais/Unidades/Setores/Cargos e Funções were moved to the new 'Gestão de Pessoas' group above.
-      { to: "/tipos-unidade", label: "Tipos de Unidade", icon: Tag, perm: "configuracao.editar" },
-      { to: "/feriados", label: "Feriados", icon: CalendarDays, perm: "configuracao.editar" },
-    ],
-  },
-  {
     id: "administracao",
     label: "Administração",
     icon: Wrench,
     items: [
+      // Menu enxuto: demais ferramentas (Perfis, MFA, Feriados, Tipos de Unidade,
+      // Mural, Auditoria, Logs, Saúde, Sistemas Externos) ficam na Central de
+      // Governança (/administracao). Rotas e permissões continuam inalteradas.
+      { to: "/administracao", label: "Central de Governança", icon: ShieldCheck },
       {
         to: "/usuarios",
         label: "Usuários e Permissões",
@@ -317,32 +273,11 @@ const GROUPS: NavGroup[] = [
         perm: "usuario.visualizar",
       },
       {
-        to: "/configuracao/perfis",
-        label: "Perfis e Permissões",
-        icon: Settings2,
-        masterOnly: true,
-      },
-      { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, perm: "auditoria.visualizar" },
-      { to: "/relatorio-notificacoes", label: "Notificações (Logs)", icon: Mail, masterOnly: true },
-      { to: "/saude", label: "Saúde do Sistema", icon: Activity, masterOnly: true },
-      {
         to: "/configuracao",
         label: "Configuração Municipal",
         icon: Settings2,
         perm: "configuracao.editar",
       },
-      {
-        to: "/administracao/sistemas-externos",
-        label: "Sistemas Externos",
-        icon: Globe,
-        perm: ["configuracao.editar", "usuario.gerenciar"],
-      },
-      {
-        to: "/administracao/mural",
-        label: "Mural de Avisos",
-        icon: Megaphone,
-      },
-      { to: "/seguranca", label: "Segurança (MFA)", icon: KeyRound },
     ],
   },
 ];
@@ -586,6 +521,15 @@ function AuthenticatedLayoutInner() {
     m.set("/relatorios-executivo", "Relatório executivo");
     m.set("/relatorios-profissional", "Por profissional");
     m.set("/relatorios-status", "Status");
+    m.set("/configuracao/perfis", "Perfis e Permissões");
+    m.set("/seguranca", "Segurança (MFA)");
+    m.set("/feriados", "Feriados");
+    m.set("/tipos-unidade", "Tipos de Unidade");
+    m.set("/administracao/mural", "Mural de Avisos");
+    m.set("/auditoria", "Auditoria");
+    m.set("/relatorio-notificacoes", "Notificações (Logs)");
+    m.set("/saude", "Saúde do Sistema");
+    m.set("/administracao/sistemas-externos", "Sistemas Externos");
     return m;
   }, []);
 

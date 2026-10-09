@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Municipal settings use mounted thematic tab panels and shared page-level form state so switching tabs preserves unsaved edits and independent service forms.
+- Financial payroll projection rules (rates, tax tables, per-cargo salary) live in municipio_config.parametros.financeiro and are computed by the pure module src/lib/folha-financeira.ts over approved frequency rows only — why: no schema change, never mutates attendance sheets.

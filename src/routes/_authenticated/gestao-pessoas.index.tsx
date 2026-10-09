@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute, Link, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -154,6 +155,7 @@ function DashboardExecutivo() {
 
   return (
     <div className="p-4 md:p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title={isMasterUser ? "Dashboard Executivo (Secretaria)" : "Dashboard Executivo (Unidade)"}
         description={

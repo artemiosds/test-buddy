@@ -28,7 +28,7 @@ import {
 import { valorCelula } from "@/lib/numero-ptbr";
 import { statusLinhaClass, statusLinhaLabel } from "@/lib/status-linha";
 import { toast } from "sonner";
-import { CheckCircle2, LayoutList, Table2, XCircle } from "lucide-react";
+import { CheckCircle2, LayoutList, Paperclip, Table2, XCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { useMunicipioParametros } from "@/hooks/use-municipio-parametros";
@@ -775,6 +775,7 @@ function LinhasAnaliseDialog({
   const [obsMap, setObsMap] = useState<Record<string, string>>({});
   const [soExcecoes, setSoExcecoes] = useState(false);
   const [editMap, setEditMap] = useState<Record<string, any>>({});
+  const [anexosLinha, setAnexosLinha] = useState<{ id: string; nome: string } | null>(null);
   const { data: parametros } = useMunicipioParametros();
   const salvarEfetivosFn = useServerFn(salvarFolhaEfetivos);
   const salvarContratadosFn = useServerFn(salvarFolhaContratados);
@@ -910,7 +911,7 @@ function LinhasAnaliseDialog({
         const { data, error } = await supabase
           .from("frequencias_contratados")
           .select(`
-            id:profissional_id, profissional_id, status:status, observacoes, 
+            id:profissional_id, row_id:id, profissional_id, status:status, observacoes, 
             dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, 
             plantoes, sobreaviso, incentivo, 
             profissionais:profissional_id!inner(nome_completo, matricula, setor_id, status)
@@ -930,7 +931,8 @@ function LinhasAnaliseDialog({
 
         return rows.map(d => ({
           ...d,
-          id: d.profissional_id, 
+          id: d.profissional_id,
+          anexo_id: (d as any).row_id ?? d.profissional_id,
           status_linha: (d.status === "aprovada" || d.status === "rejeitada") ? d.status : "pendente",
           observacao_analise: d.observacoes,
           analisado_em: null,
@@ -982,6 +984,42 @@ function LinhasAnaliseDialog({
       const porProfissional = new Map<string, typeof rows[number]>();
       for (const row of rows) porProfissional.set(row.profissional_id, row);
       return [...porProfissional.values()];
+    },
+  });
+
+  // Contagem de anexos por linha (entidade_id = id da linha de folha).
+  const linhaIdsKey = (linhas ?? []).map((l: any) => l.anexo_id ?? l.id).sort().join(",");
+  const { data: anexosPorLinha } = useQuery({
+    queryKey: ["frequencia-linhas-anexos-count", linhaIdsKey],
+    enabled: !!linhaIdsKey,
+    queryFn: async () => {
+      const ids = linhaIdsKey.split(",").filter(Boolean);
+      const map = new Map<string, number>();
+      if (!ids.length) return map;
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("entidade_id, metadata")
+        .eq("tipo_entidade", "frequencia")
+        .is("deleted_at", null)
+        .in("entidade_id", ids);
+      if (error) throw error;
+      for (const d of data ?? []) {
+        const k = d.entidade_id as string;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      // Fallback legado: anexos gravados com metadata->>frequencia_profissional_id.
+      const { data: legado, error: err2 } = await supabase
+        .from("documentos")
+        .select("entidade_id, metadata")
+        .eq("tipo_entidade", "frequencia")
+        .is("deleted_at", null)
+        .in("metadata->>frequencia_profissional_id", ids);
+      if (err2) throw err2;
+      for (const d of legado ?? []) {
+        const k = (d as any).metadata?.frequencia_profissional_id as string | undefined;
+        if (k && d.entidade_id !== k) map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      return map;
     },
   });
 
@@ -1307,6 +1345,21 @@ function LinhasAnaliseDialog({
                         <div className="font-semibold text-sm truncate" title={l.profissionais?.nome_completo ?? ""}>{l.profissionais?.nome_completo ?? "—"}</div>
                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
                           <span className="bg-muted px-1 rounded font-mono">Mat. {l.profissionais?.matricula ?? "—"}</span>
+                          {(() => {
+                            const anexoId = (l as any).anexo_id ?? l.id;
+                            const qtd = anexosPorLinha?.get(anexoId) ?? 0;
+                            return (
+                              <button
+                                type="button"
+                                title={qtd ? `Ver ${qtd} anexo(s) do profissional` : "Anexos do profissional (nenhum)"}
+                                onClick={() => setAnexosLinha({ id: anexoId, nome: l.profissionais?.nome_completo ?? "Profissional" })}
+                                className={`inline-flex items-center gap-0.5 rounded px-1 border transition-colors ${qtd ? "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100" : "border-border text-muted-foreground hover:bg-accent"}`}
+                              >
+                                <Paperclip className="h-2.5 w-2.5" />
+                                {qtd > 0 && <span className="font-semibold">{qtd}</span>}
+                              </button>
+                            );
+                          })()}
                           {(l as any).profissionais?.status && (l as any).profissionais.status !== "ativo" && (
                             <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500/50 text-amber-700 dark:text-amber-400 uppercase">
                               {String((l as any).profissionais.status).replace(/_/g, " ")}
@@ -1537,6 +1590,30 @@ function LinhasAnaliseDialog({
             </ErpGridProvider>
           </div>
         )}
+
+        {/* Anexos da linha (profissional) — mesma fonte dos anexos do modal da folha. */}
+        <Dialog open={!!anexosLinha} onOpenChange={(o) => !o && setAnexosLinha(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Anexos — {anexosLinha?.nome}</DialogTitle>
+              <DialogDescription>
+                Documentos de comprovação anexados a este profissional na folha (atestado, laudo, portaria…).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+              <AnexosEntidade
+                entidadeId={anexosLinha?.id ?? null}
+                tipoEntidade="frequencia"
+                unidadeId={(freqBase?.competencia_unidades as any)?.unidade_id ?? undefined}
+                canEdit={false}
+                mensagemSemEntidade="Nenhum anexo vinculado a este profissional."
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAnexosLinha(null)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

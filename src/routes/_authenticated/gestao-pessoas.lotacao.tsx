@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -260,6 +261,7 @@ function QuadroLotacaoPage() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title="Quadro de Lotação"
         description="Distribuição consolidada por Unidade, Setor, Cargo e Função."

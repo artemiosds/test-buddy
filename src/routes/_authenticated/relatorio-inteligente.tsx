@@ -62,6 +62,7 @@ import { applySort, projectFields, fmtCell } from "@/lib/relatorio-inteligente/r
 import { statsFor, numericFields } from "@/lib/relatorio-inteligente/agregacoes";
 import { agrupar, type GroupNode } from "@/lib/relatorio-inteligente/agrupamento";
 import { BlockChart } from "@/components/relatorio-inteligente/block-chart";
+import { ProjecaoFinanceiraPanel } from "@/components/relatorios/projecao-financeira-panel";
 import {
   construirConsolidadosSalariais,
   BLOCO_SALARIAL_ID,
@@ -287,6 +288,7 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
           setModeloAtualNome(m.nome);
         }}
       />
+      {isSalarial && <ProjecaoFinanceiraPanel />}
       <Stepper step={step} />
       <div className="rounded-lg border bg-card p-4">
         {step === 1 && (

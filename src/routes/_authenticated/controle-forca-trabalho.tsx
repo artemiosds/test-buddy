@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { derivarSituacao, grupoSituacao } from "@/lib/situacao-funcional";
 import { ehAfastado, ehAtivo, ehDisponivel } from "@/lib/kpis-forca-trabalho";
@@ -278,6 +279,7 @@ function ControleForcaTrabalhoPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title="Centro de Controle da Força de Trabalho"
         description="Visão operacional por Unidade — período selecionável."

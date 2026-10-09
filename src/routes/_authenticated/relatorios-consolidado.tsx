@@ -1,3 +1,4 @@
+import { parseNumeroPtBr } from "@/lib/numero-ptbr";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -160,14 +161,14 @@ function RelatorioConsolidadoPage() {
         map.set(u.id, a);
       }
       a.qtd++;
-      a.faltas += Number(r.faltas_injustificadas ?? 0);
-      a.atestado += Number(r.atestado ?? 0);
-      a.he_50 += Number(r.he_50 ?? 0);
-      a.he_100 += Number(r.he_100 ?? 0);
-      a.adn += Number(r.adicional_noturno ?? 0);
-      a.plantoes += Number(r.plantoes_extras ?? 0);
-      a.sobreaviso += Number(r.sobreaviso ?? 0);
-      a.incentivo += Number(r.incentivo ?? 0);
+      a.faltas += parseNumeroPtBr(r.faltas_injustificadas ?? 0);
+      a.atestado += parseNumeroPtBr(r.atestado ?? 0);
+      a.he_50 += parseNumeroPtBr(r.he_50 ?? 0);
+      a.he_100 += parseNumeroPtBr(r.he_100 ?? 0);
+      a.adn += parseNumeroPtBr(r.adicional_noturno ?? 0);
+      a.plantoes += parseNumeroPtBr(r.plantoes_extras ?? 0);
+      a.sobreaviso += parseNumeroPtBr(r.sobreaviso ?? 0);
+      a.incentivo += parseNumeroPtBr(r.incentivo ?? 0);
       if (r.status_linha === "pendente") a.pendentes++;
       else if (r.status_linha === "aprovada") a.aprovadas++;
       else if (r.status_linha === "rejeitada") a.rejeitadas++;

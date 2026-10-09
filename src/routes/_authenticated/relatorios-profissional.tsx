@@ -1,3 +1,4 @@
+import { parseNumeroPtBr } from "@/lib/numero-ptbr";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -243,8 +244,8 @@ function RelatorioProfissionalPage() {
         const c = l.frequencias!.competencia_unidades!.competencias!;
         return {
           label: `${MES_LABEL[c.mes - 1]}/${String(c.ano).slice(2)}`,
-          "HE 50%": Number(l.he_50 ?? 0),
-          "HE 100%": Number(l.he_100 ?? 0),
+          "HE 50%": parseNumeroPtBr(l.he_50 ?? 0),
+          "HE 100%": parseNumeroPtBr(l.he_100 ?? 0),
         };
       }),
     [linhasFiltradas],
@@ -262,7 +263,7 @@ function RelatorioProfissionalPage() {
         Competência: `${String(c.mes).padStart(2, "0")}/${c.ano}`,
       };
       for (const f of campos) {
-        base[f.label] = Number((l as unknown as Record<string, number | null>)[f.key] ?? 0);
+        base[f.label] = parseNumeroPtBr((l as unknown as Record<string, number | null>)[f.key] ?? 0);
       }
       base["Status Linha"] = STATUS_LINHA_LABEL[l.status_linha];
       return base;
@@ -318,7 +319,7 @@ function RelatorioProfissionalPage() {
         const c = l.frequencias!.competencia_unidades!.competencias!;
         return [
           `${String(c.mes).padStart(2, "0")}/${c.ano}`,
-          ...campos.map((f) => Number((l as unknown as Record<string, number | null>)[f.key] ?? 0)),
+          ...campos.map((f) => parseNumeroPtBr((l as unknown as Record<string, number | null>)[f.key] ?? 0)),
           STATUS_LINHA_LABEL[l.status_linha],
         ];
       }),
@@ -546,7 +547,7 @@ function RelatorioProfissionalPage() {
                       </td>
                       {campos.map((f) => (
                         <td key={f.key} className="px-3 py-2 text-right tabular-nums">
-                          {Number((l as unknown as Record<string, number | null>)[f.key] ?? 0)}
+                          {parseNumeroPtBr((l as unknown as Record<string, number | null>)[f.key] ?? 0)}
                         </td>
                       ))}
                       <td className="px-3 py-2">

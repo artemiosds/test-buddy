@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HistoricoFinanceiroCard } from "@/components/profissionais/historico-financeiro-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
@@ -2620,6 +2621,12 @@ function ProfissionalFormBody({
                 />
               </div>
             </div>
+            <HistoricoFinanceiroCard
+              profissionalId={watch("id") as string | undefined}
+              cargoId={watch("cargo_id") as string | undefined}
+              salarioProprio={Number(watch("salario_base")) > 0 ? Number(watch("salario_base")) : null}
+              vinculoNome={vinculos?.find((v) => v.id === vinculoId)?.nome ?? null}
+            />
           </Card>
         ) : null}
       </TabsContent>

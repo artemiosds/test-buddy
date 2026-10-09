@@ -49,6 +49,7 @@ import { Route as AuthenticatedSetoresRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTiposUnidadeRouteImport } from './routes/_authenticated/tipos-unidade'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as ValidarIdRouteImport } from './routes/validar.$id'
+import { Route as AuthenticatedAdministracaoIndexRouteImport } from './routes/_authenticated/administracao/index'
 import { Route as AuthenticatedAdministracaoMuralRouteImport } from './routes/_authenticated/administracao/mural'
 import { Route as AuthenticatedAdministracaoSistemasExternosRouteImport } from './routes/_authenticated/administracao/sistemas-externos'
 import { Route as AuthenticatedCargosIdRouteImport } from './routes/_authenticated/cargos.$id'
@@ -315,6 +316,12 @@ const ValidarIdRoute = ValidarIdRouteImport.update({
   path: '/validar/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdministracaoIndexRoute =
+  AuthenticatedAdministracaoIndexRouteImport.update({
+    id: '/administracao/',
+    path: '/administracao/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdministracaoMuralRoute =
   AuthenticatedAdministracaoMuralRouteImport.update({
     id: '/administracao/mural',
@@ -652,6 +659,7 @@ export interface FileRoutesByFullPath {
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
+  '/administracao/': typeof AuthenticatedAdministracaoIndexRoute
   '/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -737,6 +745,7 @@ export interface FileRoutesByTo {
   '/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
+  '/administracao': typeof AuthenticatedAdministracaoIndexRoute
   '/configuracao': typeof AuthenticatedConfiguracaoIndexRoute
   '/gestao-pessoas': typeof AuthenticatedGestaoPessoasIndexRoute
   '/piso-enfermagem': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -825,6 +834,7 @@ export interface FileRoutesById {
   '/_authenticated/usuarios/$id': typeof AuthenticatedUsuariosIdRoute
   '/api/public/hsm-stream': typeof ApiPublicHsmStreamRoute
   '/api/public/validar-documento': typeof ApiPublicValidarDocumentoRoute
+  '/_authenticated/administracao/': typeof AuthenticatedAdministracaoIndexRoute
   '/_authenticated/configuracao/': typeof AuthenticatedConfiguracaoIndexRoute
   '/_authenticated/gestao-pessoas/': typeof AuthenticatedGestaoPessoasIndexRoute
   '/_authenticated/piso-enfermagem/': typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -913,6 +923,7 @@ export interface FileRouteTypes {
     | '/usuarios/$id'
     | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
+    | '/administracao/'
     | '/configuracao/'
     | '/gestao-pessoas/'
     | '/piso-enfermagem/'
@@ -998,6 +1009,7 @@ export interface FileRouteTypes {
     | '/usuarios/$id'
     | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
+    | '/administracao'
     | '/configuracao'
     | '/gestao-pessoas'
     | '/piso-enfermagem'
@@ -1085,6 +1097,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios/$id'
     | '/api/public/hsm-stream'
     | '/api/public/validar-documento'
+    | '/_authenticated/administracao/'
     | '/_authenticated/configuracao/'
     | '/_authenticated/gestao-pessoas/'
     | '/_authenticated/piso-enfermagem/'
@@ -1397,6 +1410,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/validar/$id'
       preLoaderRoute: typeof ValidarIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/administracao/': {
+      id: '/_authenticated/administracao/'
+      path: '/administracao'
+      fullPath: '/administracao/'
+      preLoaderRoute: typeof AuthenticatedAdministracaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/administracao/mural': {
       id: '/_authenticated/administracao/mural'
@@ -1880,6 +1900,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPisoEnfermagemImportarContratadosRoute: typeof AuthenticatedPisoEnfermagemImportarContratadosRoute
   AuthenticatedPisoEnfermagemImportarEfetivosRoute: typeof AuthenticatedPisoEnfermagemImportarEfetivosRoute
   AuthenticatedUnidadesIdRoute: typeof AuthenticatedUnidadesIdRoute
+  AuthenticatedAdministracaoIndexRoute: typeof AuthenticatedAdministracaoIndexRoute
   AuthenticatedConfiguracaoIndexRoute: typeof AuthenticatedConfiguracaoIndexRoute
   AuthenticatedGestaoPessoasIndexRoute: typeof AuthenticatedGestaoPessoasIndexRoute
   AuthenticatedPisoEnfermagemIndexRoute: typeof AuthenticatedPisoEnfermagemIndexRoute
@@ -1954,6 +1975,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPisoEnfermagemImportarEfetivosRoute:
     AuthenticatedPisoEnfermagemImportarEfetivosRoute,
   AuthenticatedUnidadesIdRoute: AuthenticatedUnidadesIdRoute,
+  AuthenticatedAdministracaoIndexRoute: AuthenticatedAdministracaoIndexRoute,
   AuthenticatedConfiguracaoIndexRoute: AuthenticatedConfiguracaoIndexRoute,
   AuthenticatedGestaoPessoasIndexRoute: AuthenticatedGestaoPessoasIndexRoute,
   AuthenticatedPisoEnfermagemIndexRoute: AuthenticatedPisoEnfermagemIndexRoute,

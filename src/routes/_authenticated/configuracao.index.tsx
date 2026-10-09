@@ -9,12 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Settings2, Upload, Building2, Users, CalendarClock, Image, BrainCircuit, Mail, Wrench } from "lucide-react";
+import { Save, Settings2, Upload, Building2, Users, CalendarClock, Image, BrainCircuit, Mail, Wrench, Calculator } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions, useCurrentUser } from "@/hooks/use-permissions";
 import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 import { SmtpConfigSection } from "@/components/configuracoes/smtp-config-section";
 import { R2DiagnosticoSection } from "@/components/configuracoes/r2-diagnostico-section";
+import { FolhaFinanceiraSection } from "@/components/configuracoes/folha-financeira-section";
+import { DEFAULT_FINANCEIRO, parseFinanceiro, type ParametrosFinanceiros } from "@/lib/folha-financeira";
 
 
 export const Route = createFileRoute("/_authenticated/configuracao/")({ errorComponent: ErrorComponent,
@@ -70,6 +72,7 @@ type FormState = {
   mensagem_topo: string;
   permitir_envio_fora_prazo: boolean;
   pdf_config: PdfConfig;
+  financeiro: ParametrosFinanceiros;
 };
 
 const DEFAULT_PDF_CONFIG: PdfConfig = {
@@ -103,6 +106,7 @@ const EMPTY: FormState = {
   mensagem_topo: "",
   permitir_envio_fora_prazo: false,
   pdf_config: DEFAULT_PDF_CONFIG,
+  financeiro: DEFAULT_FINANCEIRO,
 };
 
 function ConfiguracaoPage() {
@@ -160,6 +164,7 @@ function ConfiguracaoPage() {
       mensagem_topo: typeof params.mensagem_topo === "string" ? params.mensagem_topo : "",
       permitir_envio_fora_prazo: params.permitir_envio_fora_prazo === true,
       pdf_config: (params.pdf_config as PdfConfig) || DEFAULT_PDF_CONFIG,
+      financeiro: parseFinanceiro(params.financeiro),
     });
   }, [config]);
 
@@ -193,6 +198,7 @@ function ConfiguracaoPage() {
           mensagem_topo: form.mensagem_topo.trim() || null,
           permitir_envio_fora_prazo: form.permitir_envio_fora_prazo,
           pdf_config: form.pdf_config,
+          financeiro: form.financeiro,
         } as unknown as never,
       };
       if (config?.id) {
@@ -210,6 +216,7 @@ function ConfiguracaoPage() {
       toast.success("Configuração salva com sucesso");
       qc.invalidateQueries({ queryKey: ["municipio-config"] });
       qc.invalidateQueries({ queryKey: ["municipio-parametros"] });
+      qc.invalidateQueries({ queryKey: ["folha-financeira"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -287,6 +294,7 @@ function ConfiguracaoPage() {
             <TabsTrigger value="gestao" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Users className="h-4 w-4 shrink-0" />Gestão</TabsTrigger>
             <TabsTrigger value="regras" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><CalendarClock className="h-4 w-4 shrink-0" />Regras e prazos</TabsTrigger>
             <TabsTrigger value="documentos" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Image className="h-4 w-4 shrink-0" />Identidade e PDF</TabsTrigger>
+            <TabsTrigger value="financeiro" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Calculator className="h-4 w-4 shrink-0" />Folha financeira</TabsTrigger>
             <TabsTrigger value="ia" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><BrainCircuit className="h-4 w-4 shrink-0" />IA HSM</TabsTrigger>
             {userCtx?.is_master && (<TabsTrigger value="email" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Mail className="h-4 w-4 shrink-0" />E-mail</TabsTrigger>)}
             {userCtx?.is_master && (<TabsTrigger value="sistema" className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"><Wrench className="h-4 w-4 shrink-0" />Sistema</TabsTrigger>)}
@@ -664,6 +672,9 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </section>
+        </TabsContent>
+        <TabsContent value="financeiro" forceMount className="space-y-6 data-[state=inactive]:hidden">
+          <FolhaFinanceiraSection value={form.financeiro} onChange={(financeiro) => setForm((f) => ({ ...f, financeiro }))} />
         </TabsContent>
         <TabsContent value="ia" forceMount className="space-y-6 data-[state=inactive]:hidden">
           <HsmConfigSection />

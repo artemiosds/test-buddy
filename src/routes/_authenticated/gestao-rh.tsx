@@ -44,6 +44,7 @@ import type { RankingRow } from "@/lib/analytics-aggregations";
 import { ConsolidacaoOficialPanel, exportarDetalheCsv, linhasDaVisao, type VisaoOficial } from "@/components/relatorios/consolidacao-oficial-panel";
 import { AlertasComparativoPanel } from "@/components/relatorios/alertas-comparativo-panel";
 import { AnalisesAvancadasPanel } from "@/components/relatorios/analises-avancadas-panel";
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 
 export const Route = createFileRoute("/_authenticated/gestao-rh")({ 
   errorComponent: ErrorComponent,
@@ -242,6 +243,7 @@ function GestaoRhContent() {
 
   return (
     <div className="p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title="Dashboard Executivo — RH"
         description={`Indicadores da competência ${competenciaLabel}. Filtre por unidade para ver o recorte específico.`}

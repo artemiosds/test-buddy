@@ -1,3 +1,4 @@
+import { AtalhosGestaoSaude } from "@/components/gestao/atalhos-gestao-saude";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 import { createFileRoute } from "@tanstack/react-router";
 import { UserCheck, UserMinus, Umbrella, FileText, UserX, Users } from "lucide-react";
@@ -75,6 +76,7 @@ function SituacaoFuncional() {
 
   return (
     <div className="p-4 md:p-6">
+      <AtalhosGestaoSaude />
       <PageHeader
         title="Situação Funcional"
         description="Distribuição dos profissionais por situação funcional atual."
