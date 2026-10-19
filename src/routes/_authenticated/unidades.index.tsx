@@ -41,8 +41,17 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formatCNPJ, formatCNES, formatPhone } from "@/utils/formatters";
+import { confirmHierarchySave } from "@/lib/confirm-hierarchy-save";
 
 export const Route = createFileRoute("/_authenticated/unidades/")({ errorComponent: ErrorComponent,
+  head: () => ({ meta: [
+    { title: "Unidades | Gestão da Saúde" },
+    { name: "description", content: "Cadastro e organização das unidades da Secretaria Municipal de Saúde." },
+    { property: "og:title", content: "Unidades | Gestão da Saúde" },
+    { property: "og:description", content: "Cadastro e organização das unidades da Secretaria Municipal de Saúde." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: UnidadesPage,
 });
 
@@ -52,8 +61,8 @@ const unidadeSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(255),
   sigla: z.string().max(20).nullable().optional(),
   codigo_hierarquico: z.string().max(30).nullable().optional(),
-  cnes: z.string().regex(/^\d{7}$/, "CNES deve ter exatamente 7 dígitos numéricos").nullable().optional().or(z.literal("")),
-  cnpj: z.string().regex(/^\d{14}$/, "CNPJ deve ter 14 dígitos").nullable().optional().or(z.literal("")),
+  cnes: z.string().refine((v) => { const d = v.replace(/\D/g, ""); return d === "" || d.length === 7; }, "CNES deve ter exatamente 7 dígitos numéricos").nullable().optional(),
+  cnpj: z.string().refine((v) => { const d = v.replace(/\D/g, ""); return d === "" || d.length === 14; }, "CNPJ deve ter 14 dígitos").nullable().optional(),
   tipo_unidade: z.string().nullable().optional(),
   nivel_complexidade: z.string().nullable().optional(),
   tipo_atendimento: z.string().nullable().optional(),
@@ -107,8 +116,8 @@ function UnidadesPage() {
   const { data: me } = useCurrentUser();
   const askConfirm = useConfirm();
   const navigate = useNavigate();
-  const canCreate = me?.is_master || has("unidade.criar");
-  const canEdit = me?.is_master || has("unidade.editar");
+  const canCreate = me?.is_master || has("unidade.criar") || has("unidade.gerenciar");
+  const canEdit = me?.is_master || has("unidade.editar") || has("unidade.gerenciar");
   const canDelete = me?.is_master || has("unidade.excluir");
 
   const [q, setQ] = useState("");
@@ -264,15 +273,18 @@ function UnidadesPage() {
       };
 
       if (editingId) {
-        const { error } = await supabase.from("unidades").update(cleanData).eq("id", editingId);
+        const { data, error } = await supabase.from("unidades").update(cleanData).eq("id", editingId).select("id, codigo_hierarquico").maybeSingle();
         if (error) throw error;
+        confirmHierarchySave(data, cleanData.codigo_hierarquico, editingId);
       } else {
-        const { error } = await supabase.from("unidades").insert(cleanData);
+        const { data, error } = await supabase.from("unidades").insert(cleanData).select("id, codigo_hierarquico").single();
         if (error) throw error;
+        confirmHierarchySave(data, cleanData.codigo_hierarquico);
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["unidades"] });
+      qc.invalidateQueries({ queryKey: ["unidades-select"] });
       setOpen(false);
       setEditingId(null);
       form.reset();
@@ -415,7 +427,7 @@ function UnidadesPage() {
                 </DialogHeader>
                 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit((v) => upsert.mutate(v))} className="space-y-4">
+                  <form onSubmit={form.handleSubmit((v) => upsert.mutate(v), (errs) => { const first = Object.values(errs)[0] as { message?: string } | undefined; toast.error(first?.message ? `Não foi possível salvar: ${first.message}` : "Verifique os campos do formulário"); })} className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <FormField
                         control={form.control}

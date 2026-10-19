@@ -600,7 +600,7 @@ function ProfissionaisPage() {
   // Ao mudar as unidades, remove setores que não pertencem mais à seleção.
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async () => {
+  const handleExport = async (tipo: "xlsx" | "pdf" = "xlsx") => {
     try {
       setIsExporting(true);
       
@@ -702,6 +702,40 @@ function ProfissionaisPage() {
         vencimento_liquido: (r as any).vencimento_liquido ?? "",
         observacoes: r.observacoes || ""
       }));
+
+      if (tipo === "pdf") {
+        const uniq = (xs: string[]) => Array.from(new Set(xs.filter(Boolean))).join(", ");
+        const partes: string[] = [];
+        if (debouncedSearch) partes.push(`Busca: "${debouncedSearch}"`);
+        if (fNome.trim()) partes.push(`Nome: ${fNome.trim()}`);
+        if (fCpf.trim()) partes.push(`CPF: ${fCpf.trim()}`);
+        if (fMatricula.trim()) partes.push(`Matrícula: ${fMatricula.trim()}`);
+        if (fUnidade.length) partes.push(`Unidade: ${uniq(exportData.map((r) => r.unidade))}`);
+        if (fSetor.length) partes.push(`Setor: ${uniq(exportData.map((r) => r.setor))}`);
+        if (fCargo.length) partes.push(`Cargo: ${uniq(exportData.map((r) => r.cargo))}`);
+        if (fFuncao.length) partes.push(`Função: ${uniq(exportData.map((r) => r.funcao))}`);
+        if (fVinculo.length) partes.push(`Vínculo: ${uniq(exportData.map((r) => r.vinculo))}`);
+        if (fStatus.length) partes.push(`Situação: ${fStatus.join(", ")}`);
+        if (fGestor === "sim") partes.push("Somente gestores");
+        if (fGestor === "nao") partes.push("Sem gestores");
+        if (categoriaIds || catConsolidadaIds) partes.push("Filtro de categoria aplicado");
+        const { gerarPdfProfissionaisLista } = await import("@/lib/pdf-profissionais-lista");
+        await gerarPdfProfissionaisLista(
+          data.map((r, i) => ({
+            matricula: exportData[i].matricula,
+            nome: exportData[i].nome_completo,
+            cpf: exportData[i].cpf,
+            lotacao: [exportData[i].unidade, exportData[i].setor].filter(Boolean).join(" / "),
+            cargo: [exportData[i].cargo, exportData[i].funcao].filter(Boolean).join(" / "),
+            vinculo: exportData[i].vinculo,
+            ch: exportData[i].carga_semanal_horas ? `${exportData[i].carga_semanal_horas}h` : "",
+            situacao: String((r as any).situacao_funcional || r.status || ""),
+          })),
+          partes.join("  •  "),
+        );
+        toast.success(`PDF gerado com ${data.length} profissionais.`);
+        return;
+      }
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
@@ -1171,13 +1205,17 @@ function ProfissionaisPage() {
                 )}
               </>
             )}
-            <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            <Button variant="outline" onClick={() => handleExport("xlsx")} disabled={isExporting}>
               {isExporting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Download className="mr-2 h-4 w-4" />
               )}
-              Exportar
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={() => handleExport("pdf")} disabled={isExporting}>
+              <FileText className="mr-2 h-4 w-4" />
+              Exportar PDF
             </Button>
             {canCreate && (
               <Button onClick={openNew} type="button">

@@ -33,6 +33,7 @@ import { useCurrentUser, usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { TIPOS_SETOR, setorFormSchema } from "@/lib/setores.validation";
 import { formatCNPJ, formatCNES } from "@/utils/formatters";
+import { confirmHierarchySave } from "@/lib/confirm-hierarchy-save";
 
 const searchSchema = z.object({
   unidade: fallback(z.string(), "").default(""),
@@ -40,6 +41,14 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/setores")({ errorComponent: ErrorComponent,
+  head: () => ({ meta: [
+    { title: "Setores | Gestão da Saúde" },
+    { name: "description", content: "Cadastro dos setores e códigos hierárquicos das unidades de saúde." },
+    { property: "og:title", content: "Setores | Gestão da Saúde" },
+    { property: "og:description", content: "Cadastro dos setores e códigos hierárquicos das unidades de saúde." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: searchSchema,
   component: SetoresPage,
 });
@@ -79,7 +88,7 @@ function SetoresPage() {
   const nav = useNavigate();
   const { data: userCtx, isLoading: userLoading } = useCurrentUser();
   const { has } = usePermissions();
-  const canManage = !!userCtx?.is_master || has("unidade.editar");
+  const canManage = !!userCtx?.is_master || has("unidade.editar") || has("unidade.gerenciar");
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -195,13 +204,16 @@ function SetoresPage() {
         codigo_hierarquico: form.codigo_hierarquico.trim() || null,
       };
       if (editing) {
-        const { error } = await supabase.from("setores").update(payload).eq("id", editing.id);
+        const { data, error } = await supabase.from("setores").update(payload).eq("id", editing.id).select("id, codigo_hierarquico").maybeSingle();
         if (error) throw error;
+        confirmHierarchySave(data, payload.codigo_hierarquico, editing.id);
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("setores")
-          .insert({ ...payload, unidade_id: unidadeId });
+          .insert({ ...payload, unidade_id: unidadeId })
+          .select("id, codigo_hierarquico").single();
         if (error) throw error;
+        confirmHierarchySave(data, payload.codigo_hierarquico);
       }
     },
     onSuccess: () => {
