@@ -528,6 +528,8 @@ function SituacaoProfissionalEditor({
       .from("profissionais")
       .update({
         situacao_funcional: sit as any,
+        // Mantém o "Status" do cadastro alinhado (mesmos valores nos dois enums).
+        status: sit as any,
         situacao_data_inicio: inicio,
         situacao_data_fim: termino,
       })

@@ -1616,7 +1616,7 @@ export function FrequenciasContratadosPage() {
         canEdit={canEdit}
         canEditSituacao={canEdit}
         onSituacaoSalva={(sit, ini, fim) => {
-          setDossieProf((p) => (p ? ({ ...p, situacao_funcional: sit, situacao_data_inicio: ini, situacao_data_fim: fim } as any) : p));
+          setDossieProf((p) => (p ? ({ ...p, status: sit, situacao_funcional: sit, situacao_data_inicio: ini, situacao_data_fim: fim } as any) : p));
           qc.invalidateQueries({ queryKey: ["conferencia-profissionais"] });
           qc.invalidateQueries({ queryKey: ["profissionais"] });
           qc.invalidateQueries({ queryKey: ["folha-contratados", competenciaId, unidadeId] });
