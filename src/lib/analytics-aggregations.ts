@@ -111,6 +111,8 @@ export type TotaisTipo = {
 /** Linha oficial (aprovada, deduplicada por profissional/unidade). */
 export type LinhaOficial = {
   tipo: "efetivos" | "contratados";
+  /** Folha aprovada de origem (efetivos: frequencias.id; contratados: linha). */
+  registro_id?: string;
   unidade_id: string;
   unidade_nome: string;
   unidade_sigla: string | null;
@@ -378,7 +380,7 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
     const fj = n(r.faltas_justificadas), fi = n(r.faltas_injustificadas);
     const h50 = n(r.he_50), h100 = n(r.he_100);
     put(`ef|${comp}|${uid}|${r.profissional_id}`, r.updated_at, {
-      tipo: "efetivos", unidade_id: uid, unidade_nome: u?.nome ?? "—", unidade_sigla: u?.sigla ?? null,
+      tipo: "efetivos", registro_id: r.frequencia_id, unidade_id: uid, unidade_nome: u?.nome ?? "—", unidade_sigla: u?.sigla ?? null,
       setor_nome: f?.setor?.nome ?? r.profissional?.setor?.nome ?? null,
       profissional_id: r.profissional_id, profissional_nome: r.profissional?.nome_completo ?? "—",
       matricula: r.profissional?.matricula ?? null,
@@ -394,7 +396,7 @@ export async function getAggregatedFrequencies(params: AggregationParams): Promi
     const u = unidadeInfo.get(r.unidade_id);
     const h50 = n(r.he_50), h100 = n(r.he_100), fa = n(r.dias_falta);
     put(`ct|${r.competencia_id}|${r.unidade_id}|${r.profissional_id}`, r.updated_at, {
-      tipo: "contratados", unidade_id: r.unidade_id, unidade_nome: u?.nome ?? "—", unidade_sigla: u?.sigla ?? null,
+      tipo: "contratados", registro_id: r.id, unidade_id: r.unidade_id, unidade_nome: u?.nome ?? "—", unidade_sigla: u?.sigla ?? null,
       setor_nome: r.profissional?.setor?.nome ?? null,
       profissional_id: r.profissional_id, profissional_nome: r.profissional?.nome_completo ?? "—",
       matricula: r.profissional?.matricula ?? null,

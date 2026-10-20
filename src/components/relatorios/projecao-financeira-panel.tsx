@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useCompetenciasLookup } from "@/hooks/use-lookups";
 import { useCompetenciaAtiva } from "@/hooks/use-competencia-ativa";
 import { getAggregatedFrequencies } from "@/lib/analytics-aggregations";
-import { buscarDadosProfissionais, useFolhaFinanceiraParams } from "@/hooks/use-folha-financeira";
+import { buscarDadosProfissionais, buscarSnapshotsFinanceiros, salarioDoSnapshot, useFolhaFinanceiraParams } from "@/hooks/use-folha-financeira";
 import { brl, calcularFolha, type ResultadoCalculo } from "@/lib/folha-financeira";
 
 type Linha = {
@@ -21,6 +21,7 @@ type Linha = {
   dias: number;
   faltasInj: number;
   atestado: number;
+  historico: boolean;
   r: ResultadoCalculo;
 };
 
@@ -70,7 +71,8 @@ export function ProjecaoFinanceiraPanel() {
     queryFn: async () => {
       const agg = await getAggregatedFrequencies({ competenciaId: compId });
       const dados = await buscarDadosProfissionais(agg.oficial.linhas.map((l) => l.profissional_id));
-      return { linhas: agg.oficial.linhas, dados };
+      const snaps = await buscarSnapshotsFinanceiros(agg.oficial.linhas.map((l) => l.registro_id ?? ""));
+      return { linhas: agg.oficial.linhas, dados, snaps };
     },
   });
 
@@ -78,12 +80,14 @@ export function ProjecaoFinanceiraPanel() {
     if (!data || !params) return [];
     return data.linhas.map((l) => {
       const d = data.dados.get(l.profissional_id);
+      const snap = l.registro_id ? data.snaps.get(l.registro_id) : undefined;
+      const sal = salarioDoSnapshot(snap, l.profissional_id);
       const r = calcularFolha(
         {
           tipo: l.tipo,
-          cargo_id: d?.cargo_id ?? null,
-          salario_proprio: d?.salario_proprio ?? null,
-          carga_cargo: d?.carga_cargo ?? null,
+          cargo_id: sal ? sal.cargo_id : d?.cargo_id ?? null,
+          salario_proprio: sal ? sal.salario_base : d?.salario_proprio ?? null,
+          carga_cargo: sal ? sal.carga : d?.carga_cargo ?? null,
           vinculo_nome: d?.vinculo_nome ?? null,
           diasTrabalhados: l.diasTrabalhados,
           faltasInjustificadas: l.faltasInjustificadas,
@@ -92,7 +96,7 @@ export function ProjecaoFinanceiraPanel() {
           he50: l.he50, he100: l.he100, adn: l.adn,
           plantoes: l.plantoes, sobreaviso: l.sobreaviso, incentivo: l.incentivo,
         },
-        params,
+        snap?.params ?? params,
       );
       return {
         unidade: l.unidade_sigla || l.unidade_nome,
@@ -104,6 +108,7 @@ export function ProjecaoFinanceiraPanel() {
         dias: l.diasTrabalhados,
         faltasInj: l.faltasInjustificadas,
         atestado: l.atestado,
+        historico: !!snap,
         r,
       };
     });
@@ -116,6 +121,7 @@ export function ProjecaoFinanceiraPanel() {
     [linhas, regime, unidadeSel],
   );
   const unidadesOpc = useMemo(() => [...new Set(linhas.map((l) => l.unidade))].sort((a, b) => a.localeCompare(b, "pt-BR")), [linhas]);
+  const semHistorico = filtradas.filter((l) => !l.historico).length;
   const semBase = filtradas.filter((l) => l.r.origemBase === "sem_base").length;
 
   const porUnidade = useMemo(() => {
@@ -202,6 +208,7 @@ export function ProjecaoFinanceiraPanel() {
       notas: [
         "Projeção gerencial calculada sobre folhas de frequência APROVADAS e regras da Configuração Municipal. Não substitui a folha oficial.",
         semBase > 0 ? `${semBase} profissional(is) sem salário definido (próprio ou do cargo) — valores zerados.` : "Todos os profissionais possuem salário base definido.",
+        semHistorico > 0 ? `${semHistorico} linha(s) sem registro histórico das regras: calculadas com as regras atuais.` : "Todas as linhas usam as regras gravadas na aprovação.",
       ],
       fechamentoUnico: true,
     });
@@ -238,6 +245,11 @@ export function ProjecaoFinanceiraPanel() {
             {isFetching && <span className="text-xs text-muted-foreground">Calculando…</span>}
           </div>
           {error && <p className="text-sm text-destructive">Não foi possível calcular: {(error as Error).message}</p>}
+          {semHistorico > 0 && (
+            <p className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+              {semHistorico} de {filtradas.length} linha(s) aprovada(s) antes do registro histórico: calculadas com as regras ATUAIS. As demais usam as regras gravadas no momento da aprovação.
+            </p>
+          )}
           {semBase > 0 && (
             <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
               {semBase} profissional(is) sem salário (nem próprio, nem do cargo). Defina o salário por nível de escolaridade ou por cargo em Configuração ➔ Folha financeira.

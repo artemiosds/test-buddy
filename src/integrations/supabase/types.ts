@@ -1119,6 +1119,57 @@ export type Database = {
         }
         Relationships: []
       }
+      folha_financeira_snapshots: {
+        Row: {
+          aprovado_em: string
+          aprovado_por: string | null
+          ativo: boolean
+          competencia_id: string | null
+          created_at: string
+          id: string
+          motivo_substituicao: string | null
+          parametros: Json
+          registro_id: string
+          salarios: Json | null
+          setor_id: string | null
+          substituido_em: string | null
+          tipo: string
+          unidade_id: string | null
+        }
+        Insert: {
+          aprovado_em?: string
+          aprovado_por?: string | null
+          ativo?: boolean
+          competencia_id?: string | null
+          created_at?: string
+          id?: string
+          motivo_substituicao?: string | null
+          parametros: Json
+          registro_id: string
+          salarios?: Json | null
+          setor_id?: string | null
+          substituido_em?: string | null
+          tipo: string
+          unidade_id?: string | null
+        }
+        Update: {
+          aprovado_em?: string
+          aprovado_por?: string | null
+          ativo?: boolean
+          competencia_id?: string | null
+          created_at?: string
+          id?: string
+          motivo_substituicao?: string | null
+          parametros?: Json
+          registro_id?: string
+          salarios?: Json | null
+          setor_id?: string | null
+          substituido_em?: string | null
+          tipo?: string
+          unidade_id?: string | null
+        }
+        Relationships: []
+      }
       frequencia_aprovacoes: {
         Row: {
           acao: string
@@ -5719,6 +5770,11 @@ export type Database = {
       }
       eventos_travados: { Args: { _limit?: number }; Returns: Json }
       excluir_usuario_completo: { Args: { p_user_id: string }; Returns: Json }
+      ff_parametros_atuais: { Args: never; Returns: Json }
+      ff_sincronizar_salarios: {
+        Args: { p_itens: Json; p_modo: string }
+        Returns: number
+      }
       get_assinaturas_documento: {
         Args: {
           _secretaria_id?: string

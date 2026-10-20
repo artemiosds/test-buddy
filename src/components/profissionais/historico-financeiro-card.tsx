@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useFolhaFinanceiraParams, useHistoricoFinanceiroProfissional } from "@/hooks/use-folha-financeira";
+import { salarioDoSnapshot, useFolhaFinanceiraParams, useHistoricoFinanceiroProfissional } from "@/hooks/use-folha-financeira";
 import { brl, calcularFolha } from "@/lib/folha-financeira";
 
 type Props = {
@@ -52,14 +52,21 @@ export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioPropri
               </thead>
               <tbody>
                 {hist.map((h, i) => {
+                  const sal = profissionalId ? salarioDoSnapshot(h.snap, profissionalId) : null;
                   const r = calcularFolha(
-                    { ...h.entrada, cargo_id: cargoId ?? null, salario_proprio: salarioProprio, carga_cargo: cargaCargo ?? null, vinculo_nome: vinculoNome ?? null },
-                    params,
+                    {
+                      ...h.entrada,
+                      cargo_id: sal ? sal.cargo_id : cargoId ?? null,
+                      salario_proprio: sal ? sal.salario_base : salarioProprio,
+                      carga_cargo: sal ? sal.carga : cargaCargo ?? null,
+                      vinculo_nome: vinculoNome ?? null,
+                    },
+                    h.snap?.params ?? params,
                   );
                   const e = h.entrada;
                   return (
                     <tr key={i} className="border-t border-border">
-                      <td className="px-2 py-1">{h.competencia} <span className="text-muted-foreground">{e.tipo === "efetivos" ? "Ef." : "Ct."}</span></td>
+                      <td className="px-2 py-1">{h.competencia} <span className="text-muted-foreground">{e.tipo === "efetivos" ? "Ef." : "Ct."}</span>{!h.snap && <span className="ml-1 text-muted-foreground" title="Sem histórico da aprovação: calculado com as regras e salários atuais">*</span>}</td>
                       <td className="px-2 py-1 text-right">{e.diasTrabalhados} / {e.faltasInjustificadas} / {e.atestado}</td>
                       <td className="px-2 py-1 text-right">{e.he50} / {e.he100}</td>
                       <td className="px-2 py-1 text-right">{e.adn}</td>
@@ -72,6 +79,9 @@ export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioPropri
                 })}
               </tbody>
             </table>
+          )}
+          {hist.some((h) => !h.snap) && (
+            <p className="border-t border-border p-2 text-[11px] text-muted-foreground">* Estimativa com regras e salários atuais: esta competência foi aprovada antes do registro histórico.</p>
           )}
           <p className="px-3 py-2 text-[11px] text-muted-foreground">Projeção pelas regras da Configuração ➔ Folha financeira. Não altera folhas nem o cadastro.</p>
         </div>

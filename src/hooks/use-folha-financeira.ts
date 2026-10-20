@@ -62,6 +62,8 @@ export type HistoricoCompetencia = {
   competencia: string; // "MM/AAAA"
   ordem: number;
   entrada: Omit<EntradaCalculo, "cargo_id" | "salario_proprio" | "carga_cargo" | "vinculo_nome">;
+  registro_id?: string;
+  snap?: SnapshotFinanceiro;
 };
 
 const n = (v: unknown) => parseNumeroPtBr(v);
@@ -75,9 +77,9 @@ export function useHistoricoFinanceiroProfissional(profissionalId: string | null
     queryFn: async (): Promise<HistoricoCompetencia[]> => {
       const pid = profissionalId!;
       const mapa = new Map<string, HistoricoCompetencia>();
-      const add = (ano: number, mes: number, tipo: "efetivos" | "contratados", e: HistoricoCompetencia["entrada"]) => {
+      const add = (ano: number, mes: number, tipo: "efetivos" | "contratados", e: HistoricoCompetencia["entrada"], registro_id?: string) => {
         const key = `${tipo}|${ano}-${mes}`;
-        mapa.set(key, { competencia: `${String(mes).padStart(2, "0")}/${ano}`, ordem: ano * 100 + mes, entrada: e });
+        mapa.set(key, { competencia: `${String(mes).padStart(2, "0")}/${ano}`, ordem: ano * 100 + mes, entrada: e, registro_id });
       };
 
       // Efetivos
@@ -108,14 +110,14 @@ export function useHistoricoFinanceiroProfissional(profissionalId: string | null
             atestado: n(r.atestado),
             he50: n(r.he_50), he100: n(r.he_100), adn: n(r.adicional_noturno),
             plantoes: n(r.plantoes_extras), sobreaviso: n(r.sobreaviso), incentivo: n(r.incentivo),
-          });
+          }, r.frequencia_id);
         }
       }
 
       // Contratados
       const { data: ct } = await supabase
         .from("frequencias_contratados")
-        .select("competencia_id, updated_at, dias_trabalhados, dias_falta, he_50, he_100, plantoes, sobreaviso, atestado, adn, incentivo")
+        .select("id, competencia_id, updated_at, dias_trabalhados, dias_falta, he_50, he_100, plantoes, sobreaviso, atestado, adn, incentivo")
         .eq("profissional_id", pid)
         .in("status", ["aprovada", "arquivada"] as any)
         .is("deleted_at", null)
@@ -139,10 +141,49 @@ export function useHistoricoFinanceiroProfissional(profissionalId: string | null
             atestado: n(r.atestado),
             he50: n(r.he_50), he100: n(r.he_100), adn: n(r.adn),
             plantoes: n(r.plantoes), sobreaviso: n(r.sobreaviso), incentivo: n(r.incentivo),
-          });
+          }, r.id);
         }
       }
-      return Array.from(mapa.values()).sort((a, b) => b.ordem - a.ordem).slice(0, 12);
+      const lista = Array.from(mapa.values()).sort((a, b) => b.ordem - a.ordem).slice(0, 12);
+      const snaps = await buscarSnapshotsFinanceiros(lista.map((h) => h.registro_id ?? ""));
+      for (const h of lista) h.snap = h.registro_id ? snaps.get(h.registro_id) : undefined;
+      return lista;
     },
   });
+}
+
+/** Converte um snapshot gravado na aprovação em parâmetros de cálculo. */
+export function paramsDoSnapshot(raw: unknown): ParametrosFinanceiros {
+  const s = (raw ?? {}) as { financeiro?: unknown; nivelPorCargo?: Record<string, string | null> };
+  const p = parseFinanceiro(s.financeiro);
+  p.nivelPorCargo = (s.nivelPorCargo ?? {}) as ParametrosFinanceiros["nivelPorCargo"];
+  return p;
+}
+
+export type SalarioSnapshot = { salario_base: number | null; cargo_id: string | null; carga: number | null };
+export type SnapshotFinanceiro = { params: ParametrosFinanceiros; salarios: Record<string, SalarioSnapshot> | null };
+
+/** Snapshots ativos (regras e salários vigentes na aprovação) por folha aprovada. */
+export async function buscarSnapshotsFinanceiros(registroIds: string[]): Promise<Map<string, SnapshotFinanceiro>> {
+  const out = new Map<string, SnapshotFinanceiro>();
+  const uniq = Array.from(new Set(registroIds.filter(Boolean)));
+  for (let i = 0; i < uniq.length; i += 150) {
+    const { data, error } = await (supabase as any)
+      .from("folha_financeira_snapshots")
+      .select("registro_id, parametros, salarios")
+      .eq("ativo", true)
+      .in("registro_id", uniq.slice(i, i + 150));
+    if (error) throw error;
+    for (const r of (data ?? []) as any[])
+      out.set(r.registro_id, { params: paramsDoSnapshot(r.parametros), salarios: r.salarios ?? null });
+  }
+  return out;
+}
+
+/** Salário/cargo/carga gravados na aprovação para o profissional, quando existirem. */
+export function salarioDoSnapshot(snap: SnapshotFinanceiro | undefined, profissionalId: string): SalarioSnapshot | null {
+  const s = snap?.salarios?.[profissionalId];
+  if (!s) return null;
+  const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
+  return { salario_base: num(s.salario_base), cargo_id: s.cargo_id ?? null, carga: num(s.carga) };
 }

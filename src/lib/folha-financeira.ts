@@ -14,6 +14,8 @@ export type CargoFinanceiro = {
   carga_semanal?: number | null;
   insalubridade_pct?: number | null;
   valor_plantao?: number | null;
+  /** Gratificação própria do cargo (%); quando vazia usa a do nível. */
+  gratificacao_pct?: number | null;
 };
 
 export const NIVEIS_ESCOLARIDADE = [
@@ -143,6 +145,7 @@ export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
       carga_semanal: numOrNull(c?.carga_semanal),
       insalubridade_pct: numOrNull(c?.insalubridade_pct),
       valor_plantao: numOrNull(c?.valor_plantao),
+      gratificacao_pct: numOrNull(c?.gratificacao_pct),
     };
   }
   const niveisRaw = (p.niveis && typeof p.niveis === "object" ? p.niveis : {}) as Record<string, Record<string, unknown>>;
@@ -291,7 +294,7 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
   // Atestado e falta justificada não descontam; só falta injustificada (1/30 por dia).
   const descontoFaltas = Math.min(salarioBase, (salarioBase / 30) * Math.max(0, e.faltasInjustificadas));
   const baseProporcional = salarioBase - descontoFaltas;
-  const vGratificacao = baseProporcional * ((nv.gratificacao_pct ?? 0) / 100);
+  const vGratificacao = baseProporcional * ((cargo.gratificacao_pct ?? nv.gratificacao_pct ?? 0) / 100);
   const vHe50 = e.he50 * valorHora * (nv.he50_fator ?? p.he50_fator);
   const vHe100 = e.he100 * valorHora * (nv.he100_fator ?? p.he100_fator);
   const vAdn = e.adn * valorHora * ((nv.adn_pct ?? p.adn_pct) / 100);
@@ -352,3 +355,21 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
 
 export const brl = (v: number) =>
   (Number.isFinite(v) ? v : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Validação dos parâmetros antes de salvar. Devolve a 1ª mensagem de erro ou null. */
+export function validarFinanceiro(p: ParametrosFinanceiros): string | null {
+  const neg = (v: unknown) => typeof v === "number" && (!Number.isFinite(v) || v < 0);
+  if (neg(p.salario_minimo)) return "salário mínimo inválido.";
+  if (p.he50_fator < 1 || p.he100_fator < 1) return "fatores de hora extra devem ser 1 ou maior (ex.: 1,5 e 2).";
+  for (const [k, v] of [["adicional noturno", p.adn_pct], ["RPPS", p.rpps_pct], ["ISS", p.iss_pct]] as const) {
+    if (neg(v) || v > 100) return `percentual de ${k} deve ficar entre 0 e 100.`;
+  }
+  if (neg(p.valor_plantao) || neg(p.valor_sobreaviso)) return "valores de plantão/sobreaviso não podem ser negativos.";
+  if (p.divisor_modo === "fixo" && !((p.divisor_fixo ?? 0) > 0)) return "informe o divisor fixo de horas (ex.: 200).";
+  if (p.inss_faixas.some((f) => neg(f.ate) || neg(f.pct) || f.pct > 100)) return "há faixa de INSS inválida.";
+  if (p.irrf_faixas.some((f) => neg(f.pct) || f.pct > 100 || neg(f.deducao))) return "há faixa de IRRF inválida.";
+  for (const c of Object.values(p.cargos)) {
+    if (neg(c.salario_base) || neg(c.valor_plantao) || neg(c.carga_semanal)) return "há valor negativo na tabela de cargos.";
+  }
+  return null;
+}

@@ -17,3 +17,6 @@
 - [ ] Implementar envio consolidado por unidade para Efetivos/Contratados, agrupamento e ações conjuntas em Aprovações, e reparar com segurança o caso de Outubro/2026 da Vigilância Sanitária
 - [ ] Alinhar filtros/contagem de ativos dos painéis de Relatórios (Visão Geral do Sistema, Dashboard Executivo Secretaria, Sala de Situação, Dashboard Executivo RH, Situação Funcional, Centro de Controle da Força de Trabalho, Quadro de Lotação, Distribuição por Setor) à regra de `src/lib/situacao-funcional.ts` usada em Profissionais e Geral Cargos
 - [x] Folha financeira: regras na Configuração, salário por cargo, projeção nos Dados Salariais e evolução na ficha do profissional
+- [x] Folha financeira (etapas 1–3): sub-abas Visão geral/Salários e cargos/Regras/Tributos/Simulador, filtros, valores herdados, aviso de não salvo, nível do cargo salvo junto, validação, sincronização com prévia (12 testes)
+- [ ] Folha financeira etapa 4: guardar as regras por competência — aguarda decisão do usuário sobre o momento de registro (ao aprovar ou ao encerrar a competência)
+- [ ] Folha financeira etapa 5: histórico de alterações dos parâmetros na auditoria

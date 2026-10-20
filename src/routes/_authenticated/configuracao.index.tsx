@@ -16,7 +16,7 @@ import { HsmConfigSection } from "@/components/hsm-expert/hsm-config-section";
 import { SmtpConfigSection } from "@/components/configuracoes/smtp-config-section";
 import { R2DiagnosticoSection } from "@/components/configuracoes/r2-diagnostico-section";
 import { FolhaFinanceiraSection } from "@/components/configuracoes/folha-financeira-section";
-import { DEFAULT_FINANCEIRO, parseFinanceiro, type ParametrosFinanceiros } from "@/lib/folha-financeira";
+import { DEFAULT_FINANCEIRO, parseFinanceiro, validarFinanceiro, type ParametrosFinanceiros } from "@/lib/folha-financeira";
 
 
 export const Route = createFileRoute("/_authenticated/configuracao/")({ errorComponent: ErrorComponent,
@@ -118,6 +118,9 @@ function ConfiguracaoPage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [uploadingBrasao, setUploadingBrasao] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  // Folha financeira: base salva (para detectar alterações) e níveis de cargo pendentes.
+  const [financeiroOriginal, setFinanceiroOriginal] = useState<string>(JSON.stringify(DEFAULT_FINANCEIRO));
+  const [niveisPendentes, setNiveisPendentes] = useState<Record<string, string | null>>({});
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["municipio-config"],
@@ -166,11 +169,35 @@ function ConfiguracaoPage() {
       pdf_config: (params.pdf_config as PdfConfig) || DEFAULT_PDF_CONFIG,
       financeiro: parseFinanceiro(params.financeiro),
     });
+    setFinanceiroOriginal(JSON.stringify(parseFinanceiro(params.financeiro)));
+    setNiveisPendentes({});
   }, [config]);
+
+  const financeiroAlterado =
+    JSON.stringify(form.financeiro) !== financeiroOriginal || Object.keys(niveisPendentes).length > 0;
+  useEffect(() => {
+    if (!financeiroAlterado) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [financeiroAlterado]);
+  const descartarFinanceiro = () => {
+    setForm((f) => ({ ...f, financeiro: JSON.parse(financeiroOriginal) as ParametrosFinanceiros }));
+    setNiveisPendentes({});
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.nome_municipio.trim()) throw new Error("Nome do município é obrigatório");
+      const erroFin = validarFinanceiro(form.financeiro);
+      if (erroFin) throw new Error(`Folha financeira: ${erroFin}`);
+      // Níveis de cargo alterados na Folha financeira: grava junto com o salvar principal
+      // e confirma que cada linha foi realmente atualizada (RLS pode filtrar em silêncio).
+      for (const [cargoId, nivel] of Object.entries(niveisPendentes)) {
+        const { data, error } = await supabase.from("cargos").update({ nivel: (nivel || null) as never }).eq("id", cargoId).select("id");
+        if (error) throw new Error(`Não foi possível alterar o nível do cargo: ${error.message}`);
+        if (!data?.length) throw new Error("Sem permissão para alterar o nível de um dos cargos. Nada foi salvo na configuração.");
+      }
       const payload = {
         nome_municipio: form.nome_municipio.trim(),
         uf: form.uf.trim().toUpperCase() || "PA",
@@ -214,6 +241,8 @@ function ConfiguracaoPage() {
     },
     onSuccess: () => {
       toast.success("Configuração salva com sucesso");
+      setFinanceiroOriginal(JSON.stringify(form.financeiro));
+      setNiveisPendentes({});
       qc.invalidateQueries({ queryKey: ["municipio-config"] });
       qc.invalidateQueries({ queryKey: ["municipio-parametros"] });
       qc.invalidateQueries({ queryKey: ["folha-financeira"] });
@@ -674,7 +703,17 @@ function ConfiguracaoPage() {
       </section>
         </TabsContent>
         <TabsContent value="financeiro" forceMount className="space-y-6 data-[state=inactive]:hidden">
-          <FolhaFinanceiraSection value={form.financeiro} onChange={(financeiro) => setForm((f) => ({ ...f, financeiro }))} />
+          <FolhaFinanceiraSection
+            value={form.financeiro}
+            onChange={(financeiro) => setForm((f) => ({ ...f, financeiro }))}
+            niveisPendentes={niveisPendentes}
+            onNiveisPendentes={setNiveisPendentes}
+            alterado={financeiroAlterado}
+            onDescartar={descartarFinanceiro}
+            onSalvar={() => saveMutation.mutate()}
+            salvando={saveMutation.isPending}
+            podeEditar={canManage}
+          />
         </TabsContent>
         <TabsContent value="ia" forceMount className="space-y-6 data-[state=inactive]:hidden">
           <HsmConfigSection />
