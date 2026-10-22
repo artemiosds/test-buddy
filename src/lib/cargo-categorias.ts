@@ -242,3 +242,32 @@ export function listarDePara(): Array<{
     c.cargos.map((cargo) => ({ categoria: c.nome, grupo: c.grupo, cargo })),
   );
 }
+
+/* ------------------- Grupos assistenciais (só leitura) ------------------- */
+
+export type GrupoAssistencial = "todos" | "medicos" | "enfermagem" | "assistencia";
+
+const SLUGS_ENFERMAGEM = new Set(["enfermeiro", "tecnico-enfermagem", "auxiliar-enfermagem"]);
+
+/** Verdadeiro quando o cargo pertence à equipe de Enfermagem. */
+export function ehCargoEnfermagem(nomeCargo: string | null | undefined): boolean {
+  const cat = categoriaDoCargo(nomeCargo);
+  if (SLUGS_ENFERMAGEM.has(cat.slug)) return true;
+  return /\bENFERM/.test(normalizarCargo(nomeCargo));
+}
+
+/** Verdadeiro quando o cargo é médico (De-Para ou nome com MEDICO). */
+export function ehCargoMedicoAmplo(nomeCargo: string | null | undefined): boolean {
+  if (ehCargoMedico(nomeCargo)) return true;
+  return /\bMEDIC[OA]\b/.test(normalizarCargo(nomeCargo));
+}
+
+/** Filtro de grupo assistencial — não altera nenhum dado cadastrado. */
+export function cargoNoGrupo(nomeCargo: string | null | undefined, grupo: GrupoAssistencial): boolean {
+  if (grupo === "todos") return true;
+  const med = ehCargoMedicoAmplo(nomeCargo);
+  const enf = ehCargoEnfermagem(nomeCargo);
+  if (grupo === "medicos") return med;
+  if (grupo === "enfermagem") return enf;
+  return med || enf;
+}

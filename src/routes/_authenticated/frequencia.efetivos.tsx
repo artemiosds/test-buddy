@@ -10,6 +10,13 @@ const SearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/frequencia/efetivos")({ errorComponent: ErrorComponent,
+  head: () => ({ meta: [
+    { title: "Folha de Efetivos | Gestão Saúde Oriximiná" },
+    { name: "description", content: "Frequência e folha dos servidores efetivos da SMS Oriximiná." },
+    { property: "og:title", content: "Folha de Efetivos | Gestão Saúde Oriximiná" },
+    { property: "og:description", content: "Frequência e folha dos servidores efetivos da SMS Oriximiná." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search) => SearchSchema.parse(search),
   component: FrequenciasEfetivosPage,
 });

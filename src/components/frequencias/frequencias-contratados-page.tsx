@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineGuard } from "@/lib/offline-guard";
 import { notificarModuloDesatualizado } from "@/lib/pwa";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
@@ -176,6 +176,178 @@ function formatContaBancaria(
     );
   return parts.length ? parts.join(" | ") : "—";
 }
+
+  const FROZEN: FrozenCol[] = [
+    { key: "num", label: "Nº", width: 40 },
+    { key: "matricula", label: "Matrícula", width: 96 },
+    { key: "nome", label: "Nome", width: 240 },
+    { key: "cpf", label: "CPF", width: 120 },
+  ];
+  const L = frozenLeftMap(FROZEN);
+
+  const validateGeneric = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
+  };
+  const validateHoras = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
+  };
+  const validateFalta = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
+  };
+
+  /** Ícone antes do nome conforme situação funcional. */
+  function IconeSituacao({ situ }: { situ: string }) {
+    const cls = "h-3.5 w-3.5 shrink-0";
+    if (situ === "ferias") return <Palmtree className={cn(cls, "text-info")} />;
+    if (situ === "licenca")
+      return <HeartPulse className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "afastado") return <AlertOctagon className={cn(cls, "text-destructive")} />;
+    if (situ === "cedido")
+      return <ArrowRightLeft className={cn(cls, "text-warning-soft-foreground")} />;
+    if (situ === "desligado" || situ === "inativo")
+      return <Ban className={cn(cls, "text-muted-foreground")} />;
+    return null;
+  }
+
+const LinhaContratadoRow = memo(function LinhaContratadoRow({ it, conf, l, ro, idx, lotacaoLabel, lotacaoFull, openDossie, updateCampo }: {
+  it: any;
+  conf: ProfConferencia;
+  l: LinhaState;
+  ro: boolean;
+  idx: number;
+  lotacaoLabel: string | undefined;
+  lotacaoFull: string | undefined;
+  openDossie: (prof: ProfConferencia) => void;
+  updateCampo: (pid: string, campo: keyof LinhaState, valor: number | string) => void;
+}) {
+  const p = it.profissional;
+                const situ = derivarSituacao(conf);
+                const overrideSituacao = overrideSituacaoFolha(conf);
+                const semConta = !p.banco && !p.agencia && !p.conta_corrente;
+                const semContaConf = !conf.banco && !conf.agencia && !conf.conta_corrente;
+                return (
+                  <tr data-row-id={p.id} data-situacao={situ}>
+                    <td
+                      className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
+                      style={{ width: 40, left: L.num }}
+                    >
+                      {idx + 1}
+                    </td>
+                    <td
+                      className="erp-sticky text-center font-mono"
+                      style={{ width: 96, left: L.matricula }}
+                    >
+                      {p.matricula ?? "—"}
+                    </td>
+                    <td
+                      className="erp-sticky font-medium text-slate-900"
+                      style={{ width: 240, left: L.nome }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <IconeSituacao situ={situ} />
+                        <div className="min-w-0 flex-1 truncate">
+                          <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} />
+                        </div>
+                      </div>
+                    </td>
+                    <td
+                      className="erp-sticky erp-sticky-last text-center text-muted-foreground font-mono"
+                      style={{ width: 120, left: L.cpf }}
+                    >
+                      {p.cpf ?? "—"}
+                    </td>
+                    <td
+                      className="text-slate-700 truncate"
+                      style={{ maxWidth: 200 }}
+                      title={p.cargo ?? undefined}
+                    >
+                      {p.cargo ?? "—"}
+                    </td>
+                    {(() => {
+                      const lot = { label: lotacaoLabel, full: lotacaoFull };
+                      return (
+                        <td
+                          className="text-slate-700 truncate"
+                          style={{ maxWidth: 200 }}
+                          title={lot?.full ?? undefined}
+                        >
+                          {lot?.label ?? "—"}
+                        </td>
+                      );
+                    })()}
+                    {CAMPOS_NUM.map((c) => {
+                      const isDias = c === "dias_trabalhados";
+                      const isFalta = c === "dias_falta";
+                      const isHora = c === "he_50" || c === "he_100" || c === "adn";
+                      if (overrideSituacao) {
+                        return (
+                          <td key={c} className="text-center">
+                            <input
+                              type="text"
+                              readOnly
+                              disabled
+                              value={overrideSituacao}
+                              title={overrideSituacao}
+                              className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-center text-[10px] font-semibold text-slate-600"
+                            />
+                          </td>
+                        );
+                      }
+                      return (
+                        <td key={c} className="text-center font-mono">
+                          <NumberCell
+                            rowId={p.id}
+                            colKey={c}
+                            value={(l as any)[c] ?? ""}
+                            disabled={ro}
+                            decimals={0}
+                            validate={
+                              isDias
+                                ? validateFalta
+                                : isFalta
+                                  ? validateFalta
+                                  : isHora
+                                    ? validateHoras
+                                    : validateGeneric
+                            }
+                            onChange={(v) => updateCampo(p.id, c, v)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td
+                      className={cn(
+                        "whitespace-nowrap text-[12px]",
+                        semContaConf ? "text-destructive" : "text-slate-700",
+                      )}
+                      title={
+                        semContaConf
+                          ? undefined
+                          : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)
+                      }
+                    >
+                      {semContaConf
+                        ? "—"
+                        : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
+                    </td>
+                    <td className="text-center">
+                      <TextCell
+                        rowId={p.id}
+                        value={l.observacoes ?? ""}
+                        disabled={ro}
+                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
+                        placeholder="—"
+                      />
+                    </td>
+                    <td className="text-center">
+                      <StatusBadge domain="frequencia" value={l.status ?? "rascunho"} />
+                    </td>
+                  </tr>
+                );
+});
 
 export function FrequenciasContratadosPage() {
   const qc = useQueryClient();
@@ -997,21 +1169,15 @@ export function FrequenciasContratadosPage() {
 
   const rowsConf = useMemo(() => linhasConferencia.map((x) => x.conf), [linhasConferencia]);
 
-  function openDossie(p: ProfConferencia) {
+  const openDossie = useCallback((p: ProfConferencia) => {
     setDossieProf(p);
     setDossieOpen(true);
-  }
+  }, []);
 
   const canView = has("frequencia.visualizar");
 
   /* ------- ERP grid derivados de UI ------- */
-  const FROZEN: FrozenCol[] = [
-    { key: "num", label: "Nº", width: 40 },
-    { key: "matricula", label: "Matrícula", width: 96 },
-    { key: "nome", label: "Nome", width: 240 },
-    { key: "cpf", label: "CPF", width: 120 },
-  ];
-  const L = frozenLeftMap(FROZEN);
+
   const colKeysAll = useMemo(() => [...CAMPOS_NUM] as string[], []);
   const rowIdsAll = useMemo(
     () => linhasFinais.map((x: any) => x.it.profissional.id as string),
@@ -1086,18 +1252,7 @@ export function FrequenciasContratadosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateGeneric = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
-  };
-  const validateHoras = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
-  };
-  const validateFalta = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
-  };
+
 
   function focarLinha(rowId: string) {
     const tr = document.querySelector<HTMLTableRowElement>(
@@ -1109,19 +1264,7 @@ export function FrequenciasContratadosPage() {
 
   const [selectedRowId] = useSelectedErpRow();
 
-  /** Ícone antes do nome conforme situação funcional. */
-  function IconeSituacao({ situ }: { situ: string }) {
-    const cls = "h-3.5 w-3.5 shrink-0";
-    if (situ === "ferias") return <Palmtree className={cn(cls, "text-info")} />;
-    if (situ === "licenca")
-      return <HeartPulse className={cn(cls, "text-warning-soft-foreground")} />;
-    if (situ === "afastado") return <AlertOctagon className={cn(cls, "text-destructive")} />;
-    if (situ === "cedido")
-      return <ArrowRightLeft className={cn(cls, "text-warning-soft-foreground")} />;
-    if (situ === "desligado" || situ === "inativo")
-      return <Ban className={cn(cls, "text-muted-foreground")} />;
-    return null;
-  }
+
 
   const PEND_OPTS: Array<{ id: typeof pendFilter; label: string }> = [
     { id: "todos", label: "Sem pendências" },
@@ -1453,130 +1596,10 @@ export function FrequenciasContratadosPage() {
                 const p = it.profissional;
                 const l = linhas[p.id];
                 if (!l) return null;
-                const ro = readonlyLinha(l);
-                const situ = derivarSituacao(conf);
-                const overrideSituacao = overrideSituacaoFolha(conf);
-                const semConta = !p.banco && !p.agencia && !p.conta_corrente;
-                const semContaConf = !conf.banco && !conf.agencia && !conf.conta_corrente;
-                return (
-                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
-                    <td
-                      className="erp-sticky text-center text-muted-foreground font-mono tabular-nums"
-                      style={{ width: 40, left: L.num }}
-                    >
-                      {idx + 1}
-                    </td>
-                    <td
-                      className="erp-sticky text-center font-mono"
-                      style={{ width: 96, left: L.matricula }}
-                    >
-                      {p.matricula ?? "—"}
-                    </td>
-                    <td
-                      className="erp-sticky font-medium text-slate-900"
-                      style={{ width: 240, left: L.nome }}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <IconeSituacao situ={situ} />
-                        <div className="min-w-0 flex-1 truncate">
-                          <ProfissionalNomeCell prof={conf} onOpenDossie={openDossie} />
-                        </div>
-                      </div>
-                    </td>
-                    <td
-                      className="erp-sticky erp-sticky-last text-center text-muted-foreground font-mono"
-                      style={{ width: 120, left: L.cpf }}
-                    >
-                      {p.cpf ?? "—"}
-                    </td>
-                    <td
-                      className="text-slate-700 truncate"
-                      style={{ maxWidth: 200 }}
-                      title={p.cargo ?? undefined}
-                    >
-                      {p.cargo ?? "—"}
-                    </td>
-                    {(() => {
-                      const lot = lotacaoDe(conf);
-                      return (
-                        <td
-                          className="text-slate-700 truncate"
-                          style={{ maxWidth: 200 }}
-                          title={lot?.full ?? undefined}
-                        >
-                          {lot?.label ?? "—"}
-                        </td>
-                      );
-                    })()}
-                    {CAMPOS_NUM.map((c) => {
-                      const isDias = c === "dias_trabalhados";
-                      const isFalta = c === "dias_falta";
-                      const isHora = c === "he_50" || c === "he_100" || c === "adn";
-                      if (overrideSituacao) {
-                        return (
-                          <td key={c} className="text-center">
-                            <input
-                              type="text"
-                              readOnly
-                              disabled
-                              value={overrideSituacao}
-                              title={overrideSituacao}
-                              className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-center text-[10px] font-semibold text-slate-600"
-                            />
-                          </td>
-                        );
-                      }
-                      return (
-                        <td key={c} className="text-center font-mono">
-                          <NumberCell
-                            rowId={p.id}
-                            colKey={c}
-                            value={(l as any)[c] ?? ""}
-                            disabled={ro}
-                            decimals={0}
-                            validate={
-                              isDias
-                                ? validateFalta
-                                : isFalta
-                                  ? validateFalta
-                                  : isHora
-                                    ? validateHoras
-                                    : validateGeneric
-                            }
-                            onChange={(v) => updateCampo(p.id, c, v)}
-                          />
-                        </td>
-                      );
-                    })}
-                    <td
-                      className={cn(
-                        "whitespace-nowrap text-[12px]",
-                        semContaConf ? "text-destructive" : "text-slate-700",
-                      )}
-                      title={
-                        semContaConf
-                          ? undefined
-                          : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)
-                      }
-                    >
-                      {semContaConf
-                        ? "—"
-                        : formatContaBancaria(conf.banco, conf.agencia, conf.conta_corrente)}
-                    </td>
-                    <td className="text-center">
-                      <TextCell
-                        rowId={p.id}
-                        value={l.observacoes ?? ""}
-                        disabled={ro}
-                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
-                        placeholder="—"
-                      />
-                    </td>
-                    <td className="text-center">
-                      <StatusBadge domain="frequencia" value={l.status ?? "rascunho"} />
-                    </td>
-                  </tr>
-                );
+                const lot = lotacaoDe(conf);
+                return <LinhaContratadoRow key={p.id} it={it} conf={conf} l={l}
+                  ro={readonlyLinha(l)} idx={idx} lotacaoLabel={lot?.label} lotacaoFull={lot?.full}
+                  openDossie={openDossie} updateCampo={updateCampo} />;
               })}
             </ErpTbody>
             <tfoot>

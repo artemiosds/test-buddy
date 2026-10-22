@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createInvalidationBatch } from "./invalidation-batch";
 
 export type RealtimeContext = {
   competenciaId?: string;
@@ -31,6 +32,11 @@ export function useFrequencyRealtime(context: RealtimeContext) {
     console.log(`[Realtime] Subscribing to ${channelName}`, context);
 
     const channel = supabase.channel(channelName);
+    const batch = createInvalidationBatch((keys) => {
+      for (const queryKey of keys) void qc.invalidateQueries({ queryKey });
+    });
+    const scope = competenciaId ? [competenciaId, ...(unidadeId ? [unidadeId] : [])] : [];
+    const analyticsKeys = [["analytics", "summary"], ["analytics", "frequencias-aggregated"]];
 
     // 1. Monitorar Tabela 'frequencias' (Parent)
     // Filtramos pelo frequencia_id se disponível, ou aguardamos eventos da unidade/competência
@@ -46,14 +52,15 @@ export function useFrequencyRealtime(context: RealtimeContext) {
         filter: freqFilter || undefined,
       },
       (payload) => {
-        console.log("[Realtime] Frequência alterada:", payload);
-        
-        // Se mudou o status, precisamos atualizar as permissões e botões
-        qc.invalidateQueries({ queryKey: ["frequencia-resumo"] });
-        qc.invalidateQueries({ queryKey: ["folha-contratados"] });
-        qc.invalidateQueries({ queryKey: ["folha-efetivos"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "summary"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "frequencias-aggregated"] });
+        // Status, permissions and dashboards remain fresh, once per burst.
+        batch.add([
+          ["frequencia-resumo", ...scope],
+          ["folha-contratados", ...scope],
+          ["folha-efetivos", ...scope],
+          ["folha-contratados-consolidado", ...(competenciaId ? [competenciaId] : [])],
+          ["folha-efetivos-consolidado", ...(competenciaId ? [competenciaId] : [])],
+          ...analyticsKeys,
+        ]);
       }
     );
 
@@ -66,16 +73,9 @@ export function useFrequencyRealtime(context: RealtimeContext) {
         table: "frequencia_profissional",
       },
       (payload) => {
-        const data = (payload.new || payload.old) as any;
         // Filtro manual se não houver frequenciaId no payload (ou se for INSERT sem filtro de query)
-        if (frequenciaId && data.frequencia_id !== frequenciaId) return;
-
-        console.log("[Realtime] Detalhe Efetivo alterado:", payload);
-        
-        // Invalida apenas o que for afetado
-        qc.invalidateQueries({ queryKey: ["folha-efetivos"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "frequencias-aggregated"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "summary"] });
+        if (frequenciaId && ![payload.new, payload.old].some((row) => (row as Record<string, unknown>).frequencia_id === frequenciaId)) return;
+        batch.add([["folha-efetivos", ...scope], ["folha-efetivos-consolidado", ...(competenciaId ? [competenciaId] : [])], ...analyticsKeys]);
       }
     );
 
@@ -88,14 +88,8 @@ export function useFrequencyRealtime(context: RealtimeContext) {
         table: "frequencias_contratados",
       },
       (payload) => {
-        const data = (payload.new || payload.old) as any;
-        if (frequenciaId && data.frequencia_id !== frequenciaId) return;
-
-        console.log("[Realtime] Detalhe Contratado alterado:", payload);
-        
-        qc.invalidateQueries({ queryKey: ["folha-contratados"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "frequencias-aggregated"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "summary"] });
+        if (frequenciaId && ![payload.new, payload.old].some((row) => (row as Record<string, unknown>).frequencia_id === frequenciaId)) return;
+        batch.add([["folha-contratados", ...scope], ["folha-contratados-consolidado", ...(competenciaId ? [competenciaId] : [])], ...analyticsKeys]);
       }
     );
 
@@ -108,6 +102,7 @@ export function useFrequencyRealtime(context: RealtimeContext) {
     channelRef.current = channel;
 
     return () => {
+      batch.dispose();
       if (channelRef.current) {
         console.log(`[Realtime] Unsubscribing from ${channelName}`);
         void supabase.removeChannel(channelRef.current);

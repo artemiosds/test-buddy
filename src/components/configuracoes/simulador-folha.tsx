@@ -15,6 +15,7 @@ export function SimuladorFolha({ params, cargos, niveisPendentes }: { params: Pa
   const [cargoId, setCargoId] = useState("");
   const [tipo, setTipo] = useState<"efetivos" | "contratados">("efetivos");
   const [nivel, setNivel] = useState("");
+  const [esf, setEsf] = useState(false);
   const [q, setQ] = useState<Record<string, string>>({});
   const v = (k: string) => toNum(q[k] ?? "");
   const cargo = cargos.find((c) => c.id === cargoId);
@@ -30,6 +31,7 @@ export function SimuladorFolha({ params, cargos, niveisPendentes }: { params: Pa
           carga_cargo: v("carga") || cargo?.carga_horaria_semanal || null,
           nivel_cargo: nivelEfetivo || null,
           vinculo_nome: q.vinculo ?? null,
+          esf,
           diasTrabalhados: 30,
           faltasInjustificadas: v("faltas"),
           faltasJustificadas: 0,
@@ -44,7 +46,7 @@ export function SimuladorFolha({ params, cargos, niveisPendentes }: { params: Pa
         params,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [params, cargoId, tipo, nivelEfetivo, q, cargo],
+    [params, cargoId, tipo, nivelEfetivo, q, cargo, esf],
   );
 
   const campo = (k: string, label: string, hint?: string) => (
@@ -59,11 +61,11 @@ export function SimuladorFolha({ params, cargos, niveisPendentes }: { params: Pa
     ["Salário base", r.salarioBase, origem],
     ["(−) Desconto por faltas injustificadas", -r.descontoFaltas, `${brl(r.salarioBase)} ÷ 30 × ${v("faltas")}`],
     ["Gratificação de escolaridade", r.vGratificacao],
-    ["Hora extra 50%", r.vHe50, `${v("he50")} h × ${brl(r.valorHora)} × fator`],
-    ["Hora extra 100%", r.vHe100, `${v("he100")} h × ${brl(r.valorHora)} × fator`],
-    ["Adicional noturno", r.vAdn, `${v("adn")} h × ${brl(r.valorHora)} × %`],
-    ["Plantões", r.vPlantoes, `${v("plantoes")} × valor unitário`],
-    ["Sobreavisos", r.vSobreaviso, `${v("sobreaviso")} × valor unitário`],
+    ["Hora extra 50%", r.vHe50, `${v("he50")} h × ${brl(r.unit.he50)}`],
+    ["Hora extra 100%", r.vHe100, `${v("he100")} h × ${brl(r.unit.he100)}`],
+    ["Adicional noturno", r.vAdn, `${v("adn")} h × ${brl(r.unit.adn)}`],
+    ["Plantões", r.vPlantoes, `${v("plantoes")} × ${brl(r.unit.plantao)}`],
+    ["Sobreavisos", r.vSobreaviso, `${v("sobreaviso")} × ${brl(r.unit.sobreaviso)}`],
     ["Insalubridade", r.vInsalubridade],
     ["Incentivo", r.vIncentivo, "somado direto ao bruto"],
   ];
@@ -94,6 +96,10 @@ export function SimuladorFolha({ params, cargos, niveisPendentes }: { params: Pa
             <option value="efetivos">Efetivo</option>
             <option value="contratados">Contratado</option>
           </select>
+          <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <input type="checkbox" className="accent-primary" checked={esf} onChange={(e) => setEsf(e.target.checked)} />
+            Profissional ESF (usa a variação ESF do cargo)
+          </label>
         </div>
         {campo("salario", "Salário base (R$)", "Vazio = herda do cargo/nível")}
         {campo("carga", "Jornada semanal (h)", "Vazio = do cargo")}

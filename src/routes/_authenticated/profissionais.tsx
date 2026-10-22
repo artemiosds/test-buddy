@@ -182,6 +182,7 @@ const EMPTY_VALUES: ProfissionalFormValues = {
   salario_bruto: "",
   gratificacao_incentivo: "",
   vencimento_liquido: "",
+  atuacao_esf: false,
 };
 
 const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
@@ -942,6 +943,7 @@ function ProfissionaisPage() {
       salario_bruto: (p as any).salario_bruto?.toString() || "",
       gratificacao_incentivo: (p as any).gratificacao_incentivo?.toString() || "",
       vencimento_liquido: (p as any).vencimento_liquido?.toString() || "",
+      atuacao_esf: !!(p as any).atuacao_esf,
     };
 
     reset(values);
@@ -2309,6 +2311,27 @@ function ProfissionalFormBody({
               )}
             />
           </div>
+          <div>
+            <FormField
+              control={control}
+              name="atuacao_esf"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Atuação ESF</FormLabel>
+                  <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={!!field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      aria-label="Atua em equipe ESF"
+                    />
+                    Atua em equipe ESF (Saúde da Família)
+                  </label>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* AGILIBlue (Efetivo) */}
@@ -2664,6 +2687,7 @@ function ProfissionalFormBody({
               cargoId={watch("cargo_id") as string | undefined}
               salarioProprio={Number(watch("salario_base")) > 0 ? Number(watch("salario_base")) : null}
               vinculoNome={vinculos?.find((v) => v.id === vinculoId)?.nome ?? null}
+              esf={!!watch("atuacao_esf")}
             />
           </Card>
         ) : null}

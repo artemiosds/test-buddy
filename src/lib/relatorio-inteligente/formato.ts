@@ -9,7 +9,7 @@
 export type TipoCampo = "text" | "number" | "moeda" | "percentual";
 
 /** Chaves financeiras dos blocos consolidados (que não declaram tipo). */
-const CHAVES_MOEDA = ["salario", "massa", "custo", "vencimento", "remunera", "folha_bruta"];
+const CHAVES_MOEDA = ["salario", "massa", "custo", "vencimento", "remunera", "folha_bruta", "_valor"];
 
 function ehMoedaPelaChave(fieldId?: string): boolean {
   const k = (fieldId ?? "").toLowerCase();

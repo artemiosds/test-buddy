@@ -1,5 +1,16 @@
 # Roadmap
 
+## Valores por hora — solicitação atual
+- [x] Trocar os três controles gerais e por nível por R$/hora e aplicar ao motor e simulador, preservando snapshots antigos.
+- [x] Testar valores informados, herança, zero explícito e compatibilidade histórica (29 testes de cálculo aprovados).
+- [ ] Salvar e reabrir as tarifas com a conta real — bloqueado: Supabase externo sem sessão autenticada disponível para automação; nenhum valor municipal foi inventado ou gravado.
+
+## Estabilidade e desempenho — solicitação atual
+- [x] Reduzir atualizações repetidas de tela e Realtime sem mudar persistência, permissões ou tramitação.
+- [x] Verificar hipóteses de lentidão em sessão, manutenção e PDFs; corrigir confirmações repetidas de sessão e adiar carregamento do gerador ABNT; manutenção intacta (loop não confirmado).
+- [x] Rodar testes de regressão: 33 testes relacionados aprovados; abertura no navegador sem erros e compilação automática OK. Três testes antigos de use-permissions falham por timeout também isoladamente; regras de permissão não foram alteradas.
+- [ ] Confirmar edição, salvamento e releitura nas folhas com conta real — bloqueado: Supabase externo sem sessão autenticada disponível para automação.
+
 ## Concluído
 - [x] Configuração Municipal organizada em abas horizontais temáticas, com campos preservados e botão Salvar no topo
 - [x] Tabela 6-B de setores sem coluna Coordenador (tela + PDF/Word)

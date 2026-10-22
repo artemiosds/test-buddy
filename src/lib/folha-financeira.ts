@@ -16,6 +16,13 @@ export type CargoFinanceiro = {
   valor_plantao?: number | null;
   /** Gratificação própria do cargo (%); quando vazia usa a do nível. */
   gratificacao_pct?: number | null;
+  /** Tarifas próprias do cargo (R$/h e R$/unidade); vazias herdam o nível/geral. */
+  valor_he50?: number | null;
+  valor_he100?: number | null;
+  valor_adn?: number | null;
+  valor_sobreaviso?: number | null;
+  /** Variação aplicada só a profissionais marcados como Atuação ESF. */
+  esf?: Omit<CargoFinanceiro, "esf"> | null;
 };
 
 export const NIVEIS_ESCOLARIDADE = [
@@ -29,6 +36,9 @@ export type NivelEscolaridade = (typeof NIVEIS_ESCOLARIDADE)[number]["k"];
 
 /** Regras por nível de escolaridade do cargo. Campos vazios herdam a regra geral. */
 export type NivelFinanceiro = {
+  valor_he50?: number | null;
+  valor_he100?: number | null;
+  valor_adn?: number | null;
   salario_base?: number | null;
   gratificacao_pct?: number | null;
   carga_semanal?: number | null;
@@ -61,6 +71,11 @@ const REGIMES: RegimeAlvo[] = ["efetivos", "contratados", "ambos", "nenhum"];
 const aplica = (r: RegimeAlvo, t: "efetivos" | "contratados") => r === "ambos" || r === t;
 
 export type ParametrosFinanceiros = {
+  /** Ausência identifica configurações/snapshots anteriores à tarifa monetária. */
+  modo_horas?: "unitario";
+  valor_he50?: number | null;
+  valor_he100?: number | null;
+  valor_adn?: number | null;
   tributos?: Tributos;
   descontos_extras?: DescontoExtra[];
   niveis: Partial<Record<NivelEscolaridade, NivelFinanceiro>>;
@@ -124,6 +139,10 @@ const numOrNull = (v: unknown): number | null => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+// Tarifas aceitam zero explícito (isento); null significa herdar.
+const tarifaOrNull = (v: unknown): number | null =>
+  v === null || v === undefined || v === "" ? null : num(v);
+
 export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
   const p = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_FINANCEIRO;
@@ -139,14 +158,25 @@ export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
     : d.irrf_faixas;
   const cargosRaw = (p.cargos && typeof p.cargos === "object" ? p.cargos : {}) as Record<string, Record<string, unknown>>;
   const cargos: Record<string, CargoFinanceiro> = {};
-  for (const [id, c] of Object.entries(cargosRaw)) {
-    cargos[id] = {
+  const parseCargo = (c: Record<string, unknown> | undefined): Omit<CargoFinanceiro, "esf"> => {
+    const o: Omit<CargoFinanceiro, "esf"> = {
       salario_base: numOrNull(c?.salario_base),
       carga_semanal: numOrNull(c?.carga_semanal),
       insalubridade_pct: numOrNull(c?.insalubridade_pct),
       valor_plantao: numOrNull(c?.valor_plantao),
       gratificacao_pct: numOrNull(c?.gratificacao_pct),
     };
+    // Tarifas só entram quando definidas (mantém configurações antigas idênticas).
+    for (const k of ["valor_he50", "valor_he100", "valor_adn", "valor_sobreaviso"] as const) {
+      const v = tarifaOrNull(c?.[k]);
+      if (v !== null) o[k] = v;
+    }
+    return o;
+  };
+  for (const [id, c] of Object.entries(cargosRaw)) {
+    cargos[id] = parseCargo(c);
+    const esf = c?.esf && typeof c.esf === "object" ? parseCargo(c.esf as Record<string, unknown>) : null;
+    if (esf && Object.values(esf).some((v) => v !== null && v !== undefined)) cargos[id].esf = esf;
   }
   const niveisRaw = (p.niveis && typeof p.niveis === "object" ? p.niveis : {}) as Record<string, Record<string, unknown>>;
   const niveis: ParametrosFinanceiros["niveis"] = {};
@@ -154,6 +184,9 @@ export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
     const n = niveisRaw[k];
     if (!n) continue;
     niveis[k] = {
+      valor_he50: tarifaOrNull(n.valor_he50),
+      valor_he100: tarifaOrNull(n.valor_he100),
+      valor_adn: tarifaOrNull(n.valor_adn),
       salario_base: numOrNull(n.salario_base),
       gratificacao_pct: numOrNull(n.gratificacao_pct),
       carga_semanal: numOrNull(n.carga_semanal),
@@ -184,6 +217,10 @@ export function parseFinanceiro(raw: unknown): ParametrosFinanceiros {
       }))
     : [];
   return {
+    modo_horas: p.modo_horas === "unitario" ? "unitario" : undefined,
+    valor_he50: tarifaOrNull(p.valor_he50),
+    valor_he100: tarifaOrNull(p.valor_he100),
+    valor_adn: tarifaOrNull(p.valor_adn),
     tributos,
     descontos_extras,
     niveis,
@@ -236,6 +273,8 @@ export type EntradaCalculo = {
   /** Nível de escolaridade do cargo; se ausente, busca em p.nivelPorCargo. */
   nivel_cargo?: string | null;
   vinculo_nome?: string | null;
+  /** Profissional marcado como Atuação ESF no cadastro. */
+  esf?: boolean;
   diasTrabalhados: number;
   faltasInjustificadas: number;
   faltasJustificadas: number;
@@ -252,6 +291,8 @@ export type ResultadoCalculo = {
   origemBase: "profissional" | "cargo" | "nivel" | "sem_base";
   salarioBase: number;
   valorHora: number;
+  /** Valores unitários já prontos (R$ por hora/unidade). */
+  unit: { he50: number; he100: number; adn: number; plantao: number; sobreaviso: number };
   descontoFaltas: number;
   baseProporcional: number;
   vHe50: number;
@@ -278,7 +319,11 @@ export type ResultadoCalculo = {
 const RE_AUTONOMO = /(rpa|aut[oô]nomo|prestador)/i;
 
 export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): ResultadoCalculo {
-  const cargo = (e.cargo_id && p.cargos[e.cargo_id]) || {};
+  const cargoBase: CargoFinanceiro = (e.cargo_id && p.cargos[e.cargo_id]) || {};
+  // ESF: campos preenchidos na variação ESF sobrepõem os do cargo; vazios herdam.
+  const cargo: CargoFinanceiro = e.esf && cargoBase.esf
+    ? { ...cargoBase, ...Object.fromEntries(Object.entries(cargoBase.esf).filter(([, v]) => v !== null && v !== undefined)) }
+    : cargoBase;
   const nivel = e.nivel_cargo ?? (e.cargo_id ? p.nivelPorCargo?.[e.cargo_id] ?? null : null);
   const nv: NivelFinanceiro = (nivel && p.niveis?.[nivel as NivelEscolaridade]) || {};
   // Prioridade: próprio do profissional > cargo > nível de escolaridade.
@@ -287,19 +332,27 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
   const origemBase: ResultadoCalculo["origemBase"] =
     e.salario_proprio && e.salario_proprio > 0 ? "profissional" : salCargo ? "cargo" : salNivel ? "nivel" : "sem_base";
   const salarioBase =
-    origemBase === "profissional" ? e.salario_proprio! : origemBase === "cargo" ? salCargo! : origemBase === "nivel" ? salNivel! : 0;
+    origemBase === "profissional" ? e.salario_proprio ?? 0 : origemBase === "cargo" ? salCargo ?? 0 : origemBase === "nivel" ? salNivel ?? 0 : 0;
   const carga = cargo.carga_semanal || nv.carga_semanal || e.carga_cargo || 40;
-  const divisor = p.divisor_modo === "fixo" && (p.divisor_fixo ?? 0) > 0 ? p.divisor_fixo! : carga * 5;
+  const divisor = p.divisor_modo === "fixo" && (p.divisor_fixo ?? 0) > 0 ? p.divisor_fixo ?? 0 : carga * 5;
   const valorHora = divisor > 0 ? salarioBase / divisor : 0;
   // Atestado e falta justificada não descontam; só falta injustificada (1/30 por dia).
   const descontoFaltas = Math.min(salarioBase, (salarioBase / 30) * Math.max(0, e.faltasInjustificadas));
   const baseProporcional = salarioBase - descontoFaltas;
   const vGratificacao = baseProporcional * ((cargo.gratificacao_pct ?? nv.gratificacao_pct ?? 0) / 100);
-  const vHe50 = e.he50 * valorHora * (nv.he50_fator ?? p.he50_fator);
-  const vHe100 = e.he100 * valorHora * (nv.he100_fator ?? p.he100_fator);
-  const vAdn = e.adn * valorHora * ((nv.adn_pct ?? p.adn_pct) / 100);
-  const vPlantoes = e.plantoes * (cargo.valor_plantao ?? nv.valor_plantao ?? p.valor_plantao);
-  const vSobreaviso = e.sobreaviso * (nv.valor_sobreaviso ?? p.valor_sobreaviso);
+  // Configuração nova: tarifa do nível > geral > zero. Legado somente para
+  // configurações ainda não convertidas e snapshots de aprovações anteriores.
+  const monetario = p.modo_horas === "unitario";
+  const horaHe50 = r2(monetario ? cargo.valor_he50 ?? nv.valor_he50 ?? p.valor_he50 ?? 0 : valorHora * (nv.he50_fator ?? p.he50_fator));
+  const horaHe100 = r2(monetario ? cargo.valor_he100 ?? nv.valor_he100 ?? p.valor_he100 ?? 0 : valorHora * (nv.he100_fator ?? p.he100_fator));
+  const horaAdn = r2(monetario ? cargo.valor_adn ?? nv.valor_adn ?? p.valor_adn ?? 0 : valorHora * (1 + (nv.adn_pct ?? p.adn_pct) / 100));
+  const vHe50 = e.he50 * horaHe50;
+  const vHe100 = e.he100 * horaHe100;
+  const vAdn = e.adn * horaAdn;
+  const unitPlantao = cargo.valor_plantao ?? nv.valor_plantao ?? p.valor_plantao;
+  const unitSobreaviso = cargo.valor_sobreaviso ?? nv.valor_sobreaviso ?? p.valor_sobreaviso;
+  const vPlantoes = e.plantoes * unitPlantao;
+  const vSobreaviso = e.sobreaviso * unitSobreaviso;
   const vIncentivo = e.incentivo;
   const insalPct = cargo.insalubridade_pct ?? nv.insalubridade_pct ?? 0;
   const vInsalubridade = insalPct ? (p.insalubridade_base === "salario_base" ? salarioBase : p.salario_minimo) * (insalPct / 100) : 0;
@@ -332,6 +385,7 @@ export function calcularFolha(e: EntradaCalculo, p: ParametrosFinanceiros): Resu
     vGratificacao: r2(vGratificacao),
     nivel,
     valorHora: r2(valorHora),
+    unit: { he50: horaHe50, he100: horaHe100, adn: horaAdn, plantao: unitPlantao, sobreaviso: unitSobreaviso },
     descontoFaltas: r2(descontoFaltas),
     baseProporcional: r2(baseProporcional),
     vHe50: r2(vHe50),
@@ -360,8 +414,12 @@ export const brl = (v: number) =>
 export function validarFinanceiro(p: ParametrosFinanceiros): string | null {
   const neg = (v: unknown) => typeof v === "number" && (!Number.isFinite(v) || v < 0);
   if (neg(p.salario_minimo)) return "salário mínimo inválido.";
-  if (p.he50_fator < 1 || p.he100_fator < 1) return "fatores de hora extra devem ser 1 ou maior (ex.: 1,5 e 2).";
-  for (const [k, v] of [["adicional noturno", p.adn_pct], ["RPPS", p.rpps_pct], ["ISS", p.iss_pct]] as const) {
+  if (p.modo_horas === "unitario") {
+    for (const regra of [p, ...Object.values(p.niveis)]) {
+      if ([regra.valor_he50, regra.valor_he100, regra.valor_adn].some(neg)) return "valores por hora devem ser números válidos, iguais ou maiores que zero.";
+    }
+  }
+  for (const [k, v] of [["RPPS", p.rpps_pct], ["ISS", p.iss_pct]] as const) {
     if (neg(v) || v > 100) return `percentual de ${k} deve ficar entre 0 e 100.`;
   }
   if (neg(p.valor_plantao) || neg(p.valor_sobreaviso)) return "valores de plantão/sobreaviso não podem ser negativos.";
@@ -369,7 +427,9 @@ export function validarFinanceiro(p: ParametrosFinanceiros): string | null {
   if (p.inss_faixas.some((f) => neg(f.ate) || neg(f.pct) || f.pct > 100)) return "há faixa de INSS inválida.";
   if (p.irrf_faixas.some((f) => neg(f.pct) || f.pct > 100 || neg(f.deducao))) return "há faixa de IRRF inválida.";
   for (const c of Object.values(p.cargos)) {
-    if (neg(c.salario_base) || neg(c.valor_plantao) || neg(c.carga_semanal)) return "há valor negativo na tabela de cargos.";
+    for (const r of [c, c.esf ?? {}] as Omit<CargoFinanceiro, "esf">[]) {
+      if ([r.salario_base, r.valor_plantao, r.carga_semanal, r.valor_he50, r.valor_he100, r.valor_adn, r.valor_sobreaviso, r.gratificacao_pct].some(neg)) return "há valor negativo na tabela de cargos.";
+    }
   }
   return null;
 }

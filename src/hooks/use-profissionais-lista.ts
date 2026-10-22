@@ -17,7 +17,7 @@ export function useProfissionaisLista() {
       let q = supabase
         .from("profissionais")
         .select(
-          "id, nome_completo, cpf, matricula, sexo, data_nascimento, data_admissao, telefone, email, carga_horaria_semanal, status, unidade:unidade_id(nome), setor:setor_id(nome), cargo:cargo_id(nome), funcao:funcao_id(nome), vinculo:vinculo_id(nome), salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido",
+          "id, nome_completo, cpf, matricula, sexo, data_nascimento, data_admissao, telefone, email, carga_horaria_semanal, status, cargo_id, unidade:unidade_id(nome), setor:setor_id(nome), cargo:cargo_id(nome, carga_horaria_semanal), funcao:funcao_id(nome), vinculo:vinculo_id(nome), salario_base, salario_bruto, salario_liquido, horas_extras, adicional_noturno, gratificacao_incentivo, vencimento_liquido, atuacao_esf",
         )
         .is("deleted_at", null);
 
@@ -31,6 +31,8 @@ export function useProfissionaisLista() {
       if (error) throw error;
       type Named = { nome: string | null } | null;
       return (data ?? []).map((r: Record<string, unknown>) => ({
+        id: (r.id as string) ?? "",
+        atuacao_esf: r.atuacao_esf ? "SIM" : "NÃO",
         nome_completo: (r.nome_completo as string) ?? "",
         cpf: (r.cpf as string) ?? "",
         matricula: (r.matricula as string) ?? "",
@@ -44,6 +46,8 @@ export function useProfissionaisLista() {
         unidade: (r.unidade as Named)?.nome ?? "",
         setor: (r.setor as Named)?.nome ?? "",
         cargo: (r.cargo as Named)?.nome ?? "",
+        cargo_id: (r.cargo_id as string) ?? null,
+        carga_cargo: ((r.cargo as { carga_horaria_semanal?: number | null } | null)?.carga_horaria_semanal) ?? null,
         funcao: (r.funcao as Named)?.nome ?? "",
         vinculo: (r.vinculo as Named)?.nome ?? "",
         salario_base: (r.salario_base as number) ?? 0,

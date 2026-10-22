@@ -9,10 +9,11 @@ type Props = {
   salarioProprio: number | null;
   cargaCargo?: number | null;
   vinculoNome?: string | null;
+  esf?: boolean;
 };
 
 /** Histórico financeiro calculado a partir das folhas APROVADAS (somente leitura). */
-export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioProprio, cargaCargo, vinculoNome }: Props) {
+export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioProprio, cargaCargo, vinculoNome, esf }: Props) {
   const [open, setOpen] = useState(false);
   const { data: params } = useFolhaFinanceiraParams();
   const { data: hist = [], isLoading } = useHistoricoFinanceiroProfissional(open ? profissionalId : null);
@@ -42,9 +43,11 @@ export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioPropri
                 <tr>
                   <th className="px-2 py-1.5 text-left">Comp.</th>
                   <th className="px-2 py-1.5 text-right">Dias/Faltas/Atest.</th>
-                  <th className="px-2 py-1.5 text-right">HE 50/100</th>
-                  <th className="px-2 py-1.5 text-right">ADN</th>
-                  <th className="px-2 py-1.5 text-right">Plant.</th>
+                  <th className="px-2 py-1.5 text-right">HE 50%</th>
+                  <th className="px-2 py-1.5 text-right">HE 100%</th>
+                  <th className="px-2 py-1.5 text-right">Adic. Noturno</th>
+                  <th className="px-2 py-1.5 text-right">Plantões</th>
+                  <th className="px-2 py-1.5 text-right">Sobreaviso</th>
                   <th className="px-2 py-1.5 text-right">Bruto</th>
                   <th className="px-2 py-1.5 text-right">Descontos</th>
                   <th className="px-2 py-1.5 text-right">Líquido</th>
@@ -60,17 +63,26 @@ export function HistoricoFinanceiroCard({ profissionalId, cargoId, salarioPropri
                       salario_proprio: sal ? sal.salario_base : salarioProprio,
                       carga_cargo: sal ? sal.carga : cargaCargo ?? null,
                       vinculo_nome: vinculoNome ?? null,
+                      esf: !!esf,
                     },
                     h.snap?.params ?? params,
                   );
                   const e = h.entrada;
+                  const cel = (valor: number, qtd: number, un: string) => (
+                    <td className="px-2 py-1 text-right">
+                      <div>{brl(valor)}</div>
+                      <div className="text-[10px] text-muted-foreground">{qtd} {un}</div>
+                    </td>
+                  );
                   return (
                     <tr key={i} className="border-t border-border">
                       <td className="px-2 py-1">{h.competencia} <span className="text-muted-foreground">{e.tipo === "efetivos" ? "Ef." : "Ct."}</span>{!h.snap && <span className="ml-1 text-muted-foreground" title="Sem histórico da aprovação: calculado com as regras e salários atuais">*</span>}</td>
                       <td className="px-2 py-1 text-right">{e.diasTrabalhados} / {e.faltasInjustificadas} / {e.atestado}</td>
-                      <td className="px-2 py-1 text-right">{e.he50} / {e.he100}</td>
-                      <td className="px-2 py-1 text-right">{e.adn}</td>
-                      <td className="px-2 py-1 text-right">{e.plantoes}</td>
+                      {cel(r.vHe50, e.he50, "h")}
+                      {cel(r.vHe100, e.he100, "h")}
+                      {cel(r.vAdn, e.adn, "h")}
+                      {cel(r.vPlantoes, e.plantoes, "plant.")}
+                      {cel(r.vSobreaviso, e.sobreaviso, "sob.")}
                       <td className="px-2 py-1 text-right">{brl(r.bruto)}</td>
                       <td className="px-2 py-1 text-right">{brl(r.descontos)}</td>
                       <td className="px-2 py-1 text-right font-medium">{brl(r.liquido)}</td>

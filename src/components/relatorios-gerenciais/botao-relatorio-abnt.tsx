@@ -8,7 +8,7 @@ import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-permissions";
-import { gerarRelatorioAbnt, type AbntRelatorio } from "@/lib/relatorio-abnt";
+import type { AbntRelatorio } from "@/lib/relatorio-abnt";
 
 export function BotaoRelatorioAbnt<T>({
   relatorio,
@@ -37,6 +37,7 @@ export function BotaoRelatorioAbnt<T>({
         toast.error("Nada para exportar com os filtros atuais.");
         return;
       }
+      const { gerarRelatorioAbnt } = await import("@/lib/relatorio-abnt");
       await gerarRelatorioAbnt({
         ...cfg,
         emitidoPor: {

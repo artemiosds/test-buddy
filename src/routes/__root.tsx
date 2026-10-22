@@ -19,6 +19,7 @@ import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
 import { NetworkBanner } from "@/components/shared/NetworkBanner";
 import { TermoAceiteProvider } from "@/components/documentos/termo-aceite-provider";
 import { PdfPosicaoProvider } from "@/components/pdf/PdfPosicaoProvider";
+import { createAuthRefreshDecision } from "@/lib/auth-refresh";
 
 import { AvisoModal } from "@/components/mural/AvisoModal";
 
@@ -154,8 +155,9 @@ function RootComponent() {
   useEffect(() => {
     installBrowserErrorHandlers();
     registerServiceWorker();
-    const { data } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+    const shouldRefresh = createAuthRefreshDecision();
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!shouldRefresh(event, session?.user.id ?? null)) return;
       
       if (event === "SIGNED_OUT") {
         // LGPD: Purge compulsório no logout

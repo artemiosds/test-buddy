@@ -1,0 +1,2 @@
+ALTER TABLE public.profissionais ADD COLUMN IF NOT EXISTS atuacao_esf boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.profissionais.atuacao_esf IS 'Profissional atua em equipe de Estratégia Saúde da Família (ESF).';

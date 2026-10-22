@@ -31,6 +31,7 @@ export type DadosProfissionalFin = {
   carga_cargo: number | null;
   salario_proprio: number | null;
   vinculo_nome: string | null;
+  esf: boolean;
 };
 
 /** Busca cargo/salário/vínculo de vários profissionais (em lotes). */
@@ -41,7 +42,7 @@ export async function buscarDadosProfissionais(ids: string[]): Promise<Map<strin
     const lote = uniq.slice(i, i + 150);
     const { data, error } = await supabase
       .from("profissionais")
-      .select("id, cargo_id, salario_base, cargo:cargos(nome, carga_horaria_semanal), vinculo:vinculos(nome)")
+      .select("id, cargo_id, salario_base, atuacao_esf, cargo:cargos(nome, carga_horaria_semanal), vinculo:vinculos(nome)")
       .in("id", lote);
     if (error) throw error;
     for (const r of (data ?? []) as any[]) {
@@ -52,6 +53,7 @@ export async function buscarDadosProfissionais(ids: string[]): Promise<Map<strin
         carga_cargo: r.cargo?.carga_horaria_semanal ?? null,
         salario_proprio: sal > 0 ? sal : null,
         vinculo_nome: r.vinculo?.nome ?? null,
+        esf: !!r.atuacao_esf,
       });
     }
   }

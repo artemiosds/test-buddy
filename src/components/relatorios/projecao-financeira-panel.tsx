@@ -43,6 +43,14 @@ const COLS: { k: keyof ResultadoCalculo; h: string }[] = [
   { k: "liquido", h: "Líquido" },
 ];
 
+const PROV_KEYS = ["baseProporcional", "vHe50", "vHe100", "vAdn", "vPlantoes", "vSobreaviso", "vIncentivo", "vInsalubridade", "vGratificacao", "bruto"];
+const DESC_KEYS = ["previdencia", "irrf", "iss", "vOutros", "liquido"];
+const PROV = COLS.filter((c) => PROV_KEYS.includes(c.k as string));
+const DESC = COLS.filter((c) => DESC_KEYS.includes(c.k as string));
+const adic = (t: Record<string, number>) =>
+  ["vHe50", "vHe100", "vAdn", "vPlantoes", "vSobreaviso", "vIncentivo", "vInsalubridade", "vGratificacao"].reduce((s, k) => s + (t[k] ?? 0), 0);
+const descT = (t: Record<string, number>) => (t.previdencia ?? 0) + (t.irrf ?? 0) + (t.iss ?? 0) + (t.vOutros ?? 0);
+
 function somar(ls: Linha[]) {
   const t: Record<string, number> = {};
   for (const c of COLS) t[c.k] = ls.reduce((s, l) => s + (l.r[c.k] as number), 0);
@@ -89,6 +97,7 @@ export function ProjecaoFinanceiraPanel() {
           salario_proprio: sal ? sal.salario_base : d?.salario_proprio ?? null,
           carga_cargo: sal ? sal.carga : d?.carga_cargo ?? null,
           vinculo_nome: d?.vinculo_nome ?? null,
+            esf: d?.esf ?? false,
           diasTrabalhados: l.diasTrabalhados,
           faltasInjustificadas: l.faltasInjustificadas,
           faltasJustificadas: l.faltasJustificadas,
@@ -190,10 +199,25 @@ export function ProjecaoFinanceiraPanel() {
           keepTogether: true,
         },
         {
-          titulo: "Consolidado por unidade",
-          head: ["Unidade", "Qtd", ...COLS.map((c) => c.h)],
-          body: porUnidade.map((u) => [u.u, u.qtd, ...COLS.map((c) => m(u.t[c.k]))]),
-          foot: ["TOTAL", filtradas.length, ...COLS.map((c) => m(total[c.k]))],
+          titulo: "Consolidado por unidade — visão principal",
+          head: ["Unidade", "Qtd", "Base devida", "Proventos adicionais", "Bruto", "Descontos", "Líquido"],
+          body: porUnidade.map((u) => [u.u, u.qtd, m(u.t.baseProporcional), m(adic(u.t)), m(u.t.bruto), m(descT(u.t)), m(u.t.liquido)]),
+          foot: ["TOTAL", filtradas.length, m(total.baseProporcional), m(adic(total)), m(total.bruto), m(descT(total)), m(total.liquido)],
+          align: ["left", "center", "right", "right", "right", "right", "right"],
+        },
+        {
+          titulo: "Demonstrativo por unidade — proventos",
+          head: ["Unidade", ...PROV.map((c) => c.h)],
+          body: porUnidade.map((u) => [u.u, ...PROV.map((c) => m(u.t[c.k]))]),
+          foot: ["TOTAL", ...PROV.map((c) => m(total[c.k]))],
+          align: ["left", ...PROV.map(() => "right" as const)],
+        },
+        {
+          titulo: "Demonstrativo por unidade — descontos e resultado",
+          head: ["Unidade", ...DESC.map((c) => c.h)],
+          body: porUnidade.map((u) => [u.u, ...DESC.map((c) => m(u.t[c.k]))]),
+          foot: ["TOTAL", ...DESC.map((c) => m(total[c.k]))],
+          align: ["left", ...DESC.map(() => "right" as const)],
         },
         {
           titulo: "Memória nominal",

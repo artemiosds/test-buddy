@@ -84,7 +84,8 @@ function acumular(a: Acc, r: Row) {
   a.bruto += num(r.salario_bruto ?? r.valor_bruto ?? r.remuneracao_bruta);
   a.liquido += num(r.salario_liquido ?? r.valor_liquido ?? r.remuneracao_liquida);
   a.extras +=
-    num(r.horas_extras) + num(r.adicional_noturno) + num(r.gratificacao_incentivo);
+    num(r.horas_extras) + num(r.adicional_noturno) + num(r.gratificacao_incentivo) +
+    num(r.plantoes_valor) + num(r.sobreaviso_valor);
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -145,7 +146,7 @@ export function construirConsolidadosSalariais(rows: Row[]): ConsolidadoTabela[]
   tabelas.push({
     titulo: "Consolidado Financeiro por Unidade",
     descricao:
-      "Custo Total = Salário Bruto + Horas Extras + Adicional Noturno + Gratificação de Incentivo.",
+      "Custo Total = Salário Bruto + Horas Extras + Adicional Noturno + Plantões + Sobreaviso + Gratificação de Incentivo.",
     colunas: [
       { header: "Unidade", key: "unidade", width: 42 },
       { header: "Qtd Profissionais", key: "qtd", width: 14 },

@@ -1,3 +1,6 @@
+import { useFolhaFinanceiraParams } from "@/hooks/use-folha-financeira";
+import { useFolhaCompetenciaAtiva } from "@/hooks/use-folha-competencia-ativa";
+import { aplicarCascataSalarial } from "@/lib/relatorio-inteligente/salario-cascata";
 import { ErrorComponent } from "@/components/shared/ErrorComponent";
 /**
  * Gerador Corporativo de Relatórios Gerenciais.
@@ -6,6 +9,7 @@ import { ErrorComponent } from "@/components/shared/ErrorComponent";
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
+import { cargoNoGrupo, type GrupoAssistencial } from "@/lib/cargo-categorias";
 import { useCurrentUser } from "@/hooks/use-permissions";
 import {
   Sparkles,
@@ -183,7 +187,11 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
           "salario_bruto",
           "salario_liquido",
           "horas_extras",
+          "he_50_valor",
+          "he_100_valor",
           "adicional_noturno",
+          "plantoes_valor",
+          "sobreaviso_valor",
           "gratificacao_incentivo",
           "vencimento_liquido",
         ],
@@ -216,6 +224,8 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
     faixaBase: { min: string; max: string };
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
+    grupoAssistencial?: GrupoAssistencial;
+    esf?: "todos" | "sim" | "nao";
   }>({ 
     unidades: initialFilters?.unidades ?? [], 
     cargos: initialFilters?.cargos ?? [], 
@@ -289,6 +299,42 @@ function Wizard({ mode, initialFilters }: { mode?: string, initialFilters?: any 
         }}
       />
       {isSalarial && <ProjecaoFinanceiraPanel />}
+      {isSalarial && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+          <span className="text-sm font-medium text-muted-foreground">Grupo profissional:</span>
+          {([
+            ["todos", "Todos"],
+            ["medicos", "Só Médicos"],
+            ["enfermagem", "Só Enfermagem"],
+            ["assistencia", "Médicos + Enfermagem"],
+          ] as Array<[GrupoAssistencial, string]>).map(([v, label]) => {
+            const ativo = (filtrosAvancados.grupoAssistencial ?? "todos") === v;
+            return (
+              <Button
+                key={v}
+                type="button"
+                size="sm"
+                variant={ativo ? "default" : "outline"}
+                onClick={() => setFiltrosAvancados((p) => ({ ...p, grupoAssistencial: v }))}
+              >
+                {label}
+              </Button>
+            );
+          })}
+          <span className="ml-2 text-sm font-medium text-muted-foreground">Atuação ESF:</span>
+          {([["todos", "Todos"], ["sim", "Só ESF"], ["nao", "Sem ESF"]] as const).map(([v, label]) => (
+            <Button
+              key={v}
+              type="button"
+              size="sm"
+              variant={(filtrosAvancados.esf ?? "todos") === v ? "default" : "outline"}
+              onClick={() => setFiltrosAvancados((p) => ({ ...p, esf: v }))}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      )}
       <Stepper step={step} />
       <div className="rounded-lg border bg-card p-4">
         {step === 1 && (
@@ -809,11 +855,15 @@ function useBuiltBlocks(
     faixaBase: { min: string; max: string };
     faixaBruto: { min: string; max: string };
     faixaLiquido: { min: string; max: string };
+    grupoAssistencial?: GrupoAssistencial;
+    esf?: "todos" | "sim" | "nao";
   },
   isSalarial?: boolean
 ) {
   const ger = useGerencial();
   const prof = useProfissionaisLista();
+  const finParams = useFolhaFinanceiraParams();
+  const folhaAtiva = useFolhaCompetenciaAtiva(blocks.some((b) => b.blockId === "dados_salariais"));
   const built = useMemo(() => {
     if (!ger.data || !prof.data) return [];
     
@@ -827,7 +877,10 @@ function useBuiltBlocks(
         if (!b) return null;
         let rows: Row[] = [];
         try {
-          rows = b.build({ aggregate: gerData, profissionais: profData });
+          rows = b.build({
+            aggregate: gerData,
+            profissionais: cfg.blockId === "dados_salariais" ? aplicarCascataSalarial(profData, finParams.data, folhaAtiva.data) : profData,
+          });
         } catch (e) {
           console.error(`Erro ao buildar bloco ${cfg.blockId}:`, e);
           rows = [];
@@ -845,6 +898,15 @@ function useBuiltBlocks(
           }
           if (filtrosAvancados.cargos.length > 0) {
             rows = rows.filter(r => r.cargo && filtrosAvancados.cargos.includes(String(r.cargo)));
+          }
+          const esfF = filtrosAvancados.esf ?? "todos";
+          if (esfF !== "todos") {
+            const alvo = esfF === "sim" ? "SIM" : "NÃO";
+            rows = rows.filter(r => !("atuacao_esf" in r) || r.atuacao_esf === alvo);
+          }
+          const grupoAss = filtrosAvancados.grupoAssistencial ?? "todos";
+          if (grupoAss !== "todos") {
+            rows = rows.filter(r => !("cargo" in r) || cargoNoGrupo(r.cargo as string, grupoAss));
           }
           if (filtrosAvancados.vinculos.length > 0) {
             rows = rows.filter(r => r.vinculo && filtrosAvancados.vinculos.includes(String(r.vinculo)));
@@ -905,7 +967,7 @@ function useBuiltBlocks(
       rawRows: Row[];
       grupos: GroupNode[] | null;
     }>;
-  }, [ger.data, prof.data, blocks, textFilter, filtrosAvancados, isSalarial]);
+  }, [ger.data, prof.data, finParams.data, folhaAtiva.data, blocks, textFilter, filtrosAvancados, isSalarial]);
   return { built, loading: ger.isLoading || prof.isLoading, error: ger.error };
 }
 

@@ -80,6 +80,8 @@ export const profissionalSchema = z.object({
   salario_bruto: numericEmptyToNull,
   gratificacao_incentivo: numericEmptyToNull,
   vencimento_liquido: numericEmptyToNull,
+  /** Atuação em equipe ESF (Estratégia Saúde da Família). */
+  atuacao_esf: z.boolean().optional().default(false),
 });
 
 export type ProfissionalFormValues = z.infer<typeof profissionalSchema>;

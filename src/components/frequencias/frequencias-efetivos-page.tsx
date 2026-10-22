@@ -4,7 +4,7 @@ import { notificarModuloDesatualizado } from "@/lib/pwa";
 import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhaEfetivos,
@@ -161,6 +161,171 @@ const CAMPOS_SMS = [
 ] as const;
 
 const CAMPOS_NUM = [...CAMPOS_OFICIAIS.map((c) => c.key), ...CAMPOS_SMS.map((c) => c.key)] as const;
+
+  const FROZEN: FrozenCol[] = [
+    { key: "matricula", label: "Matrícula", width: 85 },
+    { key: "nome", label: "Profissional", width: 230 },
+    { key: "situacao", label: "Situação", width: 110 },
+    { key: "proj", label: "Proj", width: 60 },
+  ];
+  const L = frozenLeftMap(FROZEN);
+
+  const validateGeneric = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
+  };
+  const validateHoras = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
+  };
+  const validateFalta = (v: number | string) => {
+    const n = normalizarParaSoma(v);
+    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
+  };
+
+const LinhaEfetivoRow = memo(function LinhaEfetivoRow({ it, conf, l, ro, isGlobalView, openDossie, digitarCampoNumerico, confirmarCampoNumerico, updateCampo }: {
+  it: any;
+  conf: ProfConferencia;
+  l: LinhaState;
+  ro: boolean;
+  isGlobalView: boolean;
+  openDossie: (prof: ProfConferencia) => void;
+  digitarCampoNumerico: (pid: string, campo: keyof LinhaState, valor: number | string) => void;
+  confirmarCampoNumerico: () => Promise<void>;
+  updateCampo: (pid: string, campo: keyof LinhaState, valor: number | string) => void;
+}) {
+  const p = it.profissional;
+  const statusLinha = (it.linha?.status_linha ?? "pendente") as string;
+                const situ = derivarSituacao(conf);
+                const overrideSituacao = overrideSituacaoFolha(conf);
+                const CelulaSituacao = (
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={overrideSituacao ?? ""}
+                    title={overrideSituacao ?? ""}
+                    className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-right text-[10px] font-semibold text-slate-600"
+                  />
+                );
+                return (
+                  <tr data-row-id={p.id} data-situacao={situ}>
+                    <td
+                      className="erp-sticky"
+                      style={{
+                        fontFamily: "var(--font-mono, monospace)",
+                        fontSize: 11,
+                        left: L.matricula,
+                        width: 85,
+                      }}
+                    >
+                      {p.matricula ?? "—"}
+                    </td>
+                    <td className="erp-sticky" style={{ left: L.nome, width: 230 }}>
+                      <ProfissionalNomeCell
+                        prof={conf}
+                        onOpenDossie={openDossie}
+                        secondary={
+                          isGlobalView
+                            ? [
+                                (p as any).unidade_sigla || (p as any).unidade_nome,
+                                p.cargo,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")
+                            : p.cargo
+                        }
+                      />
+                    </td>
+                    <td className="erp-sticky" style={{ left: L.situacao, width: 110 }}>
+                      <SituacaoBadge prof={conf} />
+                    </td>
+                    <td
+                      className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums"
+                      style={{ left: L.proj, width: 60 }}
+                    >
+                      {p.proj ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.h_p ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.c_h ?? "-"}
+                    </td>
+                    <td className="text-right text-muted-foreground tabular-nums">
+                      {p.jorn ?? "-"}
+                    </td>
+                    {CAMPOS_OFICIAIS.map((c) => {
+                      const isFalta = c.key === "faltas_injustificadas";
+                      const isHora =
+                        c.key === "he_50" ||
+                        c.key === "he_100" ||
+                        c.key === "sal_sub_h" ||
+                        c.key === "adicional_noturno";
+                      return (
+                        <td key={c.key} className="erp-group-lanc">
+                          {overrideSituacao ? CelulaSituacao : <NumberCell
+                            rowId={p.id}
+                            colKey={c.key}
+                            value={(l as any)[c.key] ?? ""}
+                            disabled={ro}
+                            decimals={0}
+                            className="w-full text-right text-[11px]"
+                            validate={
+                              isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
+                            }
+                            onInput={(v) =>
+                              digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
+                            }
+                            onChange={async () => {
+                              await confirmarCampoNumerico();
+                            }}
+                          />}
+                        </td>
+                      );
+                    })}
+                    {CAMPOS_SMS.map((c) => (
+                      <td key={c.key} className="erp-group-sms">
+                        {overrideSituacao ? CelulaSituacao : <NumberCell
+                          rowId={p.id}
+                          colKey={c.key}
+                          value={(l as any)[c.key] ?? ""}
+                          disabled={ro}
+                          className="w-full text-right text-[11px]"
+                          validate={validateGeneric}
+                          onInput={(v) =>
+                            digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
+                          }
+                          onChange={async () => {
+                            await confirmarCampoNumerico();
+                          }}
+                        />}
+                      </td>
+                    ))}
+                    <td className="erp-group-obs">
+                      <TextCell
+                        rowId={p.id}
+                        value={l.observacoes ?? ""}
+                        disabled={ro}
+                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
+                        placeholder="—"
+                      />
+                    </td>
+                    <td className="text-center">
+                      <StatusBadge
+                        domain="linha"
+                        value={statusLinha}
+                        title={
+                          (it.linha as any)?.observacao_analise
+                            ? `Motivo: ${(it.linha as any).observacao_analise}`
+                            : undefined
+                        }
+                      />
+                    </td>
+
+                  </tr>
+                );
+});
 
 export function FrequenciasEfetivosPage() {
   const qc = useQueryClient();
@@ -780,19 +945,13 @@ export function FrequenciasEfetivosPage() {
 
   const canView = has("frequencia.visualizar");
 
-  function openDossie(p: ProfConferencia) {
+  const openDossie = useCallback((p: ProfConferencia) => {
     setDossieProf(p);
     setDossieOpen(true);
-  }
+  }, []);
 
   /* ------- ERP grid: derivados de UI (sem impacto em back-end) ------- */
-  const FROZEN: FrozenCol[] = [
-    { key: "matricula", label: "Matrícula", width: 85 },
-    { key: "nome", label: "Profissional", width: 230 },
-    { key: "situacao", label: "Situação", width: 110 },
-    { key: "proj", label: "Proj", width: 60 },
-  ];
-  const L = frozenLeftMap(FROZEN);
+
 
   const colKeysAll = useMemo(
     () => [...CAMPOS_OFICIAIS.map((c) => c.key), ...CAMPOS_SMS.map((c) => c.key)],
@@ -871,18 +1030,7 @@ export function FrequenciasEfetivosPage() {
     [rowIdsAll, colKeysAll],
   );
 
-  const validateGeneric = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n < 0 ? "Valor negativo" : null;
-  };
-  const validateHoras = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n > 400 ? "Valor incomum (> 400h)" : null;
-  };
-  const validateFalta = (v: number | string) => {
-    const n = normalizarParaSoma(v);
-    return !isNaN(n) && n > 31 ? "Faltas acima de 31 dias" : null;
-  };
+
 
   function focarLinha(rowId: string) {
     const tr = document.querySelector<HTMLTableRowElement>(
@@ -1344,137 +1492,10 @@ export function FrequenciasEfetivosPage() {
                 const l = linhas[p.id];
                 if (!l) return null;
                 const statusLinha = ((it.linha as any)?.status_linha ?? "pendente") as string;
-                const ro = !canEdit || !linhaEditavel(statusLinha);
-
-                const situ = derivarSituacao(conf);
-                const overrideSituacao = overrideSituacaoFolha(conf);
-                const CelulaSituacao = (
-                  <input
-                    type="text"
-                    readOnly
-                    disabled
-                    value={overrideSituacao ?? ""}
-                    title={overrideSituacao ?? ""}
-                    className="w-full truncate rounded border border-slate-200 bg-slate-100 px-1 text-right text-[10px] font-semibold text-slate-600"
-                  />
-                );
-                return (
-                  <tr key={p.id} data-row-id={p.id} data-situacao={situ}>
-                    <td
-                      className="erp-sticky"
-                      style={{
-                        fontFamily: "var(--font-mono, monospace)",
-                        fontSize: 11,
-                        left: L.matricula,
-                        width: 85,
-                      }}
-                    >
-                      {p.matricula ?? "—"}
-                    </td>
-                    <td className="erp-sticky" style={{ left: L.nome, width: 230 }}>
-                      <ProfissionalNomeCell
-                        prof={conf}
-                        onOpenDossie={openDossie}
-                        secondary={
-                          isGlobalView
-                            ? [
-                                (p as any).unidade_sigla || (p as any).unidade_nome,
-                                p.cargo,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")
-                            : p.cargo
-                        }
-                      />
-                    </td>
-                    <td className="erp-sticky" style={{ left: L.situacao, width: 110 }}>
-                      <SituacaoBadge prof={conf} />
-                    </td>
-                    <td
-                      className="erp-sticky erp-sticky-last text-right text-muted-foreground tabular-nums"
-                      style={{ left: L.proj, width: 60 }}
-                    >
-                      {p.proj ?? "-"}
-                    </td>
-                    <td className="text-right text-muted-foreground tabular-nums">
-                      {p.h_p ?? "-"}
-                    </td>
-                    <td className="text-right text-muted-foreground tabular-nums">
-                      {p.c_h ?? "-"}
-                    </td>
-                    <td className="text-right text-muted-foreground tabular-nums">
-                      {p.jorn ?? "-"}
-                    </td>
-                    {CAMPOS_OFICIAIS.map((c) => {
-                      const isFalta = c.key === "faltas_injustificadas";
-                      const isHora =
-                        c.key === "he_50" ||
-                        c.key === "he_100" ||
-                        c.key === "sal_sub_h" ||
-                        c.key === "adicional_noturno";
-                      return (
-                        <td key={c.key} className="erp-group-lanc">
-                          {overrideSituacao ? CelulaSituacao : <NumberCell
-                            rowId={p.id}
-                            colKey={c.key}
-                            value={(l as any)[c.key] ?? ""}
-                            disabled={ro}
-                            decimals={0}
-                            className="w-full text-right text-[11px]"
-                            validate={
-                              isFalta ? validateFalta : isHora ? validateHoras : validateGeneric
-                            }
-                            onInput={(v) =>
-                              digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
-                            }
-                            onChange={async () => {
-                              await confirmarCampoNumerico();
-                            }}
-                          />}
-                        </td>
-                      );
-                    })}
-                    {CAMPOS_SMS.map((c) => (
-                      <td key={c.key} className="erp-group-sms">
-                        {overrideSituacao ? CelulaSituacao : <NumberCell
-                          rowId={p.id}
-                          colKey={c.key}
-                          value={(l as any)[c.key] ?? ""}
-                          disabled={ro}
-                          className="w-full text-right text-[11px]"
-                          validate={validateGeneric}
-                          onInput={(v) =>
-                            digitarCampoNumerico(p.id, c.key as keyof LinhaState, v)
-                          }
-                          onChange={async () => {
-                            await confirmarCampoNumerico();
-                          }}
-                        />}
-                      </td>
-                    ))}
-                    <td className="erp-group-obs">
-                      <TextCell
-                        rowId={p.id}
-                        value={l.observacoes ?? ""}
-                        disabled={ro}
-                        onChange={(v) => updateCampo(p.id, "observacoes", v)}
-                        placeholder="—"
-                      />
-                    </td>
-                    <td className="text-center">
-                      <StatusBadge
-                        domain="linha"
-                        value={statusLinha}
-                        title={
-                          (it.linha as any)?.observacao_analise
-                            ? `Motivo: ${(it.linha as any).observacao_analise}`
-                            : undefined
-                        }
-                      />
-                    </td>
-
-                  </tr>
-                );
+                return <LinhaEfetivoRow key={p.id} it={it} conf={conf} l={l}
+                  ro={!canEdit || !linhaEditavel(statusLinha)} isGlobalView={isGlobalView}
+                  openDossie={openDossie} digitarCampoNumerico={digitarCampoNumerico}
+                  confirmarCampoNumerico={confirmarCampoNumerico} updateCampo={updateCampo} />;
               })}
             </ErpTbody>
             <tfoot>

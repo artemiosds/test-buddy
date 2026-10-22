@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ErpGridProvider, NumberCell } from "./index";
+afterEach(cleanup);
 
 function renderCell(props: {
   value: string;
@@ -76,5 +77,31 @@ describe("NumberCell", () => {
     await waitFor(() => {
       expect(onChange).not.toHaveBeenCalled();
     });
+  });
+
+  it("preserva decimais e texto na atualização imediata e no commit", () => {
+    const onInput = vi.fn();
+    const onChange = vi.fn();
+    renderCell({ value: "0", onInput, onChange });
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "4,5" } });
+    expect(onInput).toHaveBeenLastCalledWith("4,5");
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith("4,5");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "FÉRIAS" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith("FÉRIAS");
+  });
+
+  it("mantém colagem TSV com posição e matriz originais", () => {
+    const onPaste = vi.fn();
+    render(<ErpGridProvider rowIds={["p1"]} colKeys={["dias"]} onPaste={onPaste}>
+      <NumberCell rowId="p1" colKey="dias" value="0" onChange={() => {}} />
+    </ErpGridProvider>);
+    fireEvent.paste(screen.getByRole("textbox"), { clipboardData: { getData: () => "4,5\t2\n7\tFÉRIAS\n" } });
+    expect(onPaste).toHaveBeenCalledWith("p1", "dias", [["4,5", "2"], ["7", "FÉRIAS"]]);
   });
 });

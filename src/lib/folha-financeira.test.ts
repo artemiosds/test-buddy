@@ -25,7 +25,13 @@ describe("folha financeira", () => {
   it("falta justificada e atestado não descontam", () => expect(calc({ faltasJustificadas: 3, atestado: 2 }).descontoFaltas).toBe(0));
   it("HE 50% = qtd × hora × 1,5", () => expect(calc({ he50: 10 }).vHe50).toBe(225));
   it("HE 100% = qtd × hora × 2", () => expect(calc({ he100: 10 }).vHe100).toBe(300));
-  it("ADN = horas × hora × 20%", () => expect(calc({ adn: 10 }).vAdn).toBe(30));
+  it("ADN = horas × (hora + 20%)", () => expect(calc({ adn: 10 }).vAdn).toBe(180));
+  it("planilha: 20 h × R$ 34,48 = 689,60 e 120 h × R$ 20,69", () => {
+    const r = calcularFolha({ ...E, cargo_id: null, salario_proprio: 2585.99, carga_cargo: 30, he100: 20, adn: 120 }, { ...P, divisor_modo: "fixo", divisor_fixo: 150 });
+    expect(r.unit.he100).toBe(34.48);
+    expect(r.vHe100).toBe(689.6);
+    expect(r.unit.adn).toBe(20.69);
+  });
   it("plantões e sobreavisos = qtd × valor", () => {
     const r = calc({ plantoes: 3, sobreaviso: 2 });
     expect(r.vPlantoes).toBe(300);

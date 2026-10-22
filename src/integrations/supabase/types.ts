@@ -4394,6 +4394,7 @@ export type Database = {
         Row: {
           adicional_noturno: number | null
           agencia: string | null
+          atuacao_esf: boolean
           bairro: string | null
           banco: string | null
           c_h: number | null
@@ -4462,6 +4463,7 @@ export type Database = {
         Insert: {
           adicional_noturno?: number | null
           agencia?: string | null
+          atuacao_esf?: boolean
           bairro?: string | null
           banco?: string | null
           c_h?: number | null
@@ -4530,6 +4532,7 @@ export type Database = {
         Update: {
           adicional_noturno?: number | null
           agencia?: string | null
+          atuacao_esf?: boolean
           bairro?: string | null
           banco?: string | null
           c_h?: number | null

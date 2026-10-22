@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Search, RefreshCw, AlertTriang
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SimuladorFolha } from "./simulador-folha";
+import { CargoRegrasDialog } from "./cargo-regras-dialog";
 import { toast } from "sonner";
 import {
   DEFAULT_FINANCEIRO,
@@ -42,11 +43,11 @@ const toNum = (s: string) => {
 };
 const toNumOrNull = (s: string) => (s.trim() === "" ? null : toNum(s));
 
-function Campo({ label, value, onChange, hint, step = "0.01" }: { label: string; value: number; onChange: (n: number) => void; hint?: string; step?: string }) {
+function Campo({ label, value, onChange, hint, step = "0.01" }: { label: string; value: number | null | undefined; onChange: (n: number) => void; hint?: string; step?: string }) {
   return (
     <div>
       <Label className="text-xs">{label}</Label>
-      <Input type="number" min={0} step={step} value={Number.isFinite(value) ? value : 0} onChange={(e) => onChange(toNum(e.target.value))} />
+      <Input aria-label={label} type="number" min={0} step={step} value={typeof value === "number" && Number.isFinite(value) ? value : ""} onChange={(e) => onChange(toNum(e.target.value))} />
       {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -76,7 +77,7 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
 
   const niveis = value.niveis ?? {};
   const setNivel = (k: NivelEscolaridade, patch: Partial<NivelFinanceiro>) =>
-    set({ niveis: { ...niveis, [k]: { ...(niveis[k] ?? {}), ...patch } } });
+    set({ ...("valor_he50" in patch || "valor_he100" in patch || "valor_adn" in patch ? { modo_horas: "unitario" as const } : {}), niveis: { ...niveis, [k]: { ...(niveis[k] ?? {}), ...patch } } });
 
   const { data: cargosDb = [], isLoading: carregandoCargos } = useQuery({
     queryKey: ["folha-financeira", "cargos"],
@@ -132,6 +133,7 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
     set({ cargos: { ...value.cargos, [id]: { ...(value.cargos[id] ?? {}), ...patch } } });
 
   const avisos: { t: string; aba: string }[] = [];
+  if (value.modo_horas !== "unitario") avisos.push({ t: "Valores em R$/hora ainda não configurados. Informe as três tarifas gerais e as exceções por nível antes de salvar; até lá, a configuração anterior permanece vigente.", aba: "regras" });
   if (semBase > 0) avisos.push({ t: `${semBase} cargo(s) sem salário base (nem no cargo nem no piso do nível) — a projeção sai zerada para eles.`, aba: "cargos" });
   if (semNivel > 0) avisos.push({ t: `${semNivel} cargo(s) sem nível de escolaridade definido.`, aba: "cargos" });
   if (!(value.salario_minimo > 0)) avisos.push({ t: "Salário mínimo não informado.", aba: "regras" });
@@ -187,8 +189,8 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
               ["Sem salário base", carregandoCargos ? "…" : String(semBase), "cargos"],
               ["Salário mínimo", brl(value.salario_minimo), "regras"],
               ["Divisor da hora", divisorTxt, "regras"],
-              ["HE 50% / 100%", `${value.he50_fator}× / ${value.he100_fator}×`, "regras"],
-              ["Adicional noturno", `${value.adn_pct}%`, "regras"],
+              ["HE 50% / 100% (R$/h)", value.modo_horas === "unitario" ? `${brl(value.valor_he50 ?? 0)} / ${brl(value.valor_he100 ?? 0)}` : "Não configurado", "regras"],
+              ["Adicional noturno (R$/h)", value.modo_horas === "unitario" ? brl(value.valor_adn ?? 0) : "Não configurado", "regras"],
             ].map(([t, n, a]) => (
               <button key={t} type="button" onClick={() => setAba(a)} className="rounded-md border border-border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <p className="text-xs text-muted-foreground">{t}</p>
@@ -221,8 +223,8 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
               ["1. Só folhas aprovadas", "Rascunho, enviada, em análise, devolvida e rejeitada não entram na projeção."],
               ["2. Falta injustificada", "Desconto = salário base ÷ 30 × quantidade."],
               ["3. Falta justificada e atestado", "Não descontam do salário base."],
-              ["4. Horas extras", "Quantidade × valor da hora × fator (50% e 100%). Hora = salário ÷ divisor."],
-              ["5. Adicional noturno", "Horas noturnas × valor da hora × percentual."],
+              ["4. Horas extras", "Horas aprovadas × tarifa em R$/hora do nível ou regra geral."],
+              ["5. Adicional noturno", "Horas noturnas aprovadas × tarifa em R$/hora do nível ou regra geral."],
               ["6. Plantões e sobreavisos", "Quantidade × valor unitário (cargo › nível › geral)."],
               ["7. Incentivo", "Valor lançado na folha somado direto ao bruto."],
             ].map(([t, d]) => (
@@ -231,9 +233,9 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
           </div>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             <Campo label="Salário mínimo (R$)" value={value.salario_minimo} onChange={(n) => set({ salario_minimo: n })} hint="Base da insalubridade" />
-            <Campo label="Fator HE 50%" value={value.he50_fator} onChange={(n) => set({ he50_fator: n })} hint="1,5 = hora + 50%" />
-            <Campo label="Fator HE 100%" value={value.he100_fator} onChange={(n) => set({ he100_fator: n })} hint="2 = hora em dobro" />
-            <Campo label="Adicional noturno (%)" value={value.adn_pct} onChange={(n) => set({ adn_pct: n })} hint="Sobre a hora normal" />
+            <Campo label="Hora extra 50% (R$/h)" value={value.valor_he50} onChange={(n) => set({ modo_horas: "unitario", valor_he50: n })} />
+            <Campo label="Hora extra 100% (R$/h)" value={value.valor_he100} onChange={(n) => set({ modo_horas: "unitario", valor_he100: n })} />
+            <Campo label="Adicional noturno (R$/h)" value={value.valor_adn} onChange={(n) => set({ modo_horas: "unitario", valor_adn: n })} />
             <Campo label="Valor por plantão (R$)" value={value.valor_plantao} onChange={(n) => set({ valor_plantao: n })} hint="Padrão; o cargo pode ter outro" />
             <Campo label="Valor por sobreaviso (R$)" value={value.valor_sobreaviso} onChange={(n) => set({ valor_sobreaviso: n })} />
             <div>
@@ -256,12 +258,12 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
           </div>
 
           <h3 className="pt-2 text-sm font-semibold">Regras por nível de escolaridade</h3>
-          <p className="text-xs text-muted-foreground">Campos vazios usam a regra geral acima. Prioridade do salário: próprio do profissional › cargo › nível.</p>
+          <p className="text-xs text-muted-foreground">Campos vazios usam a regra geral acima. Tarifa 0 não paga a verba; sem tarifa no nível nem na regra geral, o valor é zero. Prioridade do salário: próprio do profissional › cargo › nível.</p>
           <div className="overflow-auto rounded-md border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted text-xs text-muted-foreground">
                 <tr>
-                  {["Nível", "Salário base (R$)", "Grat. escolar. (%)", "Carga sem. (h)", "Fator HE 50%", "Fator HE 100%", "Adic. not. (%)", "Plantão (R$)", "Sobreaviso (R$)", "Insalub. (%)", "Cargos"].map((h) => (
+                  {["Nível", "Salário base (R$)", "Grat. escolar. (%)", "Carga sem. (h)", "HE 50% (R$/h)", "HE 100% (R$/h)", "Adic. not. (R$/h)", "Plantão (R$)", "Sobreaviso (R$)", "Insalub. (%)", "Cargos"].map((h) => (
                     <th key={h} className="px-2 py-2 text-left">{h}</th>
                   ))}
                 </tr>
@@ -278,9 +280,9 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
                       {campo("salario_base", "—")}
                       {campo("gratificacao_pct", "0")}
                       {campo("carga_semanal", "40", "1")}
-                      {campo("he50_fator", String(value.he50_fator))}
-                      {campo("he100_fator", String(value.he100_fator))}
-                      {campo("adn_pct", String(value.adn_pct))}
+                      {campo("valor_he50", String(value.valor_he50 ?? 0))}
+                      {campo("valor_he100", String(value.valor_he100 ?? 0))}
+                      {campo("valor_adn", String(value.valor_adn ?? 0))}
                       {campo("valor_plantao", String(value.valor_plantao))}
                       {campo("valor_sobreaviso", String(value.valor_sobreaviso))}
                       {campo("insalubridade_pct", "0")}
@@ -363,6 +365,7 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
                   <th className="px-2 py-2 text-left">Carga sem. (h)</th>
                   <th className="px-2 py-2 text-left">Insalub. (%)</th>
                   <th className="px-2 py-2 text-left">Plantão (R$)</th>
+                  <th className="px-2 py-2 text-left" title="HE, adicional noturno, sobreaviso, gratificação e variação ESF">Regras extras / ESF</th>
                 </tr>
               </thead>
               <tbody>
@@ -396,11 +399,12 @@ export function FolhaFinanceiraSection({ value, onChange, niveisPendentes = {}, 
                         </select>
                       </td>
                       <td className="px-2 py-1"><Input className="h-8 w-28" type="number" min={0} step="0.01" value={v.valor_plantao ?? ""} placeholder={String(nvRef?.valor_plantao ?? value.valor_plantao)} aria-label={`Plantão de ${c.nome}`} onChange={(e) => setCargo(c.id, { valor_plantao: toNumOrNull(e.target.value) })} /></td>
+                      <td className="px-2 py-1"><CargoRegrasDialog nome={c.nome} value={v} onChange={(patch) => setCargo(c.id, patch)} /></td>
                     </tr>
                   );
                 })}
                 {filtrados.length === 0 && (
-                  <tr><td colSpan={6} className="px-2 py-6 text-center text-xs text-muted-foreground">{carregandoCargos ? "Carregando cargos…" : "Nenhum cargo encontrado."}</td></tr>
+                  <tr><td colSpan={7} className="px-2 py-6 text-center text-xs text-muted-foreground">{carregandoCargos ? "Carregando cargos…" : "Nenhum cargo encontrado."}</td></tr>
                 )}
               </tbody>
             </table>
