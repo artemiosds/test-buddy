@@ -138,7 +138,6 @@ export async function gerarFolhaContratadosModeloCer(
     const l = it.linha ?? {};
     const situacao = (it as any).situacao;
     const fmtLocal = (v: any) => {
-      if (situacao && situacao !== "Ativo") return situacao;
       return fmtNum(v);
     };
     return [
@@ -147,7 +146,7 @@ export async function gerarFolhaContratadosModeloCer(
       fmtCPF(p.cpf),
       p.cargo ?? "",
       p.setor?.trim() || input.unidadeNome || "-",
-      fmtLocal(l.dias_trabalhados as number),
+      (situacao && situacao !== "Ativo" ? situacao : fmtLocal(l.dias_trabalhados as number)),
       fmtLocal(l.dias_falta as number),
       fmtLocal(l.atestado as number),
       fmtLocal(l.he_50 as number),

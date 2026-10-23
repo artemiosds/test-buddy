@@ -352,7 +352,6 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
     const l = it.linha ?? {};
     const situacao = (it as any).situacao;
     const nVal = (v: any) => {
-      if (situacao && situacao !== "Ativo") return situacao;
       if (v == null || v === "") return "-";
       const texto = String(v).trim();
       if (!texto) return "-";
@@ -369,7 +368,7 @@ export async function gerarFolhaContratadosOficial(input: PdfContratadosInput): 
       (it as any).lotacao_sigla || p.setor || input.unidadeNome || "-",
 
 
-      nVal(l.dias_trabalhados),
+      (situacao && situacao !== "Ativo" ? situacao : nVal(l.dias_trabalhados)),
       nVal(l.dias_falta),
       nVal(l.atestado),
       nVal(l.he_50),

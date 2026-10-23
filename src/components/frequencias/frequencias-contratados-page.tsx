@@ -282,7 +282,7 @@ const LinhaContratadoRow = memo(function LinhaContratadoRow({ it, conf, l, ro, i
                       const isDias = c === "dias_trabalhados";
                       const isFalta = c === "dias_falta";
                       const isHora = c === "he_50" || c === "he_100" || c === "adn";
-                      if (overrideSituacao) {
+                      if (overrideSituacao && isDias) {
                         return (
                           <td key={c} className="text-center">
                             <input
@@ -385,6 +385,7 @@ export function FrequenciasContratadosPage() {
 
   const { data: cargosOpts } = useQuery({
     queryKey: ["cargos-filter"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("cargos")
@@ -397,6 +398,7 @@ export function FrequenciasContratadosPage() {
   });
   const { data: funcoesOpts } = useQuery({
     queryKey: ["funcoes-filter"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("funcoes")
@@ -411,6 +413,7 @@ export function FrequenciasContratadosPage() {
 
   const { data: setoresOpts } = useQuery({
     queryKey: ["setores-filter", unidadeId],
+    staleTime: 5 * 60_000,
     enabled: !!unidadeId && !isGlobalView,
     queryFn: async () => {
       const { data } = await supabase
@@ -435,6 +438,7 @@ export function FrequenciasContratadosPage() {
   // Competências
   const { data: competencias } = useQuery({
     queryKey: ["comps-contratados"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("competencias")
@@ -956,7 +960,7 @@ export function FrequenciasContratadosPage() {
           agencia: it.profissional.agencia,
           conta_corrente: it.profissional.conta_corrente,
         },
-        linha: aplicarOverrideSituacao(linha as any, override, CAMPOS_NUM as any),
+        linha: aplicarOverrideSituacao(linha as any, override, ["dias_trabalhados"]),
       };
     });
   }

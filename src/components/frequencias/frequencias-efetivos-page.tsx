@@ -264,7 +264,7 @@ const LinhaEfetivoRow = memo(function LinhaEfetivoRow({ it, conf, l, ro, isGloba
                         c.key === "adicional_noturno";
                       return (
                         <td key={c.key} className="erp-group-lanc">
-                          {overrideSituacao ? CelulaSituacao : <NumberCell
+                          {overrideSituacao && c.key === "dias_trabalhados" ? CelulaSituacao : <NumberCell
                             rowId={p.id}
                             colKey={c.key}
                             value={(l as any)[c.key] ?? ""}
@@ -286,7 +286,7 @@ const LinhaEfetivoRow = memo(function LinhaEfetivoRow({ it, conf, l, ro, isGloba
                     })}
                     {CAMPOS_SMS.map((c) => (
                       <td key={c.key} className="erp-group-sms">
-                        {overrideSituacao ? CelulaSituacao : <NumberCell
+                        {<NumberCell
                           rowId={p.id}
                           colKey={c.key}
                           value={(l as any)[c.key] ?? ""}
@@ -359,6 +359,7 @@ export function FrequenciasEfetivosPage() {
 
   const { data: cargosOpts } = useQuery({
     queryKey: ["cargos-filter"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("cargos")
@@ -371,6 +372,7 @@ export function FrequenciasEfetivosPage() {
   });
   const { data: funcoesOpts } = useQuery({
     queryKey: ["funcoes-filter"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("funcoes")
@@ -385,6 +387,7 @@ export function FrequenciasEfetivosPage() {
 
   const { data: setoresOpts } = useQuery({
     queryKey: ["setores-filter", unidadeId],
+    staleTime: 5 * 60_000,
     enabled: !!unidadeId && !isGlobalView,
     queryFn: async () => {
       const { data } = await supabase
@@ -409,6 +412,7 @@ export function FrequenciasEfetivosPage() {
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("competencias")
@@ -828,7 +832,7 @@ export function FrequenciasEfetivosPage() {
           ...it.profissional,
           situacao: override
         },
-        linha: aplicarOverrideSituacao(base as any, override, CAMPOS_NUM as any),
+        linha: aplicarOverrideSituacao(base as any, override, ["dias_trabalhados"]),
       };
     });
   }
