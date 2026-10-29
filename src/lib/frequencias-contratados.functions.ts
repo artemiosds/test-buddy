@@ -299,9 +299,11 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       .from("profissionais")
       .select("id, status")
       .in("id", profIds);
+    // Férias/licença/afastamento mantêm os lançamentos digitados (Incentivo, HE…);
+    // apenas desligados/inativos têm os campos numéricos zerados.
     const naoAtivos = new Set(
       (profsStatus ?? [])
-        .filter((p: any) => (p.status ?? "ativo") !== "ativo")
+        .filter((p: any) => ["desligado", "inativo"].includes(String(p.status ?? "ativo")))
         .map((p: any) => p.id as string),
     );
 
