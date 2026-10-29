@@ -746,7 +746,7 @@ export function ProfissionalEdicaoModal<L extends Record<string, any>>({
                   <Label htmlFor={`edm-${c.key}`} style={labelStyle}>
                     {c.label}
                   </Label>
-                  {overrideSituacao ? (
+                  {overrideSituacao && (c.key === "dias_trabalhados" || c.key === "dias") ? (
                     <Input
                       id={`edm-${c.key}`}
                       type="text"
