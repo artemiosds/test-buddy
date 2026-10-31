@@ -447,20 +447,20 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     }
 
     if (allRows.length) {
-      console.log("DEBUG_SALVAMENTO: Upsert no banco (Contratados)", allRows);
       // Upsert atômico de todas as linhas (novas e existentes)
       const { error } = await (supabase.from("frequencias_contratados") as any)
         .upsert(allRows, { onConflict: "competencia_id, unidade_id, profissional_id" });
       
       if (error) {
-        console.log("DEBUG_SUPABASE: Erro no upsert (Contratados)", error);
         console.error("[salvarFolhaContratados] Erro ao salvar frequencias_contratados:", error);
         throw new Error(`Erro ao salvar no banco: ${error.message} (Código: ${error.code})`);
       }
     }
 
-    // Sincronização após salvar
-    await orquestrarSincronizacao({
+    // A gravação principal já foi confirmada pelo upsert. No Cloudflare,
+    // waitUntil mantém a sincronização de metadados executando após a resposta;
+    // em runtimes sem esse recurso, aguardamos a sincronização para não perder a tarefa.
+    const sincronizacao = orquestrarSincronizacao({
       data: {
         evento: "FOLHA_SALVA",
         tipo: "contratados",
@@ -469,6 +469,22 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         setor_id: data.setor_id,
       }
     });
+    const executionContext = (
+      context as typeof context & {
+        frequencyBackgroundExecutionContext?: {
+          waitUntil?: (promise: Promise<unknown>) => void;
+        };
+      }
+    ).frequencyBackgroundExecutionContext;
+    if (typeof executionContext?.waitUntil === "function") {
+      executionContext.waitUntil(
+        sincronizacao.catch((error) => {
+          console.error("[salvarFolhaContratados] Falha na sincronização de metadados em segundo plano:", error);
+        }),
+      );
+    } else {
+      await sincronizacao;
+    }
 
     return { ok: true, processadas: allRows.length };
   });

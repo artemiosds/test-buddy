@@ -780,9 +780,11 @@ export function FrequenciasContratadosPage() {
       return next;
     });
 
-    // Só confirma "salvo" depois que a consulta da grade também estiver
-    // sincronizada com o valor persistido no backend.
-    await Promise.all([
+    // A resposta bem-sucedida de salvarFn confirma a gravação das linhas no banco.
+    // Atualizar os caches ativos em segundo plano evita segurar o indicador "Salvo"
+    // esperando uma nova leitura de toda a folha; edições mais recentes continuam protegidas
+    // pelo snapshot e pelo flag _dirty.
+    void Promise.all([
       qc.invalidateQueries({
         queryKey: ["folha-contratados", competenciaId, unidadeId],
         refetchType: "active",
@@ -791,14 +793,16 @@ export function FrequenciasContratadosPage() {
         queryKey: ["frequencia-resumo", competenciaId, unidadeId],
         refetchType: "active",
       }),
-    ]);
+    ]).catch((error) => {
+      console.error("[autosave contratados] Falha ao atualizar consultas após gravação confirmada:", error);
+    });
     return true;
   }, [competenciaId, unidadeId, setorUnico, setorFilter, setoresOpts?.length, folha, salvarFn, qc]);
 
   const autosave = useAutosaveFolha({
     enabled: canEdit,
     run: autosaveRun,
-    delay: 900,
+    delay: 300,
     onError: (error) =>
       toast.error(
         error instanceof Error

@@ -7,7 +7,7 @@ type Options = {
   enabled: boolean;
   /** Executa a gravação das linhas pendentes. Deve resolver após confirmação do servidor. */
   run: () => Promise<boolean>;
-  /** Debounce em ms (padrão 900). */
+  /** Debounce em ms (padrão 300). */
   delay?: number;
   /** Recebe a falha real do backend para feedback ao usuário. */
   onError?: (error: unknown) => void;
@@ -23,7 +23,7 @@ type Options = {
  * - em falha, mantém a fila pendente para retry;
  * - flush() aguarda a confirmação real e retorna true/false.
  */
-export function useAutosaveFolha({ enabled, run, delay = 900, onError }: Options) {
+export function useAutosaveFolha({ enabled, run, delay = 300, onError }: Options) {
   const [status, setStatus] = useState<AutosaveStatus>("idle");
 
   const runRef = useRef(run);
