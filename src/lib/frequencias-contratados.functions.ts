@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { waitUntil } from "@vercel/functions";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACOES, EVENTOS, ensurePermission, emitEvento } from "./authz.server";
 import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
@@ -7,7 +8,6 @@ import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
 import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "./edicao-linha";
 import { assertAcessoGlobal } from "./acesso-global.server";
-import { getFrequencyBackgroundExecutionContext } from "./frequency-background-context.server";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -458,10 +458,10 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
       }
     }
 
-    // A gravação principal já foi confirmada pelo upsert. No Cloudflare,
-    // waitUntil mantém a sincronização de metadados executando após a resposta;
-    // em runtimes sem esse recurso, aguardamos a sincronização para não perder a tarefa.
-    const sincronizacao = orquestrarSincronizacao({
+    // O upsert principal já confirmou a gravação. Na Vercel, waitUntil mantém
+    // a sincronização de metadados viva após a resposta HTTP sem bloquear o usuário.
+    // Fora desse runtime (como no desenvolvimento local), aguardamos como fallback seguro.
+    const tarefaSincronizacao = orquestrarSincronizacao({
       data: {
         evento: "FOLHA_SALVA",
         tipo: "contratados",
@@ -469,16 +469,13 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         unidade_id: data.unidade_id,
         setor_id: data.setor_id,
       }
+    }).catch((error) => {
+      console.error("[salvarFolhaContratados] Falha na sincronização após a gravação confirmada:", error);
     });
-    const executionContext = getFrequencyBackgroundExecutionContext();
-    if (typeof executionContext?.waitUntil === "function") {
-      executionContext.waitUntil(
-        sincronizacao.catch((error) => {
-          console.error("[salvarFolhaContratados] Falha na sincronização de metadados em segundo plano:", error);
-        }),
-      );
-    } else {
-      await sincronizacao;
+    try {
+      waitUntil(tarefaSincronizacao);
+    } catch {
+      await tarefaSincronizacao;
     }
 
     return { ok: true, processadas: allRows.length };
