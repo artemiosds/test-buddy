@@ -5,6 +5,21 @@ import { renderErrorPage } from "./lib/error-page";
 import { registerFrequencyBackgroundExecutionContext } from "./lib/frequency-background-context.server";
 
 type ServerEntry = {
+  fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+};
+
+let serverEntryPromise: Promise<ServerEntry> | undefined;
+
+async function getServerEntry(): Promise<ServerEntry> {
+  if (!serverEntryPromise) {
+    serverEntryPromise = import("@tanstack/react-start/server-entry").then(
+      (m) => (m.default ?? m) as ServerEntry,
+    );
+  }
+  return serverEntryPromise;
+}
+
+type ServerEntry = {
   fetch: (request: Request, options?: unknown) => Promise<Response> | Response;
 };
 
