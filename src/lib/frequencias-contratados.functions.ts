@@ -92,42 +92,59 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
       ...new Set((linhasHistoricas ?? []).map((l: any) => l.profissional_id as string)),
     ];
 
-    const query = supabase
-      .from("profissionais")
-      .select(
-        `
-        id, matricula, nome_completo, nome_social, cpf, status,
-        banco, agencia, conta_corrente,
-        cargo_id, funcao_id, setor_id,
-        cargos ( nome ),
-        funcoes ( nome ),
-        setores!profissionais_setor_id_fkey ( nome ),
-        vinculos!inner ( natureza, nome )
-      `,
-      )
-      .not("status", "in", "(inativo)")
-      .is("deleted_at", null)
-      .order("nome_completo");
-
-    if (profissionaisComFrequenciaNestaUnidade.length) {
-      query.or(
-        "unidade_id.eq." + data.unidade_id + ",id.in.(" + profissionaisComFrequenciaNestaUnidade.join(",") + ")",
-      );
-    } else {
-      query.eq("unidade_id", data.unidade_id);
-    }
-
-    if (data.setor_id) {
-      if (Array.isArray(data.setor_id)) {
-        query.in("setor_id", data.setor_id);
-      } else {
-        query.eq("setor_id", data.setor_id);
+    const selectProfissionais = `
+      id, matricula, nome_completo, nome_social, cpf, status,
+      banco, agencia, conta_corrente,
+      cargo_id, funcao_id, setor_id,
+      cargos ( nome ),
+      funcoes ( nome ),
+      setores!profissionais_setor_id_fkey ( nome ),
+      vinculos!inner ( natureza, nome )
+    `;
+    const criarConsultaProfissionais = () =>
+      supabase
+        .from("profissionais")
+        .select(selectProfissionais)
+        .not("status", "in", "(inativo)")
+        .is("deleted_at", null)
+        .order("nome_completo");
+    const aplicarFiltroSetor = (q: any) => {
+      if (data.setor_id) {
+        if (Array.isArray(data.setor_id)) q.in("setor_id", data.setor_id);
+        else q.eq("setor_id", data.setor_id);
       }
+      return q;
+    };
+
+    const { data: profissionaisAtuais, error: atuaisErr } = await aplicarFiltroSetor(
+      criarConsultaProfissionais(),
+    ).eq("unidade_id", data.unidade_id);
+    if (atuaisErr) throw new Error(atuaisErr.message);
+
+    // Consultar os históricos em lotes evita filtros id.in extensos e mantém
+    // a mesma seleção de unidade/setor para as pessoas já lançadas na folha.
+    const idsAtuais = new Set((profissionaisAtuais ?? []).map((p: any) => p.id as string));
+    const idsHistoricosForaDaUnidade = profissionaisComFrequenciaNestaUnidade.filter(
+      (id) => !idsAtuais.has(id),
+    );
+    const profissionaisHistoricos: any[] = [];
+    const LOTE_IDS_HISTORICOS = 80;
+    for (let i = 0; i < idsHistoricosForaDaUnidade.length; i += LOTE_IDS_HISTORICOS) {
+      const lote = idsHistoricosForaDaUnidade.slice(i, i + LOTE_IDS_HISTORICOS);
+      const { data: historicos, error: historicosErr } = await aplicarFiltroSetor(
+        criarConsultaProfissionais(),
+      ).in("id", lote);
+      if (historicosErr) throw new Error(historicosErr.message);
+      profissionaisHistoricos.push(...(historicos ?? []));
     }
 
-    const { data: allProfs, error: pErr } = await query;
-    
-    if (pErr) throw new Error(pErr.message);
+    const porIdProfissional = new Map<string, any>();
+    for (const p of [...(profissionaisAtuais ?? []), ...profissionaisHistoricos]) {
+      porIdProfissional.set(p.id, p);
+    }
+    const allProfs = [...porIdProfissional.values()].sort((a, b) =>
+      String(a.nome_completo ?? "").localeCompare(String(b.nome_completo ?? ""), "pt-BR"),
+    );
 
     // Filtro de contratados: Qualquer profissional que NÃO seja estatutário/efetivo/comissionado/terceirizado
     const profs = (allProfs ?? []).filter((p: any) => {
