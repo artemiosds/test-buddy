@@ -7,6 +7,7 @@ import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
 import { linhaEditavel, MSG_LINHA_BLOQUEADA } from "./edicao-linha";
 import { assertAcessoGlobal } from "./acesso-global.server";
+import { getFrequencyBackgroundExecutionContext } from "./frequency-background-context.server";
 
 // Contratados = vínculos não estatutários (comissionados vão na folha de efetivos).
 const NATUREZAS_CONTRATADO = [
@@ -469,13 +470,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
         setor_id: data.setor_id,
       }
     });
-    const executionContext = (
-      context as typeof context & {
-        frequencyBackgroundExecutionContext?: {
-          waitUntil?: (promise: Promise<unknown>) => void;
-        };
-      }
-    ).frequencyBackgroundExecutionContext;
+    const executionContext = getFrequencyBackgroundExecutionContext();
     if (typeof executionContext?.waitUntil === "function") {
       executionContext.waitUntil(
         sincronizacao.catch((error) => {

@@ -6,6 +6,7 @@ import { orquestrarSincronizacao } from "./frequencia-sincronizacao.functions";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { assertPrazoEnvio } from "./prazo-envio";
 import { assertAcessoGlobal } from "./acesso-global.server";
+import { getFrequencyBackgroundExecutionContext } from "./frequency-background-context.server";
 
 const VAL = z.union([z.number(), z.string()]).default(0);
 
@@ -640,13 +641,7 @@ export const salvarFolhaEfetivos = createServerFn({ method: "POST" })
         setor_id: normalizarSetorId(data.setor_id) ?? undefined,
       }
     });
-    const executionContext = (
-      context as typeof context & {
-        frequencyBackgroundExecutionContext?: {
-          waitUntil?: (promise: Promise<unknown>) => void;
-        };
-      }
-    ).frequencyBackgroundExecutionContext;
+    const executionContext = getFrequencyBackgroundExecutionContext();
     if (typeof executionContext?.waitUntil === "function") {
       executionContext.waitUntil(
         sincronizacao.catch((error) => {

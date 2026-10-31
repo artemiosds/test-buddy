@@ -9,9 +9,9 @@ describe("serial autosave regression", () => {
     vi.useFakeTimers();
     const run = vi.fn(async () => true);
     const { result } = renderHook(() => useAutosaveFolha({ enabled: true, run }));
-    act(() => { result.current.schedule(); vi.advanceTimersByTime(800); result.current.schedule(); });
+    act(() => { result.current.schedule(); vi.advanceTimersByTime(200); result.current.schedule(); vi.advanceTimersByTime(299); });
     expect(run).not.toHaveBeenCalled();
-    await act(async () => { vi.advanceTimersByTime(900); });
+    await act(async () => { vi.advanceTimersByTime(1); await Promise.resolve(); });
     expect(run).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe("saved");
   });
