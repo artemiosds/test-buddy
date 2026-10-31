@@ -209,41 +209,57 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       (folhasComStatus ?? []).map((f: any) => [f.id as string, String(f.status ?? "")]),
     );
 
-    const query = supabase
-      .from("profissionais")
-      .select(
-        `
-        id, matricula, nome_completo, nome_social, status,
-        proj, h_p, c_h, jorn,
-        cargo_id, funcao_id, setor_id,
-        cargos ( nome ),
-        funcoes ( nome ),
-        setores!profissionais_setor_id_fkey ( nome ),
-        vinculos!inner ( id, natureza, nome )
-      `,
-      )
-      .not("status", "in", "(inativo)")
-      .is("deleted_at", null)
-      .order("nome_completo");
-
-    if (profissionaisComLinhaExistente.length) {
-      query.or(
-        "unidade_id.eq." + data.unidade_id + ",id.in.(" + profissionaisComLinhaExistente.join(",") + ")",
-      );
-    } else {
-      query.eq("unidade_id", data.unidade_id);
-    }
-
-    if (data.setor_id) {
-      if (Array.isArray(data.setor_id)) {
-        query.in("setor_id", data.setor_id);
-      } else {
-        query.eq("setor_id", data.setor_id);
+    const selectProfissionais = `
+      id, matricula, nome_completo, nome_social, status,
+      proj, h_p, c_h, jorn,
+      cargo_id, funcao_id, setor_id,
+      cargos ( nome ),
+      funcoes ( nome ),
+      setores!profissionais_setor_id_fkey ( nome ),
+      vinculos!inner ( id, natureza, nome )
+    `;
+    const criarConsultaProfissionais = () =>
+      supabase
+        .from("profissionais")
+        .select(selectProfissionais)
+        .not("status", "in", "(inativo)")
+        .is("deleted_at", null)
+        .order("nome_completo");
+    const aplicarFiltroSetor = (q: any) => {
+      if (data.setor_id) {
+        if (Array.isArray(data.setor_id)) q.in("setor_id", data.setor_id);
+        else q.eq("setor_id", data.setor_id);
       }
+      return q;
+    };
+
+    const { data: profissionaisAtuais, error: atuaisErr } = await aplicarFiltroSetor(
+      criarConsultaProfissionais(),
+    ).eq("unidade_id", data.unidade_id);
+    if (atuaisErr) throw new Error(atuaisErr.message);
+
+    // Buscar IDs históricos em lotes para evitar URLs enormes quando uma folha
+    // contém muitos profissionais. Depois, mesclar por ID sem duplicar pessoas.
+    const idsAtuais = new Set((profissionaisAtuais ?? []).map((p: any) => p.id as string));
+    const idsHistoricosForaDaUnidade = profissionaisComLinhaExistente.filter((id) => !idsAtuais.has(id));
+    const profissionaisHistoricos: any[] = [];
+    const LOTE_IDS_HISTORICOS = 80;
+    for (let i = 0; i < idsHistoricosForaDaUnidade.length; i += LOTE_IDS_HISTORICOS) {
+      const lote = idsHistoricosForaDaUnidade.slice(i, i + LOTE_IDS_HISTORICOS);
+      const { data: historicos, error: historicosErr } = await aplicarFiltroSetor(
+        criarConsultaProfissionais(),
+      ).in("id", lote);
+      if (historicosErr) throw new Error(historicosErr.message);
+      profissionaisHistoricos.push(...(historicos ?? []));
     }
 
-    const { data: profs, error: pErr } = await query;
-    if (pErr) throw new Error(pErr.message);
+    const porIdProfissional = new Map<string, any>();
+    for (const p of [...(profissionaisAtuais ?? []), ...profissionaisHistoricos]) {
+      porIdProfissional.set(p.id, p);
+    }
+    const profs = [...porIdProfissional.values()].sort((a, b) =>
+      String(a.nome_completo ?? "").localeCompare(String(b.nome_completo ?? ""), "pt-BR"),
+    );
 
     // Filtro de efetivos: Estatutário/Efetivo ou Comissionado (EXCLUI TERCEIRIZADOS)
     const profsFinais = (profs ?? []).filter((p: any) => {
