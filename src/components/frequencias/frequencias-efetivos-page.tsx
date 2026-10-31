@@ -552,45 +552,51 @@ export function FrequenciasEfetivosPage() {
     folhaStatus === "com_pendencias" ||
     folhaStatus === "rejeitada" ||
     folhaStatus === "devolvida";
+  const folhaSomenteLeitura = ["aprovada", "aprovadas", "arquivada"].includes(
+    String(folhaStatus).toLowerCase(),
+  );
 
-  // Mapeamento de perfis para controle de botões na interface (EFETIVOS)
+  // Mapeamento de perfis para controle de botões na interface (EFETIVOS).
   const isMaster = !!me?.is_master;
-  const perfilCodigo = me?.perfil_codigo || ""; // Usa o campo direto do UserContext
+  const perfilCodigo = me?.perfil_codigo || "";
   const isGestorPerfil = perfilCodigo === "GESTOR" || isMaster;
   const isDiretor = perfilCodigo === "DIRETOR_UNIDADE" || isMaster;
   const isOperacional = perfilCodigo === "OPERACIONAL_ADM" || isMaster;
 
-  // Master/Gestor mantêm a edição mesmo após o envio para análise (o backend
-  // já permite esse bypass); os demais perfis só editam folha em aberto.
   const prazoBloqueado = bloqueadoPorPrazo({
     prazo: (compSel as any)?.prazo_envio,
     perfilCodigo,
     isMaster,
   });
 
-  // Visão consolidada (todas as unidades) é SEMPRE somente leitura.
+  // Folhas aprovadas/arquivadas nunca são editáveis, inclusive pelo Master.
   const canEdit =
     !isGlobalView &&
     !prazoBloqueado &&
     !compFechada &&
+    !folhaSomenteLeitura &&
     has("frequencia.editar") &&
     (isDiretor || isOperacional || isGestorPerfil);
 
-  /**
-   * Regra institucional: depois que a folha sai da unidade (enviada/em análise/
-   * aprovada), o Diretor só volta a editar o profissional cuja LINHA foi
-   * rejeitada ou devolvida para correção. Linha aprovada nunca é editável.
-   */
-  const linhaEditavel = (statusLinha: string | null | undefined) => {
-    // Master corrige qualquer linha, inclusive aprovada (backend já permite).
+  const linhaEditavel = (
+    statusLinha: string | null | undefined,
+    statusFolhaLinha?: string | null,
+  ) => {
+    const s = String(statusLinha ?? "pendente").toLowerCase();
+    const statusDaFolha = String(statusFolhaLinha ?? "").toLowerCase();
+    if (
+      folhaSomenteLeitura ||
+      ["aprovada", "aprovadas", "arquivada"].includes(statusDaFolha) ||
+      ["aprovada", "aprovadas", "arquivada"].includes(s)
+    ) {
+      return false;
+    }
     if (isMaster) return true;
-    const s = statusLinha ?? "pendente";
-    if (s === "aprovada") return false;
     if (folhaEditavel) return true;
     return s === "rejeitada" || s === "devolvida";
   };
 
-  const canEnviar = !isGlobalView && !prazoBloqueado && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || ((folha?.itens ?? []) as any[]).some((it) => { const s = (it.linha as any)?.status_linha; return s === "rejeitada" || s === "devolvida"; })) && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+  const canEnviar = !isGlobalView && !prazoBloqueado && !folhaSomenteLeitura && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || ((folha?.itens ?? []) as any[]).some((it) => { const s = (it.linha as any)?.status_linha; return s === "rejeitada" || s === "devolvida"; })) && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
@@ -1497,7 +1503,7 @@ export function FrequenciasEfetivosPage() {
                 if (!l) return null;
                 const statusLinha = ((it.linha as any)?.status_linha ?? "pendente") as string;
                 return <LinhaEfetivoRow key={p.id} it={it} conf={conf} l={l}
-                  ro={!canEdit || !linhaEditavel(statusLinha)} isGlobalView={isGlobalView}
+                  ro={!canEdit || !linhaEditavel(statusLinha, (it.linha as any)?.frequencia_status)} isGlobalView={isGlobalView}
                   openDossie={openDossie} digitarCampoNumerico={digitarCampoNumerico}
                   confirmarCampoNumerico={confirmarCampoNumerico} updateCampo={updateCampo} />;
               })}

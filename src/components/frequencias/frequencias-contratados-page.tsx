@@ -674,16 +674,23 @@ export function FrequenciasContratadosPage() {
     perfilCodigo,
     isMaster,
   });
-  // Visão consolidada (todas as unidades) é SEMPRE somente leitura.
-  const canEdit = !isGlobalView && !prazoBloqueado && !compFechada && has("frequencia.editar");
+  // Visão consolidada e folhas aprovadas/arquivadas são sempre somente leitura.
+  const folhaSomenteLeitura = ["aprovada", "aprovadas", "arquivada"].includes(
+    String(folhaStatusUnificado ?? "").toLowerCase(),
+  );
+  const canEdit =
+    !isGlobalView &&
+    !prazoBloqueado &&
+    !compFechada &&
+    !folhaSomenteLeitura &&
+    has("frequencia.editar");
 
   function readonlyLinha(l: LinhaState | undefined) {
-    if (!l) return true;
-    if (!canEdit) return true;
-    // Master corrige qualquer linha, inclusive aprovada (backend já permite).
+    if (!l || !canEdit) return true;
+    const statusLinha = String(l.status ?? "").toLowerCase();
+    if (["aprovada", "aprovadas", "arquivada"].includes(statusLinha)) return true;
     if (isMaster) return false;
-    // Após enviada/aprovada/em análise, campos ficam somente leitura
-    return !(l.status === "rascunho" || l.status === "rejeitada" || l.status === "devolvida");
+    return !(statusLinha === "rascunho" || statusLinha === "rejeitada" || statusLinha === "devolvida");
   }
 
   const salvarFn = useServerFn(salvarFolhaContratados);

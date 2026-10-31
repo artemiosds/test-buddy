@@ -859,7 +859,13 @@ function LotacaoTab({ profissional }: { profissional: ProfDetail | null | undefi
 
 type LinhaFreq = {
   id: string;
+  fonte: "efetivos" | "contratados";
+  folha_id: string | null;
+  competencia_id: string | null;
+  unidade_id: string | null;
+  status_folha: string | null;
   status_linha: string;
+  dias_trabalhados: number | null;
   faltas_justificadas: number | null;
   faltas_injustificadas: number | null;
   atestado: number | null;
@@ -888,10 +894,10 @@ function useLinhasFrequencia(profissionalId: string) {
   return useQuery({
     queryKey: ["prof-detail-linhas", profissionalId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: efetivos, error: efetivosErr } = await supabase
         .from("frequencia_profissional")
         .select(
-          `id, status_linha, faltas_justificadas, faltas_injustificadas, atestado,
+          `id, status_linha, dias_trabalhados, faltas_justificadas, faltas_injustificadas, atestado,
            he_50, he_100, adicional_noturno, plantoes_extras, sobreaviso, incentivo,
            ferias, licenca_premio, horas_extras,
            frequencias!inner(
@@ -906,13 +912,102 @@ function useLinhasFrequencia(profissionalId: string) {
         .is("deleted_at", null)
         .eq("profissional_id", profissionalId)
         .limit(500);
-      if (error) throw error;
-      return (data ?? []) as unknown as LinhaFreq[];
+      if (efetivosErr) throw efetivosErr;
+
+      const { data: contratados, error: contratadosErr } = await supabase
+        .from("frequencias_contratados")
+        .select(
+          "id, status, dias_trabalhados, dias_falta, atestado, he_50, he_100, adn, plantoes, sobreaviso, incentivo, competencia_id, unidade_id",
+        )
+        .is("deleted_at", null)
+        .eq("profissional_id", profissionalId)
+        .limit(500);
+      if (contratadosErr) throw contratadosErr;
+
+      const unidadeIds = [...new Set((contratados ?? []).map((r: any) => r.unidade_id as string))];
+      const competenciaIds = [...new Set((contratados ?? []).map((r: any) => r.competencia_id as string))];
+
+      let unidades: any[] = [];
+      if (unidadeIds.length) {
+        const { data, error } = await supabase.from("unidades").select("id, nome, sigla").in("id", unidadeIds);
+        if (error) throw error;
+        unidades = data ?? [];
+      }
+
+      let competencias: any[] = [];
+      if (competenciaIds.length) {
+        const { data, error } = await supabase.from("competencias").select("id, ano, mes").in("id", competenciaIds);
+        if (error) throw error;
+        competencias = data ?? [];
+      }
+
+      const unidadePorId = new Map<string, any>();
+      for (const unidade of unidades) unidadePorId.set(unidade.id, unidade);
+      const competenciaPorId = new Map<string, any>();
+      for (const competencia of competencias) competenciaPorId.set(competencia.id, competencia);
+
+      const linhasEfetivos: LinhaFreq[] = (efetivos ?? []).map((r: any) => {
+        const competencia = r.frequencias?.competencia_unidades?.competencias;
+        const unidadeId = r.frequencias?.competencia_unidades?.unidade_id ?? null;
+        return {
+          ...r,
+          id: "efetivos-" + r.id,
+          fonte: "efetivos" as const,
+          folha_id: r.frequencias?.id ?? null,
+          competencia_id: competencia?.id ?? null,
+          unidade_id: unidadeId,
+          status_folha: r.frequencias?.status ?? null,
+        };
+      });
+
+      const linhasContratados: LinhaFreq[] = (contratados ?? []).map((r: any) => {
+        const unidade = unidadePorId.get(r.unidade_id);
+        const competencia = competenciaPorId.get(r.competencia_id);
+        const status = String(r.status ?? "rascunho");
+        return {
+          id: "contratados-" + r.id,
+          fonte: "contratados" as const,
+          folha_id: null,
+          competencia_id: r.competencia_id,
+          unidade_id: r.unidade_id,
+          status_folha: status,
+          status_linha: status,
+          dias_trabalhados: r.dias_trabalhados ?? null,
+          faltas_justificadas: 0,
+          faltas_injustificadas: r.dias_falta ?? null,
+          atestado: r.atestado ?? null,
+          he_50: r.he_50 ?? null,
+          he_100: r.he_100 ?? null,
+          adicional_noturno: r.adn ?? null,
+          plantoes_extras: r.plantoes ?? null,
+          sobreaviso: r.sobreaviso ?? null,
+          incentivo: r.incentivo ?? null,
+          ferias: null,
+          licenca_premio: null,
+          horas_extras: null,
+          frequencias: {
+            id: "contratados-" + r.id,
+            tipo: "contratados",
+            status,
+            competencia_unidades: {
+              unidade_id: r.unidade_id,
+              unidades: unidade
+                ? { id: unidade.id, nome: unidade.nome, sigla: unidade.sigla ?? null }
+                : null,
+              competencias: competencia
+                ? { id: competencia.id, ano: competencia.ano, mes: competencia.mes }
+                : null,
+            },
+          },
+        };
+      });
+
+      return [...linhasEfetivos, ...linhasContratados];
     },
   });
 }
 
-function labelComp(c: { ano: number; mes: number } | null | undefined) {
+
   if (!c) return "-";
   return `${MES_LABEL[c.mes - 1]}/${c.ano}`;
 }
@@ -941,25 +1036,56 @@ function FrequenciasTab({ profissionalId }: { profissionalId: string }) {
     { key: "tipo", header: "Tipo", cell: (r) => r.frequencias?.tipo ?? "-" },
     {
       key: "unidade",
-      header: "Unidade",
+      header: "Unidade de atuação",
       cell: (r) =>
         r.frequencias?.competencia_unidades?.unidades?.sigla ??
         r.frequencias?.competencia_unidades?.unidades?.nome ??
         "-",
     },
     {
-      key: "status",
-      header: "Status linha",
-      cell: (r) => <Badge variant="secondary">{r.status_linha}</Badge>,
+      key: "statusFolha",
+      header: "Status da folha/registro",
+      cell: (r) => <Badge variant="secondary">{String(r.status_folha ?? "-").replaceAll("_", " ")}</Badge>,
     },
-    { key: "faltas", header: "Faltas", cell: (r) => fmtNum(r.faltas_injustificadas) },
-    { key: "atest", header: "Atestado", cell: (r) => fmtNum(r.atestado) },
     {
-      key: "he",
-      header: "HE (50+100)",
-      cell: (r) => fmtNum(Number(r.he_50 ?? 0) + Number(r.he_100 ?? 0)),
+      key: "status",
+      header: "Status do lançamento",
+      cell: (r) => <Badge variant="secondary">{String(r.status_linha ?? "-").replaceAll("_", " ")}</Badge>,
     },
-  ];
+    { key: "dias", header: "Dias trabalhados", cell: (r) => fmtNum(r.dias_trabalhados) },
+    {
+      key: "faltas",
+      header: "Faltas",
+      cell: (r) => fmtNum(Number(r.faltas_injustificadas ?? 0) + Number(r.faltas_justificadas ?? 0)),
+    },
+    { key: "he50", header: "HE 50%", cell: (r) => fmtNum(r.he_50) },
+    { key: "he100", header: "HE 100%", cell: (r) => fmtNum(r.he_100) },
+    { key: "plan", header: "Plantões", cell: (r) => fmtNum(r.plantoes_extras) },
+    { key: "incentivo", header: "Incentivo", cell: (r) => fmtNum(r.incentivo) },
+    {
+      key: "folha",
+      header: "Atalho",
+      cell: (r) =>
+        r.fonte === "efetivos" && r.folha_id ? (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/frequencias_/$id" params={{ id: r.folha_id }}>
+              Visualizar / baixar
+            </Link>
+          </Button>
+        ) : r.fonte === "contratados" && r.competencia_id && r.unidade_id ? (
+          <Button asChild size="sm" variant="outline">
+            <Link
+              to="/frequencia/contratados"
+              search={{ competenciaId: r.competencia_id, unidadeId: r.unidade_id }}
+            >
+              Visualizar / baixar
+            </Link>
+          </Button>
+        ) : (
+          "-"
+        ),
+    },
+  ];;
 
   return (
     <DataTable<LinhaFreq>

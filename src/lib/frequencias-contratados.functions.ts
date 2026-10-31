@@ -80,6 +80,18 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_VISUALIZAR);
 
+    const { data: linhasHistoricas, error: historicasErr } = await supabase
+      .from("frequencias_contratados")
+      .select("profissional_id")
+      .eq("competencia_id", data.competencia_id)
+      .eq("unidade_id", data.unidade_id)
+      .is("deleted_at", null);
+    if (historicasErr) throw new Error(historicasErr.message);
+
+    const profissionaisComFrequenciaNestaUnidade = [
+      ...new Set((linhasHistoricas ?? []).map((l: any) => l.profissional_id as string)),
+    ];
+
     const query = supabase
       .from("profissionais")
       .select(
@@ -93,10 +105,17 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
         vinculos!inner ( natureza, nome )
       `,
       )
-      .eq("unidade_id", data.unidade_id)
       .not("status", "in", "(inativo)")
       .is("deleted_at", null)
       .order("nome_completo");
+
+    if (profissionaisComFrequenciaNestaUnidade.length) {
+      query.or(
+        "unidade_id.eq." + data.unidade_id + ",id.in.(" + profissionaisComFrequenciaNestaUnidade.join(",") + ")",
+      );
+    } else {
+      query.eq("unidade_id", data.unidade_id);
+    }
 
     if (data.setor_id) {
       if (Array.isArray(data.setor_id)) {
@@ -311,10 +330,14 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
 
     for (const l of data.linhas) {
       const ex = byProf.get(l.profissional_id);
-      
-      // Se linha já foi enviada/aprovada/etc., NÃO permite reescrever pelo usuário comum
+      const statusExistente = String(ex?.status ?? "").toLowerCase();
+      if (ex && ["aprovada", "aprovadas", "arquivada"].includes(statusExistente)) {
+        throw new Error("Frequência aprovada ou arquivada — registro em modo somente leitura.");
+      }
+
+      // Mantém as regras existentes para linhas enviadas/em análise nos demais casos.
       if (!isMasterFinal && ex && ex.status !== "rascunho" && ex.status !== "rejeitada" && (ex.status as string) !== "devolvida") {
-         throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
+        throw new Error("Folha já enviada ou aprovada — não é possível editar sem perfil Master ou Gestor.");
       }
 
       // Concorrência Otimista
