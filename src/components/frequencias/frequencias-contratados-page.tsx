@@ -579,8 +579,12 @@ export function FrequenciasContratadosPage() {
     if (summary?.status) return summary.status;
     
     if (!folha?.length) return "rascunho";
-    const statuses = new Set(folha.map((it: any) => it.linha?.status ?? "rascunho"));
-    
+    const statuses = new Set(
+      folha.map((it: any) => String(it.linha?.status ?? "rascunho").toLowerCase()),
+    );
+
+    if (statuses.has("arquivada")) return "arquivada";
+    if (statuses.has("aprovadas")) return "aprovadas";
     if (statuses.has("rejeitada")) return "rejeitada";
     if (statuses.has("devolvida")) return "devolvida";
     if (statuses.has("com_pendencias")) return "com_pendencias";

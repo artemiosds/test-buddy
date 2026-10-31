@@ -222,7 +222,6 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
       supabase
         .from("profissionais")
         .select(selectProfissionais)
-        .not("status", "in", "(inativo)")
         .is("deleted_at", null)
         .order("nome_completo");
     const aplicarFiltroSetor = (q: any) => {
@@ -235,7 +234,9 @@ export const listarFolhaEfetivos = createServerFn({ method: "POST" })
 
     const { data: profissionaisAtuais, error: atuaisErr } = await aplicarFiltroSetor(
       criarConsultaProfissionais(),
-    ).eq("unidade_id", data.unidade_id);
+    )
+      .eq("unidade_id", data.unidade_id)
+      .not("status", "in", "(inativo)");
     if (atuaisErr) throw new Error(atuaisErr.message);
 
     // Buscar IDs históricos em lotes para evitar URLs enormes quando uma folha

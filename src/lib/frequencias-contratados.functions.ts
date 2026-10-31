@@ -105,7 +105,6 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
       supabase
         .from("profissionais")
         .select(selectProfissionais)
-        .not("status", "in", "(inativo)")
         .is("deleted_at", null)
         .order("nome_completo");
     const aplicarFiltroSetor = (q: any) => {
@@ -118,7 +117,9 @@ export const listarFolhaContratados = createServerFn({ method: "GET" })
 
     const { data: profissionaisAtuais, error: atuaisErr } = await aplicarFiltroSetor(
       criarConsultaProfissionais(),
-    ).eq("unidade_id", data.unidade_id);
+    )
+      .eq("unidade_id", data.unidade_id)
+      .not("status", "in", "(inativo)");
     if (atuaisErr) throw new Error(atuaisErr.message);
 
     // Consultar os históricos em lotes evita filtros id.in extensos e mantém
@@ -302,6 +303,37 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
     const st = (comp as any).status;
     if (st === "encerrada" || st === "arquivada") {
       throw new Error("Competência encerrada — folha de contratados em modo somente leitura.");
+    }
+
+    const { data: competenciaUnidade, error: competenciaUnidadeErr } = await supabase
+      .from("competencia_unidades")
+      .select("id")
+      .eq("competencia_id", data.competencia_id)
+      .eq("unidade_id", data.unidade_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (competenciaUnidadeErr) throw new Error(competenciaUnidadeErr.message);
+
+    if (competenciaUnidade?.id) {
+      let folhaQuery = supabase
+        .from("frequencias")
+        .select("id, status")
+        .eq("competencia_unidade_id", competenciaUnidade.id)
+        .eq("tipo", "contratados")
+        .is("deleted_at", null);
+      if (data.setor_id) {
+        folhaQuery = folhaQuery.eq("setor_id", data.setor_id);
+      } else {
+        folhaQuery = folhaQuery.is("setor_id", null);
+      }
+      const { data: folhas, error: folhasErr } = await folhaQuery;
+      if (folhasErr) throw new Error(folhasErr.message);
+      const folhaBloqueada = (folhas ?? []).some((folha: any) =>
+        ["aprovada", "aprovadas", "arquivada"].includes(String(folha.status ?? "").toLowerCase()),
+      );
+      if (folhaBloqueada) {
+        throw new Error("Folha aprovada ou arquivada — frequência de contratados em modo somente leitura.");
+      }
     }
 
     const isMaster = context.claims?.is_master === true;
