@@ -1008,6 +1008,7 @@ function useLinhasFrequencia(profissionalId: string) {
 }
 
 
+function labelComp(c: { ano: number; mes: number } | null | undefined) {
   if (!c) return "-";
   return `${MES_LABEL[c.mes - 1]}/${c.ano}`;
 }
@@ -1085,7 +1086,7 @@ function FrequenciasTab({ profissionalId }: { profissionalId: string }) {
           "-"
         ),
     },
-  ];;
+  ];
 
   return (
     <DataTable<LinhaFreq>
