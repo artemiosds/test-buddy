@@ -92,6 +92,9 @@ const MESES = [
   "Dezembro",
 ];
 
+const STATUS_SETOR_ENVIO_CONCLUIDO = ["enviada", "em_analise", "aprovada", "aprovadas", "arquivada"] as const;
+const STATUS_SETOR_ENVIO_PENDENTE = ["rascunho", "com_pendencias", "rejeitada", "devolvida"] as const;
+
 type LinhaState = {
   profissional_id: string;
   status_linha: StatusFreq;
@@ -400,6 +403,45 @@ export function FrequenciasEfetivosPage() {
     },
   });
 
+  const { data: statusSetoresRaw } = useQuery({
+    queryKey: ["frequencias-setores-status", "efetivos", competenciaId, unidadeId, (setoresOpts ?? []).map((s: any) => s.id).join(",")],
+    enabled: !!competenciaId && !!unidadeId && !isGlobalView && (setoresOpts?.length ?? 0) > 0,
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data: cu, error: cuErr } = await supabase
+        .from("competencia_unidades")
+        .select("id")
+        .eq("competencia_id", competenciaId)
+        .eq("unidade_id", unidadeId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (cuErr) throw new Error(cuErr.message);
+
+      const setores = setoresOpts ?? [];
+      if (!setores.length) return [];
+      if (!cu?.id) return setores.map((s: any) => ({ id: String(s.id), nome: s.nome, status: "rascunho" }));
+
+      const { data: folhasSetoriais, error: folhasErr } = await supabase
+        .from("frequencias")
+        .select("setor_id, status")
+        .eq("competencia_unidade_id", cu.id)
+        .eq("tipo", "efetivos")
+        .in("setor_id", setores.map((s: any) => String(s.id)))
+        .is("deleted_at", null);
+      if (folhasErr) throw new Error(folhasErr.message);
+
+      const statusPorSetor = new Map(
+        (folhasSetoriais ?? []).map((f: any) => [String(f.setor_id), String(f.status ?? "rascunho").toLowerCase()]),
+      );
+      return setores.map((s: any) => ({
+        id: String(s.id),
+        nome: String(s.nome ?? "Setor sem nome"),
+        status: statusPorSetor.get(String(s.id)) ?? "rascunho",
+      }));
+    },
+  });
+
   // reset setor filter when unidade changes (preserva o setor vindo da URL na 1ª carga)
   const primeiraCargaSetorRef = useRef(true);
   useEffect(() => {
@@ -596,7 +638,53 @@ export function FrequenciasEfetivosPage() {
     return s === "rejeitada" || s === "devolvida";
   };
 
-  const canEnviar = !isGlobalView && !prazoBloqueado && !folhaSomenteLeitura && (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || ((folha?.itens ?? []) as any[]).some((it) => { const s = (it.linha as any)?.status_linha; return s === "rejeitada" || s === "devolvida"; })) && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
+  const consolidacaoSetorial = useMemo(() => {
+    const total = (setoresOpts ?? []).length;
+    const geral = !isGlobalView && (setorFilter.length === 0 || (total > 0 && setorFilter.length === total));
+    const parcialInvalida = !isGlobalView && total > 0 && setorFilter.length > 1 && setorFilter.length < total;
+    const carregado = statusSetoresRaw !== undefined;
+    const setores = statusSetoresRaw ?? [];
+    const concluidos = setores.filter((s: any) =>
+      (STATUS_SETOR_ENVIO_CONCLUIDO as readonly string[]).includes(String(s.status ?? "").toLowerCase()),
+    ).length;
+    const pendentes = setores.filter((s: any) =>
+      (STATUS_SETOR_ENVIO_PENDENTE as readonly string[]).includes(String(s.status ?? "").toLowerCase()),
+    ).length;
+    const todosEnviados = geral && total > 0 && carregado && concluidos === total;
+    const parcial = geral && total > 0 && carregado && concluidos > 0 && concluidos < total;
+    let status: StatusFreq | "parcialmente_enviada" = folhaStatus;
+    if (geral && total > 0 && carregado) {
+      if (concluidos === 0) status = "rascunho";
+      else if (parcial) status = "parcialmente_enviada";
+      else if (todosEnviados && setores.every((s: any) => ["aprovada", "aprovadas"].includes(String(s.status ?? "").toLowerCase()))) status = "aprovada";
+      else if (todosEnviados && setores.every((s: any) => String(s.status ?? "").toLowerCase() === "arquivada")) status = "arquivada";
+      else if (todosEnviados) status = "enviada";
+    }
+    return {
+      ativo: geral,
+      temSetores: total > 0,
+      carregado,
+      total,
+      concluidos,
+      pendentes,
+      todosEnviados,
+      parcial,
+      parcialInvalida,
+      status,
+      setoresEnvio: geral ? setores.map((s: any) => ({
+        ...s,
+        jaEnviado: (STATUS_SETOR_ENVIO_CONCLUIDO as readonly string[]).includes(String(s.status ?? "").toLowerCase()),
+      })) : [],
+    };
+  }, [setoresOpts, statusSetoresRaw, isGlobalView, setorFilter, folhaStatus]);
+
+  const temStatusSetorialParaEnviar = consolidacaoSetorial.ativo && consolidacaoSetorial.temSetores
+    ? consolidacaoSetorial.carregado && !consolidacaoSetorial.todosEnviados && consolidacaoSetorial.pendentes > 0
+    : (folhaStatus === "rascunho" || folhaStatus === "com_pendencias" || folhaStatus === "rejeitada" || folhaStatus === "devolvida" || ((folha?.itens ?? []) as any[]).some((it) => { const s = (it.linha as any)?.status_linha; return s === "rejeitada" || s === "devolvida"; }));
+  const bloqueadaParaEnvio = consolidacaoSetorial.ativo && consolidacaoSetorial.temSetores && consolidacaoSetorial.carregado
+    ? consolidacaoSetorial.todosEnviados
+    : folhaSomenteLeitura;
+  const canEnviar = !isGlobalView && !prazoBloqueado && !bloqueadaParaEnvio && !consolidacaoSetorial.parcialInvalida && temStatusSetorialParaEnviar && has("frequencia.enviar") && (isDiretor || isGestorPerfil);
 
 
   const salvarFn = useServerFn(salvarFolhaEfetivos);
@@ -900,6 +988,7 @@ export function FrequenciasEfetivosPage() {
       });
       qc.invalidateQueries({ queryKey: ["folha-efetivos", competenciaId, unidadeId] });
       qc.invalidateQueries({ queryKey: ["frequencia-resumo", competenciaId, unidadeId] });
+      qc.invalidateQueries({ queryKey: ["frequencias-setores-status", "efetivos", competenciaId, unidadeId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar."),
   });
@@ -946,6 +1035,42 @@ export function FrequenciasEfetivosPage() {
       return { it, conf: mergeConferencia(base, confMap) };
     });
   }, [filtradas, confMap]);
+
+  const profissionaisSemDias = useMemo(() => {
+    const diasZeradosOuVazios = (valor: unknown) => {
+      if (valor == null || String(valor).trim() === "") return true;
+      return Number(String(valor).trim().replace(",", ".")) === 0;
+    };
+    const temLancamento = (valor: unknown) => {
+      if (valor == null || String(valor).trim() === "") return false;
+      const numero = Number(String(valor).trim().replace(",", "."));
+      return Number.isFinite(numero) && numero > 0;
+    };
+
+    return ((folha?.itens ?? []) as any[]).flatMap((item: any) => {
+      const profissional = item.profissional;
+      const linha = linhas[profissional.id] ?? item.linha ?? {};
+      const situacao = derivarSituacao(mergeConferencia({
+        id: profissional.id,
+        status: profissional.status ?? null,
+        situacao_funcional: profissional.situacao_funcional ?? null,
+      } as ProfConferencia, confMap));
+      if (
+        !diasZeradosOuVazios(linha.dias_trabalhados) ||
+        temLancamento(linha.atestado) ||
+        temLancamento(linha.faltas_injustificadas) ||
+        situacao !== "ativo"
+      ) {
+        return [];
+      }
+      return [{
+        id: profissional.id,
+        nome: profissional.nome ?? "Profissional sem nome",
+        cargo: profissional.cargo ?? undefined,
+        setor: profissional.setor ?? undefined,
+      }];
+    });
+  }, [folha, linhas, confMap]);
 
   const linhasFinais = useMemo(
     () =>
@@ -1118,6 +1243,7 @@ export function FrequenciasEfetivosPage() {
           <Button
             onClick={() => setEnviarAberto(true)}
             disabled={!canEnviar || mEnviar.isPending || !folha?.itens?.length}
+            title={consolidacaoSetorial.todosEnviados ? "Todos os setores desta unidade já foram enviados para análise." : undefined}
           >
             <Send className="mr-1.5 h-4 w-4" /> Enviar para análise
           </Button>
@@ -1336,13 +1462,30 @@ export function FrequenciasEfetivosPage() {
       )}
 
       {/* Painel gerencial (UI-only) */}
+      {consolidacaoSetorial.parcialInvalida && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Para enviar por setor, selecione apenas um setor. Para enviar todos os setores pendentes, limpe o filtro de setor ou selecione todos.
+        </div>
+      )}
+      {consolidacaoSetorial.todosEnviados && (
+        <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+          <span aria-hidden="true" className="mt-0.5 text-emerald-300">✓</span>
+          <span>Todos os setores desta unidade já foram enviados para análise.</span>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-4">
         <KpiFolhaBar k={kpi} className="flex-1" />
         <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border bg-card shadow-sm">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Status da Unidade:
           </span>
-          <StatusBadge domain="frequencia" value={folhaStatus} />
+          {consolidacaoSetorial.status === "parcialmente_enviada" ? (
+            <span title="Parte dos setores já foi enviada; os demais continuam disponíveis para envio." className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
+              Parcialmente Enviada ({consolidacaoSetorial.concluidos} de {consolidacaoSetorial.total})
+            </span>
+          ) : (
+            <StatusBadge domain="frequencia" value={consolidacaoSetorial.status} />
+          )}
         </div>
       </div>
       <ResumoDiasFaltasAtt
@@ -1611,11 +1754,13 @@ export function FrequenciasEfetivosPage() {
         onOpenChange={setEnviarAberto}
         competenciaId={competenciaId}
         unidadeId={unidadeId}
-        setorId={setorFilter.length === 1 ? setorFilter[0] : null}
+        setorId={setorFilter.length === 1 && setorFilter.length !== (setoresOpts?.length ?? 0) ? setorFilter[0] : null}
         folha="efetivos"
         statusLinha={folhaStatus}
         enviando={mEnviar.isPending}
         onConfirm={() => mEnviar.mutate()}
+        profissionaisSemDias={profissionaisSemDias}
+        setoresEnvio={consolidacaoSetorial.ativo && consolidacaoSetorial.temSetores ? consolidacaoSetorial.setoresEnvio : undefined}
       />
     </div>
   );

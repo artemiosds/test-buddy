@@ -48,6 +48,111 @@ const EnviarSchema = z.object({
   setor_id: z.string().uuid().optional(),
 });
 
+
+const STATUS_FOLHAS_PENDENTES_ENVIO = ["rascunho", "com_pendencias", "rejeitada", "devolvida"] as const;
+const STATUS_FOLHAS_CONCLUIDAS_ENVIO = ["enviada", "em_analise", "aprovada", "aprovadas", "arquivada"] as const;
+
+function folhaPodeSerEnviada(status: unknown): boolean {
+  return (STATUS_FOLHAS_PENDENTES_ENVIO as readonly string[]).includes(String(status ?? "rascunho").toLowerCase());
+}
+
+/** Garante um cabeçalho Geral e um cabeçalho por setor ativo, sem duplicar folhas. */
+async function garantirCabecalhosSetoriais(
+  supabase: any,
+  competencia_unidade_id: string,
+  unidade_id: string,
+  tipo: "efetivos" | "contratados",
+  userId: string,
+): Promise<{ setores: any[]; folhas: any[] }> {
+  const { data: setores, error: setoresErr } = await supabase
+    .from("setores")
+    .select("id, nome")
+    .eq("unidade_id", unidade_id)
+    .is("deleted_at", null)
+    .order("nome");
+  if (setoresErr) throw new Error(setoresErr.message);
+
+  const carregarFolhas = async () => {
+    const { data, error } = await supabase
+      .from("frequencias")
+      .select("id, status, setor_id, data_envio, enviada_por")
+      .eq("competencia_unidade_id", competencia_unidade_id)
+      .eq("tipo", tipo)
+      .is("deleted_at", null);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  };
+
+  let folhas = await carregarFolhas();
+  const esperados: Array<string | null> = [null, ...(setores ?? []).map((s: any) => String(s.id))];
+  for (const setorId of esperados) {
+    if (folhas.some((f: any) => (f.setor_id ? String(f.setor_id) : null) === setorId)) continue;
+    const { error } = await supabase.from("frequencias").insert({
+      competencia_unidade_id,
+      tipo,
+      setor_id: setorId,
+      status: "rascunho",
+      created_by: userId,
+    } as never);
+    if (error) {
+      const duplicada = (error as any).code === "23505" || /duplicate key/i.test(error.message ?? "");
+      if (!duplicada) throw new Error(error.message);
+      // Outra requisição criou o mesmo cabeçalho. A releitura abaixo resolve a corrida.
+    }
+  }
+  folhas = await carregarFolhas();
+  return { setores: setores ?? [], folhas };
+}
+
+/** Promove o cabeçalho Geral somente quando todos os setores ativos foram submetidos. */
+async function sincronizarCabecalhoGeralSeSetoresConcluidos(
+  supabase: any,
+  competencia_unidade_id: string,
+  unidade_id: string,
+  tipo: "efetivos" | "contratados",
+  userId: string,
+  executadoNome: string,
+  executadoPerfil: string,
+): Promise<void> {
+  const { setores, folhas } = await garantirCabecalhosSetoriais(
+    supabase, competencia_unidade_id, unidade_id, tipo, userId,
+  );
+  if (!setores.length) return;
+
+  const statusPorSetor = new Map(
+    folhas.filter((f: any) => f.setor_id).map((f: any) => [String(f.setor_id), String(f.status ?? "rascunho").toLowerCase()]),
+  );
+  const todosConcluidos = setores.every((s: any) =>
+    (STATUS_FOLHAS_CONCLUIDAS_ENVIO as readonly string[]).includes(statusPorSetor.get(String(s.id)) ?? ""),
+  );
+  if (!todosConcluidos) return;
+
+  const geral = folhas.find((f: any) => !f.setor_id);
+  if (!geral || !folhaPodeSerEnviada(geral.status)) return;
+
+  const now = new Date().toISOString();
+  const { data: promovidas, error: promoverErr } = await supabase
+    .from("frequencias")
+    .update({ status: "enviada", data_envio: now, enviada_por: userId, updated_by: userId } as never)
+    .eq("id", geral.id)
+    .in("status", [...STATUS_FOLHAS_PENDENTES_ENVIO])
+    .select("id");
+  if (promoverErr) throw new Error(promoverErr.message);
+  if (!(promovidas ?? []).length) return;
+
+  const { error: historicoErr } = await supabase.from("frequencia_historico").insert([{
+    frequencia_id: geral.id,
+    status_anterior: String(geral.status ?? "rascunho"),
+    status_novo: "enviada",
+    acao: "Consolidação automática dos setores",
+    justificativa: `Todos os ${setores.length} setores da unidade foram enviados para análise.`,
+    executado_por: userId,
+    executado_nome: executadoNome || "Usuário HSM",
+    executado_perfil: executadoPerfil || "Indefinido",
+  }] as never);
+  if (historicoErr) throw new Error(historicoErr.message);
+}
+
 const PAYLOAD_FIELDS = [
   "dias_trabalhados",
   "dias_falta",
@@ -489,143 +594,175 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
     await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
-    // Auditoria rico
     const { data: perfil } = await supabase
       .from("perfis")
       .select("nome, codigo")
       .eq("id", (context as any).user?.user_metadata?.perfil_id || "")
       .maybeSingle();
 
-    const now = new Date().toISOString();
-    // Resolvemos os profissionais do setor se houver filtro
-    const profQuery = supabase
-      .from("profissionais")
-      .select("id")
-      .eq("unidade_id", data.unidade_id)
-      .is("deleted_at", null);
-    
-    if (data.setor_id) {
-      profQuery.eq("setor_id", data.setor_id);
+    const cuId = await garantirCompetenciaUnidade({
+      competencia_id: data.competencia_id,
+      unidade_id: data.unidade_id,
+      userId,
+    });
+    const { setores, folhas: folhasExistentes } = await garantirCabecalhosSetoriais(
+      supabase, cuId, data.unidade_id, "contratados", userId,
+    );
+    const folhaGeral = folhasExistentes.find((f: any) => !f.setor_id);
+    const folhasSetoriais = folhasExistentes.filter((f: any) => !!f.setor_id);
+    const setorSolicitado = data.setor_id ?? null;
+
+    let folhasCandidatas: any[];
+    if (setorSolicitado) {
+      const selecionada = folhasSetoriais.find((f: any) => String(f.setor_id) === setorSolicitado);
+      if (!selecionada) throw new Error("Não foi possível localizar a folha deste setor.");
+      if (!folhaPodeSerEnviada(selecionada.status)) {
+        throw new Error("Este setor já foi enviado para análise ou está em aprovação. O envio não será repetido.");
+      }
+      folhasCandidatas = [selecionada];
+    } else if (setores.length > 0) {
+      const setoresPendentes = folhasSetoriais.filter((f: any) => folhaPodeSerEnviada(f.status));
+      if (!setoresPendentes.length) {
+        throw new Error("Todos os setores desta unidade já foram enviados para análise.");
+      }
+      folhasCandidatas = [
+        ...setoresPendentes,
+        ...(folhaGeral && folhaPodeSerEnviada(folhaGeral.status) ? [folhaGeral] : []),
+      ];
+    } else {
+      if (!folhaGeral || !folhaPodeSerEnviada(folhaGeral.status)) {
+        throw new Error("Esta folha já foi enviada para análise. O envio não será repetido.");
+      }
+      folhasCandidatas = [folhaGeral];
     }
 
-    const { data: profs } = await profQuery;
-    const profIds = (profs ?? []).map(p => p.id);
-
-    const { data: updated, error } = await supabase
-      .from("frequencias_contratados")
+    // Claim atômico antes da atualização de linhas; já enviadas nunca são alvo.
+    const now = new Date().toISOString();
+    const { data: folhasMarcadas, error: marcarErr } = await supabase
+      .from("frequencias")
       .update({
         status: "enviada",
+        data_envio: now,
         enviada_por: userId,
-        enviada_em: now,
         updated_by: userId,
       } as never)
-      .eq("competencia_id", data.competencia_id)
-      .eq("unidade_id", data.unidade_id)
-      .in("profissional_id", profIds)
-      .in("status", ["rascunho", "rejeitada", "devolvida"])
-      .is("deleted_at", null)
+      .in("id", folhasCandidatas.map((f: any) => String(f.id)))
+      .in("status", [...STATUS_FOLHAS_PENDENTES_ENVIO])
       .select("id");
+    if (marcarErr) throw new Error(marcarErr.message);
 
-    // O total do envio deve refletir todos os profissionais já persistidos
-    // no escopo, e não apenas as linhas que mudaram de status neste clique.
+    const idsMarcados = new Set((folhasMarcadas ?? []).map((f: any) => String(f.id)));
+    const folhasRealmenteEnviadas = folhasCandidatas.filter((f: any) => idsMarcados.has(String(f.id)));
+    if (!folhasRealmenteEnviadas.length) {
+      throw new Error("A folha foi enviada por outro usuário ou não possui setores pendentes. Atualize a página.");
+    }
+    const setoresMarcados = new Set(
+      folhasRealmenteEnviadas.map((f: any) => f.setor_id).filter((id: any) => !!id).map(String),
+    );
+    const geralMarcada = folhasRealmenteEnviadas.some((f: any) => !f.setor_id);
+
+    // Só seleciona profissionais dos setores cujos cabeçalhos foram reclamados neste envio.
+    const profQuery = supabase
+      .from("profissionais")
+      .select("id, setor_id")
+      .eq("unidade_id", data.unidade_id)
+      .is("deleted_at", null);
+    if (setorSolicitado) profQuery.eq("setor_id", setorSolicitado);
+    const { data: profissionais, error: profsErr } = await profQuery;
+    if (profsErr) throw new Error(profsErr.message);
+
+    const profIds = (profissionais ?? [])
+      .filter((p: any) => {
+        if (setorSolicitado) return String(p.setor_id ?? "") === setorSolicitado;
+        if (setores.length === 0) return geralMarcada;
+        if (p.setor_id) return setoresMarcados.has(String(p.setor_id));
+        return geralMarcada;
+      })
+      .map((p: any) => String(p.id));
+
+    let updatedRows: any[] = [];
+    if (profIds.length) {
+      const { data: rows, error } = await supabase
+        .from("frequencias_contratados")
+        .update({
+          status: "enviada",
+          enviada_por: userId,
+          enviada_em: now,
+          updated_by: userId,
+        } as never)
+        .eq("competencia_id", data.competencia_id)
+        .eq("unidade_id", data.unidade_id)
+        .in("profissional_id", profIds)
+        .in("status", [...STATUS_FOLHAS_PENDENTES_ENVIO])
+        .is("deleted_at", null)
+        .select("id, profissional_id");
+      if (error) throw new Error(error.message);
+      updatedRows = rows ?? [];
+    }
+
     let persistidasQuery = supabase
       .from("frequencias_contratados")
       .select("profissional_id")
       .eq("competencia_id", data.competencia_id)
       .eq("unidade_id", data.unidade_id)
       .is("deleted_at", null);
-    if (data.setor_id) {
-      persistidasQuery = persistidasQuery.in("profissional_id", profIds);
-    }
+    if (profIds.length) persistidasQuery = persistidasQuery.in("profissional_id", profIds);
+    else persistidasQuery = persistidasQuery.in("profissional_id", ["00000000-0000-0000-0000-000000000000"]);
     const { data: linhasPersistidas, error: persistidasErr } = await persistidasQuery;
     if (persistidasErr) throw new Error(persistidasErr.message);
+    const profissionaisEnviados = new Set((linhasPersistidas ?? []).map((l: any) => String(l.profissional_id)));
 
-    const profissionaisEnviados = new Set(
-      (linhasPersistidas ?? []).map((linha) => linha.profissional_id),
-    );
-    const totalProfissionais = profissionaisEnviados.size;
-    if (error) throw new Error(error.message);
-
-    // Orquestração central
     await orquestrarSincronizacao({
       data: {
         evento: "FOLHA_ENVIADA",
         tipo: "contratados",
         competencia_id: data.competencia_id,
         unidade_id: data.unidade_id,
-        setor_id: data.setor_id,
-      }
+        setor_id: setorSolicitado ?? undefined,
+      },
     });
 
-    // Sincroniza os registros de submissão usados pela tela de Aprovações.
-    // Sem setor: todas as folhas de contratados da unidade formam um conjunto.
-    // Com setor: mantém o comportamento isolado.
-    const cuId = await garantirCompetenciaUnidade({
-      competencia_id: data.competencia_id,
-      unidade_id: data.unidade_id,
-      userId,
-    });
-    let qFreqs = supabase
-      .from("frequencias")
-      .select("id, status, setor_id")
-      .eq("tipo", "contratados")
-      .eq("competencia_unidade_id", cuId)
-      .is("deleted_at", null);
-    if (data.setor_id) qFreqs = qFreqs.eq("setor_id", data.setor_id);
-    const { data: freqs, error: freqsErr } = await qFreqs.order("created_at", { ascending: true });
-    if (freqsErr) throw new Error(freqsErr.message);
-
-    if ((freqs ?? []).length) {
-      const freqIds = (freqs ?? []).map((f) => f.id);
-      const { error: statusErr } = await supabase
-        .from("frequencias")
-        .update({
-          status: "enviada",
-          data_envio: now,
-          enviada_por: userId,
-          updated_by: userId,
-        } as never)
-        .in("id", freqIds)
-        .in("status", ["rascunho", "com_pendencias", "rejeitada", "devolvida", "enviada"]);
-      if (statusErr) throw new Error(statusErr.message);
-
-      const setoresDistintos = new Set(
-        (freqs ?? []).map((f) => f.setor_id).filter((v): v is string => !!v),
-      );
-      const geral = (freqs ?? []).find((f) => !f.setor_id);
-      if (!data.setor_id && geral) {
-        const { error: totalErr } = await supabase
-          .from("frequencias")
-          .update({ total_profissionais: totalProfissionais, updated_by: userId } as never)
-          .eq("id", geral.id);
-        if (totalErr) throw new Error(totalErr.message);
-      }
-
-      const historicos = (freqs ?? []).map((freq) => ({
-        frequencia_id: freq.id,
-        status_anterior: freq.status || "rascunho",
-        status_novo: "enviada",
-        acao: "Envio para análise",
-        justificativa: !data.setor_id
-          ? `Envio consolidado da unidade: ${totalProfissionais} profissionais em ${setoresDistintos.size} setores.`
-          : null,
-        executado_por: userId,
-        executado_nome: perfil?.nome || "Usuário HSM",
-        executado_perfil: perfil?.codigo || "Indefinido",
-      }));
+    const historicos = folhasRealmenteEnviadas.map((folha: any) => ({
+      frequencia_id: folha.id,
+      status_anterior: String(folha.status ?? "rascunho"),
+      status_novo: "enviada",
+      acao: "Envio para análise",
+      justificativa: !setorSolicitado
+        ? `Envio consolidado da unidade: ${profissionaisEnviados.size} profissionais em ${setoresMarcados.size} setores.`
+        : null,
+      executado_por: userId,
+      executado_nome: perfil?.nome || "Usuário HSM",
+      executado_perfil: perfil?.codigo || "Indefinido",
+    }));
+    if (historicos.length) {
       const { error: histErr } = await supabase
         .from("frequencia_historico")
         .insert(historicos as never);
       if (histErr) throw new Error(histErr.message);
-
-      return {
-        ok: true,
-        enviadas: totalProfissionais,
-        setores: setoresDistintos.size,
-        frequencias: freqIds.length,
-        consolidado: !data.setor_id,
-      };
     }
 
-    return { ok: true, enviadas: (updated ?? []).length, setores: 0, frequencias: 0, consolidado: !data.setor_id };
+    // A orquestração pode recalcular metadados a partir de linhas legadas;
+    // reaplicamos "enviada" somente nos cabeçalhos que esta requisição marcou,
+    // sem tocar em aprovação nem em cabeçalhos de outros setores.
+    const idsRealmenteEnviados = folhasRealmenteEnviadas.map((f: any) => String(f.id));
+    const { error: reafirmarErr } = await supabase
+      .from("frequencias")
+      .update({ status: "enviada", data_envio: now, enviada_por: userId, updated_by: userId } as never)
+      .in("id", idsRealmenteEnviados)
+      .in("status", [...STATUS_FOLHAS_PENDENTES_ENVIO])
+      .select("id");
+    if (reafirmarErr) throw new Error(reafirmarErr.message);
+
+    await sincronizarCabecalhoGeralSeSetoresConcluidos(
+      supabase, cuId, data.unidade_id, "contratados", userId,
+      perfil?.nome || "Usuário HSM", perfil?.codigo || "Indefinido",
+    );
+
+    return {
+      ok: true,
+      enviadas: updatedRows.length || profissionaisEnviados.size,
+      setores: setoresMarcados.size,
+      frequencias: folhasRealmenteEnviadas.length,
+      consolidado: !setorSolicitado,
+    };
   });

@@ -1069,7 +1069,7 @@ function FrequenciasTab({ profissionalId }: { profissionalId: string }) {
       cell: (r) =>
         r.fonte === "efetivos" && r.folha_id ? (
           <Button asChild size="sm" variant="outline">
-            <Link to="/frequencias_/$id" params={{ id: r.folha_id }}>
+            <Link to="/frequencias/$id" params={{ id: r.folha_id }}>
               Visualizar / baixar
             </Link>
           </Button>
