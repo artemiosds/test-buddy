@@ -1,3 +1,4 @@
+import { BannerReabrirFolha } from "./BannerReabrirFolha";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineGuard } from "@/lib/offline-guard";
 import { notificarModuloDesatualizado } from "@/lib/pwa";
@@ -1454,6 +1455,12 @@ export function FrequenciasEfetivosPage() {
           />
         </div>
       </div>
+
+      <BannerReabrirFolha
+        visivel={String(folhaStatus) === "aprovada" && (isMaster || perfilCodigo === "GESTOR")}
+        frequenciaId={folha?.frequencia_id ?? null}
+        tipo="efetivos"
+      />
 
       {compFechada && (
         <div className="rounded-md border border-warning/40 bg-warning-soft text-warning-soft-foreground text-sm px-3 py-2">
