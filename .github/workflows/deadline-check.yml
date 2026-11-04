@@ -1,0 +1,57 @@
+name: Verificar prazos de competências
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deadline-check
+  cancel-in-progress: false
+
+jobs:
+  deadline-check:
+    name: Verificar prazos e retentar e-mails
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validar segredos de produção
+        shell: bash
+        env:
+          DEADLINE_CHECK_URL: ${{ secrets.DEADLINE_CHECK_URL }}
+          DEADLINE_CRON_SECRET: ${{ secrets.DEADLINE_CRON_SECRET }}
+        run: |
+          if [[ -z "$DEADLINE_CHECK_URL" || -z "$DEADLINE_CRON_SECRET" ]]; then
+            echo "::error::Configure DEADLINE_CHECK_URL e DEADLINE_CRON_SECRET em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [[ "$DEADLINE_CHECK_URL" != https://* ]]; then
+            echo "::error::DEADLINE_CHECK_URL precisa começar com https://."
+            exit 1
+          fi
+          if (( ${#DEADLINE_CRON_SECRET} < 16 )); then
+            echo "::error::DEADLINE_CRON_SECRET precisa ter pelo menos 16 caracteres."
+            exit 1
+          fi
+
+      - name: Executar verificação protegida
+        shell: bash
+        env:
+          DEADLINE_CHECK_URL: ${{ secrets.DEADLINE_CHECK_URL }}
+          DEADLINE_CRON_SECRET: ${{ secrets.DEADLINE_CRON_SECRET }}
+        run: |
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          http_code="$(curl --silent --show-error --max-time 90 \
+            --output "$response_file" --write-out "%{http_code}" \
+            --request POST "$DEADLINE_CHECK_URL" \
+            --header "x-cron-secret: $DEADLINE_CRON_SECRET" \
+            --header "content-type: application/json")"
+          cat "$response_file"
+          if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
+            echo "::error::O endpoint de prazos respondeu HTTP $http_code."
+            exit 1
+          fi

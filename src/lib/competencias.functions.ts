@@ -77,19 +77,40 @@ export const criarCompetencia = createServerFn({ method: "POST" })
     // Notificação (in-app + mural + e-mail) para usuários vinculados às unidades
     let notificacoes: {
       usuarios: number;
+      notificacoes: number;
+      notificacoes_falhas: number;
       emails: number;
+      emails_ja_enviados: number;
       emails_falhos: number;
       erro?: string;
-    } = { usuarios: 0, emails: 0, emails_falhos: 0 };
+    } = {
+      usuarios: 0,
+      notificacoes: 0,
+      notificacoes_falhas: 0,
+      emails: 0,
+      emails_ja_enviados: 0,
+      emails_falhos: 0,
+    };
     try {
       const { notificarNovaCompetencia } = await import("./notificar-competencia.server");
       const r = await notificarNovaCompetencia(id, context.userId);
-      notificacoes = { usuarios: r.usuarios, emails: r.emails, emails_falhos: r.emails_falhos };
+      notificacoes = {
+        usuarios: r.usuarios,
+        notificacoes: r.notificacoes,
+        notificacoes_falhas: r.notificacoes_falhas,
+        emails: r.emails,
+        emails_ja_enviados: r.emails_ja_enviados,
+        emails_falhos: r.emails_falhos,
+        erro: r.erro ?? undefined,
+      };
     } catch (mailErr) {
       console.error("Erro ao enviar notificações de nova competência:", mailErr);
       notificacoes = {
         usuarios: 0,
+        notificacoes: 0,
+        notificacoes_falhas: -1,
         emails: 0,
+        emails_ja_enviados: 0,
         emails_falhos: -1,
         erro: (mailErr as Error)?.message ?? "Falha desconhecida no envio de notificações",
       };

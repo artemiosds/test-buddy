@@ -40,10 +40,10 @@ export const obterConfiguracaoSMTP = createServerFn({ method: "GET" })
       };
     }
 
-    const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST || "";
-    const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER || "";
-    const port = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 587);
-    const temSenhaEnv = !!(process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD);
+    const host = process.env.SMTP_HOST || "";
+    const user = process.env.SMTP_USER || "";
+    const port = Number(process.env.SMTP_PORT || 587);
+    const temSenhaEnv = !!(process.env.SMTP_PASSWORD);
 
     return {
       existe: false as const,
@@ -53,7 +53,7 @@ export const obterConfiguracaoSMTP = createServerFn({ method: "GET" })
       smtp_port: port || 587,
       smtp_user: user,
       smtp_password: temSenhaEnv ? MASCARA : "",
-      smtp_from_email: process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user,
+      smtp_from_email: process.env.SMTP_FROM || user,
       smtp_from_name: process.env.SMTP_FROM_NAME || "HSM Gestão — SMS Oriximiná",
       smtp_secure: port === 465,
       smtp_ativo: true,
@@ -76,7 +76,7 @@ export const salvarConfiguracaoSMTP = createServerFn({ method: "POST" })
     let senhaFinal = manterSenha ? (atual?.smtp_password ?? null) : senhaInformada;
     if (manterSenha && !atual?.smtp_password) {
       // primeiro salvamento: herda a senha do ambiente, se houver
-      senhaFinal = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD || null;
+      senhaFinal = process.env.SMTP_PASSWORD || null;
     }
 
     const payload = {
@@ -116,7 +116,6 @@ export const testarConexaoSMTP = createServerFn({ method: "POST" })
       senha =
         atual?.smtp_password ||
         process.env.SMTP_PASSWORD ||
-        process.env.VITE_SMTP_PASSWORD ||
         "";
     }
     if (!senha) {

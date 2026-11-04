@@ -72,11 +72,11 @@ export async function resolverCredenciaisSmtp(): Promise<
     };
   }
 
-  const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
-  const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD || process.env.VITE_SMTP_PASSWORD;
-  const portStr = process.env.SMTP_PORT || process.env.VITE_SMTP_PORT;
-  const from = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || user;
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  const portStr = process.env.SMTP_PORT;
+  const from = process.env.SMTP_FROM || user;
   const fromName = process.env.SMTP_FROM_NAME || "HSM Gestão — SMS Oriximiná";
 
   if (!host || !user || !pass) {
@@ -107,6 +107,5 @@ export function criarTransporter(cred: {
     port: cred.port,
     secure: cred.secure,
     auth: { user: cred.user, pass: cred.pass },
-    tls: { rejectUnauthorized: false },
-  });
+      });
 }

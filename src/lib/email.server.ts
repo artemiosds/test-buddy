@@ -14,26 +14,107 @@ export async function sendEmail({
   subject,
   html,
   text,
+  idempotencyKey,
 }: {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
+  idempotencyKey?: string;
 }) {
-  const resolvido = await resolverCredenciaisSmtp();
+  const destinatarios = (Array.isArray(to) ? to : [to])
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  const destinatarioLedger = [...new Set(destinatarios)].join(",");
+  const eventoId = idempotencyKey?.trim() || null;
+  let ledgerAtivo = false;
 
-  if (!resolvido.ok) {
-    logger.warn("email.send.skipped", { reason: resolvido.motivo, to, subject });
-    return { success: false, skipped: true, error: new Error(resolvido.motivo) };
+  if (eventoId) {
+    const { data, error } = await (supabaseAdmin as any).rpc(
+      "claim_notificacao_evento_entrega",
+      {
+        p_evento_id: eventoId,
+        p_canal: "email",
+        p_destinatario: destinatarioLedger,
+        p_payload: { subject, html, text: text ?? null },
+        p_lease_segundos: 900,
+      },
+    );
+
+    if (error) {
+      const detalhe = (error.code ?? "") + " " + (error.message ?? "");
+      const schemaAusente =
+        /PGRST202|PGRST205|42P01|42883|does not exist|schema cache/i.test(detalhe);
+      if (!schemaAusente) {
+        logger.error("email.ledger_reserva_erro", { eventoId, error: error.message });
+        return { success: false, error: new Error(error.message) };
+      }
+      logger.error("email.ledger_indisponivel", { eventoId });
+      return {
+        success: false,
+        error: new Error("A migration de entregas de notificações precisa ser aplicada no Supabase."),
+      };
+    } else if (data !== true) {
+      const { data: atual, error: consultaError } = await (supabaseAdmin as any)
+        .from("notificacao_evento_entregas")
+        .select("status")
+        .eq("evento_id", eventoId)
+        .eq("canal", "email")
+        .eq("destinatario", destinatarioLedger)
+        .maybeSingle();
+
+      if (consultaError) {
+        logger.error("email.ledger_status_erro", { eventoId, error: consultaError.message });
+        return { success: false, error: new Error(consultaError.message) };
+      }
+      if (atual?.status === "enviado") {
+        return { success: true, skipped: true, duplicate: true };
+      }
+      return {
+        success: false,
+        error: new Error("A entrega deste e-mail está em processamento por outra execução."),
+      };
+    } else {
+      ledgerAtivo = true;
+    }
   }
 
-  const { host, port, secure, user, pass, from, fromName } = resolvido.cred;
-  const transporter = criarTransporter({ host, port, secure, user, pass });
-
+  const atualizarLedger = async (status: "enviado" | "falhou", detalhe?: string) => {
+    if (!ledgerAtivo || !eventoId) return;
+    try {
+      const agora = new Date().toISOString();
+      const { error } = await (supabaseAdmin as any)
+        .from("notificacao_evento_entregas")
+        .update({
+          status,
+          erro: status === "falhou" ? (detalhe ?? "Falha SMTP").slice(0, 1000) : null,
+          payload: status === "enviado" ? null : undefined,
+          atualizado_em: agora,
+          entregue_em: status === "enviado" ? agora : null,
+        })
+        .eq("evento_id", eventoId)
+        .eq("canal", "email")
+        .eq("destinatario", destinatarioLedger);
+      if (error) {
+        logger.error("email.ledger_update_erro", { eventoId, error: error.message });
+      }
+    } catch (error) {
+      logger.error("email.ledger_update_excecao", {
+        eventoId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
 
   try {
+    const resolvido = await resolverCredenciaisSmtp();
+    if (!resolvido.ok) throw new Error(resolvido.motivo);
+
+    const { host, port, secure, user, pass, from, fromName } = resolvido.cred;
+    const transporter = criarTransporter({ host, port, secure, user, pass });
     const info = await transporter.sendMail({
-      from: `"${fromName}" <${from}>`,
+      from: '"' + fromName + '" <' + from + ">",
       to: Array.isArray(to) ? to.join(", ") : to,
       subject,
       text: text || "Abra este e-mail em um cliente compatível com HTML para visualizar o conteúdo.",
@@ -41,25 +122,40 @@ export async function sendEmail({
     });
 
     logger.info("email.send.success", { messageId: info.messageId, to, subject });
-    
-    // Log success to DB
-    await supabaseAdmin.from("logs_notificacoes").insert({
-      destinatario: Array.isArray(to) ? to.join(", ") : to,
-      assunto: subject,
-      status: "enviado",
-    } as never);
+    await atualizarLedger("enviado");
+
+    try {
+      const { error: logError } = await supabaseAdmin.from("logs_notificacoes").insert({
+        destinatario: Array.isArray(to) ? to.join(", ") : to,
+        assunto: subject,
+        status: "enviado",
+      } as never);
+      if (logError) logger.warn("email.log_sucesso_erro", { error: logError.message });
+    } catch (logError) {
+      logger.warn("email.log_sucesso_excecao", {
+        error: logError instanceof Error ? logError.message : String(logError),
+      });
+    }
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    logger.error("email.send.error", { error, to, subject });
+    const detalhe = error instanceof Error ? error.message : String(error);
+    logger.error("email.send.error", { error: detalhe, to, subject });
+    await atualizarLedger("falhou", detalhe);
 
-    // Log error to DB
-    await supabaseAdmin.from("logs_notificacoes").insert({
-      destinatario: Array.isArray(to) ? to.join(", ") : to,
-      assunto: subject,
-      status: "erro",
-      detalhe_erro: (error as Error)?.message || String(error),
-    } as never);
+    try {
+      const { error: logError } = await supabaseAdmin.from("logs_notificacoes").insert({
+        destinatario: Array.isArray(to) ? to.join(", ") : to,
+        assunto: subject,
+        status: "erro",
+        detalhe_erro: detalhe,
+      } as never);
+      if (logError) logger.warn("email.log_falha_erro", { error: logError.message });
+    } catch (logError) {
+      logger.warn("email.log_falha_excecao", {
+        error: logError instanceof Error ? logError.message : String(logError),
+      });
+    }
 
     return { success: false, error };
   }
