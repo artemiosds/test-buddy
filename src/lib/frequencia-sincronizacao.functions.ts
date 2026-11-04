@@ -69,6 +69,28 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
     let aprovadaPor: string | null = null;
 
     if (tipo === "contratados") {
+      // O cabeçalho existente preserva o estado do fluxo quando nenhuma linha
+      // exige uma transição (ex.: reabertura pelo Master para retificação).
+      const queryBaseContratados = supabaseAdmin
+        .from("frequencias")
+        .select("status, data_envio, enviada_por, data_aprovacao, aprovada_por")
+        .eq("competencia_unidade_id", cu.id)
+        .eq("tipo", "contratados")
+        .is("deleted_at", null);
+
+      if (setor_id) queryBaseContratados.eq("setor_id", setor_id);
+      else queryBaseContratados.is("setor_id", null);
+
+      const { data: freqBase, error: fbErr } = await queryBaseContratados.maybeSingle();
+      if (fbErr) throw fbErr;
+      if (freqBase) {
+        statusOficial = freqBase.status;
+        dataEnvio = freqBase.data_envio;
+        enviadaPor = freqBase.enviada_por;
+        dataAprovacao = freqBase.data_aprovacao;
+        aprovadaPor = freqBase.aprovada_por;
+      }
+
       const query = supabaseAdmin
         .from("profissionais")
         .select(`id, setor_id, vinculos!inner ( natureza, nome )`)
@@ -110,15 +132,25 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
           statusOficial = "aprovada";
         } else if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
           statusOficial = "rascunho";
+        } else if (statuses.some(s => s === "em_analise")) {
+          // Retificação: linhas em análise (inclusive misturadas com aprovadas)
+          // não podem rebaixar o cabeçalho para rascunho.
+          statusOficial = "em_analise";
         } else if (statuses.some(s => s === "enviada")) {
           statusOficial = "enviada";
         }
 
         const ref = contratados.find(c => ((c as any).status) === statusOficial) || contratados[0];
-        dataEnvio = (ref as any).enviada_em ?? null;
-        enviadaPor = (ref as any).enviada_por ?? null;
-        dataAprovacao = (ref as any).aprovada_em ?? null;
-        aprovadaPor = (ref as any).aprovada_por ?? null;
+        dataEnvio = (ref as any).enviada_em ?? dataEnvio;
+        enviadaPor = (ref as any).enviada_por ?? enviadaPor;
+        dataAprovacao = (ref as any).aprovada_em ?? dataAprovacao;
+        aprovadaPor = (ref as any).aprovada_por ?? aprovadaPor;
+      }
+
+      if (statusOficial === "em_analise") {
+        // Reabertura ainda em andamento nunca carrega assinatura de aprovação.
+        dataAprovacao = null;
+        aprovadaPor = null;
       }
 
       totalDias = contratados?.reduce((acc, curr) => acc + (normalizarParaSoma((curr as any).dias_trabalhados)), 0) ?? 0;
