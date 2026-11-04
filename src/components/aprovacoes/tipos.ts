@@ -34,6 +34,8 @@ export type AcoesHandlers = {
   onTrilha: (r: FreqRow) => void;
   onLinhas: (r: FreqRow) => void;
   onAcao: (freqId: string, tipo: AcaoTipo, grupoIds?: string[]) => void;
+  canReabrir?: boolean;
+  onReabrir?: (r: FreqRow) => void;
 };
 
 const MESES = [

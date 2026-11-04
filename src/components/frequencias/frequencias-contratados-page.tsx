@@ -775,7 +775,7 @@ export function FrequenciasContratadosPage() {
     if (!l || !canEdit) return true;
     const statusLinha = String(l.status ?? "").toLowerCase();
     if (["aprovada", "aprovadas", "arquivada"].includes(statusLinha)) return true;
-    if (isMaster) return false;
+    if (isMaster || perfilCodigo === "GESTOR") return false;
     return !(statusLinha === "rascunho" || statusLinha === "rejeitada" || statusLinha === "devolvida");
   }
 

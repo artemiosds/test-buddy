@@ -70,6 +70,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HsmExpertLauncher } from "@/components/hsm-expert/hsm-expert-launcher";
 import { MuralHeaderSino } from "@/components/mural/MuralHeaderSino";
+import { PilulaAniversariantesHoje } from "@/components/dashboard/CardAniversariantes";
 import { AvisoModal } from "@/components/mural/AvisoModal";
 import { ManutencaoProvider } from "@/providers/ManutencaoProvider";
 
@@ -936,6 +937,7 @@ function TopBar({
               {theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
             </TooltipContent>
           </Tooltip>
+          <PilulaAniversariantesHoje />
           {/* Mural de Avisos (Sino) */}
           <Tooltip>
             <TooltipTrigger asChild>

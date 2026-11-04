@@ -14,6 +14,7 @@ import {
   History,
   ListChecks,
   MoreVertical,
+  RotateCcw,
   ScanSearch,
   Upload,
   XCircle,
@@ -116,6 +117,12 @@ export function AcoesFrequencia({ r, h }: { r: FreqRow; h: AcoesHandlers }) {
             <DropdownMenuItem onSelect={() => h.onLinhas(r)}>
               <ListChecks className="mr-2 h-4 w-4" />
               Linhas
+            </DropdownMenuItem>
+          )}
+          {h.canReabrir && r.status === "aprovada" && h.onReabrir && (
+            <DropdownMenuItem onSelect={() => h.onReabrir?.(r)}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reabrir para retificação
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

@@ -2973,6 +2973,45 @@ export type Database = {
           },
         ]
       }
+      notificacao_evento_entregas: {
+        Row: {
+          atualizado_em: string
+          canal: string
+          criado_em: string
+          destinatario: string
+          entregue_em: string | null
+          erro: string | null
+          evento_id: string
+          payload: Json | null
+          status: string
+          tentativas: number
+        }
+        Insert: {
+          atualizado_em?: string
+          canal: string
+          criado_em?: string
+          destinatario: string
+          entregue_em?: string | null
+          erro?: string | null
+          evento_id: string
+          payload?: Json | null
+          status?: string
+          tentativas?: number
+        }
+        Update: {
+          atualizado_em?: string
+          canal?: string
+          criado_em?: string
+          destinatario?: string
+          entregue_em?: string | null
+          erro?: string | null
+          evento_id?: string
+          payload?: Json | null
+          status?: string
+          tentativas?: number
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           canal: Database["public"]["Enums"]["canal_notificacao"]
@@ -5741,6 +5780,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_notificacao_evento_entrega: {
+        Args: {
+          p_canal: string
+          p_destinatario: string
+          p_evento_id: string
+          p_lease_segundos?: number
+          p_payload?: Json
+        }
+        Returns: boolean
+      }
       compliance_riscos: {
         Args: { _competencia_id?: string; _unidade_id?: string }
         Returns: Json
@@ -5991,6 +6040,10 @@ export type Database = {
       proximo_numero_pendencia: {
         Args: { _secretaria_id: string }
         Returns: string
+      }
+      reabrir_folha_aprovada: {
+        Args: { _frequencia_id: string; _motivo: string }
+        Returns: undefined
       }
       reprocessar_evento_dominio: { Args: { _id: string }; Returns: undefined }
       revogar_documento_assinado: {

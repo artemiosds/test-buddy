@@ -39,6 +39,7 @@ import { FiltrosAprovacoes, type FiltrosState } from "@/components/aprovacoes/Fi
 import { TabelaAprovacoes } from "@/components/aprovacoes/TabelaAprovacoes";
 import { AgrupadoPorUnidade } from "@/components/aprovacoes/AgrupadoPorUnidade";
 import type { AcaoTipo, FreqRow, StatusFreq } from "@/components/aprovacoes/tipos";
+import { ReabrirFolhaDialog } from "@/components/aprovacoes/ReabrirFolhaDialog";
 
 /** Filtros da tela persistidos na URL (link compartilhável). */
 const searchSchema = z.object({
@@ -123,6 +124,7 @@ function AprovacoesPage() {
   const search = Route.useSearch();
 
   const [acao, setAcao] = useState<{ freqId: string; tipo: AcaoTipo; grupoIds?: string[] } | null>(null);
+  const [reabrirFreqId, setReabrirFreqId] = useState<string | null>(null);
   const [obs, setObs] = useState("");
   const [trilhaFreqId, setTrilhaFreqId] = useState<string | null>(null);
   const [trilhaAberta, setTrilhaAbertura] = useState(false);
@@ -390,6 +392,8 @@ function AprovacoesPage() {
     canAnalisar,
     canAprovar,
     canRejeitar,
+    canReabrir: !!me?.is_master || ["GESTOR", "MASTER", "ADMINISTRADOR_MASTER", "ADMIN_SMS"].includes(String(me?.perfil_codigo ?? "")),
+    onReabrir: (r: FreqRow) => setReabrirFreqId(r.id),
     onAnexos: (r: FreqRow) =>
       setModalAnexo({
         id: r.competencia_unidade_id as string,
@@ -404,6 +408,7 @@ function AprovacoesPage() {
     onLinhas: (r: FreqRow) => setLinhasFreqId(r.id),
     onAcao: abrirAcao,
   };
+
 
   return (
     <div className="w-full space-y-6">
@@ -595,6 +600,8 @@ function AprovacoesPage() {
           unidadeId={modalAnexo.unidadeId}
         />
       )}
+
+      <ReabrirFolhaDialog freqId={reabrirFreqId} onClose={() => setReabrirFreqId(null)} />
 
       <LinhasAnaliseDialog
         freqId={linhasFreqId}

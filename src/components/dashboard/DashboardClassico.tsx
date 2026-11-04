@@ -4,6 +4,7 @@ import { useUnitScope } from "@/hooks/use-unit-scope";
 import { KpiCard, PageHeader } from "@/components/shared";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 import { relatorioPainelAbnt } from "@/lib/painel-abnt";
+import { CardAniversariantes } from "@/components/dashboard/CardAniversariantes";
 
 import { 
   Users, 
@@ -131,6 +132,9 @@ export function DashboardClassico() {
           />
         }
       />
+
+      <CardAniversariantes />
+
 
 
       {/* Cards de Indicadores no Topo */}
