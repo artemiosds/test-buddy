@@ -264,6 +264,7 @@ const REGISTRY: Registry = {
       "falta_pad",
       "vacancia",
       "cedido",
+      "disposicao",
       "desligado",
       "inativo",
     ],
@@ -275,6 +276,14 @@ const REGISTRY: Registry = {
         icon: UserCheck,
         colorToken: "success",
         description: "Em pleno exercício.",
+      },
+      disposicao: {
+        label: "Servidor(a) à Disposição da Administração Pública",
+        variant: "secondary",
+        className: "bg-warning-soft text-warning-soft-foreground",
+        icon: UserMinus,
+        colorToken: "warning",
+        description: "À disposição da Administração Pública.",
       },
       afastado: {
         label: "Afastado",

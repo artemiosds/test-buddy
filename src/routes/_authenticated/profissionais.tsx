@@ -201,6 +201,7 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   afastado_laudo: "Afastado por Laudo",
   falta_pad: "Falta informada ao RH",
   cedido: "Cedido",
+  disposicao: "Servidor(a) à Disposição da Administração Pública",
   afastado: "Afastado",
   desligado: "Desligado",
 };
@@ -2211,7 +2212,7 @@ function ProfissionalFormBody({
               )}
             />
           </div>
-          {(exigePeriodo(watch("situacao_funcional")) || exigePeriodo(watch("status"))) && (
+          {exigePeriodo(watch("situacao_funcional") || watch("status")) && (
             <>
               <div>
                 <FormField

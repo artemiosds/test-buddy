@@ -82,6 +82,10 @@ export const profissionalSchema = z.object({
   vencimento_liquido: numericEmptyToNull,
   /** Atuação em equipe ESF (Estratégia Saúde da Família). */
   atuacao_esf: z.boolean().optional().default(false),
-});
+}).transform((values) =>
+  values.situacao_funcional === "disposicao"
+    ? { ...values, status: "disposicao", situacao_data_inicio: null, situacao_data_fim: null }
+    : values
+);
 
 export type ProfissionalFormValues = z.infer<typeof profissionalSchema>;

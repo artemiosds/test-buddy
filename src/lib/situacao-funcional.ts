@@ -13,6 +13,7 @@ export type SituacaoFuncional =
   | "licenca"
   | "afastado"
   | "cedido"
+  | "disposicao"
   | "desligado"
   | "inativo"
   | "atestado"
@@ -91,6 +92,7 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
     "licenca",
     "afastado",
     "cedido",
+    "disposicao",
     "desligado",
     "inativo",
     "atestado",
@@ -106,6 +108,7 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
     "falta_pad",
   ];
   if ((known as string[]).includes(raw)) return raw as SituacaoFuncional;
+  if (raw.includes("disposi")) return "disposicao";
   if (raw === "férias") return "ferias";
   if (raw === "licença") return "licenca";
   if (raw === "afastado por laudo" || raw === "laudo") return "afastado_laudo";
@@ -131,6 +134,7 @@ export function grupoSituacao(raw: string | null | undefined): GrupoSituacao {
     s === "afastado" ||
     s === "atestado" ||
     s === "cedido" ||
+    s === "disposicao" ||
     s === "vacancia" ||
     s === "afastamento_inss" ||
     s === "afastado_laudo" ||
@@ -161,6 +165,7 @@ export const VALORES_DO_GRUPO: Record<GrupoSituacao, string[]> = {
     "afastado",
     "atestado",
     "cedido",
+    "disposicao",
     "vacancia",
     "afastamento_inss",
     "afastado_laudo",
@@ -332,6 +337,7 @@ export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
     else if (
       s === "afastado" ||
       s === "cedido" ||
+      s === "disposicao" ||
       s === "atestado" ||
       s === "vacancia" ||
       s === "afastamento_inss" ||
@@ -363,6 +369,7 @@ export const SITUACAO_ORDER: SituacaoFuncional[] = [
   "falta_pad",
   "vacancia",
   "cedido",
+  "disposicao",
   "desligado",
   "inativo",
 ];
@@ -384,6 +391,7 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   falta_pad: "Falta informada ao RH",
   vacancia: "Vacância",
   cedido: "Cedido",
+  disposicao: "Servidor(a) à Disposição da Administração Pública",
   desligado: "Desligado",
   inativo: "Inativo",
 };

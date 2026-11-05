@@ -4,6 +4,10 @@ import {
   derivarAlertas,
   derivarElegibilidadePiso,
   contarSituacoes,
+  grupoSituacao,
+  overrideSituacaoFolha,
+  situacaoExigePeriodo,
+  VALORES_DO_GRUPO,
 } from "./situacao-funcional";
 
 const base = {
@@ -23,6 +27,16 @@ describe("situacao-funcional", () => {
     expect(derivarSituacao({ id: "1", situacao_funcional: "ferias" })).toBe("ferias");
     expect(derivarSituacao({ id: "1", status: "licenca" })).toBe("licenca");
     expect(derivarSituacao({ id: "1" })).toBe("ativo");
+  });
+
+  it("reconhece disposição sem vigência e consolida como afastado", () => {
+    expect(derivarSituacao({ id: "1", situacao_funcional: "disposicao" })).toBe("disposicao");
+    expect(derivarSituacao({ id: "1", situacao_funcional: "Servidor(a) à Disposição da Administração Pública" })).toBe("disposicao");
+    expect(situacaoExigePeriodo("disposicao")).toBe(false);
+    expect(grupoSituacao("disposicao")).toBe("afastado");
+    expect(VALORES_DO_GRUPO.afastado).toContain("disposicao");
+    expect(overrideSituacaoFolha({ id: "1", situacao_funcional: "disposicao" })).toBe("Servidor(a) à Disposição da Administração Pública");
+    expect(contarSituacoes([{ ...base, situacao_funcional: "disposicao" }]).afastados).toBe(1);
   });
 
   it("aponta alertas cadastrais", () => {

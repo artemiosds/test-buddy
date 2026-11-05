@@ -535,6 +535,7 @@ const SITUACAO_FUNCIONAL_DETAIL_LABEL: Record<string, string> = {
   licenca: "Licença",
   ferias: "Férias",
   cedido: "Cedido",
+  disposicao: "Servidor(a) à Disposição da Administração Pública",
   afastado: "Afastado",
   desligado: "Desligado",
 };

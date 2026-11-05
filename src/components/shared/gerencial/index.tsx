@@ -505,7 +505,8 @@ function SituacaoProfissionalEditor({
   const periodo = situacaoExigePeriodo(sit);
   const mudou =
     sit !== atual ||
-    (periodo && (ini !== (prof.situacao_data_inicio ?? "") || fim !== (prof.situacao_data_fim ?? "")));
+    (periodo && (ini !== (prof.situacao_data_inicio ?? "") || fim !== (prof.situacao_data_fim ?? ""))) ||
+    (!periodo && (!!prof.situacao_data_inicio || !!prof.situacao_data_fim));
   const field: CSSProperties = {
     color: "#0F172A", background: "#FFFFFF", border: "1px solid #94A3B8",
     borderRadius: 6, padding: "6px 10px", fontSize: 13, width: "100%",
