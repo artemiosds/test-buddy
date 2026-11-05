@@ -56,6 +56,21 @@ function folhaPodeSerEnviada(status: unknown): boolean {
   return (STATUS_FOLHAS_PENDENTES_ENVIO as readonly string[]).includes(String(status ?? "rascunho").toLowerCase());
 }
 
+/** Valida o setor antes de salvar/enviar, mesmo que a URL esteja desatualizada. */
+async function validarSetorDaUnidade(supabase: any, setorId: string | undefined, unidadeId: string) {
+  if (!setorId) return;
+  const { data: setor, error } = await supabase
+    .from("setores")
+    .select("id")
+    .eq("id", setorId)
+    .eq("unidade_id", unidadeId)
+    .eq("status", "ativa")
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!setor) throw new Error("O setor selecionado não está ativo ou não pertence a esta unidade. Selecione um setor válido.");
+}
+
 /** Garante um cabeçalho Geral e um cabeçalho por setor ativo, sem duplicar folhas. */
 async function garantirCabecalhosSetoriais(
   supabase: any,
@@ -68,6 +83,7 @@ async function garantirCabecalhosSetoriais(
     .from("setores")
     .select("id, nome")
     .eq("unidade_id", unidade_id)
+    .eq("status", "ativa")
     .is("deleted_at", null)
     .order("nome");
   if (setoresErr) throw new Error(setoresErr.message);
@@ -396,6 +412,7 @@ export const salvarFolhaContratados = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_EDITAR);
+    await validarSetorDaUnidade(supabase, data.setor_id, data.unidade_id);
     await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     // Bloqueia edição se competência já estiver encerrada/arquivada.
@@ -592,6 +609,7 @@ export const enviarFolhaContratados = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await ensurePermission(supabase, userId, ACOES.FREQUENCIA_ENVIAR);
+    await validarSetorDaUnidade(supabase, data.setor_id, data.unidade_id);
     await assertPrazoEnvio(supabase, userId, data.competencia_id);
 
     const { data: perfil } = await supabase

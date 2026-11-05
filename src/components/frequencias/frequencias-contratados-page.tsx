@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AutosaveBadge } from "@/components/frequencias/autosave-badge";
 import { useAutosaveFolha } from "@/hooks/use-autosave-folha";
-import { useBlocker, useSearch } from "@tanstack/react-router";
+import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   listarFolhaContratados,
   listarConsolidadoContratados,
@@ -356,6 +356,7 @@ const LinhaContratadoRow = memo(function LinhaContratadoRow({ it, conf, l, ro, i
 export function FrequenciasContratadosPage() {
   const qc = useQueryClient();
   const search = useSearch({ from: "/_authenticated/frequencia/contratados" });
+  const navigate = useNavigate({ from: "/frequencia/contratados" });
   const [enviarAberto, setEnviarAberto] = useState(false);
   const { has } = usePermissions();
   const { data: me } = useCurrentUser();
@@ -424,6 +425,7 @@ export function FrequenciasContratadosPage() {
         .from("setores")
         .select("id, nome")
         .eq("unidade_id", unidadeId)
+        .eq("status", "ativa")
         .is("deleted_at", null)
         .order("nome");
       return data ?? [];
@@ -468,15 +470,29 @@ export function FrequenciasContratadosPage() {
     },
   });
 
+  // Preserva somente setores ativos da unidade corrente; limpa também IDs órfãos da URL.
   useEffect(() => {
-    // Ao abrir a folha a partir de Aprovações, preserva o setor informado na
-    // própria rota. Se o usuário trocar para outra unidade, o filtro é limpo.
-    if (search.setorId && search.unidadeId === unidadeId) {
-      setSetorFilter([search.setorId]);
-      return;
+    if (!unidadeId || isGlobalView || !setoresOpts) return;
+    const idsValidos = new Set(setoresOpts.map((s: any) => String(s.id)));
+    const setorDaUrlValido = !!search.setorId
+      && search.unidadeId === unidadeId
+      && idsValidos.has(search.setorId);
+    setSetorFilter((atual) => {
+      const desejados = search.setorId && search.unidadeId === unidadeId
+        ? (setorDaUrlValido ? [search.setorId] : [])
+        : atual.filter((id) => idsValidos.has(id));
+      return atual.length === desejados.length && atual.every((id, ix) => id === desejados[ix])
+        ? atual : desejados;
+    });
+    if (search.setorId && !setorDaUrlValido) {
+      void navigate({ search: (prev) => ({ ...prev, setorId: undefined }), replace: true });
     }
-    setSetorFilter([]);
-  }, [unidadeId, search.setorId, search.unidadeId]);
+  }, [unidadeId, isGlobalView, setoresOpts, search.setorId, search.unidadeId, navigate]);
+
+  const setorFilterValido = useMemo(
+    () => setorFilter.filter((id) => setoresOpts?.some((s: any) => String(s.id) === id)),
+    [setorFilter, setoresOpts],
+  );
 
   // Competências
   const { data: competencias } = useQuery({
@@ -552,12 +568,12 @@ export function FrequenciasContratadosPage() {
   const { data: folha, isFetching } = useQuery({
     queryKey: isGlobalView
       ? ["folha-contratados-consolidado", competenciaId]
-      : ["folha-contratados", competenciaId, unidadeId, (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : "all"],
-    enabled: !!competenciaId && !!unidadeId,
+      : ["folha-contratados", competenciaId, unidadeId, (setorFilterValido.length > 0 && setorFilterValido.length !== (setoresOpts?.length ?? 0)) ? setorFilterValido : "all"],
+    enabled: !!competenciaId && !!unidadeId && (isGlobalView || !!setoresOpts),
     queryFn: () =>
       isGlobalView
         ? carregarConsolidado({ data: { competencia_id: competenciaId } })
-        : carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)) ? setorFilter : undefined } }),
+        : carregar({ data: { competencia_id: competenciaId, unidade_id: unidadeId, setor_id: (setorFilterValido.length > 0 && setorFilterValido.length !== (setoresOpts?.length ?? 0)) ? setorFilterValido : undefined } }),
   });
 
   const escopoResumo = useMemo(() => {

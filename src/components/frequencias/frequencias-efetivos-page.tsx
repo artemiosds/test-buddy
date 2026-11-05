@@ -4,7 +4,7 @@ import { offlineGuard } from "@/lib/offline-guard";
 import { notificarModuloDesatualizado } from "@/lib/pwa";
 import { parseNumeroPtBr, valorCelula } from "@/lib/numero-ptbr";
 import { useServerFn } from "@tanstack/react-start";
-import { useBlocker, useSearch } from "@tanstack/react-router";
+import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -340,6 +340,7 @@ export function FrequenciasEfetivosPage() {
   const { isGlobal, unidadesPermitidas, unidadePadraoId } = useUnitScope();
 
   const search = useSearch({ from: "/_authenticated/frequencia/efetivos" });
+  const navigate = useNavigate({ from: "/frequencia/efetivos" });
 
   const [competenciaId, setCompetenciaId] = useState<string>(search.competenciaId || "");
   const [unidadeId, setUnidadeId] = useState<string>(search.unidadeId || "");
@@ -398,6 +399,7 @@ export function FrequenciasEfetivosPage() {
         .from("setores")
         .select("id, nome")
         .eq("unidade_id", unidadeId)
+        .eq("status", "ativa")
         .is("deleted_at", null)
         .order("nome");
       return data ?? [];
@@ -443,15 +445,29 @@ export function FrequenciasEfetivosPage() {
     },
   });
 
-  // reset setor filter when unidade changes (preserva o setor vindo da URL na 1ª carga)
-  const primeiraCargaSetorRef = useRef(true);
+  // Preserva somente setores ativos da unidade corrente; limpa também IDs órfãos da URL.
   useEffect(() => {
-    if (primeiraCargaSetorRef.current) {
-      primeiraCargaSetorRef.current = false;
-      if (search.setorId) return;
+    if (!unidadeId || isGlobalView || !setoresOpts) return;
+    const idsValidos = new Set(setoresOpts.map((s: any) => String(s.id)));
+    const setorDaUrlValido = !!search.setorId
+      && search.unidadeId === unidadeId
+      && idsValidos.has(search.setorId);
+    setSetorFilter((atual) => {
+      const desejados = search.setorId && search.unidadeId === unidadeId
+        ? (setorDaUrlValido ? [search.setorId] : [])
+        : atual.filter((id) => idsValidos.has(id));
+      return atual.length === desejados.length && atual.every((id, ix) => id === desejados[ix])
+        ? atual : desejados;
+    });
+    if (search.setorId && !setorDaUrlValido) {
+      void navigate({ search: (prev) => ({ ...prev, setorId: undefined }), replace: true });
     }
-    setSetorFilter([]);
-  }, [unidadeId, search.setorId]);
+  }, [unidadeId, isGlobalView, setoresOpts, search.setorId, search.unidadeId, navigate]);
+
+  const setorFilterValido = useMemo(
+    () => setorFilter.filter((id) => setoresOpts?.some((s: any) => String(s.id) === id)),
+    [setorFilter, setoresOpts],
+  );
 
   const { data: competencias } = useQuery({
     queryKey: ["comps-efetivos"],
@@ -522,10 +538,10 @@ export function FrequenciasEfetivosPage() {
   // senão salva numa folha (setor) diferente da que está sendo exibida.
   const setorParam = useMemo(
     () =>
-      setorFilter.length > 0 && setorFilter.length !== (setoresOpts?.length ?? 0)
-        ? setorFilter
+      setorFilterValido.length > 0 && setorFilterValido.length !== (setoresOpts?.length ?? 0)
+        ? setorFilterValido
         : undefined,
-    [setorFilter, setoresOpts],
+    [setorFilterValido, setoresOpts],
   );
 
   const carregar = useServerFn(listarFolhaEfetivos);
@@ -534,7 +550,7 @@ export function FrequenciasEfetivosPage() {
     queryKey: isGlobalView
       ? ["folha-efetivos-consolidado", competenciaId]
       : ["folha-efetivos", competenciaId, unidadeId, setorParam ?? "all"],
-    enabled: !!competenciaId && !!unidadeId && has("frequencia.visualizar"),
+    enabled: !!competenciaId && !!unidadeId && (isGlobalView || !!setoresOpts) && has("frequencia.visualizar"),
     queryFn: () =>
       isGlobalView
         ? carregarConsolidado({ data: { competencia_id: competenciaId } })

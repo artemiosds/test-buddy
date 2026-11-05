@@ -101,6 +101,7 @@ async function garantirCabecalhosSetoriais(
     .from("setores")
     .select("id, nome")
     .eq("unidade_id", unidade_id)
+    .eq("status", "ativa")
     .is("deleted_at", null)
     .order("nome");
   if (setoresErr) throw new Error(setoresErr.message);
@@ -196,13 +197,29 @@ async function ensureFolhaEfetivos(ctx: SupabaseCtx, competencia_id: string, uni
   });
 
   const setor = normalizarSetorId(setor_id);
+  if (setor) {
+    // Nunca usa um setor de outra unidade ou desativado para criar/abrir folha.
+    const { data: setorValido, error: setorErr } = await supabase
+      .from("setores")
+      .select("id")
+      .eq("id", setor)
+      .eq("unidade_id", unidade_id)
+      .eq("status", "ativa")
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (setorErr) throw new Error(setorErr.message);
+    if (!setorValido) {
+      throw new Error("O setor selecionado não está ativo ou não pertence a esta unidade. Selecione um setor válido.");
+    }
+  }
 
   const buscar = async () => {
     const q = supabase
       .from("frequencias")
       .select("id, status")
       .eq("competencia_unidade_id", cuId)
-      .eq("tipo", "efetivos");
+      .eq("tipo", "efetivos")
+      .is("deleted_at", null);
     if (setor) q.eq("setor_id", setor);
     else q.is("setor_id", null);
     const { data, error } = await q.order("created_at", { ascending: true }).limit(1).maybeSingle();

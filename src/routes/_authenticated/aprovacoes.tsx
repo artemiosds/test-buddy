@@ -221,10 +221,22 @@ function AprovacoesPage() {
 
   const rows = useMemo(() => {
     const brutas = rowsBrutas ?? [];
+    // Uma Geral já processada não deve exibir cartões setoriais vazios com
+    // status divergente. Não altera nenhum registro nem o histórico no banco.
+    const visiveis = brutas.filter((folha) => {
+      if (!folha.setor_id || Number(folha.total_profissionais ?? 0) !== 0) return true;
+      const geralProcessada = brutas.some((outra) =>
+        outra.competencia_unidade_id === folha.competencia_unidade_id &&
+        outra.tipo === folha.tipo &&
+        !outra.setor_id &&
+        ["enviada", "em_analise", "aprovada"].includes(String(outra.status)),
+      );
+      return !geralProcessada;
+    });
     const saida: FreqRow[] = [];
     const usados = new Set<string>();
 
-    for (const r of brutas) {
+    for (const r of visiveis) {
       if (usados.has(r.id)) continue;
       const cuId = r.competencia_unidade_id;
       if (!cuId) {
@@ -233,7 +245,7 @@ function AprovacoesPage() {
         continue;
       }
 
-      const irmas = brutas.filter(
+      const irmas = visiveis.filter(
         (x) => x.competencia_unidade_id === cuId && x.tipo === r.tipo,
       );
       const geral = irmas.find((x) => !x.setor_id);
