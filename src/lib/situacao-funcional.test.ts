@@ -39,6 +39,16 @@ describe("situacao-funcional", () => {
     expect(contarSituacoes([{ ...base, situacao_funcional: "disposicao" }]).afastados).toBe(1);
   });
 
+  it("classifica exoneração a pedido como desligamento sem vigência", () => {
+    expect(derivarSituacao({ id: "1", situacao_funcional: "exoneracao_pedido" })).toBe("exoneracao_pedido");
+    expect(derivarSituacao({ id: "1", situacao_funcional: "Exoneração a Pedido" })).toBe("exoneracao_pedido");
+    expect(situacaoExigePeriodo("exoneracao_pedido")).toBe(false);
+    expect(grupoSituacao("exoneracao_pedido")).toBe("desligado");
+    expect(VALORES_DO_GRUPO.desligado).toContain("exoneracao_pedido");
+    expect(contarSituacoes([{ ...base, situacao_funcional: "exoneracao_pedido" }]).desligados).toBe(1);
+    expect(derivarElegibilidadePiso({ ...base, situacao_funcional: "exoneracao_pedido" })).toBe("nao_elegivel");
+  });
+
   it("aponta alertas cadastrais", () => {
     const alertas = derivarAlertas({ id: "1", cpf: null, cargo: null });
     expect(alertas).toContain("sem_cpf");

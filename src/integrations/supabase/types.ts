@@ -6186,6 +6186,7 @@ export type Database = {
         | "inativo"
         | "afastado_laudo"
         | "disposicao"
+        | "exoneracao_pedido"
       status_competencia:
         | "aberta"
         | "em_processamento"
@@ -6232,6 +6233,7 @@ export type Database = {
         | "cedido"
         | "afastado_laudo"
         | "disposicao"
+        | "exoneracao_pedido"
       status_usuario:
         | "ativo"
         | "inativo"
@@ -6502,6 +6504,7 @@ export const Constants = {
         "inativo",
         "afastado_laudo",
         "disposicao",
+        "exoneracao_pedido",
       ],
       status_competencia: [
         "aberta",
@@ -6552,6 +6555,7 @@ export const Constants = {
         "cedido",
         "afastado_laudo",
         "disposicao",
+        "exoneracao_pedido",
       ],
       status_usuario: ["ativo", "inativo", "bloqueado", "suspenso", "pendente"],
       tipo_assinatura: ["assinatura", "carimbo", "logo"],

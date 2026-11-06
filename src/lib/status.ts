@@ -265,6 +265,7 @@ const REGISTRY: Registry = {
       "vacancia",
       "cedido",
       "disposicao",
+      "exoneracao_pedido",
       "desligado",
       "inativo",
     ],
@@ -404,6 +405,14 @@ const REGISTRY: Registry = {
         icon: UserMinus,
         colorToken: "info",
         description: "Cedido a outra unidade/órgão.",
+      },
+      exoneracao_pedido: {
+        label: "Exoneração a Pedido",
+        variant: "secondary",
+        className: "bg-danger-soft text-danger-soft-foreground",
+        icon: UserX,
+        colorToken: "danger",
+        description: "Desligamento por exoneração a pedido.",
       },
       desligado: {
         label: "Desligado",

@@ -14,6 +14,7 @@ export type SituacaoFuncional =
   | "afastado"
   | "cedido"
   | "disposicao"
+  | "exoneracao_pedido"
   | "desligado"
   | "inativo"
   | "atestado"
@@ -93,6 +94,7 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
     "afastado",
     "cedido",
     "disposicao",
+    "exoneracao_pedido",
     "desligado",
     "inativo",
     "atestado",
@@ -109,6 +111,7 @@ export function derivarSituacao(p: ProfConferencia): SituacaoFuncional {
   ];
   if ((known as string[]).includes(raw)) return raw as SituacaoFuncional;
   if (raw.includes("disposi")) return "disposicao";
+  if (raw.includes("exonera") && raw.includes("pedido")) return "exoneracao_pedido";
   if (raw === "férias") return "ferias";
   if (raw === "licença") return "licenca";
   if (raw === "afastado por laudo" || raw === "laudo") return "afastado_laudo";
@@ -129,7 +132,7 @@ export function grupoSituacao(raw: string | null | undefined): GrupoSituacao {
   const s = derivarSituacao({ id: "", situacao_funcional: raw ?? null });
   if (s === "ferias") return "ferias";
   if (s.startsWith("licenca")) return "licenca";
-  if (s === "desligado" || s === "inativo") return "desligado";
+  if (s === "desligado" || s === "inativo" || s === "exoneracao_pedido") return "desligado";
   if (
     s === "afastado" ||
     s === "atestado" ||
@@ -171,7 +174,7 @@ export const VALORES_DO_GRUPO: Record<GrupoSituacao, string[]> = {
     "afastado_laudo",
     "falta_pad",
   ],
-  desligado: ["desligado", "inativo"],
+  desligado: ["desligado", "inativo", "exoneracao_pedido"],
 };
 
 /* ------------------------------------------------------------------------
@@ -288,7 +291,7 @@ export function derivarElegibilidadePiso(p: ProfConferencia): Elegibilidade {
   const isEnfermagem = CARGOS_ENFERMAGEM.test(cargo);
   if (!isEnfermagem) return "nao_elegivel";
   const situ = derivarSituacao(p);
-  if (situ === "desligado" || situ === "inativo") return "nao_elegivel";
+  if (situ === "desligado" || situ === "inativo" || situ === "exoneracao_pedido") return "nao_elegivel";
   const alertas = derivarAlertas(p);
   // pequenas pendências puramente cadastrais viram "revisar" — não bloqueiam
   const bloqueadores: AlertaCadastral[] = ["sem_cpf", "sem_cargo"];
@@ -345,7 +348,7 @@ export function contarSituacoes(rows: ProfConferencia[]): ResumoSituacao {
       s === "falta_pad"
     )
       r.afastados++;
-    else if (s === "desligado" || s === "inativo") r.desligados++;
+    else if (s === "desligado" || s === "inativo" || s === "exoneracao_pedido") r.desligados++;
     if (derivarAlertas(p).length > 0) r.pendencias++;
     if (derivarElegibilidadePiso(p) === "nao_elegivel") r.nao_elegiveis++;
   }
@@ -370,6 +373,7 @@ export const SITUACAO_ORDER: SituacaoFuncional[] = [
   "vacancia",
   "cedido",
   "disposicao",
+  "exoneracao_pedido",
   "desligado",
   "inativo",
 ];
@@ -392,6 +396,7 @@ export const SITUACAO_LABEL: Record<SituacaoFuncional, string> = {
   vacancia: "Vacância",
   cedido: "Cedido",
   disposicao: "Servidor(a) à Disposição da Administração Pública",
+  exoneracao_pedido: "Exoneração a Pedido",
   desligado: "Desligado",
   inativo: "Inativo",
 };

@@ -202,6 +202,7 @@ const SITUACAO_FUNCIONAL_LABEL: Record<string, string> = {
   falta_pad: "Falta informada ao RH",
   cedido: "Cedido",
   disposicao: "Servidor(a) à Disposição da Administração Pública",
+  exoneracao_pedido: "Exoneração a Pedido",
   afastado: "Afastado",
   desligado: "Desligado",
 };

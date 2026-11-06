@@ -83,8 +83,8 @@ export const profissionalSchema = z.object({
   /** Atuação em equipe ESF (Estratégia Saúde da Família). */
   atuacao_esf: z.boolean().optional().default(false),
 }).transform((values) =>
-  values.situacao_funcional === "disposicao"
-    ? { ...values, status: "disposicao", situacao_data_inicio: null, situacao_data_fim: null }
+  values.situacao_funcional === "disposicao" || values.situacao_funcional === "exoneracao_pedido"
+    ? { ...values, status: values.situacao_funcional, situacao_data_inicio: null, situacao_data_fim: null }
     : values
 );
 
