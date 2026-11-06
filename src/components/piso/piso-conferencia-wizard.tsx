@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { extrairTextoPdf, renderizarPaginasJpeg } from "@/lib/piso-fopag-pdf";
+import { ocrLocalPdf } from "@/lib/piso-ocr-local";
+import { getExtracaoConfig } from "@/lib/piso-extracao-config.functions";
 import { janelasContinuas, parseFopagTexto, parseFopagIA, type FopagExtracao } from "@/lib/piso-fopag-parser";
 import { extrairFopagPorIA } from "@/lib/piso-fopag-ia.functions";
 import {
@@ -24,7 +26,16 @@ async function lerPdf(file: File, competencia: string, usarIA: boolean): Promise
     throw new Error(`PDF ${file.name}: ${texto.paginasComErro.length} página(s) não puderam ser lidas.`);
   const local = texto.pesquisavel ? parseFopagTexto(texto.paginas) : null;
   if (local?.funcionarios.length && !usarIA) return local;
-  if (!usarIA) throw new Error(`PDF ${file.name}: leitura local insuficiente. Autorize a IA externa para processar as páginas.`);
+  if (!usarIA) {
+    // Mesmo motor local do assistente de importação: Tesseract em WASM.
+    const config = await getExtracaoConfig();
+    const ocr = await ocrLocalPdf(file, texto.numPages, { idioma: config.ocr_idioma });
+    if (ocr.paginasComErro.length)
+      throw new Error(`OCR local de ${file.name}: ${ocr.paginasComErro.length} página(s) com falha. Confira o documento.`);
+    const extraido = parseFopagTexto(ocr.paginas);
+    if (extraido.funcionarios.length) return extraido;
+    throw new Error(`PDF ${file.name}: texto/OCR insuficiente. Autorize a IA externa para tentar a extração.`);
+  }
 
   const janelas = janelasContinuas(texto.numPages, texto.paginas, 12);
   const payloads: { competencia?: string | null; funcionarios?: unknown[] }[] = [];
