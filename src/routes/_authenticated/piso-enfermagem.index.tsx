@@ -819,6 +819,13 @@ function PisoIndex() {
               </Link>
             </Button>
           </PermissionGate>
+          <PermissionGate permission="piso.importar">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/piso-enfermagem/conferencia">
+                <ShieldCheck className="mr-2 h-4 w-4" /> Conferir FOPAG + Prestadores + PISO
+              </Link>
+            </Button>
+          </PermissionGate>
 
 
           <div className="flex items-center gap-2">
