@@ -90,6 +90,7 @@ import {
 } from "@/components/frequencias/resumo-dias-faltas-att";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useFrequencyRealtime } from "@/lib/realtime/frequency-realtime";
+import { resolverStatusUnidadeContratados } from "@/lib/frequencia-status-unidade";
 
 type StatusFreq = Database["public"]["Enums"]["status_frequencia"];
 
@@ -608,7 +609,8 @@ export function FrequenciasContratadosPage() {
         .from("frequencias")
         .select("id, status, setor_id, competencia_unidades!inner(competencia_id, unidade_id)")
         .eq("tipo", "contratados")
-        .eq("competencia_unidades.competencia_id", competenciaId);
+        .eq("competencia_unidades.competencia_id", competenciaId)
+        .is("deleted_at", null);
 
       if (unidadeId !== "__all__" && unidadeId) {
         q = q.eq("competencia_unidades.unidade_id", unidadeId);
@@ -743,14 +745,15 @@ export function FrequenciasContratadosPage() {
     ).length;
     const todosEnviados = geral && total > 0 && carregado && concluidos === total;
     const parcial = geral && total > 0 && carregado && concluidos > 0 && concluidos < total;
-    let status = folhaStatusUnificado;
-    if (geral && total > 0 && carregado) {
-      if (concluidos === 0) status = "rascunho";
-      else if (parcial) status = "parcialmente_enviada";
-      else if (todosEnviados && setores.every((s: any) => ["aprovada", "aprovadas"].includes(String(s.status ?? "").toLowerCase()))) status = "aprovada";
-      else if (todosEnviados && setores.every((s: any) => String(s.status ?? "").toLowerCase() === "arquivada")) status = "arquivada";
-      else if (todosEnviados) status = "enviada";
-    }
+    // O cabeçalho Geral é a fonte oficial do fluxo de aprovação.
+    // A consolidação de setores só complementa a visualização enquanto a Geral
+    // ainda está em rascunho; nunca rebaixa uma Geral aprovada para "enviada".
+    const status = resolverStatusUnidadeContratados({
+      statusGeral: String(folhaStatusUnificado ?? "rascunho"),
+      visaoGeral: geral,
+      setoresCarregados: carregado,
+      statusSetores: setores.map((s: any) => String(s.status ?? "rascunho")),
+    });
     return {
       ativo: geral,
       temSetores: total > 0,
