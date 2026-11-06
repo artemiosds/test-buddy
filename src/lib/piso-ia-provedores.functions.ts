@@ -196,17 +196,26 @@ export const testarProvedorIA = createServerFn({ method: "POST" })
 
     const r = await provider.testar();
     if (data.id) {
-      await (context.supabase as unknown as Rpc)
-        .rpc("piso_ia_provedor_metrica", {
-          _id: data.id,
-          _ok: r.ok,
-          _ms: r.ms,
-          _status: r.status,
-          _erro: r.ok ? null : r.mensagem,
-          _confianca: null,
-          _pdfs: 0,
-        })
-        .catch(() => undefined);
+      // Falha na telemetria não pode ocultar o resultado real do teste do provedor.
+      try {
+        const { error } = await (context.supabase as unknown as Rpc).rpc(
+          "piso_ia_provedor_metrica",
+          {
+            _id: data.id,
+            _ok: r.ok,
+            _ms: r.ms,
+            _status: r.status,
+            _erro: r.ok ? null : r.mensagem,
+            _confianca: null,
+            _pdfs: 0,
+          },
+        );
+        if (error) {
+          console.warn("[testarProvedorIA] Não foi possível registrar a métrica.");
+        }
+      } catch {
+        console.warn("[testarProvedorIA] Não foi possível registrar a métrica.");
+      }
     }
     return r;
   });
