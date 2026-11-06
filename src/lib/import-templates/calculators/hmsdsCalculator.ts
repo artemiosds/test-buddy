@@ -11,7 +11,7 @@
 //  • INCENTIVO: exclusivo de enfermeiro(a) = 2.068,79;
 //  • BRUTO = BASE + INSALUBRIDADE + H.E. + AD.NOTURNO + PLANTÃO E SOBREAVISO;
 //  • ISS = BRUTO × 5% · TOTAL = BRUTO − ISS;
-//  • TOTAL (última coluna) = SOMA(H.E.; PLANTÃO E SOBREAVISO; INCENTIVO);
+//  • TOTAL (última coluna) = INCENTIVO;
 //  • BRUTO, ISS, TOTAL, TOTAL final e a insalubridade dos técnicos são FÓRMULAS.
 
 import {
@@ -58,7 +58,7 @@ export function calcularHmsds(linha: LinhaCalculavel): LinhaCalculavel {
 
   const horaExtra = numero(linha.hora_extra_50);
   const noturno = numero(linha.adicional_noturno);
-  const plantao = numero(primeiro(linha, "plantao", "sobreaviso"));
+  const plantao = numero(linha.plantao) + numero(linha.sobreaviso);
 
   const bruto = moeda(base + insalubridade + horaExtra + noturno + plantao);
   const iss = moeda(bruto * ISS_ALIQUOTA);
@@ -71,7 +71,7 @@ export function calcularHmsds(linha: LinhaCalculavel): LinhaCalculavel {
       ? INCENTIVO_ENFERMEIRO
       : 0;
 
-  const totalFinal = moeda(horaExtra + plantao + incentivo);
+  const totalFinal = moeda(incentivo);
   const dias = numero(primeiro(linha, "dias_trabalhados", "tempo_servico"));
 
   return {
@@ -127,7 +127,7 @@ export const ABA_HMSDS = "H.M.S.D.S. (3)";
 /**
  * Monta a matriz (AOA) da planilha final com as 16 colunas do modelo.
  * Fórmulas vivas: G=F*20% (técnicos) · K=F+G+H+I+J · L=K*5% · M=K-L ·
- * P=SUM(H,J,O)
+ * P=O
  */
 export function montarPlanilhaHmsds(
   linhas: LinhaCalculavel[],
@@ -149,13 +149,13 @@ export function montarPlanilhaHmsds(
       insalubridade,
       numero(l.hora_extra_50),
       numero(l.adicional_noturno),
-      numero(primeiro(l, "plantao", "sobreaviso")),
+      numero(l.plantao) + numero(l.sobreaviso),
       comFormulas ? { f: `F${r}+G${r}+H${r}+I${r}+J${r}` } : numero(l.total_proventos),
       comFormulas ? { f: `K${r}*5%` } : numero(primeiro(l, "iss", "total_descontos")),
       comFormulas ? { f: `K${r}-L${r}` } : numero(l.total_liquido_base),
       numero(l.pensao_alimenticia),
       numero(primeiro(l, "incentivo", "auxilio_financeiro")),
-      comFormulas ? { f: `SUM(H${r},J${r},O${r})` } : numero(l.valor_final),
+      comFormulas ? { f: `O${r}` } : numero(l.valor_final),
     ];
   });
   return [[...COLUNAS_SAIDA_HMSDS], ...corpo];

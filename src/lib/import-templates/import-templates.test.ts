@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calcularUbs } from "./calculators/ubsCalculator";
 import { detectarTemplate, cpfFormatado, numero } from "./index";
 import { calcularHmsds, montarPlanilhaHmsds } from "./calculators/hmsdsCalculator";
+import { calcularHmo, montarPlanilhaHmo } from "./calculators/hmoCalculator";
 import { calcularCaps, montarPlanilhaCaps } from "./calculators/capsCalculator";
 import { calcularPadraoAdm, montarPlanilhaPadraoAdm } from "./calculators/padraoAdmCalculator";
 
@@ -113,7 +114,38 @@ describe("template H.M.S.D.S", () => {
     expect(aoa[1][6]).toEqual({ f: "F2*20%" });
     expect(aoa[1][10]).toEqual({ f: "F2+G2+H2+I2+J2" });
     expect(aoa[1][12]).toEqual({ f: "K2-L2" });
-    expect(aoa[1][15]).toEqual({ f: "SUM(H2,J2,O2)" });
+    expect(aoa[1][15]).toEqual({ f: "O2" });
+  });
+});
+
+describe("regras financeiras institucionais — HMO e HMSDS", () => {
+  it("HMO soma plantão e sobreaviso no bruto e deixa o total final apenas em H.E. + incentivo", () => {
+    const l = calcularHmo({
+      nome: "prova", cargo: "ENFERMEIRO", salario_base: 3000,
+      insalubridade: 500, hora_extra_50: 200, plantao: 300, sobreaviso: 100,
+      incentivo: 2068.79,
+    });
+    expect(l.total_proventos).toBe(4100);
+    expect(l.iss).toBe(205);
+    expect(l.valor_final).toBe(2268.79);
+    const aoa = montarPlanilhaHmo([l]);
+    expect(aoa[1][9]).toBe(400);
+    expect(aoa[1][13]).toEqual({ f: "SUM(H2,M2)" });
+  });
+
+  it("HMSDS soma plantão e sobreaviso no bruto e usa somente incentivo no total final", () => {
+    const l = calcularHmsds({
+      nome: "prova", cargo: "ENFERMEIRO", salario_base: 3000,
+      insalubridade: 500, hora_extra_50: 200, plantao: 300, sobreaviso: 100,
+      pensao_alimenticia: 50, incentivo: 2068.79,
+    });
+    expect(l.total_proventos).toBe(4100);
+    expect(l.iss).toBe(205);
+    expect(l.valor_liquido).toBe(3845);
+    expect(l.valor_final).toBe(2068.79);
+    const aoa = montarPlanilhaHmsds([l]);
+    expect(aoa[1][9]).toBe(400);
+    expect(aoa[1][15]).toEqual({ f: "O2" });
   });
 });
 

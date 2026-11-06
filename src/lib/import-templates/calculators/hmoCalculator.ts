@@ -6,7 +6,7 @@
 //  • INCENTIVO: exclusivo de enfermeiro(a) = 2.068,79;
 //  • BRUTO = BASE + INSALUBRIDADE + H.E. + AD.NOTURNO + PLANTÃO E SOBREAVISO;
 //  • ISS = BRUTO × 5%;
-//  • TOTAL (última coluna) = SOMA(H.E.; PLANTÃO E SOBREAVISO; INCENTIVO);
+//  • TOTAL (última coluna) = SOMA(H.E.; INCENTIVO);
 //  • BRUTO, ISS, TOTAL e a insalubridade dos técnicos são FÓRMULAS vivas.
 
 import {
@@ -42,7 +42,7 @@ function temValor(linha: LinhaCalculavel, ...chaves: string[]): boolean {
 /**
  * BRUTO = BASE + INSALUBRIDADE + H.E. + AD.NOTURNO + PLANTÃO E SOBREAVISO
  * ISS = BRUTO × 5% · LÍQUIDO = BRUTO − ISS
- * TOTAL (última coluna) = H.E. + PLANTÃO E SOBREAVISO + INCENTIVO
+ * TOTAL (última coluna) = H.E. + INCENTIVO
  */
 export function calcularHmo(linha: LinhaCalculavel): LinhaCalculavel {
   const base = numero(linha.salario_base);
@@ -58,7 +58,7 @@ export function calcularHmo(linha: LinhaCalculavel): LinhaCalculavel {
 
   const horaExtra = numero(linha.hora_extra_50);
   const noturno = numero(linha.adicional_noturno);
-  const plantao = numero(primeiro(linha, "plantao", "sobreaviso"));
+  const plantao = numero(linha.plantao) + numero(linha.sobreaviso);
 
   const bruto = moeda(base + insalubridade + horaExtra + noturno + plantao);
   const iss = moeda(bruto * ISS_ALIQUOTA);
@@ -70,7 +70,7 @@ export function calcularHmo(linha: LinhaCalculavel): LinhaCalculavel {
       ? INCENTIVO_ENFERMEIRO
       : 0;
 
-  const totalFinal = moeda(horaExtra + plantao + incentivo);
+  const totalFinal = moeda(horaExtra + incentivo);
   const dias = numero(primeiro(linha, "dias_trabalhados", "tempo_servico"));
 
   return {
@@ -122,7 +122,7 @@ export const ABA_HMO = "H.M.O (3)";
 
 /**
  * Monta a matriz (AOA) da planilha final com as 14 colunas do modelo.
- * Fórmulas vivas: G=F*20% (técnicos) · K=F+G+H+I+J · L=K*5% · N=SUM(H,J,M)
+ * Fórmulas vivas: G=F*20% (técnicos) · K=F+G+H+I+J · L=K*5% · N=SUM(H,M)
  */
 export function montarPlanilhaHmo(
   linhas: LinhaCalculavel[],
@@ -144,11 +144,11 @@ export function montarPlanilhaHmo(
       insalubridade,
       numero(l.hora_extra_50),
       numero(l.adicional_noturno),
-      numero(primeiro(l, "plantao", "sobreaviso")),
+      numero(l.plantao) + numero(l.sobreaviso),
       comFormulas ? { f: `F${r}+G${r}+H${r}+I${r}+J${r}` } : numero(l.total_proventos),
       comFormulas ? { f: `K${r}*5%` } : numero(primeiro(l, "iss", "total_descontos")),
       numero(primeiro(l, "incentivo", "auxilio_financeiro")),
-      comFormulas ? { f: `SUM(H${r},J${r},M${r})` } : numero(l.valor_final),
+      comFormulas ? { f: `SUM(H${r},M${r})` } : numero(l.valor_final),
     ];
   });
   return [[...COLUNAS_SAIDA_HMO], ...corpo];

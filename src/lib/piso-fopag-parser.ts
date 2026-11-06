@@ -387,7 +387,10 @@ export function extrairRubricas(bloco: string): Record<RubricaKey, number> {
     if (!linha) continue;
     const norm = normalizarTexto(linha);
     if (!norm) continue;
+    const codigoRubrica = /^(\d{1,6})\s+/.exec(norm)?.[1];
     for (const def of RUBRICAS_FOPAG) {
+      // ADN é exclusivo da rubrica 109: nunca incluir códigos de outras verbas.
+      if (def.key === "adicional_noturno" && codigoRubrica && codigoRubrica !== "109") continue;
       if (!def.re.test(norm)) continue;
       const valor = valorIntegralDaLinha(linha);
       if (valor === 0 && rubricas[def.key] !== 0) continue;

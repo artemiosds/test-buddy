@@ -6,6 +6,7 @@ import {
   normalizarCpf,
   normalizarValor,
   parseFopagTexto,
+  extrairRubricas,
 } from "./piso-fopag-parser";
 
 const PAGINA = `PREFEITURA MUNICIPAL - FOLHA DE PAGAMENTO JUNHO/2026
@@ -50,6 +51,16 @@ describe("piso-fopag-parser", () => {
     expect(f.rubricas.aux_financeiro).toBe(1100.5);
     expect(f.rubricas.hora_extra_50).toBe(0);
     expect(f.rubricas.valor_liquido_folha).toBe(3618.77);
+  });
+
+  it("ADN usa somente rubrica 109 e nunca 10003 ou outro código", () => {
+    const rubricas = extrairRubricas([
+      "10003 BASE PATRONAL RGPS 1.623,47",
+      "10003 ADIC. NOTURNO BASE PATRONAL 999,99",
+      "109 ADIC. NOTURNO 467,04",
+    ].join("\n"));
+    expect(rubricas.adicional_noturno).toBe(467.04);
+    expect(extrairRubricas("10003 ADIC. NOTURNO 1.623,47").adicional_noturno).toBe(0);
   });
 
   it("gera AOA com cabeçalhos reconhecidos pelo motor de layouts", () => {
