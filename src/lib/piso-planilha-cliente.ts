@@ -69,7 +69,9 @@ function paraLinhaCalculavel(l: LinhaPlanilha): Record<string, unknown> {
     insalubridade: l.insalubridade,
     hora_extra_50: l.hora_extra,
     adicional_noturno: l.adicional_noturno,
-    plantao: x.plantao ?? x.sobreaviso,
+    // Os calculadores HMO/HMSDS somam as duas rubricas; não descartar sobreaviso.
+    plantao: x.plantao ?? l.plantao_sobreaviso ?? null,
+    sobreaviso: x.plantao != null ? (x.sobreaviso ?? null) : null,
     gratificacao_incentivo: l.gratificacao_incentivo ?? l.gratificacoes,
     auxilio_transporte: l.auxilio_transporte ?? l.vale_transporte,
     incentivo: l.incentivo,

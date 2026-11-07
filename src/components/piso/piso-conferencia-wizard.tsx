@@ -15,6 +15,8 @@ import {
   type AnalisePiso, type PendenciaPiso,
 } from "@/lib/piso-conferencia-ministerio";
 import type * as XLSX from "xlsx-js-style";
+import { processarPrestadoresLote, baixarConsolidadoPrestadores } from "@/lib/piso-prestadores-lote";
+import { criarPlanilhaFopagPdf } from "@/lib/piso-fopag-planilha-pdf";
 
 type Progresso = { feito: number; total: number; etapa: string };
 type EntradaFopag = { fontes: ReturnType<typeof extrairFopagPdf>["fontes"]; competencia: string | null };
@@ -69,7 +71,9 @@ function salvarArquivo(bytes: Uint8Array, nome: string) {
 export function PisoConferenciaWizard() {
   const [competencia, setCompetencia] = useState("");
   const [fopag, setFopag] = useState<File[]>([]);
-  const [prestadores, setPrestadores] = useState<File | null>(null);
+  const [prestadores, setPrestadores] = useState<File[]>([]);
+  const [consolidadoPrestadores, setConsolidadoPrestadores] = useState<Uint8Array | null>(null);
+  const [rascunhoFopag, setRascunhoFopag] = useState<Uint8Array | null>(null);
   const [modelo, setModelo] = useState<File | null>(null);
   const [usarIA, setUsarIA] = useState(false);
   const [progresso, setProgresso] = useState<Progresso | null>(null);
@@ -85,11 +89,13 @@ export function PisoConferenciaWizard() {
     setAnalise(null);
     setModeloLido(null);
     setConfirmado(false);
+    setConsolidadoPrestadores(null);
+    setRascunhoFopag(null);
     if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(competencia)) {
       toast.error("Informe a competência no formato AAAA-MM.");
       return;
     }
-    if (!fopag.length || !prestadores || !modelo) {
+    if (!fopag.length || !prestadores.length || !modelo) {
       toast.error("Anexe FOPAG, Prestadores e o modelo original do Ministério.");
       return;
     }
@@ -113,9 +119,35 @@ export function PisoConferenciaWizard() {
           resultados.push(await lerPdf(pdf, competencia, usarIA));
         }
         origem = extrairFopagPdf(resultados, pendencias);
+        try {
+          setRascunhoFopag(criarPlanilhaFopagPdf(resultados, competencia));
+        } catch (e) {
+          pendencias.push({tipo:"aviso", mensagem:`Rascunho FOPAG não disponível: ${e instanceof Error?e.message:String(e)}`});
+        }
       }
       setProgresso({ etapa: "Conferindo Prestadores", feito: 1, total: 4 });
-      const origemPrest = extrairPrestadores(carregarXlsx(await prestadores.arrayBuffer()), pendencias);
+      let origemPrest: { fontes: ReturnType<typeof extrairPrestadores>["fontes"]; competencia: string | null };
+      if (prestadores.length === 1) {
+        const unico = carregarXlsx(await prestadores[0].arrayBuffer());
+        if (unico.SheetNames.some(nome => /CONSOLIDADO_GERAL/i.test(nome))) {
+          origemPrest = extrairPrestadores(unico, pendencias);
+        } else {
+          const resultadoLote = processarPrestadoresLote(
+            [{nome: prestadores[0].name, workbook: unico}], competencia, pendencias,
+          );
+          origemPrest = resultadoLote;
+          setConsolidadoPrestadores(baixarConsolidadoPrestadores(resultadoLote.workbook));
+        }
+      } else {
+        const arquivos = [];
+        for (const arquivo of prestadores) {
+          if (!/\.xlsx$/i.test(arquivo.name)) throw new Error("Os Prestadores devem estar em arquivos .xlsx.");
+          arquivos.push({nome: arquivo.name, workbook: carregarXlsx(await arquivo.arrayBuffer())});
+        }
+        const resultadoLote = processarPrestadoresLote(arquivos, competencia, pendencias);
+        origemPrest = resultadoLote;
+        setConsolidadoPrestadores(baixarConsolidadoPrestadores(resultadoLote.workbook));
+      }
       setProgresso({ etapa: "Validando arquivo original do Ministério", feito: 2, total: 4 });
       const ministerio = carregarXlsx(await modelo.arrayBuffer());
       const resultado = auditarPiso({
@@ -169,8 +201,9 @@ export function PisoConferenciaWizard() {
             <span className="block text-xs text-muted-foreground">{fopag.map(f => f.name).join(" · ") || "Nenhum arquivo selecionado"}</span>
           </label>
           <label className="block space-y-1 text-sm">
-            <span className="font-medium">Prestadores — consolidado com abas das unidades (.xlsx)</span>
-            <Input type="file" accept=".xlsx" onChange={e => setPrestadores(e.target.files?.[0] ?? null)} />
+            <span className="font-medium">Prestadores — consolidado ou planilhas de cada unidade (.xlsx)</span>
+            <Input type="file" accept=".xlsx" multiple onChange={e => setPrestadores(Array.from(e.target.files ?? []))} />
+            <span className="block text-xs text-muted-foreground">{prestadores.length} arquivo(s) selecionado(s).</span>
           </label>
           <label className="block space-y-1 text-sm">
             <span className="font-medium">Modelo ORIGINAL do Ministério (.xlsx)</span>
@@ -215,9 +248,23 @@ export function PisoConferenciaWizard() {
                 onChange={e => setConfirmado(e.target.checked)} />
               Confirmei a competência, os totais e a correspondência dos documentos de origem com o modelo.
             </label>
-            <Button onClick={baixar} disabled={!pronto}>
-              Baixar modelo ministerial preenchido (G, I, K)
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {rascunhoFopag && (
+                <Button variant="outline" onClick={() => salvarArquivo(rascunhoFopag,
+                  `RASCUNHO_CALCULO_PISO_FOPAG_${competencia.replace("-", "_")}.xlsx`)}>
+                  Baixar FOPAG para conferência (rascunho)
+                </Button>
+              )}
+              {consolidadoPrestadores && (
+                <Button variant="outline" onClick={() => salvarArquivo(consolidadoPrestadores,
+                  `PRESTADORES_ENFERMAGEM_${competencia.replace("-", "_")}_COMPLETO.xlsx`)}>
+                  Baixar Prestadores consolidados (auditoria)
+                </Button>
+              )}
+              <Button onClick={baixar} disabled={!pronto}>
+                Baixar modelo ministerial preenchido (G, I, K)
+              </Button>
+            </div>
             {!!bloqueios.length && <p className="text-xs text-muted-foreground">
               Corrija os arquivos de origem ou o modelo e execute a auditoria novamente. Nenhum CPF, CNES ou CBO é substituído automaticamente.
             </p>}
