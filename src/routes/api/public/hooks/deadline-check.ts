@@ -357,6 +357,21 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
             encerradas = (data ?? []).length;
           }
 
+          // Lembretes de devolução: no máximo um aviso diário por folha e
+          // somente quando a correção continua pendente há pelo menos 24h.
+          const { cobrarFolhasDevolvidas } = await import("@/lib/cobranca-correcao.server");
+          const correcoes = await cobrarFolhasDevolvidas({
+            supa,
+            agora,
+            usuarios: usuariosAlvo,
+            perfis,
+            unidadesPorDiretor: unidadesDoDiretor,
+          });
+          notificacoesCriadas += correcoes.avisos;
+          notificacoesFalhas += correcoes.falhas;
+          emailsEnviados += correcoes.emails;
+          emailsFalhos += correcoes.emails_falhos;
+
           // Retenta apenas falhas de execuções anteriores e leases já expirados.
           // O filtro usa inicioExecucao, portanto falhas geradas neste ciclo só entram no próximo.
           const retentativas = await reprocessarEmailsPendentes(supa, sendEmail, inicioExecucao);
@@ -386,6 +401,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
               ledger_disponivel: retentativas.ledgerDisponivel,
               destinatarios: alvoIds.length,
               pendencias_abertas: pendenciasAbertas,
+              folhas_cobradas_por_correcao: correcoes.folhas,
               sla_pendencias: slaResumo ?? null,
               timestamp: new Date().toISOString(),
             },
