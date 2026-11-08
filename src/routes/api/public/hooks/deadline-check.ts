@@ -6,6 +6,7 @@ type Comp = {
   mes: number;
   ano: number;
   prazo_envio: string;
+  secretaria_id: string;
   status: "aberta" | "em_processamento";
 };
 
@@ -137,7 +138,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
           // da tabela competencias. "encerrada"/"arquivada" nunca são reabertas pelo cron.
           const { data: candidatas, error: candidatasError } = await supa
             .from("competencias")
-            .select("id, mes, ano, prazo_envio, status")
+            .select("id, mes, ano, prazo_envio, status, secretaria_id")
             .in("status", [...STATUS_COMPETENCIA_ABERTA])
             .not("prazo_envio", "is", null)
             .lte("prazo_envio", dataLimite);
@@ -167,15 +168,15 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
           const { data: alvos, error: alvosError } = perfis.length
             ? await supa
                 .from("usuarios")
-                .select("id, perfil_id")
+                .select("id, perfil_id, secretaria_id, acesso_todas_secretarias")
                 .in("perfil_id", perfis.map((p) => p.id))
                 .eq("status", "ativo")
                 .is("deleted_at", null)
-            : { data: [] as Array<{ id: string; perfil_id: string }>, error: null };
+            : { data: [] as Array<{ id: string; perfil_id: string; secretaria_id: string | null; acesso_todas_secretarias: boolean }>, error: null };
 
           if (alvosError) throw new Error("Falha ao consultar os usuários destinatários.");
 
-          const usuariosAlvo = (alvos ?? []) as Array<{ id: string; perfil_id: string }>;
+          const usuariosAlvo = (alvos ?? []) as Array<{ id: string; perfil_id: string; secretaria_id: string | null; acesso_todas_secretarias: boolean }>;
           const alvoIds = usuariosAlvo.map((u) => u.id);
           const diretores = usuariosAlvo
             .filter((u) => u.perfil_id === perfilDiretor)
@@ -201,59 +202,52 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
             }
           }
 
-          /** Mantém gestores gerais e remove diretores que concluíram todas as folhas. */
-          async function destinatariosPendentes(compId: string): Promise<string[]> {
-            if (diretores.length === 0) return alvoIds;
+          /**
+           * Exclui unidades com todas as folhas enviadas. A cobrança respeita
+           * a secretaria da competência (ADMIN_SMS) e os vínculos da unidade
+           * (DIRETOR_UNIDADE). MASTER tem abrangência municipal.
+           */
+          async function destinatariosPendentes(competencia: Comp): Promise<string[]> {
+            const { unidadesQuePrecisamEnviar, destinatariosDaCobranca, gestorPodeReceber } =
+              await import("@/lib/cobranca-folhas");
 
             const { data: vinculosCompetencia, error: vinculosCompetenciaError } = await supa
               .from("competencia_unidades")
               .select("unidade_id")
-              .eq("competencia_id", compId)
+              .eq("competencia_id", competencia.id)
               .neq("status", "arquivada")
               .is("deleted_at", null);
 
             if (vinculosCompetenciaError) {
               throw new Error("Falha ao consultar unidades vinculadas à competência.");
             }
-
-            const unidadesCompetencia = new Set(
+            const unidades = new Set(
               (vinculosCompetencia ?? []).map((v: { unidade_id: string }) => v.unidade_id),
             );
+            if (!unidades.size) return [];
 
             const { data: folhas, error } = await supa
               .from("frequencias")
               .select("status, competencia_unidades!inner(competencia_id, unidade_id)")
-              .eq("competencia_unidades.competencia_id" as never, compId)
+              .eq("competencia_unidades.competencia_id" as never, competencia.id)
               .is("competencia_unidades.deleted_at" as never, null);
 
             if (error) throw new Error("Falha ao verificar folhas pendentes da competência.");
 
-            const enviadas = new Set<string>();
-            const pendentes = new Set<string>();
-            for (const folha of (folhas ?? []) as any[]) {
-              const unidadeId = folha.competencia_unidades?.unidade_id;
-              if (!unidadeId) continue;
-              if (["enviada", "aprovada", "em_analise", "arquivada"].includes(folha.status)) {
-                enviadas.add(unidadeId);
-              } else {
-                pendentes.add(unidadeId);
-              }
-            }
-
-            const concluida = (unidadeId: string) =>
-              enviadas.has(unidadeId) && !pendentes.has(unidadeId);
-
-            return alvoIds.filter((id) => {
-              if (!diretores.includes(id)) return true;
-              const unidadesVinculadas = unidadesDoDiretor.get(id);
-              if (!unidadesVinculadas || unidadesVinculadas.size === 0) return false;
-
-              const unidadesRelevantes = [...unidadesVinculadas].filter((unidadeId) =>
-                unidadesCompetencia.has(unidadeId),
+            const pendentes = unidadesQuePrecisamEnviar(
+              unidades,
+              (folhas ?? []).map((folha: any) => ({
+                unidadeId: folha.competencia_unidades?.unidade_id ?? "",
+                status: folha.status ?? "rascunho",
+              })),
+            );
+            const gestores = usuariosAlvo.filter((u) => {
+              const perfil = perfis.find((p) => p.id === u.perfil_id)?.codigo;
+              return gestorPodeReceber(
+                perfil, u.secretaria_id, competencia.secretaria_id, u.acesso_todas_secretarias,
               );
-              if (unidadesRelevantes.length === 0) return false;
-              return unidadesRelevantes.some((unidadeId) => !concluida(unidadeId));
-            });
+            }).map(u => ({ id: u.id, diretor: u.perfil_id === perfilDiretor }));
+            return destinatariosDaCobranca(gestores, pendentes, unidadesDoDiretor);
           }
 
           const fmtData = (data: string) => data.split("-").reverse().join("/");
@@ -268,7 +262,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
             competencia: Comp,
             etapa: "3_dias" | "1_dia" | "1_hora" | "vencido",
           ) {
-            const destinatarios = await destinatariosPendentes(competencia.id);
+            const destinatarios = await destinatariosPendentes(competencia);
             if (destinatarios.length === 0) return;
 
             const competenciaStr =
