@@ -258,14 +258,18 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
     }
 
     // 4. Registrar no Log de Sincronização (Audit) — com registro da folha
-    const { data: folhaAudit } = await supabaseAdmin
+    // Audita exatamente a folha sincronizada: Geral (setor nulo) ou
+    // Setor específico, sem associar o evento a uma folha irmã arbitrária.
+    const buscaFolhaAudit = supabaseAdmin
       .from("frequencias")
       .select("id")
       .eq("competencia_unidade_id", cu.id)
       .eq("tipo", tipo as never)
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle();
+      .is("deleted_at", null);
+    if (setor_id) buscaFolhaAudit.eq("setor_id", setor_id);
+    else buscaFolhaAudit.is("setor_id", null);
+    const { data: folhaAudit, error: folhaAuditErr } = await buscaFolhaAudit.maybeSingle();
+    if (folhaAuditErr) throw folhaAuditErr;
     const { data: autorAudit } = await supabaseAdmin
       .from("usuarios")
       .select("email")

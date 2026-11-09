@@ -17,6 +17,7 @@ on:
       - "src/routes/_authenticated/aprovacoes.tsx"
       - "src/hooks/use-autosave-folha*"
       - "src/lib/frequencia-sincronizacao.functions.ts"
+      - "src/lib/frequencia-escopo-sincronizacao*"
       - "src/lib/frequencias-contratados.functions.ts"
       - "src/lib/frequencias-efetivos.functions.ts"
       - "src/lib/frequencias.functions.ts"
@@ -68,5 +69,6 @@ jobs:
           src/lib/realtime/frequency-realtime.test.tsx
           src/lib/realtime/invalidation-batch.test.ts
           src/lib/folha-financeira-snapshot.test.ts
+          src/lib/frequencia-escopo-sincronizacao.test.ts
       - name: Compilar aplicação
         run: npm run build

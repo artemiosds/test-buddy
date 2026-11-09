@@ -9,6 +9,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { alterarStatusFrequencia, alterarStatusFrequenciasConjunto } from "@/lib/frequencias.functions";
+import { escopoDaSincronizacaoLinha } from "@/lib/frequencia-escopo-sincronizacao";
 import { OfflineButton } from "@/components/shared/OfflineButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1201,12 +1202,12 @@ function LinhasAnaliseDialog({
         const cu = freqBase.competencia_unidades as any;
         const { orquestrarSincronizacao } = await import("@/lib/frequencia-sincronizacao.functions");
         await orquestrarSincronizacao({
-          data: {
-            evento: "LINHA_ALTERADA",
-            tipo: freqBase.tipo as any,
+          data: escopoDaSincronizacaoLinha({
+            tipo: freqBase.tipo as "efetivos" | "contratados" | "mensal",
             competencia_id: cu.competencia_id,
             unidade_id: cu.unidade_id,
-          }
+            setor_id: freqBase.setor_id,
+          })
         });
         qc.invalidateQueries({ queryKey: ["aprovacoes-list"] });
       }
