@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { FopagExtracao } from "./piso-fopag-parser";
 import * as XL from "xlsx-js-style";
 import {
-  auditarPiso, extrairFopagPlanilha, extrairPrestadores, exportarPisoConferido,
+  auditarPiso, extrairFopagPlanilha, extrairFopagPdf, extrairPrestadores, exportarPisoConferido,
   type PendenciaPiso,
 } from "./piso-conferencia-ministerio";
 
@@ -83,5 +84,34 @@ describe("conciliação do modelo original do Ministério", () => {
     const { resultado, modelo } = analisar(ministerio("09999999999"));
     expect(resultado.pendencias.some(p => p.mensagem.includes("sem correspondência"))).toBe(true);
     expect(() => exportarPisoConferido(modelo, resultado)).toThrow();
+  });
+});
+
+describe("PDF complementar da FOPAG", () => {
+  function documento(adn: number): FopagExtracao {
+    return {
+      competencia: "2026-06", rubricasNaoReconhecidas: [], comDivergencia: 0,
+      cpfInvalido: 0, funcionarios: [{
+        cpf: "12345678909", nome: "SERVIDOR EXEMPLO", divergencias: [],
+        rubricas: { adicional_noturno: adn, inss: 20, irrf: 10, insalubridade: 50 },
+      }],
+    } as unknown as FopagExtracao;
+  }
+
+  it("não soma duas vezes o mesmo CPF e valores idênticos em PDF complementar", () => {
+    const pendencias: PendenciaPiso[] = [];
+    const resultado = extrairFopagPdf([documento(15), documento(15)], pendencias);
+    expect(resultado.fontes).toHaveLength(1);
+    expect(resultado.fontes[0].adicional).toBe(15);
+    expect(pendencias.some(p => p.tipo === "bloqueio")).toBe(false);
+    expect(pendencias.some(p => p.mensagem.includes("considerado apenas uma vez"))).toBe(true);
+  });
+
+  it("bloqueia divergência financeira do mesmo CPF em documentos diferentes", () => {
+    const pendencias: PendenciaPiso[] = [];
+    const resultado = extrairFopagPdf([documento(15), documento(200)], pendencias);
+    expect(resultado.fontes).toHaveLength(1);
+    expect(pendencias.some(p => p.tipo === "bloqueio" &&
+      p.mensagem.includes("dados divergentes"))).toBe(true);
   });
 });

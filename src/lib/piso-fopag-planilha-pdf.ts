@@ -19,7 +19,12 @@ export function criarPlanilhaFopagPdf(extracoes: FopagExtracao[], competencia: s
     for (const f of e.funcionarios) {
       const id = String(f.cpf ?? "").replace(/\D/g, "");
       if (id.length !== 11) throw new Error(`CPF ausente ou inválido na FOPAG: ${f.nome ?? "sem nome"}.`);
-      if (cpfs.has(id)) throw new Error(`CPF repetido na FOPAG: final ${id.slice(-4)}.`);
+      if (cpfs.has(id)) {
+        // Documentos complementares podem repetir o mesmo CPF. O rascunho
+        // apenas ignora a repetição; a conciliação separada audita diferenças
+        // entre valores e bloqueia o arquivo ministerial quando necessário.
+        continue;
+      }
       if (f.divergencias.length || f.rubricasNaoReconhecidas.length)
         throw new Error(`FOPAG de ${f.nome}: divergências ou rubricas não reconhecidas.`);
       cpfs.add(id);

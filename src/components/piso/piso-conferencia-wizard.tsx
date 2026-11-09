@@ -100,9 +100,9 @@ export function PisoConferenciaWizard() {
       return;
     }
     const somentePlanilha = fopag.length === 1 && /\.xlsx$/i.test(fopag[0].name);
-    const somentePdf = fopag.length === 3 && fopag.every(f => /\.pdf$/i.test(f.name));
+    const somentePdf = fopag.length >= 1 && fopag.every(f => /\.pdf$/i.test(f.name));
     if (!somentePlanilha && !somentePdf) {
-      toast.error("Envie uma planilha FOPAG .xlsx ou exatamente os 3 PDFs da folha.");
+      toast.error("Envie uma planilha FOPAG .xlsx ou PDFs da FOPAG, incluindo documentos complementares. Não misture Excel e PDFs no mesmo campo.");
       return;
     }
     setProgresso({ etapa: "Conferindo documentos e competência", feito: 0, total: 4 });
@@ -195,7 +195,7 @@ export function PisoConferenciaWizard() {
               className="max-w-xs" />
           </label>
           <label className="block space-y-1 text-sm">
-            <span className="font-medium">FOPAG — 3 PDFs ou planilha de cálculo .xlsx</span>
+            <span className="font-medium">FOPAG — PDFs da folha e complementares, ou planilha de cálculo .xlsx</span>
             <Input type="file" accept=".pdf,.xlsx" multiple
               onChange={e => setFopag(Array.from(e.target.files ?? []))} />
             <span className="block text-xs text-muted-foreground">{fopag.map(f => f.name).join(" · ") || "Nenhum arquivo selecionado"}</span>

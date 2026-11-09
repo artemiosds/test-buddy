@@ -98,10 +98,11 @@ export function extrairFopagPlanilha(wb: XLSX.WorkBook, pendencias: PendenciaPis
 export function extrairFopagPdf(extracoes: FopagExtracao[], pendencias: PendenciaPiso[]) {
   const fontes: OrigemPiso[] = [];
   const competencias = new Set<string>();
+  const cpfsVistos = new Map<string, { nome: string; adicional: number; encargo: number; variavel: number }>();
   for (const e of extracoes) {
     if (e.competencia) competencias.add(e.competencia);
     for (const f of e.funcionarios) {
-      if (!f.cpf) { erro(pendencias, `FOPAG PDF: ${f.nome ?? "sem nome"} sem CPF válido.`); continue; }
+      if (!f.cpf || !/^\d{11}$/.test(cpf(f.cpf))) { erro(pendencias, `FOPAG PDF: ${f.nome ?? "sem nome"} sem CPF válido.`); continue; }
       if (f.divergencias.length) erro(pendencias, `FOPAG PDF: ${f.nome}: ${f.divergencias.join("; ")}`);
       const r = f.rubricas;
       const positivas = [
@@ -110,9 +111,25 @@ export function extrairFopagPdf(extracoes: FopagExtracao[], pendencias: Pendenci
         "grat_nivel_superior", "incentivos",
       ].reduce((s, k) => s + centavos(r[k as keyof typeof r]), 0);
       // Férias e outras rubricas exigem conferência com o PDF original.
-      fontes.push({ cpf: cpf(f.cpf), nome: f.nome ?? "", origem: "FOPAG", unidade: "FOPAG",
+      const id = cpf(f.cpf);
+      const registro = { cpf: id, nome: f.nome ?? "", origem: "FOPAG" as const, unidade: "FOPAG",
         adicional: moeda(centavos(r.adicional_noturno)),
-        encargo: moeda(centavos(r.inss) + centavos(r.irrf)), variavel: moeda(positivas) });
+        encargo: moeda(centavos(r.inss) + centavos(r.irrf)), variavel: moeda(positivas) };
+      const anterior = cpfsVistos.get(id);
+      if (anterior) {
+        // Duas ocorrências idênticas podem vir de um PDF complementar.
+        // Não somamos novamente; discrepâncias financeiras ficam bloqueadas.
+        const mesmoNome = normalizar(anterior.nome) === normalizar(registro.nome);
+        const mesmosValores = anterior.adicional === registro.adicional &&
+          anterior.encargo === registro.encargo && anterior.variavel === registro.variavel;
+        if (!mesmoNome || !mesmosValores)
+          erro(pendencias, `CPF repetido nos PDFs FOPAG (final ${id.slice(-4)}) com dados divergentes. Verifique os documentos; nenhum valor será somado automaticamente.`);
+        else pendencias.push({ tipo: "aviso",
+          mensagem: `CPF final ${id.slice(-4)} repetido em PDF complementar com os mesmos valores; considerado apenas uma vez.` });
+        continue;
+      }
+      cpfsVistos.set(id, registro);
+      fontes.push(registro);
     }
   }
   // O parser pode não reconhecer todas as rubricas de férias e vantagens.
