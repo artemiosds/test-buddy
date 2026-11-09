@@ -1,0 +1,53 @@
+name: Validar segurança operacional e dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/central-comando-resumo*"
+      - "src/components/dashboard/**"
+      - "src/lib/frequencia-status-sincronizacao*"
+      - "src/lib/cobranca-folhas*"
+      - "src/lib/cobranca-correcao*"
+      - "src/lib/prazo-envio-etapas*"
+      - "src/routes/api/public/hooks/deadline-check.ts"
+      - ".github/workflows/operational-safety-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operational-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Testes e build sem acesso ao banco
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      VITE_SUPABASE_URL: "http://supabase.test"
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test_key"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar dependências do lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Regressões críticas
+        run: >-
+          npx vitest run
+          src/lib/central-comando-resumo.test.ts
+          src/lib/frequencia-status-sincronizacao.test.ts
+          src/lib/frequencia-status-unidade.test.ts
+          src/lib/cobranca-folhas.test.ts
+          src/lib/cobranca-correcao.test.ts
+          src/lib/prazo-envio-etapas.test.ts
+      - name: Compilar aplicação
+        run: npm run build

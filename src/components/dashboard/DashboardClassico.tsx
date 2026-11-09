@@ -5,6 +5,7 @@ import { KpiCard, PageHeader } from "@/components/shared";
 import { BotaoRelatorioAbnt } from "@/components/relatorios-gerenciais/botao-relatorio-abnt";
 import { relatorioPainelAbnt } from "@/lib/painel-abnt";
 import { CardAniversariantes } from "@/components/dashboard/CardAniversariantes";
+import { CentralComandoWidget } from "@/components/dashboard/CentralComandoWidget";
 
 import { 
   Users, 
@@ -133,6 +134,7 @@ export function DashboardClassico() {
         }
       />
 
+      <CentralComandoWidget />
       <CardAniversariantes />
 
 
