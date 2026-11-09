@@ -5,7 +5,7 @@
 - Depois de aplicada a migration, a abertura da competência aciona o sino, o mural e o e-mail.
 - Lembretes de 3 dias, 1 dia e 1 hora consideram o corte às 23:59:59 (UTC-3).
 - No vencimento, gestores institucionais são avisados; diretores só recebem o alerta se ainda houver folhas pendentes nas unidades vinculadas.
-- A competência vencida passa para o estado terminal `encerrada`; competências `encerrada` e `arquivada` não recebem novos lembretes.
+- O vencimento do prazo gera avisos e pendências, **sem encerrar a competência**. O encerramento é exclusivamente manual, pelo gestor autorizado no módulo Competências, com revisão das folhas pendentes e justificativa quando necessária. Competências `encerrada` ou `arquivada` não são encerradas novamente pelo cron.
 - Uma outbox por evento/canal/destinatário protege contra concorrência e retenta e-mails falhos.
 
 ## 1. Aplicar migration no Supabase correto

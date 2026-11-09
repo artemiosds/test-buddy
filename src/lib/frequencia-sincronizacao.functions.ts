@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { garantirCompetenciaUnidade } from "./competencia-unidade.server";
 import { normalizarParaSoma } from "@/components/erp-grid";
+import { statusSincronizadoContratados } from "./frequencia-status-sincronizacao";
 
 /**
  * Orquestrador de Sincronização de Frequências
@@ -128,17 +129,10 @@ export const orquestrarSincronizacao = createServerFn({ method: "POST" })
       
       if (contratados && contratados.length > 0) {
         const statuses = contratados.map(c => (c as any).status);
-        if (statuses.every(s => s === "aprovada")) {
-          statusOficial = "aprovada";
-        } else if (statuses.some(s => ["rascunho", "devolvida", "rejeitada", "com_pendencias"].includes(s))) {
-          statusOficial = "rascunho";
-        } else if (statuses.some(s => s === "em_analise")) {
-          // Retificação: linhas em análise (inclusive misturadas com aprovadas)
-          // não podem rebaixar o cabeçalho para rascunho.
-          statusOficial = "em_analise";
-        } else if (statuses.some(s => s === "enviada")) {
-          statusOficial = "enviada";
-        }
+        // Em retificação o cabeçalho em_analise é a fonte oficial: autosave
+        // e sincronizações paralelas nunca devem rebaixá-lo para rascunho
+        // nem promovê-lo sem aprovação explícita.
+        statusOficial = statusSincronizadoContratados(statusOficial, statuses, evento);
 
         const ref = contratados.find(c => ((c as any).status) === statusOficial) || contratados[0];
         dataEnvio = (ref as any).enviada_em ?? dataEnvio;

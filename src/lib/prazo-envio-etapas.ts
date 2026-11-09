@@ -43,7 +43,7 @@ export function mensagemEtapa(etapa: EtapaPrazo, comp: string, prazoFmt: string)
     case "vencido":
       return {
         titulo: `Prazo vencido (${comp})`,
-        mensagem: `A competência ${comp} teve o prazo de envio vencido (${prazoFmt} às 23:59) e foi encerrada para elaboração.`,
+        mensagem: `O prazo de envio das folhas da competência ${comp} venceu em ${prazoFmt} às 23:59. Há pendências a conferir. O encerramento da competência depende de autorização manual do gestor.`,
         prioridade: "urgente",
       };
   }

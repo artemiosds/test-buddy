@@ -256,7 +256,6 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
           let emailsEnviados = 0;
           let emailsFalhos = 0;
           const etapasDisparadas: string[] = [];
-          const vencidasComFalhaInApp = new Set<string>();
 
           async function disparar(
             competencia: Comp,
@@ -292,9 +291,6 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
             emailsEnviados += resultado.emails;
             emailsFalhos += resultado.emails_falhos;
 
-            if (etapa === "vencido" && resultado.notificacoes_falhas > 0) {
-              vencidasComFalhaInApp.add(competencia.id);
-            }
             if (resultado.notificacoes > 0 || resultado.emails > 0) {
               etapasDisparadas.push(competenciaStr + ":" + etapa);
             }
@@ -338,24 +334,10 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
             }
           }
 
-          // Encerra após o sino. Falha do sino mantém a competência aberta para
-          // a próxima execução; falhas SMTP ficam na outbox e são retentadas à parte.
-          const idsParaEncerrar = vencidas
-            .filter((c) => !vencidasComFalhaInApp.has(c.id))
-            .map((c) => c.id);
-
-          let encerradas = 0;
-          if (idsParaEncerrar.length > 0) {
-            const { data, error } = await supa
-              .from("competencias")
-              .update({ status: "encerrada" })
-              .in("id", idsParaEncerrar)
-              .in("status", [...STATUS_COMPETENCIA_ABERTA])
-              .select("id");
-
-            if (error) throw new Error("Falha ao encerrar competências com prazo vencido.");
-            encerradas = (data ?? []).length;
-          }
+          // O prazo vencido gera alertas e pendências, mas NUNCA altera o
+          // estado de uma competência. O encerramento exige ação autorizada
+          // do gestor no fluxo manual de competências.
+          const encerradas = 0;
 
           // Lembretes de devolução: no máximo um aviso diário por folha e
           // somente quando a correção continua pendente há pelo menos 24h.
@@ -391,7 +373,7 @@ export const Route = createFileRoute("/api/public/hooks/deadline-check")({
               etapas_disparadas: etapasDisparadas,
               vencidas_detectadas: vencidas.length,
               vencidas_encerradas: encerradas,
-              vencidas_pendentes_por_falha_inapp: vencidasComFalhaInApp.size,
+              encerramento_automatico: false,
               notificacoes_criadas: notificacoesCriadas,
               notificacoes_com_falha: notificacoesFalhas,
               emails_enviados: emailsEnviados,
