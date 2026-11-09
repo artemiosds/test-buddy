@@ -15,6 +15,14 @@ on:
       - "src/components/frequencias/enviar-folha-dialog.tsx"
       - "src/components/aprovacoes/AuditoriaAprovacoesResumo.tsx"
       - "src/routes/_authenticated/aprovacoes.tsx"
+      - "src/hooks/use-autosave-folha*"
+      - "src/lib/frequencia-sincronizacao.functions.ts"
+      - "src/lib/frequencias-contratados.functions.ts"
+      - "src/lib/frequencias-efetivos.functions.ts"
+      - "src/lib/frequencias.functions.ts"
+      - "src/lib/competencias.functions.ts"
+      - "src/lib/frequencias-retencao.ts"
+      - "docs/plano-confiabilidade-frequencias.md"
       - ".github/workflows/operational-safety-ci.yml"
   workflow_dispatch:
 
@@ -56,5 +64,9 @@ jobs:
           src/lib/cobranca-correcao.test.ts
           src/lib/prazo-envio-etapas.test.ts
           src/lib/auditoria-inteligente-folhas.test.ts
+          src/hooks/use-autosave-folha.test.tsx
+          src/lib/realtime/frequency-realtime.test.tsx
+          src/lib/realtime/invalidation-batch.test.ts
+          src/lib/folha-financeira-snapshot.test.ts
       - name: Compilar aplicação
         run: npm run build
