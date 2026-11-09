@@ -17,42 +17,66 @@ import {
 import type * as XLSX from "xlsx-js-style";
 import { processarPrestadoresLote, baixarConsolidadoPrestadores } from "@/lib/piso-prestadores-lote";
 import { criarPlanilhaFopagPdf } from "@/lib/piso-fopag-planilha-pdf";
+import { detalheFalhaPiso, extracaoLocalApta, falhaEtapaPiso } from "@/lib/piso-conferencia-diagnostico";
 
 type Progresso = { feito: number; total: number; etapa: string };
 type EntradaFopag = { fontes: ReturnType<typeof extrairFopagPdf>["fontes"]; competencia: string | null };
 
 async function lerPdf(file: File, competencia: string, usarIA: boolean): Promise<FopagExtracao> {
   if (file.size > 80 * 1024 * 1024) throw new Error(`PDF ${file.name} excede 80MB.`);
-  const texto = await extrairTextoPdf(file);
-  if (texto.paginasComErro.length)
-    throw new Error(`PDF ${file.name}: ${texto.paginasComErro.length} página(s) não puderam ser lidas.`);
-  const local = texto.pesquisavel ? parseFopagTexto(texto.paginas) : null;
-  if (local?.funcionarios.length && !usarIA) return local;
-  if (!usarIA) {
-    // Mesmo motor local do assistente de importação: Tesseract em WASM.
-    const config = await getExtracaoConfig();
-    const ocr = await ocrLocalPdf(file, texto.numPages, { idioma: config.ocr_idioma });
-    if (ocr.paginasComErro.length)
-      throw new Error(`OCR local de ${file.name}: ${ocr.paginasComErro.length} página(s) com falha. Confira o documento.`);
-    const extraido = parseFopagTexto(ocr.paginas);
-    if (extraido.funcionarios.length) return extraido;
-    throw new Error(`PDF ${file.name}: texto/OCR insuficiente. Autorize a IA externa para tentar a extração.`);
+  const contexto = `PDF "${file.name}"`;
+  let texto: Awaited<ReturnType<typeof extrairTextoPdf>>;
+  try {
+    texto = await extrairTextoPdf(file);
+  } catch (erro) {
+    throw falhaEtapaPiso(`${contexto} — leitura do arquivo`, erro);
+  }
+  if (texto.paginasComErro.length) {
+    const primeiras = texto.paginasComErro.slice(0, 3)
+      .map(p => `página ${p.pagina}: ${p.erro}`).join("; ");
+    throw new Error(`${contexto}: falha na leitura de ${texto.paginasComErro.length} página(s). ${primeiras}`);
   }
 
-  const janelas = janelasContinuas(texto.numPages, texto.paginas, 12);
-  const payloads: { competencia?: string | null; funcionarios?: unknown[] }[] = [];
-  for (const janela of janelas) {
-    const paginas = await renderizarPaginasJpeg(file, janela);
-    if (!paginas.length) throw new Error(`Nenhuma página renderizada: ${file.name}.`);
-    // Motor externo já configurado com provedores ativos e failover.
-    const retorno = await extrairFopagPorIA({
-      data: { paginas, competencia_hint: competencia },
-    });
-    payloads.push({ competencia: retorno.competencia, funcionarios: retorno.funcionarios });
+  const local = texto.pesquisavel ? parseFopagTexto(texto.paginas) : null;
+  // Reutiliza PDF pesquisável com extração íntegra e profissionais reconhecidos.
+  // Havendo divergência, não substitui o documento original por dados presumidos.
+  if (extracaoLocalApta(local)) return local;
+  // Sem autorização para IA, mantém leitura local/OCR com a validação financeira
+  // existente; uma extração parcial continuará bloqueada na conciliação oficial.
+  if (!usarIA) {
+    if (local?.funcionarios.length) return local;
+    try {
+      const config = await getExtracaoConfig();
+      const ocr = await ocrLocalPdf(file, texto.numPages, { idioma: config.ocr_idioma });
+      if (ocr.paginasComErro.length) {
+        throw new Error(`${ocr.paginasComErro.length} página(s) falharam no OCR local.`);
+      }
+      const extraido = parseFopagTexto(ocr.paginas);
+      if (extraido.funcionarios.length) return extraido;
+      throw new Error("nenhum profissional identificado no texto/OCR. Verifique se é FOPAG de enfermagem ou autorize a leitura por IA.");
+    } catch (erro) {
+      throw falhaEtapaPiso(`${contexto} — OCR local`, erro);
+    }
   }
-  const extracao = parseFopagIA(payloads);
-  if (!extracao.funcionarios.length) throw new Error(`A IA não extraiu profissionais: ${file.name}.`);
-  return extracao;
+
+  try {
+    const janelas = janelasContinuas(texto.numPages, texto.paginas, 12);
+    const payloads: { competencia?: string | null; funcionarios?: unknown[] }[] = [];
+    for (const janela of janelas) {
+      const paginas = await renderizarPaginasJpeg(file, janela);
+      if (!paginas.length) throw new Error("nenhuma página foi renderizada.");
+      // Motor externo configurado com múltiplos provedores e failover.
+      const retorno = await extrairFopagPorIA({ data: { paginas, competencia_hint: competencia } });
+      payloads.push({ competencia: retorno.competencia, funcionarios: retorno.funcionarios });
+    }
+    const extracao = parseFopagIA(payloads);
+    if (!extracao.funcionarios.length) {
+      throw new Error("a IA não identificou profissionais de enfermagem neste documento. Confira se é um PDF complementar e se os vínculos foram reconhecidos.");
+    }
+    return extracao;
+  } catch (erro) {
+    throw falhaEtapaPiso(`${contexto} — extração por IA`, erro);
+  }
 }
 
 function salvarArquivo(bytes: Uint8Array, nome: string) {
@@ -80,6 +104,7 @@ export function PisoConferenciaWizard() {
   const [analise, setAnalise] = useState<AnalisePiso | null>(null);
   const [modeloLido, setModeloLido] = useState<XLSX.WorkBook | null>(null);
   const [confirmado, setConfirmado] = useState(false);
+  const [erroAnalise, setErroAnalise] = useState<string | null>(null);
 
   const bloqueios = analise?.pendencias.filter(p => p.tipo === "bloqueio") ?? [];
   const avisos = analise?.pendencias.filter(p => p.tipo === "aviso") ?? [];
@@ -91,6 +116,7 @@ export function PisoConferenciaWizard() {
     setConfirmado(false);
     setConsolidadoPrestadores(null);
     setRascunhoFopag(null);
+    setErroAnalise(null);
     if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(competencia)) {
       toast.error("Informe a competência no formato AAAA-MM.");
       return;
@@ -141,15 +167,24 @@ export function PisoConferenciaWizard() {
       } else {
         const arquivos = [];
         for (const arquivo of prestadores) {
-          if (!/\.xlsx$/i.test(arquivo.name)) throw new Error("Os Prestadores devem estar em arquivos .xlsx.");
-          arquivos.push({nome: arquivo.name, workbook: carregarXlsx(await arquivo.arrayBuffer())});
+          if (!/\.xlsx$/i.test(arquivo.name)) throw new Error(`Prestadores "${arquivo.name}": envie somente arquivos .xlsx.`);
+          try {
+            arquivos.push({nome: arquivo.name, workbook: carregarXlsx(await arquivo.arrayBuffer())});
+          } catch (erro) {
+            throw falhaEtapaPiso(`Prestadores "${arquivo.name}" — leitura da planilha`, erro);
+          }
         }
         const resultadoLote = processarPrestadoresLote(arquivos, competencia, pendencias);
         origemPrest = resultadoLote;
         setConsolidadoPrestadores(baixarConsolidadoPrestadores(resultadoLote.workbook));
       }
       setProgresso({ etapa: "Validando arquivo original do Ministério", feito: 2, total: 4 });
-      const ministerio = carregarXlsx(await modelo.arrayBuffer());
+      let ministerio: XLSX.WorkBook;
+      try {
+        ministerio = carregarXlsx(await modelo.arrayBuffer());
+      } catch (erro) {
+        throw falhaEtapaPiso(`Modelo do Ministério "${modelo.name}" — leitura da planilha`, erro);
+      }
       const resultado = auditarPiso({
         competencia, fopag: origem.fontes, prestadores: origemPrest.fontes,
         competenciaFopag: origem.competencia, competenciaPrestadores: origemPrest.competencia,
@@ -163,7 +198,9 @@ export function PisoConferenciaWizard() {
       else toast.success("Conciliação concluída. Confira os avisos e confirme a exportação.");
     } catch (e) {
       setProgresso(null);
-      toast.error(e instanceof Error ? e.message : "Não foi possível analisar os documentos.");
+      const mensagem = detalheFalhaPiso(e);
+      setErroAnalise(mensagem);
+      toast.error(mensagem);
     }
   }
 
@@ -211,8 +248,15 @@ export function PisoConferenciaWizard() {
           </label>
           <label className="flex gap-2 items-center text-sm">
             <input type="checkbox" checked={usarIA} onChange={e => setUsarIA(e.target.checked)} />
-            Autorizo o envio das páginas dos PDFs à IA externa configurada (substitui a leitura local)
+            Autorizo o uso da IA externa quando a extração local não identificar dados suficientes ou apresentar inconsistências
           </label>
+          {erroAnalise && (
+            <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <strong>Não foi possível concluir a análise.</strong>
+              <p className="mt-1 break-words">{erroAnalise}</p>
+              <p className="mt-1 text-xs">Os arquivos de origem permanecem selecionados. Corrija a etapa indicada e tente novamente.</p>
+            </div>
+          )}
           <div className="flex gap-3 items-center flex-wrap">
             <Button onClick={() => void analisar()} disabled={!!progresso && progresso.feito < progresso.total}>
               {progresso?.feito !== progresso?.total && progresso ? "Processando..." : "Analisar e conciliar"}

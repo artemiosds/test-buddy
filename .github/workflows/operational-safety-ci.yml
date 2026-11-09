@@ -24,6 +24,10 @@ on:
       - "src/lib/competencias.functions.ts"
       - "src/lib/frequencias-retencao.ts"
       - "docs/plano-confiabilidade-frequencias.md"
+      - "src/components/piso/piso-conferencia-wizard.tsx"
+      - "src/lib/piso-conferencia-diagnostico*"
+      - "src/lib/piso-fopag-parser*"
+      - "src/lib/piso-conferencia-ministerio*"
       - ".github/workflows/operational-safety-ci.yml"
   workflow_dispatch:
 
@@ -70,5 +74,8 @@ jobs:
           src/lib/realtime/invalidation-batch.test.ts
           src/lib/folha-financeira-snapshot.test.ts
           src/lib/frequencia-escopo-sincronizacao.test.ts
+          src/lib/piso-conferencia-diagnostico.test.ts
+          src/lib/piso-fopag-parser.test.ts
+          src/lib/piso-conferencia-ministerio.test.ts
       - name: Compilar aplicação
         run: npm run build
