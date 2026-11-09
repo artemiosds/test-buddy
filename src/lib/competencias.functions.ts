@@ -246,7 +246,9 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
     }
 
     const patch: Record<string, unknown> = { status: data.status, updated_by: context.userId };
-    if (data.motivo !== undefined) patch.motivo_reabertura = data.motivo;
+    if (data.status === "aberta" && data.motivo !== undefined) {
+      patch.motivo_reabertura = data.motivo;
+    }
 
     const { error } = await context.supabase
       .from("competencias")
