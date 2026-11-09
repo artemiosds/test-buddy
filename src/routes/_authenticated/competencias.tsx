@@ -8,6 +8,7 @@ import {
   criarCompetencia,
   editarCompetencia,
   alterarStatusCompetencia,
+  obterResumoEncerramentoCompetencia,
 } from "@/lib/competencias.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,6 +96,13 @@ function CompetenciasPage() {
   const [editing, setEditing] = useState<Competencia | null>(null);
   const [reabrirTarget, setReabrirTarget] = useState<Competencia | null>(null);
   const [motivoReabertura, setMotivoReabertura] = useState("");
+  const [encerrarTarget, setEncerrarTarget] = useState<Competencia | null>(null);
+  const [motivoEncerramento, setMotivoEncerramento] = useState("");
+  const [resumoEncerramento, setResumoEncerramento] = useState<{
+    total: number;
+    por_status: Record<string, number>;
+    pendencias: Array<{ id: string; tipo: string; status: string; unidade: string; setor: string }>;
+  } | null>(null);
 
   const { data: secretarias } = useQuery({
     queryKey: ["secretarias-ativas"],
@@ -127,6 +135,7 @@ function CompetenciasPage() {
   const criarFn = useServerFn(criarCompetencia);
   const editarFn = useServerFn(editarCompetencia);
   const statusFn = useServerFn(alterarStatusCompetencia);
+  const resumoEncerramentoFn = useServerFn(obterResumoEncerramentoCompetencia);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: Partial<Competencia>) => {
@@ -186,19 +195,37 @@ function CompetenciasPage() {
       id,
       status,
       motivo,
+      forcar,
     }: {
       id: string;
       status: StatusComp;
       motivo?: string;
+      forcar?: boolean;
     }) => {
-      await statusFn({ data: { id, status, motivo } });
+      await statusFn({ data: { id, status, motivo, forcar } });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["competencias"] });
       qc.invalidateQueries({ queryKey: ["competencia-ativa"] });
       setReabrirTarget(null);
       setMotivoReabertura("");
+      setEncerrarTarget(null);
+      setMotivoEncerramento("");
+      setResumoEncerramento(null);
       toast.success("Status atualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const resumoEncerramentoMutation = useMutation({
+    mutationFn: async (competencia: Competencia) => {
+      const resumo = await resumoEncerramentoFn({ data: { id: competencia.id } });
+      return { competencia, resumo };
+    },
+    onSuccess: ({ competencia, resumo }) => {
+      setEncerrarTarget(competencia);
+      setResumoEncerramento(resumo);
+      setMotivoEncerramento("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -298,7 +325,8 @@ function CompetenciasPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => statusMutation.mutate({ id: c.id, status: "encerrada" })}
+                          onClick={() => resumoEncerramentoMutation.mutate(c)}
+                          disabled={resumoEncerramentoMutation.isPending}
                         >
                           <Lock className="mr-1 h-4 w-4" />
                           Encerrar
@@ -335,6 +363,82 @@ function CompetenciasPage() {
           </table>
         )}
       </div>
+
+      <FormDialog
+        open={!!encerrarTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEncerrarTarget(null);
+            setMotivoEncerramento("");
+            setResumoEncerramento(null);
+          }
+        }}
+        title={`Encerrar competência ${encerrarTarget ? `${MESES[encerrarTarget.mes - 1]}/${encerrarTarget.ano}` : ""}`}
+        submitLabel={
+          (resumoEncerramento?.total ?? 0) > 0
+            ? "Encerrar mesmo com pendências"
+            : "Confirmar encerramento"
+        }
+        submitDisabled={
+          (resumoEncerramento?.total ?? 0) > 0 && motivoEncerramento.trim().length < 3
+        }
+        loading={statusMutation.isPending}
+        onSubmit={() =>
+          encerrarTarget &&
+          statusMutation.mutate({
+            id: encerrarTarget.id,
+            status: "encerrada",
+            motivo: motivoEncerramento.trim() || undefined,
+            forcar: (resumoEncerramento?.total ?? 0) > 0,
+          })
+        }
+      >
+        <div className="space-y-3">
+          {(resumoEncerramento?.total ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Não há folhas pendentes. A competência será encerrada e ficará somente leitura.
+            </p>
+          ) : (
+            <>
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <p className="font-medium">
+                  Existem {resumoEncerramento?.total} folha(s) ainda não finalizadas.
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  O encerramento fechará o período para edição, mas não transformará essas folhas em aprovadas.
+                  Elas manterão o status atual para análise e auditoria.
+                </p>
+              </div>
+              <div className="max-h-44 space-y-1 overflow-auto rounded-md border p-2 text-xs">
+                {resumoEncerramento?.pendencias.slice(0, 20).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 border-b py-1 last:border-0">
+                    <span className="min-w-0 truncate">
+                      {p.unidade} · {p.setor} · {p.tipo}
+                    </span>
+                    <StatusBadge domain="frequencia" value={p.status as any} />
+                  </div>
+                ))}
+                {(resumoEncerramento?.total ?? 0) > 20 && (
+                  <p className="pt-1 text-muted-foreground">
+                    + {(resumoEncerramento?.total ?? 0) - 20} outra(s) folha(s).
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  Justificativa do encerramento <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  rows={3}
+                  value={motivoEncerramento}
+                  onChange={(e) => setMotivoEncerramento(e.target.value)}
+                  placeholder="Informe por que a competência será encerrada mesmo com folhas pendentes."
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </FormDialog>
 
       <FormDialog
         open={!!reabrirTarget}
