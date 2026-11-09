@@ -156,10 +156,61 @@ export const editarCompetencia = createServerFn({ method: "POST" })
     return { id: data.id };
   });
 
+const STATUS_FOLHA_FINAL = new Set(["aprovada", "arquivada"]);
+
+async function resumirPendenciasEncerramento(supabase: any, competenciaId: string) {
+  const { data, error } = await supabase
+    .from("frequencias")
+    .select(
+      "id, tipo, status, setor_id, setores(nome), competencia_unidades!inner(competencia_id, unidade_id, unidades(nome))",
+    )
+    .eq("competencia_unidades.competencia_id", competenciaId)
+    .is("deleted_at", null);
+
+  if (error) throw new Error(error.message);
+
+  const pendencias = (data ?? [])
+    .filter((f: any) => !STATUS_FOLHA_FINAL.has(String(f.status ?? "").toLowerCase()))
+    .map((f: any) => ({
+      id: String(f.id),
+      tipo: String(f.tipo ?? ""),
+      status: String(f.status ?? ""),
+      unidade:
+        (Array.isArray(f.competencia_unidades?.unidades)
+          ? f.competencia_unidades?.unidades?.[0]?.nome
+          : f.competencia_unidades?.unidades?.nome) ?? "Unidade não identificada",
+      setor:
+        (Array.isArray(f.setores) ? f.setores?.[0]?.nome : f.setores?.nome) ??
+        (f.setor_id ? "Setor não identificado" : "Folha Geral"),
+    }));
+
+  const porStatus = pendencias.reduce<Record<string, number>>((acc, item) => {
+    acc[item.status] = (acc[item.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: pendencias.length,
+    por_status: porStatus,
+    pendencias,
+  };
+}
+
+const ResumoEncerramentoSchema = z.object({ id: z.string().uuid() });
+
+export const obterResumoEncerramentoCompetencia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => ResumoEncerramentoSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePermission(context.supabase, context.userId, ACOES.COMPETENCIA_ENCERRAR);
+    return resumirPendenciasEncerramento(context.supabase, data.id);
+  });
+
 const StatusSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["aberta", "em_processamento", "encerrada", "arquivada"]),
   motivo: z.string().optional(),
+  forcar: z.boolean().optional().default(false),
 });
 
 export const alterarStatusCompetencia = createServerFn({ method: "POST" })
@@ -179,17 +230,16 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
       acaoPorDestino[data.status] ?? ACOES.COMPETENCIA_EDITAR,
     );
 
+    let resumoEncerramento: Awaited<ReturnType<typeof resumirPendenciasEncerramento>> | null = null;
     if (data.status === "encerrada") {
-      const { count, error: cErr } = await context.supabase
-        .from("frequencias")
-        .select("id, competencia_unidades!inner(competencia_id)", { count: "exact", head: true })
-        .eq("competencia_unidades.competencia_id", data.id)
-        .in("status", ["rascunho", "enviada", "em_analise", "com_pendencias"]);
-      if (cErr) throw new Error(cErr.message);
-      if ((count ?? 0) > 0) {
+      resumoEncerramento = await resumirPendenciasEncerramento(context.supabase, data.id);
+      if (resumoEncerramento.total > 0 && !data.forcar) {
         throw new Error(
-          `Existem ${count} folha(s) não aprovadas. Aprove ou arquive antes de encerrar.`,
+          `Existem ${resumoEncerramento.total} folha(s) ainda não finalizadas. Confirme o encerramento manual para fechar a competência mesmo com essas pendências.`,
         );
+      }
+      if (resumoEncerramento.total > 0 && (data.motivo?.trim().length ?? 0) < 3) {
+        throw new Error("Informe uma justificativa com pelo menos 3 caracteres para encerrar com folhas pendentes.");
       }
     } else if (data.status === "aberta" && (!data.motivo || !data.motivo.trim())) {
       throw new Error("Motivo da reabertura é obrigatório.");
@@ -213,6 +263,12 @@ export const alterarStatusCompetencia = createServerFn({ method: "POST" })
     if (tipoEvento) {
       await emitEvento(context.supabase, tipoEvento, "competencia", data.id, {
         motivo: data.motivo ?? null,
+        encerramento_manual_forcado:
+          data.status === "encerrada" ? Boolean(data.forcar && (resumoEncerramento?.total ?? 0) > 0) : false,
+        folhas_pendentes_no_encerramento:
+          data.status === "encerrada" ? (resumoEncerramento?.total ?? 0) : undefined,
+        pendencias_no_encerramento:
+          data.status === "encerrada" ? resumoEncerramento?.pendencias.slice(0, 100) ?? [] : undefined,
       });
     }
     return { id: data.id };
