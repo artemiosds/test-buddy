@@ -15,6 +15,7 @@ import { AnexosEntidade } from "@/components/frequencias/anexos-entidade";
 import { obterSubmissaoFolha } from "@/lib/folha-submissao.functions";
 import { descartarAnexosPendentes } from "@/lib/frequencias.functions";
 import { toast } from "sonner";
+import { auditarPreEnvioFolha } from "@/lib/auditoria-inteligente-folhas";
 
 /**
  * Confirmação do envio da folha para aprovação, com o bloco opcional de
@@ -73,6 +74,8 @@ export function EnviarFolhaDialog({
   const pendentesRef = useRef<string[]>([]);
   const [descartando, setDescartando] = useState(false);
   const temProfissionaisSemDias = profissionaisSemDias.length > 0;
+  // Conferência puramente informativa: não altera onConfirm ou validações.
+  const achados = auditarPreEnvioFolha({ profissionaisSemDias, setoresEnvio });
   const setoresJaEnviados = (setoresEnvio ?? []).filter((setor) => setor.jaEnviado).length;
   const temEnvioParcialSetorial =
     (setoresEnvio?.length ?? 0) > 0 &&
@@ -126,6 +129,27 @@ export function EnviarFolhaDialog({
             anexos. Se você cancelar, os arquivos enviados agora serão descartados.
           </DialogDescription>
         </DialogHeader>
+
+        <section className="rounded-lg border bg-muted/30 p-3 text-sm" aria-label="Auditoria de pré-envio">
+          <p className="font-semibold">Conferência inteligente antes do envio</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Os itens abaixo são informativos. A conferência não modifica a folha nem bloqueia o envio.
+          </p>
+          {achados.length === 0 ? (
+            <p className="mt-2 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4" /> Nenhum alerta identificado nos dados disponíveis.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1 text-xs">
+              {achados.map(achado => (
+                <li key={achado.codigo} className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <span><strong>{achado.quantidade} — {achado.titulo}.</strong> {achado.detalhe}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {temProfissionaisSemDias && (
           <section

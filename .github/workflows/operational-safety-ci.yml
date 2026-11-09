@@ -11,6 +11,10 @@ on:
       - "src/lib/cobranca-correcao*"
       - "src/lib/prazo-envio-etapas*"
       - "src/routes/api/public/hooks/deadline-check.ts"
+      - "src/lib/auditoria-inteligente-folhas*"
+      - "src/components/frequencias/enviar-folha-dialog.tsx"
+      - "src/components/aprovacoes/AuditoriaAprovacoesResumo.tsx"
+      - "src/routes/_authenticated/aprovacoes.tsx"
       - ".github/workflows/operational-safety-ci.yml"
   workflow_dispatch:
 
@@ -51,5 +55,6 @@ jobs:
           src/lib/cobranca-folhas.test.ts
           src/lib/cobranca-correcao.test.ts
           src/lib/prazo-envio-etapas.test.ts
+          src/lib/auditoria-inteligente-folhas.test.ts
       - name: Compilar aplicação
         run: npm run build

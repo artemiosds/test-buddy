@@ -39,6 +39,7 @@ import { FiltrosAprovacoes, type FiltrosState } from "@/components/aprovacoes/Fi
 import { TabelaAprovacoes } from "@/components/aprovacoes/TabelaAprovacoes";
 import { AgrupadoPorUnidade } from "@/components/aprovacoes/AgrupadoPorUnidade";
 import type { AcaoTipo, FreqRow, StatusFreq } from "@/components/aprovacoes/tipos";
+import { AuditoriaAprovacoesResumo } from "@/components/aprovacoes/AuditoriaAprovacoesResumo";
 import { ReabrirFolhaDialog } from "@/components/aprovacoes/ReabrirFolhaDialog";
 
 /** Filtros da tela persistidos na URL (link compartilhável). */
@@ -474,6 +475,8 @@ function AprovacoesPage() {
           })
         }
       />
+
+      {!isLoading && filtradas.length > 0 && <AuditoriaAprovacoesResumo folhas={filtradas} />}
 
       {isLoading ? (
         <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
